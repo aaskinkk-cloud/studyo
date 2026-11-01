@@ -1,0 +1,43 @@
+{
+ "id": "karanlik-oda",
+ "name": "Karanlık Oda",
+ "short_name": "Karanlık Oda",
+ "description": "Fotoğraf düzenleyici",
+ "start_url": "./?app=ko",
+ "scope": "./",
+ "display": "fullscreen",
+ "orientation": "any",
+ "background_color": "#0f1213",
+ "theme_color": "#0f1213",
+ "lang": "tr",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "display_override": [
+  "fullscreen",
+  "standalone"
+ ]
+}

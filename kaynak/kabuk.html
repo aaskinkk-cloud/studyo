@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+%SESSIZ%
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121a21">
+<meta name="surum" content="%SURUM%" data-ad="Stüdyo" data-tarih="%TARIH%">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Stüdyo</title>
+<script>try{var t=localStorage.getItem('studyo.tema');document.documentElement.dataset.tema=t==='gunduz'||t==='gece'?t:(matchMedia('(prefers-color-scheme: light)').matches?'gunduz':'gece')}catch(e){document.documentElement.dataset.tema='gece'}window.STUDYO_KABUK=1;</script>
+<style>
+:root{--zemin:#121a21;--kart:#1f2b35;--kart2:#283844;--cizgi:#2f3f4b;--yazi:#eef2f5;--soluk:#93a3ae;--vurgu:#ff8a3d;--vurgu2:#ffb26b;--mavi:#5aa9ff;--mor:#a98bff;--yesil:#4fd18b;--golge:0 10px 30px rgba(0,0,0,.35);--alt:#0e151b;
+  --f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+:root[data-tema="gunduz"]{--zemin:#f3f5f7;--kart:#ffffff;--kart2:#eef1f4;--cizgi:#dfe4e8;--yazi:#141a1f;--soluk:#5f6c75;--vurgu:#e8681c;--vurgu2:#f39a4c;--golge:0 8px 24px rgba(20,30,40,.10);--alt:#ffffff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--zemin);color:var(--yazi);font-family:var(--f)}
+body{overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+[hidden]{display:none!important}
+svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#uyg{max-width:620px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 96px)}
+.ust{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ust .logo{width:34px;height:34px;border-radius:10px;display:block}
+.ust b{font-size:15px;letter-spacing:.16em;font-weight:800}
+.ust .bos{flex:1}
+.yuv{width:42px;height:42px;border-radius:50%;border:1px solid var(--cizgi);background:var(--kart);display:grid;place-items:center;padding:0}
+h1.bas{font-size:clamp(28px,8vw,38px);line-height:1.08;letter-spacing:-.02em;margin:18px 0 6px;font-weight:800}
+p.alt{margin:0 0 18px;color:var(--soluk);font-size:15px}
+.ikili{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.kart{position:relative;border:1px solid var(--cizgi);background:var(--kart);border-radius:22px;padding:18px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:150px;overflow:hidden;transition:transform .12s ease}
+.kart:active{transform:scale(.975)}
+.kart .ik{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;margin-bottom:auto}
+.kart .ik svg{width:28px;height:28px}
+.kart b{font-size:18px;margin-top:12px}
+.kart small{color:var(--soluk);font-size:13px}
+.kart.foto .ik{background:rgba(90,169,255,.16);color:var(--mavi)}
+.kart.vid .ik{background:rgba(255,138,61,.16);color:var(--vurgu)}
+.kart.foto::after,.kart.vid::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;opacity:.12;background:currentColor;pointer-events:none}
+.kart.foto::after{color:var(--mavi)}.kart.vid::after{color:var(--vurgu)}
+.genis{margin-top:12px;width:100%;border:0;border-radius:22px;padding:18px;display:flex;align-items:center;gap:14px;text-align:left;color:#1b0f05;background:linear-gradient(135deg,var(--vurgu2),var(--vurgu));box-shadow:0 10px 26px rgba(255,138,61,.25);transition:transform .12s ease}
+.genis:active{transform:scale(.98)}
+.genis .ik{width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.3);display:grid;place-items:center}
+.genis .y{flex:1;min-width:0}.genis b{display:block;font-size:19px}.genis small{font-size:13px;opacity:.8}
+.bolum{display:flex;align-items:baseline;justify-content:space-between;margin:26px 2px 10px}
+.bolum h2{font-size:18px;margin:0}
+.bolum button{border:0;background:none;color:var(--vurgu);font-size:14px;font-weight:600;padding:4px 0}
+.serit{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px;scroll-snap-type:x mandatory}
+.serit::-webkit-scrollbar{display:none}
+.sk{flex:none;width:118px;border:0;padding:0;background:none;text-align:left;scroll-snap-align:start}
+.sk .th{width:118px;height:150px;border-radius:16px;background:var(--kart2) center/cover no-repeat;position:relative;display:grid;place-items:center;color:var(--soluk);border:1px solid var(--cizgi)}
+.sk .rozet{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:3px 7px;font-size:10.5px;font-weight:700;display:flex;gap:4px;align-items:center}
+.sk .rozet svg{width:12px;height:12px}
+.sk span{display:block;font-size:12.5px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sk em{display:block;font-style:normal;font-size:11px;color:var(--soluk)}
+.bosmesaj{border:1.5px dashed var(--cizgi);border-radius:18px;padding:18px;color:var(--soluk);font-size:14px;text-align:center}
+.araclar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.arac{border:1px solid var(--cizgi);background:var(--kart);border-radius:18px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;font-weight:600;text-align:center;min-height:92px;justify-content:center}
+.arac .ik{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--kart2)}
+.arac:active{transform:scale(.96)}
+/* projeler */
+.cips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:4px 0 14px}
+.cips::-webkit-scrollbar{display:none}
+.cips button{flex:none;border:1.5px solid var(--cizgi);background:var(--kart);border-radius:999px;padding:9px 15px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.cips button.on{background:var(--yazi);color:var(--zemin);border-color:var(--yazi)}
+.izgara{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pk{border:1px solid var(--cizgi);background:var(--kart);border-radius:18px;overflow:hidden;position:relative}
+.pk .ac{border:0;padding:0;background:none;display:block;width:100%;text-align:left}
+.pk .th{display:grid;width:100%;aspect-ratio:4/3;background:var(--kart2) center/cover no-repeat;display:grid;place-items:center;color:var(--soluk);position:relative}
+.pk .rozet{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700;display:flex;gap:4px;align-items:center}
+.pk .rozet svg{width:13px;height:13px}
+.pk .bilgi{display:block;padding:9px 11px 11px}
+.pk .bilgi b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .bilgi small{color:var(--soluk);font-size:11.5px}
+.pk .sil{position:absolute;right:8px;top:8px;border:0;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;min-width:32px;height:32px;font-size:13px;padding:0 9px}
+.pk .sil.arm{background:#d33;}
+.pk .yildiz{position:absolute;right:8px;bottom:62px;color:#ffd24a;font-size:16px;text-shadow:0 1px 3px #000}
+.not{color:var(--soluk);font-size:12.5px;line-height:1.5;margin:14px 2px 0}
+/* ayarlar */
+.liste{border:1px solid var(--cizgi);background:var(--kart);border-radius:18px;overflow:hidden}
+.satir{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--cizgi);width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;text-decoration:none;color:inherit}
+.satir:last-child{border-bottom:0}
+.satir .y{flex:1;min-width:0}.satir small{display:block;color:var(--soluk);font-size:12.5px;margin-top:2px}
+.seg{display:flex;background:var(--kart2);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--soluk)}
+.seg button.on{background:var(--kart);color:var(--yazi);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+/* alt gezinme */
+nav.altnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--alt);border-top:1px solid var(--cizgi);padding:6px 6px calc(env(safe-area-inset-bottom,0px) + 6px);display:flex;justify-content:center}
+nav.altnav .ic{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:620px}
+nav.altnav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--soluk);padding:6px 0}
+nav.altnav button.on{color:var(--yazi)}
+nav.altnav button.on svg{color:var(--vurgu)}
+/* modül */
+#modul{position:fixed;inset:0;z-index:50;background:var(--zemin)}
+#modul iframe{width:100%;height:100%;border:0;display:block;background:var(--zemin)}
+#yukleniyor{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:var(--zemin);color:var(--soluk);font-size:14px}
+#yukleniyor .d{width:38px;height:38px;border-radius:50%;border:3px solid var(--cizgi);border-top-color:var(--vurgu);animation:don 0.8s linear infinite;margin:0 auto 12px}
+@keyframes don{to{transform:rotate(360deg)}}
+#tost{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translateX(-50%);background:var(--yazi);color:var(--zemin);padding:10px 16px;border-radius:12px;font-size:14px;z-index:70;max-width:90vw;text-align:center}
+.ekran{animation:gir .22s ease}
+@keyframes gir{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 3 3-2 4 4"/></symbol>
+ <symbol id="i-vid" viewBox="0 0 24 24"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.5l5.5-3v9l-5.5-3z"/></symbol>
+ <symbol id="i-klaket" viewBox="0 0 24 24"><path d="M4 10h16v9a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M4 10l1.5-5.5 15 3.5-.5 2"/><path d="M8.5 5.5l2.5 4M13.5 6.6l2.5 4"/></symbol>
+ <symbol id="i-ev" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z"/></symbol>
+ <symbol id="i-klasor" viewBox="0 0 24 24"><path d="M3.5 7a2 2 0 012-2h4l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/></symbol>
+ <symbol id="i-taslak" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+ <symbol id="i-ayar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+ <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+ <symbol id="i-ok" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+ <symbol id="i-kam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+ <symbol id="i-yigin" viewBox="0 0 24 24"><rect x="7" y="7" width="13" height="13" rx="2"/><path d="M4 16V6a2 2 0 012-2h10"/></symbol>
+ <symbol id="i-gazete" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 01-2-2z"/><path d="M17 9h3v8a2 2 0 01-2 2M7 9h7M7 12h7M7 15h4"/></symbol>
+ <symbol id="i-simsek" viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 8-12h-6z"/></symbol>
+ <symbol id="i-kalem" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+ <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9 9h6v6H9z"/></symbol>
+ <symbol id="i-kitap" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 20V9"/></symbol>
+ <symbol id="i-dis" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"/></symbol>
+</svg>
+<div id="uyg">
+ <!-- ANA SAYFA -->
+ <section class="ekran" data-ekran="ana">
+  <div class="ust"><img class="logo" src="icon-192.png" alt=""><b>STÜDYO</b><span class="bos"></span><button class="yuv" id="temaDug" aria-label="Gündüz / gece"><svg class="i"><use href="#i-ay"/></svg></button></div>
+  <h1 class="bas">Yaratıcılığını keşfet.</h1>
+  <p class="alt">Fotoğraf ve video, tek bir yerde.</p>
+  <div class="ikili">
+   <button class="kart foto" data-git="foto-sec"><span class="ik"><svg class="i"><use href="#i-foto"/></svg></span><b>Fotoğraf düzenle</b><small>Filtre, ışık, HSL, kırp, rötuş</small></button>
+   <button class="kart vid" data-git="video-sec"><span class="ik"><svg class="i"><use href="#i-vid"/></svg></span><b>Video düzenle</b><small>Kes, müzik, metin, geçiş</small></button>
+  </div>
+  <button class="genis" data-git="kv"><span class="ik"><svg class="i"><use href="#i-klaket"/></svg></span><span class="y"><b>Kareden Videoya</b><small>Fotoğraflarından YouTube videosu · video türleri</small></span><svg class="i"><use href="#i-ok"/></svg></button>
+  <div class="bolum"><h2>Son çalışmalar</h2><button data-sekme="projeler">Tümünü gör</button></div>
+  <div class="serit" id="sonSerit"></div>
+  <div class="bolum"><h2>Fotoğraf araçları</h2></div>
+  <div class="araclar">
+   <button class="arac" data-git="foto-kam"><span class="ik"><svg class="i"><use href="#i-kam"/></svg></span>Kamera</button>
+   <button class="arac" data-git="foto-toplu"><span class="ik"><svg class="i"><use href="#i-yigin"/></svg></span>Toplu düzenle</button>
+   <button class="arac" data-git="foto-kitaplik"><span class="ik"><svg class="i"><use href="#i-kitap"/></svg></span>Kitaplık · hazır ayarlar</button>
+   <button class="arac" data-git="foto-kh"><span class="ik"><svg class="i"><use href="#i-gazete"/></svg></span>Kabataş Haber</button>
+   <button class="arac" data-git="foto-hz"><span class="ik"><svg class="i"><use href="#i-simsek"/></svg></span>Hızlı haber</button>
+   <button class="arac" data-git="foto-bl"><span class="ik"><svg class="i"><use href="#i-kalem"/></svg></span>Bloğum</button>
+   <button class="arac" data-git="foto-lg"><span class="ik"><svg class="i"><use href="#i-logo"/></svg></span>Logolar</button>
+  </div>
+ </section>
+ <!-- PROJELER / TASLAKLAR -->
+ <section class="ekran" data-ekran="projeler" hidden>
+  <div class="ust"><b id="pBaslik">PROJELERİM</b><span class="bos"></span></div>
+  <p class="alt" id="pAlt">Fotoğraf ve video projelerinin hepsi burada.</p>
+  <div class="cips" id="pCips"><button data-f="hepsi" class="on">Tümü</button><button data-f="foto">Fotoğraf</button><button data-f="video">Video</button><button data-f="fav">★ Favoriler</button></div>
+  <div class="izgara" id="pIzgara"></div>
+  <p class="not" id="pNot"></p>
+ </section>
+ <!-- AYARLAR -->
+ <section class="ekran" data-ekran="ayarlar" hidden>
+  <div class="ust"><b>AYARLAR</b></div>
+  <div class="liste" style="margin-top:12px">
+   <div class="satir"><div class="y">Tema<small>Fotoğraf ve video ekranları da buna uyar</small></div><div class="seg" id="temaSeg"><button data-t="gece">Gece</button><button data-t="gunduz">Gündüz</button></div></div>
+   <div class="satir"><div class="y">Depolama<small id="depo">—</small></div></div>
+  </div>
+  <div class="bolum"><h2>Eski uygulamalar</h2></div>
+  <div class="liste">
+   <a class="satir" href="../karanlik-oda/" target="_blank" rel="noopener"><div class="y">Karanlık Oda<small>Ayrı uygulama olarak duruyor · aynı fotoğraf kitaplığı</small></div><svg class="i"><use href="#i-dis"/></svg></a>
+   <a class="satir" href="../kareden-videoya/" target="_blank" rel="noopener"><div class="y">Kareden Videoya<small>Ayrı uygulama olarak duruyor · aynı video taslakları</small></div><svg class="i"><use href="#i-dis"/></svg></a>
+  </div>
+  <p class="not">Stüdyo, iki uygulamayı değiştirmeden içinde çalıştırır. Projeler ve taslaklar bu cihazda iki uygulamayla ortaktır: birinde yaptığın değişiklik diğerinde de görünür, hiçbir şey taşınmaz ya da kopyalanmaz.</p>
+  <p class="not" id="surumNot"></p>
+ </section>
+</div>
+<nav class="altnav"><div class="ic">
+ <button data-sekme="ana" class="on"><svg class="i"><use href="#i-ev"/></svg>Ana sayfa</button>
+ <button data-sekme="projeler"><svg class="i"><use href="#i-klasor"/></svg>Projelerim</button>
+ <button data-sekme="taslaklar"><svg class="i"><use href="#i-taslak"/></svg>Taslaklar</button>
+ <button data-sekme="ayarlar"><svg class="i"><use href="#i-ayar"/></svg>Ayarlar</button>
+</div></nav>
+<div id="modul" hidden></div>
+<div id="yukleniyor" hidden><div><div class="d"></div><span id="ykYazi">Açılıyor…</span></div></div>
+<div id="tost" hidden></div>
+<input type="file" id="secFoto" accept="image/*,.heic,.heif,.avif,.tif,.tiff,.dng,.cr2,.cr3,.nef,.arw,.orf,.rw2,.raf" multiple hidden>
+<input type="file" id="secKam" accept="image/*" capture="environment" hidden>
+<input type="file" id="secVideo" accept="video/*,image/*" multiple hidden>
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tostT = 0; const tost = (m, ms) => { const t = $('#tost'); t.textContent = m; t.hidden = false; clearTimeout(tostT); tostT = setTimeout(() => t.hidden = true, ms || 2600); };
+const ne = t => { if (!t) return ''; const d = new Date(t), g = (Date.now() - t)/864e5; if (g < 1 && d.getDate() === new Date().getDate()) return 'Bugün ' + d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'}); if (g < 2) return 'Dün'; return d.toLocaleDateString('tr-TR', {day:'numeric', month:'short'}); };
+
+/* ---------- TEMA ---------- */
+const tema = () => document.documentElement.dataset.tema === 'gunduz' ? 'gunduz' : 'gece';
+function temaKur(t){ document.documentElement.dataset.tema = t; try { localStorage.setItem('studyo.tema', t); } catch(e){}
+  $$('#temaSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelector('meta[name=theme-color]').content = t === 'gunduz' ? '#f3f5f7' : '#121a21';
+  try { const w = cerceve && cerceve.contentWindow; if (w && w.studyoKopru) w.studyoKopru.tema(t); } catch(e){} }
+window.studyoTema = tema;
+$('#temaDug').onclick = () => temaKur(tema() === 'gece' ? 'gunduz' : 'gece');
+$('#temaSeg').onclick = e => { const b = e.target.closest('button[data-t]'); if (b) temaKur(b.dataset.t); };
+
+/* ---------- PROJELER: iki uygulamanın kendi veritabanından okunur (yalnız okuma; yoksa oluşturulmaz) ---------- */
+function dbAc(ad){ return new Promise(res => { try {
+  const r = indexedDB.open(ad);
+  r.onupgradeneeded = () => { try { r.transaction.abort(); } catch(e){} };   /* veritabanı yoksa boş bir tane OLUŞTURMA (uygulamanın kendi kurulumunu bozar) */
+  r.onsuccess = () => res(r.result); r.onerror = () => res(null); r.onblocked = () => res(null);
+} catch(e){ res(null); } }); }
+async function fotoProjeler(){ const d = await dbAc('karanlik-oda'); if (!d) return [];
+  try { if (!d.objectStoreNames.contains('photos')) return [];
+    return await new Promise(res => { const out = []; const c = d.transaction('photos', 'readonly').objectStore('photos').openCursor();
+      c.onsuccess = () => { const k = c.result; if (!k) return res(out); const r = k.value; out.push({tur:'foto', id:r.id, ad:r.name || 'Fotoğraf', th:r.thumb || '', t:r.updated || r.created || 0, fav:!!r.fav, taslak:!!r.state}); k.continue(); };
+      c.onerror = () => res(out); });
+  } catch(e){ return []; } finally { try { d.close(); } catch(e){} } }
+async function videoProjeler(){ const d = await dbAc('kareden-videoya'); if (!d) return [];
+  try { if (!d.objectStoreNames.contains('meta')) return [];
+    return await new Promise(res => { const r = d.transaction('meta', 'readonly').objectStore('meta').getAll(IDBKeyRange.bound('s:', 's:\uffff'));
+      r.onsuccess = () => res((r.result || []).map(s => ({tur:'video', id:s.id, ad:s.name || 'Video', th:s.thumb || '', t:s.when || 0, fav:false, taslak:!s.exp, n:s.n, nv:s.nv, exp:!!s.exp}))); r.onerror = () => res([]); });
+  } catch(e){ return []; } finally { try { d.close(); } catch(e){} } }
+let PROJ = [];
+async function projeYukle(){ const [a, b] = await Promise.all([fotoProjeler(), videoProjeler()]); PROJ = [...a, ...b].sort((x, y) => y.t - x.t); ciz(); }
+const rozet = p => `<span class="rozet"><svg class="i"><use href="#i-${p.tur === 'foto' ? 'foto' : 'vid'}"/></svg>${p.tur === 'foto' ? 'Foto' : 'Video'}</span>`;
+function ciz(){
+  const s = $('#sonSerit');
+  s.innerHTML = PROJ.length ? PROJ.slice(0, 12).map((p, i) => `<button class="sk" data-i="${i}"><span class="th" style="${p.th ? `background-image:url('${p.th}')` : ''}">${p.th ? '' : `<svg class="i"><use href="#i-${p.tur === 'foto' ? 'foto' : 'vid'}"/></svg>`}${rozet(p)}</span><span>${esc(p.ad)}</span><em>${ne(p.t)}</em></button>`).join('')
+    : '<div class="bosmesaj" style="flex:1">Henüz çalışma yok. Yukarıdan fotoğraf ya da video seçerek başla.</div>';
+  projeCiz();
+}
+let SEKME = 'ana', FILTRE = 'hepsi';
+function projeCiz(){
+  if (SEKME !== 'projeler' && SEKME !== 'taslaklar') return;
+  const tas = SEKME === 'taslaklar';
+  $('#pBaslik').textContent = tas ? 'TASLAKLAR' : 'PROJELERİM';
+  $('#pAlt').textContent = tas ? 'Yarım kalanlar: dışa aktarılmamış videolar ve düzenlemesi süren fotoğraflar.' : 'Fotoğraf ve video projelerinin hepsi burada.';
+  let l = PROJ.filter(p => !tas || p.taslak);
+  if (FILTRE === 'foto') l = l.filter(p => p.tur === 'foto'); else if (FILTRE === 'video') l = l.filter(p => p.tur === 'video'); else if (FILTRE === 'fav') l = l.filter(p => p.fav);
+  $('#pIzgara').innerHTML = l.length ? l.map(p => `<div class="pk"><button class="ac" data-tur="${p.tur}" data-id="${esc(p.id)}"><span class="th" style="${p.th ? `background-image:url('${p.th}')` : ''}">${p.th ? '' : `<svg class="i"><use href="#i-${p.tur === 'foto' ? 'foto' : 'vid'}"/></svg>`}${rozet(p)}</span>
+      <span class="bilgi"><b>${esc(p.ad)}</b><small>${p.tur === 'video' ? `${p.n || 0} klip · ` : ''}${ne(p.t)}${p.exp ? ' · aktarıldı' : ''}</small></span></button>${p.fav ? '<span class="yildiz">★</span>' : ''}<button class="sil" data-tur="${p.tur}" data-id="${esc(p.id)}" aria-label="Sil">✕</button></div>`).join('')
+    : `<div class="bosmesaj" style="grid-column:1/-1">${tas ? 'Yarım kalan çalışma yok.' : 'Bu bölümde proje yok.'}</div>`;
+  const nf = PROJ.filter(p => p.tur === 'foto').length, nv = PROJ.length - nf;
+  $('#pNot').textContent = `${nf} fotoğraf · ${nv} video projesi. Karanlık Oda favori olmayan en son 24 fotoğrafı saklar; sık kullandıklarını ★ ile işaretle.`;
+}
+$('#pCips').onclick = e => { const b = e.target.closest('button[data-f]'); if (!b) return; FILTRE = b.dataset.f; $$('#pCips button').forEach(x => x.classList.toggle('on', x === b)); projeCiz(); };
+$('#pIzgara').onclick = e => {
+  const s = e.target.closest('.sil'); if (s){ e.stopPropagation(); silIste(s); return; }
+  const a = e.target.closest('.ac'); if (a) projeAc(a.dataset.tur, a.dataset.id);
+};
+$('#sonSerit').onclick = e => { const b = e.target.closest('.sk'); if (!b) return; const p = PROJ[+b.dataset.i]; if (p) projeAc(p.tur, p.id); };
+function silIste(b){
+  if (!b.classList.contains('arm')){ b.classList.add('arm'); b.textContent = 'Silinsin mi?'; setTimeout(() => { if (b.isConnected){ b.classList.remove('arm'); b.textContent = '✕'; } }, 3000); return; }
+  b.disabled = true; b.textContent = 'Siliniyor…';
+  (b.dataset.tur === 'foto' ? fotoSil(b.dataset.id) : videoSil(b.dataset.id)).then(ok => { tost(ok ? 'Silindi' : 'Silinemedi'); projeYukle(); });
+}
+async function fotoSil(id){ const d = await dbAc('karanlik-oda'); if (!d) return false;
+  return new Promise(res => { try { const t = d.transaction('photos', 'readwrite'); t.objectStore('photos').delete(id); t.oncomplete = () => { d.close(); res(true); }; t.onerror = () => { d.close(); res(false); }; } catch(e){ res(false); } }); }
+/* video taslağını Kareden Videoya'nın kendi silme işleviyle sil (dosya temizliği dahil): görünmez çerçevede açılır */
+function videoSil(id){ return new Promise(res => { const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-9px;top:-9px'; let bitti = false;
+  const son = ok => { if (bitti) return; bitti = true; window.removeEventListener('message', m); setTimeout(() => f.remove(), 50); res(ok); };
+  const m = e => { if (e.source === f.contentWindow && e.data && e.data.studyo === 'silindi') son(!!e.data.ok); };
+  window.addEventListener('message', m); setTimeout(() => son(false), 30000);
+  f.src = 'video/?studyo=1&sil=' + encodeURIComponent(id); document.body.appendChild(f); }); }
+
+/* ---------- SEKMELER ---------- */
+function sekme(s){ SEKME = s; const ek = s === 'taslaklar' ? 'projeler' : s;
+  $$('[data-ekran]').forEach(x => x.hidden = x.dataset.ekran !== ek);
+  $$('nav.altnav button').forEach(b => b.classList.toggle('on', b.dataset.sekme === s));
+  if (ek === 'projeler') projeCiz();
+  if (s === 'ayarlar') depoYaz();
+  scrollTo(0, 0); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-sekme]'); if (b) sekme(b.dataset.sekme); });
+async function depoYaz(){ try { const e = await navigator.storage.estimate(); $('#depo').textContent = `Bu cihazda ${(e.usage/1048576).toFixed(0)} MB kullanılıyor`; } catch(x){ $('#depo').textContent = 'Bilinmiyor'; } }
+
+/* ---------- MODÜLLER (Karanlık Oda = foto/, Kareden Videoya = video/) ---------- */
+let cerceve = null, BEKLEYEN = null, ACIK = false;
+window.studyoAl = () => { const b = BEKLEYEN; BEKLEYEN = null; return b; };
+window.studyoEve = () => { if (ACIK) { if (history.state && history.state.studyoModul) history.back(); else modulKapat(); } };
+window.studyoHazir = () => { $('#yukleniyor').hidden = true; };
+function modulAc(yol, bekleyen, yazi){
+  BEKLEYEN = bekleyen || null;
+  if (cerceve) cerceve.remove();
+  $('#ykYazi').textContent = yazi || 'Açılıyor…'; $('#yukleniyor').hidden = false;
+  cerceve = document.createElement('iframe'); cerceve.setAttribute('allow', 'fullscreen; clipboard-read; clipboard-write; camera; microphone; autoplay; web-share');
+  cerceve.src = yol + (yol.includes('?') ? '&' : '?') + 'studyo=1&tema=' + tema();
+  const m = $('#modul'); m.innerHTML = ''; m.appendChild(cerceve); m.hidden = false; ACIK = true;
+  setTimeout(() => { $('#yukleniyor').hidden = true; }, 12000);
+  try { history.pushState({studyoModul: 1}, ''); } catch(e){}
+}
+function modulKapat(){ ACIK = false; const m = $('#modul'); m.hidden = true; if (cerceve){ try { cerceve.src = 'about:blank'; } catch(e){} cerceve.remove(); cerceve = null; } m.innerHTML = ''; $('#yukleniyor').hidden = true; projeYukle(); }
+addEventListener('popstate', () => {
+  if (!ACIK) return;
+  let isledi = false; try { const k = cerceve && cerceve.contentWindow && cerceve.contentWindow.studyoKopru; if (k) isledi = k.geri(); } catch(e){}
+  if (isledi){ try { history.pushState({studyoModul: 1}, ''); } catch(e){} return; }
+  modulKapat();
+});
+function projeAc(tur, id){ modulAc((tur === 'foto' ? 'foto/' : 'video/') + '?ac=' + encodeURIComponent(id), null, tur === 'foto' ? 'Fotoğraf açılıyor…' : 'Video projesi açılıyor…'); }
+const sec = (inp, fn) => { inp.value = ''; inp.onchange = () => { const f = [...inp.files]; if (f.length) fn(f); }; inp.click(); };
+document.addEventListener('click', e => { const b = e.target.closest('[data-git]'); if (!b) return; const g = b.dataset.git;
+  if (g === 'foto-sec') sec($('#secFoto'), f => modulAc('foto/', {dosyalar:f}, f.length > 1 ? 'Toplu düzenleme açılıyor…' : 'Fotoğraf açılıyor…'));
+  else if (g === 'foto-kam') sec($('#secKam'), f => modulAc('foto/', {dosyalar:f}, 'Fotoğraf açılıyor…'));
+  else if (g === 'video-sec') sec($('#secVideo'), f => modulAc('video/', {dosyalar:f}, 'Video hazırlanıyor…'));
+  else if (g === 'kv') modulAc('video/', null, 'Kareden Videoya açılıyor…');
+  else if (g === 'foto-kitaplik') modulAc('foto/', null, 'Kitaplık açılıyor…');
+  else if (g === 'foto-toplu') modulAc('foto/', {tikla:'#openBatch'}, 'Toplu düzenleme açılıyor…');
+  else if (g === 'foto-kh') modulAc('foto/', {tikla:'#khAcBtn'}, 'Kabataş Haber açılıyor…');
+  else if (g === 'foto-hz') modulAc('foto/', {tikla:'#hzAcBtn'}, 'Hızlı haber açılıyor…');
+  else if (g === 'foto-bl') modulAc('foto/', {tikla:'#blAcBtn'}, 'Bloğum açılıyor…');
+  else if (g === 'foto-lg') modulAc('foto/', {tikla:'#lgAcBtn'}, 'Logolar açılıyor…');
+});
+
+/* ---------- başlangıç ---------- */
+temaKur(tema());
+{ const m = document.querySelector('meta[name=surum]'); $('#surumNot').textContent = `Stüdyo ${m.content} · ${m.dataset.tarih} · içinde Karanlık Oda %KO% ve Kareden Videoya %KV%`; }
+projeYukle();
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !ACIK) projeYukle(); });
+/* çevrimdışı önbellek */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) navigator.serviceWorker.register('sw.js').catch(() => {});
+window.__studyo = {projeYukle, PROJ: () => PROJ, modulAc, modulKapat, sekme};
+})();
+</script>
+</body>
+</html>

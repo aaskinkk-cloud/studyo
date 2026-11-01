@@ -1,0 +1,31 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Ses denemesi</title>
+<style>body{font:16px system-ui;margin:0;padding:16px;background:#111;color:#eee;max-width:640px;margin:auto}h1{font-size:20px}textarea{width:100%;box-sizing:border-box;min-height:120px;font:16px system-ui;border-radius:12px;padding:10px;background:#1c1c1c;color:#eee;border:1px solid #444}button,select{width:100%;min-height:48px;margin:6px 0;border-radius:12px;border:1px solid #555;background:#2a2a2a;color:#eee;font:600 15px system-ui}button.p{background:#c8742a;border-color:#c8742a;color:#fff}p{color:#aaa;font-size:13px}</style></head><body>
+<h1>Ses denemesi</h1>
+<textarea id="m">Ferrero fındık alımına başlıyor. Alımların yılbaşına kadar kırk beş bin ton kabuklu fındığı kapsaması bekleniyor. Kilogram başına iki yüz elli lira fiyat belirlendi.</textarea>
+<button class="p" id="g">▶ 1 · Google sesi (YouTube'daki)</button>
+<input id="px" placeholder="1b · Apps Script aracı adresi (https://script.google.com/macros/s/…/exec)" style="width:100%;box-sizing:border-box;min-height:44px;border-radius:12px;padding:0 10px;background:#1c1c1c;color:#eee;border:1px solid #444"><p id="gn">İnternet gerekir. Ses gelmezse Google bu adresi engelliyor demektir.</p>
+<button id="kk">📋 Apps Script kodunu kopyala</button>
+<button id="g2">▶ 1c · Genel aracıyla dene (kurulumsuz, güvenilmez)</button>
+<button id="g3">🧪 1d · Google sesini kaydetmeyi dene (deney)</button>
+<select id="v"></select><button id="c">▶ 3 · Cihazın kendi sesi</button>
+<button id="d" onclick="location.href='https://cloud.google.com/text-to-speech'">2 · Google Cloud sesleri (resmî demo sayfası)</button>
+<p>Cloud demo sayfasında Dil: Türkçe seç, metni yapıştırıp Dinle. Standard ve Wavenet seslerini karşılaştır.</p>
+<script>
+const $=s=>document.querySelector(s);let a;
+function parcala(t){const out=[];t.replace(/\s+/g,' ').trim().split(/(?<=[.!?])\s+/).forEach(c=>{while(c.length>180){let i=c.lastIndexOf(' ',180);out.push(c.slice(0,i));c=c.slice(i+1)}if(c)out.push(c)});return out}
+try{$('#px').value=localStorage.getItem('px')||''}catch(e){}
+$('#g').onclick=async()=>{const ps=parcala($('#m').value);const px=$('#px').value.trim();try{localStorage.setItem('px',px)}catch(e){}$('#gn').textContent='Çalıyor…';try{for(const p of ps){let src='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=tr&q='+encodeURIComponent(p);if(px){const j=await (await fetch(px+(px.includes('?')?'&':'?')+'q='+encodeURIComponent(p))).json();if(!j.b64)throw new Error('aracı: '+(j.hata||'boş'));src='data:audio/mpeg;base64,'+j.b64}await new Promise((ok,no)=>{a=new Audio(src);a.onended=ok;a.onerror=()=>no(new Error('ses gelmedi'));a.play().catch(no)})}$('#gn').textContent='Bitti.'}catch(e){$('#gn').textContent='Olmadı: '+e.message+' (Google engelliyor ya da internet yok)'}};
+function doldur(){const l=speechSynthesis.getVoices().filter(v=>/^tr/i.test(v.lang));$('#v').innerHTML=l.map(v=>`<option value="${v.name}">${v.name}</option>`).join('')||'<option>Türkçe cihaz sesi yok</option>'}
+speechSynthesis.onvoiceschanged=doldur;doldur();
+$('#c').onclick=()=>{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance($('#m').value);u.lang='tr-TR';const v=speechSynthesis.getVoices().find(x=>x.name===$('#v').value);if(v)u.voice=v;speechSynthesis.speak(u)};
+
+const GS="function doGet(e){\n  var q=(e.parameter.q||'').slice(0,200);\n  var u='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=tr&q='+encodeURIComponent(q);\n  var r=UrlFetchApp.fetch(u,{muteHttpExceptions:true,headers:{'User-Agent':'Mozilla/5.0'}});\n  var o=r.getResponseCode()!=200?{hata:r.getResponseCode()}:{b64:Utilities.base64Encode(r.getContent())};\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}";
+$('#kk').onclick=async()=>{try{await navigator.clipboard.writeText(GS);$('#gn').textContent='Kod kopyalandı. script.google.com/create → içindekileri sil → yapıştır.'}catch(e){$('#gn').textContent='Kopyalanamadı: '+e.message}};
+$('#g2').onclick=async()=>{const p=parcala($('#m').value)[0];$('#gn').textContent='Deniyor…';try{const u='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=tr&q='+encodeURIComponent(p);const r=await fetch('https://corsproxy.io/?url='+encodeURIComponent(u));if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();if(!/audio/.test(b.type)&&b.size<2000)throw new Error('ses değil');a=new Audio(URL.createObjectURL(b));await a.play();$('#gn').textContent='1c çalıyor (yalnız ilk cümle).'}catch(e){$('#gn').textContent='1c olmadı: '+e.message}};
+
+$('#g3').onclick=async()=>{const n=$('#gn');n.textContent='Deney başladı…';const u='https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=tr&q='+encodeURIComponent(parcala($('#m').value)[0]);const r=[];
+try{const x=await fetch(u,{mode:'cors'});const b=await x.blob();r.push('A fetch(cors): VAR '+b.size+' bayt → kaydedilebilir!')}catch(e){r.push('A fetch(cors): yok ('+e.message+')')}
+try{const a2=new Audio();a2.crossOrigin='anonymous';a2.src=u;await new Promise((ok,no)=>{a2.oncanplay=ok;a2.onerror=()=>no(new Error('yüklenmedi'));a2.load()});r.push('B crossOrigin ses: yüklendi → WebAudio ile alınabilir!')}catch(e){r.push('B crossOrigin ses: '+e.message)}
+try{const a3=new Audio(u);await a3.play();const cs=a3.captureStream?a3.captureStream():null;if(!cs)r.push('C captureStream: yok');else{const ch=[];const mr=new MediaRecorder(new MediaStream(cs.getAudioTracks()));mr.ondataavailable=e=>ch.push(e.data);mr.start();await new Promise(ok=>setTimeout(ok,2500));mr.stop();await new Promise(ok=>mr.onstop=ok);const sz=ch.reduce((t,c)=>t+c.size,0);r.push('C captureStream kayıt: '+sz+' bayt (küçükse sessiz)')}}catch(e){r.push('C captureStream: '+e.message)}
+n.textContent=r.join(' · ')};
+</script></body></html>

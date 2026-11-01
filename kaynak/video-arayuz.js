@@ -1,0 +1,102 @@
+/* ===== STÜDYO · VİDEO EDİTÖRÜ: BÖLÜMLER ÜSTTE, ALTTA YALNIZ SEÇİLEN (yalnız görünüm) =====
+   Kareden Videoya'nın InShot görünümünde 1. sıra (simgeli bölümler) ve 2. sıra (ara başlıklar) zaten var.
+   Bu katman: 2. sıraya simge ekler; seçili bölüm ekrana sığmıyorsa sayfalara böler (3. sıra), 3+ kaydırıcıyı
+   InShot "Ayarlama" gibi tek tek gösterir, uzun seçenek gruplarını yatay şerit yapar. Öğeler taşınmaz, silinmez. */
+(function(){
+  if (!window.STUDYO || !window.stSayfala) return;
+  var B = document.body;
+  var css = document.createElement('style'); css.id = 'st-video-css';
+  css.textContent = [
+    'body.kv-studyo.is-mod #isAltSek2 button{display:inline-flex;align-items:center;gap:6px}',
+    'body.kv-studyo.is-mod #isAltSek2 button svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
+    '#stVsayfa{display:none}',
+    'body.kv-studyo.is-mod #stVsayfa:not([hidden]){display:flex;position:sticky;z-index:5;background:var(--is-bg);padding:2px 2px 8px;margin:-2px -4px 6px}',
+    'body.kv-studyo.is-mod .st-satir button{border:1.5px solid color-mix(in srgb,var(--is-ink) 16%,transparent);color:var(--is-mute)}',
+    'body.kv-studyo.is-mod .st-satir button.on{background:var(--is-ink);color:var(--is-bg);border-color:var(--is-ink)}',
+    /* seçenek grupları tek satır, yana kayar (InShot gibi) */
+    'body.kv-studyo.is-mod .kv-pan .seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;overscroll-behavior-x:contain}',
+    'body.kv-studyo.is-mod .kv-pan .seg::-webkit-scrollbar{display:none}',
+    'body.kv-studyo.is-mod .kv-pan .seg>button{flex:none}',
+    'body.kv-studyo.is-mod .kv-pan .chips{display:flex;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
+    'body.kv-studyo.is-mod .kv-pan .chips::-webkit-scrollbar{display:none}',
+    'body.kv-studyo.is-mod .kv-pan .chips>*{flex:none!important}',
+    /* yatay şeritler bölüm kutusunu genişletmesin (grid sütunu ekran genişliğinde kalsın) */
+    'body.kv-studyo.is-mod .kv-pan section.panel,body.kv-studyo.is-mod .kv-pan .sect{grid-template-columns:minmax(0,1fr)!important;min-width:0;max-width:100%}',
+    'body.kv-studyo.is-mod .kv-pan .sect>*,body.kv-studyo.is-mod .kv-pan section.panel>*{min-width:0;max-width:100%}',
+    /* Kolaj iptal edildi: video modülünün ana ekranındaki "Kolaj · Yakında" kartı gösterilmez, Fotoğraf kartı tam genişlik */
+    '#isAna .is-kart[data-a="kolaj"]{display:none!important}',
+    '#isAna .is-kart-ikili{grid-template-columns:minmax(0,1fr)!important}',
+    /* stil / kapak önerileri: yatay şerit */
+    'body.kv-studyo.is-mod .kv-pan .cands{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;scrollbar-width:none;grid-template-columns:none!important;padding-bottom:4px}',
+    'body.kv-studyo.is-mod .kv-pan .cands::-webkit-scrollbar{display:none}',
+    'body.kv-studyo.is-mod .kv-pan .cands>*{flex:none!important;width:150px!important}'
+  ].join('\n');
+  (document.head || document.documentElement).appendChild(css);
+
+  var row = null, mesgul = false, gozcu = null;
+  function aktif(){ return B.classList.contains('kv-studyo') && B.classList.contains('is-mod') && !B.classList.contains('kv-kapali') && !B.classList.contains('kv-klv'); }
+  function ikinciSiraSimge(){
+    var r2 = document.getElementById('isAltSek2'); if (!r2 || r2.hidden) return;
+    [].forEach.call(r2.querySelectorAll('button'), function(b){ if (b.querySelector('svg')) return; var ad = b.textContent.trim();
+      b.insertAdjacentHTML('afterbegin', '<svg viewBox="0 0 24 24" aria-hidden="true">' + window.stIkon(ad) + '</svg>'); });
+  }
+  function satirKur(){
+    var r1 = document.getElementById('isAltSek'), r2 = document.getElementById('isAltSek2'); if (!r1) return null;
+    if (!row){ row = document.createElement('div'); row.id = 'stVsayfa'; row.hidden = true; }
+    var once = r2 || r1; if (row.previousElementSibling !== once) once.after(row);
+    return row;
+  }
+  function temizle(){ var pan = document.querySelector('.kv-pan'); if (pan) [].forEach.call(pan.querySelectorAll('.st-gz'), function(e){ e.classList.remove('st-gz'); });
+    if (row) row.hidden = true; var ks = document.querySelector('.kv-pan .st-ksat'); if (ks) ks.remove(); }
+  function pas(yeniSecim){
+    if (mesgul) return; mesgul = true;
+    try {
+      if (!aktif()){ temizle(); return; }
+      var pan = document.querySelector('.kv-pan'), t = B.dataset.kvtab, pn = pan && document.querySelector('#editor [data-panel="' + t + '"]');
+      if (!pan || !pn){ temizle(); return; }
+      ikinciSiraSimge();
+      var r = satirKur(); if (!r) return;
+      var birimler = [].filter.call(pn.children, function(c){ return !c.matches('.phead') && getComputedStyle(c).display !== 'none'; });
+      if (!birimler.length){ temizle(); return; }
+      /* sayfa sırası, üstteki yapışkan sıraların hemen altında dursun */
+      var r1 = document.getElementById('isAltSek'), r2 = document.getElementById('isAltSek2'), ust = 46;
+      if (r1 && !r1.hidden) ust += r1.offsetHeight + 6; if (r2 && !r2.hidden) ust += r2.offsetHeight + 4;
+      r.style.top = ust + 'px';
+      if (yeniSecim) pan.scrollTop = 0;
+      var a1 = (document.querySelector('#isAltSek button.on') || {}).textContent || '', a2 = (document.querySelector('#isAltSek2:not([hidden]) button.on') || {}).textContent || '';
+      var o = {anahtar: 'kv|' + t + '|' + a1.trim() + '|' + a2.trim(), birimler: birimler, satir: r, kok: pan, yenile: function(){ pas(true); }};
+      var hesap = function(){ var pr = pan.getBoundingClientRect(), ps = getComputedStyle(pan), alt = parseFloat(ps.paddingBottom) || 0;
+        var ilk = birimler.filter(function(e){ return getComputedStyle(e).display !== 'none'; })[0]; var ust2 = ilk ? ilk.getBoundingClientRect().top + pan.scrollTop : pr.top + 160;
+        return pr.bottom - alt - ust2 - (r.hidden ? 46 : 0) - 10; };
+      pan.scrollTop = 0; o.maxH = hesap();
+      /* sınır seçili sayfadan bağımsız: sayfa sırası yerleştikten sonra kalan yükseklik bir kez ölçülür */
+      window.stSayfala(o);
+      var pr = pan.getBoundingClientRect(), alt = parseFloat(getComputedStyle(pan).paddingBottom) || 0, ustK = o._ilkUst;
+      if (ustK == null) ustK = pr.top + 160;
+      if (!o._satirOnce && !r.hidden) ustK += r.offsetHeight + 8;
+      var gercek = pr.bottom - alt - ustK - 8;
+      if (Math.abs(gercek - o.maxH) > 4){ o.maxH = gercek; window.stSayfala(o); }
+    } catch(e){ console.warn('Stüdyo video bölümleri', e); }
+    finally { if (gozcu) gozcu.takeRecords(); mesgul = false; }
+  }
+  window.stVideoPas = pas;
+  /* kısma (debounce değil): sürekli değişiklik olsa da en geç 150 ms'de bir çalışır */
+  var zz = 0, bekYeni = false; function sonra(yeni){ bekYeni = bekYeni || !!yeni; if (zz) return; zz = setTimeout(function(){ zz = 0; var y = bekYeni; bekYeni = false; pas(y); }, 150); }
+  (function bagla(n){
+    var pan = document.querySelector('.kv-pan'), r1 = document.getElementById('isAltSek');
+    if (!pan || !r1){ if (n < 120) setTimeout(function(){ bagla(n + 1); }, 400); return; }
+    gozcu = new MutationObserver(function(ml){
+      if (mesgul) return;
+      for (var i = 0; i < ml.length; i++){ var tg = ml[i].target; if (tg.nodeType !== 1) tg = tg.parentElement; if (!tg || (tg.closest && tg.closest('#stVsayfa,.st-ksat,.kv-panb'))) continue;   /* panel başlığı her karede yeniden yazılıyor: yok say */
+        var secim = tg.id === 'isAltSek' || tg.id === 'isAltSek2' || (tg.parentElement && /^isAltSek2?$/.test(tg.parentElement.id));
+        sonra(secim); return; }
+    });
+    gozcu.observe(pan, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden']});
+    gozcu.observe(r1, {attributes: true, subtree: true, childList: true, attributeFilter: ['class', 'hidden']});
+    var r2 = document.getElementById('isAltSek2'); if (r2) gozcu.observe(r2, {attributes: true, subtree: true, childList: true, attributeFilter: ['class', 'hidden']});
+    new MutationObserver(function(ml){ sonra(ml.some(function(m){ return m.attributeName === 'data-kvtab'; })); }).observe(B, {attributes: true, attributeFilter: ['data-kvtab', 'class']});
+    addEventListener('resize', function(){ sonra(false); });
+    if (window.ResizeObserver) new ResizeObserver(function(){ sonra(false); }).observe(pan);
+    sonra(true);
+  })(0);
+})();

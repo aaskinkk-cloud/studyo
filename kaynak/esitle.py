@@ -28,6 +28,8 @@ def govdeye(s, app):
     i = s.rfind('</body>')
     if i < 0: raise SystemExit('HATA: </body> yok')
     ek = '<script>\n' + kopru.replace('%APP%', app) + '\n</script>\n'
+    say = os.path.join(BURA, 'sayfala.js')        # ortak sayfalama (bölümler sekme, kaydırıcılar tek tek, uzun bölümler sayfa)
+    if os.path.exists(say): ek += '<script>\n' + oku(say) + '\n</script>\n'
     ara = os.path.join(BURA, app + '-arayuz.js')   # uygulamaya özel görünüm katmanı (varsa)
     if os.path.exists(ara): ek += '<script>\n' + oku(ara) + '\n</script>\n'
     return s[:i] + ek + s[i:]

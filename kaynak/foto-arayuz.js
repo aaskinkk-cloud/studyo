@@ -36,8 +36,8 @@
     'html.st-is .st-pbas{display:none}',
     '@media (max-width:899px){html.st-is .st-pbas{display:flex;align-items:center;gap:10px;position:sticky;top:22px;z-index:6;background:var(--surface);padding:2px 12px 6px 18px}',
     ' html.st-is .st-pbas b{flex:1;text-align:center;font-size:16px;font-weight:700;padding-left:40px}',
-    ' html.st-is .st-pbas button{width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--text);display:grid;place-items:center;padding:0}',
-    ' html.st-is .st-pbas svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}',
+    ' html.st-is .st-pbas > button{width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--text);display:grid;place-items:center;padding:0}',
+    ' html.st-is .st-pbas > button svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}',
     ' html.st-is #editor .panel{border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.18)}}'
   ].join('\n');
   (document.head || R).appendChild(css);
@@ -114,4 +114,131 @@
       }).observe(pin, {childList: true});
     })(0);
   }
+})();
+
+/* ===== 3. adım: PANEL BÖLÜMLERİ ÜSTTE SİMGELİ SEKMELER, ALTTA YALNIZ SEÇİLEN BÖLÜM =====
+   Karanlık Oda her paneli çizdikten sonra bolumle() ile "başlık + grup" çiftleri kurar. Bu katman onu sarar:
+   başlıklar üstte simgeli bir sıraya dönüşür, altta yalnız seçilen bölüm görünür; uzun bölümler sayfalanır,
+   3+ kaydırıcı InShot "Ayarlama" gibi tek tek gösterilir. Öğeler taşınmaz, yalnız gizlenip gösterilir. */
+(function(){
+  if (!window.STUDYO || typeof bolumle !== 'function') return;
+  var css = document.createElement('style');
+  css.textContent = [
+    'html.st-is #panelIn .bmod{display:none!important}',
+    'html.st-is #panelIn>.subhead.bhead.st-bas-gz{display:none!important}',
+    'html.st-is #panelIn>.panel-title{display:none!important}',      /* başlık panelin üst çubuğunda zaten var */
+    'html.st-is #panelIn>.panel-title.st-pt-dug{display:flex!important;justify-content:flex-end;min-height:0;margin:0}',
+    'html.st-is #panelIn>.panel-title.st-pt-dug>h3{display:none}',
+    'html.st-is .st-bsek{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;margin:0;padding:0 0 2px}',
+    'html.st-is .st-pbas.st-sekmeli b{display:none}',
+    'html.st-is .st-pbas.st-sekmeli{padding-left:8px!important}',
+    'html.st-is .st-bsek::-webkit-scrollbar{display:none}',
+    'html.st-is .st-bsek button{flex:none;min-width:58px;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;color:var(--muted);font:600 11px/1.1 var(--f-ui);padding:5px 5px 7px;border-radius:12px;position:relative;white-space:nowrap}',
+    'html.st-is .st-bsek button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
+    'html.st-is .st-bsek button.on{color:var(--text)}',
+    'html.st-is .st-bsek button.on svg{color:var(--accent)}',
+    'html.st-is .st-bsek button.on::after{content:"";position:absolute;left:30%;right:30%;bottom:0;height:2.5px;border-radius:2px;background:var(--accent)}',
+    'html.st-is .st-ssat{position:sticky;top:76px;z-index:5;background:var(--surface);margin:-4px -16px 0;padding:4px 16px 8px}',
+    /* büyük ızgaralar yatay şerit olsun (aşağı kaydırma yok) */
+    'html.st-is #panelIn .presets{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;scrollbar-width:none;padding-bottom:4px;grid-template-columns:none!important}',
+    'html.st-is #panelIn .presets::-webkit-scrollbar{display:none}',
+    'html.st-is #panelIn .presets>*{flex:none!important;width:92px!important}',
+    'html.st-is #panelIn .yz-sab,html.st-is #panelIn .im-sab{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;scrollbar-width:none;grid-template-columns:none!important}',
+    'html.st-is #panelIn .yz-sab>*,html.st-is #panelIn .im-sab>*{flex:none!important;width:128px!important}',
+    'html.st-is #panelIn #curve{max-width:150px!important}',
+    /* seçenek grupları (oranlar, hazırlar) tek satır, yana kayar */
+    'html.st-is #panelIn .chips{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
+    'html.st-is #panelIn .chips::-webkit-scrollbar{display:none}',
+    'html.st-is #panelIn .chips>*{flex:none!important}'
+  ].join('\n');
+  (document.head || document.documentElement).appendChild(css);
+
+  var GIRIS = {auto: 'Akıllı', filters: 'Stil kopyala', selfi: 'Kadraj', crop: 'Oran', curves: 'Eğri', retouch: 'Rötuş', export: 'Kaydet', fx: 'Efektler', brush: 'Fırça', hdr: 'HDR', overlay: 'Katman', light: 'Işık', history: 'Geçmiş', text: 'Yazı', detail: 'Detay', color: 'Renk'};
+  var ATLA = {hsl: 1};      /* HSL zaten üstte renk noktalarıyla seçiliyor */
+  var SEC = {}; try { SEC = JSON.parse(localStorage.getItem('st.bsek') || '{}') || {}; } catch(e){}
+  var meşgul = false, sonP = null;
+
+  function birimlerCikar(P_){
+    var giris = {ad: GIRIS[ED.tab] || 'Genel', els: []}, list = [], cur = null;
+    [].forEach.call(P_.children, function(n){
+      if (n.classList.contains('st-bsek') || n.classList.contains('st-ssat') || n.classList.contains('bmod') || n.classList.contains('st-ksat')) return;
+      if (n.classList.contains('panel-title')){ return; }
+      if (n.classList.contains('subhead') && n.classList.contains('bhead')){ cur = {ad: window.stKisa(n.textContent) || 'Bölüm', h: n, els: []}; list.push(cur); return; }
+      if (n.classList.contains('bgrp') && cur){ cur.g = n; cur.els = [].slice.call(n.children); return; }
+      if (n.classList.contains('st-vkart')){ giris.els.push(n); return; }
+      giris.els.push(n);
+    });
+    var anlamli = giris.els.filter(function(e){ return !e.matches('input[type=file],p.note') ; }).length;
+    if (giris.els.length && (anlamli || !list.length)) list.unshift(giris); else if (giris.els.length && list.length) list[0].ekGiris = giris.els;
+    return list;
+  }
+  function panelBosluk(ilk){
+    var pan = document.getElementById('panel'), pin = document.getElementById('panelIn'); if (!pan || !pin) return 300;
+    var ust = 0; [].forEach.call(pan.querySelectorAll('.ed-tut,.st-pbas'), function(e){ ust += e.offsetHeight; });
+    var ps = getComputedStyle(pin), ic = (parseFloat(ps.paddingTop) || 0) + (parseFloat(ps.paddingBottom) || 0);
+    return pan.clientHeight - ust - ic - 46 - 8;   /* 46: sayfa sırası için ayrılan yer */
+  }
+  /* sayfala, sonra panelde gerçekten taşma var mı ölç; varsa sınırı küçültüp yeniden (en çok 3 tur) */
+  function olcerek(o){ var pan = document.getElementById('panel'), pin = document.getElementById('panelIn');
+    window.stSayfala(o); if (!pan || !pin) return;
+    /* sınır seçili sayfadan bağımsız: sayfa sırası yerleştikten sonra kalan yükseklik bir kez ölçülür */
+    var pr = pan.getBoundingClientRect(), alt = parseFloat(getComputedStyle(pin).paddingBottom) || 0, ustK = o._ilkUst;
+    if (ustK == null) return;
+    if (!o._satirOnce && o.satir && !o.satir.hidden) ustK += o.satir.offsetHeight + (parseFloat(getComputedStyle(pin).rowGap) || 12);
+    var gercek = pr.bottom - alt - ustK - 6;
+    if (Math.abs(gercek - o.maxH) > 4){ o.maxH = gercek; window.stSayfala(o); } }
+  function uygula(P_, yeniSecim){
+    if (meşgul || !P_ || !P_.isConnected) return; meşgul = true;
+    try {
+      var tab = ED.tab, list = ATLA[tab] ? [] : birimlerCikar(P_);
+      var row = document.querySelector('.st-pbas .st-bsek'), ss = P_.querySelector(':scope > .st-ssat');
+      if (!ss){ ss = document.createElement('div'); ss.className = 'st-ssat'; ss.hidden = true; P_.prepend(ss); }
+      var cok = list.length >= 2;
+      if (cok){
+        if (!row){ row = document.createElement('div'); row.className = 'st-bsek'; row.setAttribute('role', 'tablist');
+          row.addEventListener('click', function(e){ var b = e.target.closest('button[data-i]'); if (!b) return; SEC[ED.tab] = b.dataset.ad; try { localStorage.setItem('st.bsek', JSON.stringify(SEC)); } catch(_){}
+            var pn = document.getElementById('panel'); if (pn) pn.scrollTop = 0; uygula(document.getElementById('panelIn'), true); }); }
+        var bas = document.querySelector('.st-pbas'), tamam = bas && bas.querySelector('button');
+        if (bas && row.parentNode !== bas) bas.insertBefore(row, tamam);
+        if (bas) bas.classList.add('st-sekmeli');
+        var adlar = list.map(function(x){ return x.ad; }), imza = adlar.join('|');
+        if (row.dataset.imza !== imza){ row.dataset.imza = imza;
+          row.innerHTML = list.map(function(x, i){ var nokta = x.els.some(function(e){ return e.querySelector && e.querySelector('.val.ch,.rst.show,.dot'); });
+            return '<button type="button" role="tab" data-i="' + i + '" data-ad="' + x.ad.replace(/"/g, '') + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + window.stIkon(x.ad) + '</svg><span>' + x.ad + '</span></button>'; }).join(''); }
+        var s = adlar.indexOf(SEC[tab]); if (s < 0) s = 0;
+        [].forEach.call(row.children, function(b, i){ b.classList.toggle('on', i === s); b.setAttribute('aria-selected', i === s); });
+        if (yeniSecim || row.dataset.son !== String(s)){ row.dataset.son = String(s); var on = row.children[s]; if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.clientWidth / 2 + on.offsetWidth / 2); }
+        list.forEach(function(x, i){
+          var goster = i === s;
+          if (x.h){ x.h.classList.add('st-bas-gz'); }
+          if (x.g){ x.g.hidden = false; x.g.classList.toggle('st-gz-b', !goster); x.g.style.display = goster ? '' : 'none'; }
+          else x.els.forEach(function(e){ e.style.display = goster ? '' : 'none'; });
+          if (x.ekGiris) x.ekGiris.forEach(function(e){ e.style.display = goster ? '' : 'none'; });
+        });
+        var pn0 = document.getElementById('panel'); if (pn0) pn0.scrollTop = 0;
+        var G = list[s], els = (x => x.g ? [x.g] : x.els)(G).concat(G.ekGiris || []);
+        olcerek({anahtar: 'ko|' + tab + '|' + G.ad, birimler: els, satir: ss, kok: P_, maxH: panelBosluk(), yenile: function(){ uygula(document.getElementById('panelIn')); }});
+      } else {
+        var bas2 = document.querySelector('.st-pbas'); if (bas2) bas2.classList.remove('st-sekmeli');
+        var r2 = document.querySelector('.st-pbas .st-bsek'); if (r2) r2.remove();
+        var hepsi = list.length ? (list[0].g ? [list[0].g] : list[0].els) : [].filter.call(P_.children, function(n){ return !n.matches('.st-ssat,.st-bsek,.panel-title,.bmod'); });
+        if (list.length && list[0].h) list[0].h.classList.add('st-bas-gz');
+        olcerek({anahtar: 'ko|' + tab, birimler: hepsi, satir: ss, kok: P_, maxH: panelBosluk(), yenile: function(){ uygula(document.getElementById('panelIn')); }});
+      }
+      /* başlık çubuğundaki "sıfırla" vb. düğmeler kaybolmasın: panel başlığında düğme varsa yalnız düğmeleri göster */
+      var pt = P_.querySelector(':scope > .panel-title'); if (pt) pt.classList.toggle('st-pt-dug', !!pt.querySelector('button'));
+    } catch(e){ console.warn('Stüdyo bölümler', e); }
+    meşgul = false; sonP = P_;
+  }
+  var eski = window.bolumle;
+  window.bolumle = function(P_){ var r = eski.apply(this, arguments); try { uygula(P_); } catch(e){} return r; };
+  /* panel içeriği kısmen değişirse (yüz bulundu, seçenek açıldı) ya da panel boyutu değişirse yeniden düzenle */
+  var t = 0; function sonra(){ clearTimeout(t); t = setTimeout(function(){ var p = document.getElementById('panelIn'); if (p && !meşgul && !document.getElementById('editor').hidden) uygula(p); }, 140); }
+  (function bagla(n){ var pin = document.getElementById('panelIn'), pan = document.getElementById('panel');
+    if (!pin || !pan){ if (n < 60) setTimeout(function(){ bagla(n + 1); }, 250); return; }
+    var mo = new MutationObserver(function(ml){ if (meşgul) return; for (var i = 0; i < ml.length; i++){ var tg = ml[i].target; if (tg.closest && (tg.closest('.st-satir') || tg.closest('.st-bsek'))) continue; if (ml[i].type === 'attributes' && ml[i].attributeName === 'class' && tg.classList && (tg.classList.contains('st-gz') || ml[i].oldValue && /st-gz/.test(ml[i].oldValue))) continue; sonra(); return; } });
+    mo.observe(pin, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'], attributeOldValue: false});
+    if (window.ResizeObserver) new ResizeObserver(sonra).observe(pan);
+    if (pin.children.length && typeof ED !== 'undefined' && ED.state) uygula(pin);
+  })(0);
 })();

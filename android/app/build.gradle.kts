@@ -6,8 +6,8 @@ android {
         applicationId = "app.studyo.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionCode = 100 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+        versionName = "2." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
     signingConfigs {
         create("okur") {
@@ -19,3 +19,5 @@ android {
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
+/* 2.x: Trusted Web Activity — sayfa telefondaki Chrome'un kendisiyle açılır (WebView değil) */
+dependencies { implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0") }

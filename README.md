@@ -2,7 +2,21 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.1 · 01.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 1.2 · 01.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## Android uygulaması (APK) — 1.2 (01.11.2026)
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+- Karanlık Oda'nın Android kabuğunun aynısı:
+  - Kalıcı tam ekran; Chrome'un tam ekran uyarısı ve "Dokunarak ara" paneli yok.
+  - Ekran açık kalır.
+  - GitHub açılmazsa kendiliğinden Cloudflare yedeğinden (`ahmet-uygulamalar.pages.dev/studyo/`) açılır.
+- Sayfa GitHub'daki Stüdyo'dur; gönderilen her güncelleme uygulamaya kendiliğinden gelir.
+- **Kaydetme:** fotoğraf (JPG/PNG/WebP) ve video (MP4) **İndirilenler** klasörüne yazılır; büyük videolar 1 MB'lık parçalarla. Bu yakalama Stüdyo köprüsünde fotoğraf/video çerçevesinin içine de kurulur.
+- Fotoğraf seçimi telefonun dosya/galeri seçicisiyle yapılır; uygulama içinden doğrudan kamera açma yok.
+- **Verisi Chrome'dakinden ayrıdır.** Chrome'daki Stüdyo'nun kitaplığı ve taslakları APK'da görünmez.
+- Kaynak `android/`; APK'yı GitHub Actions derler (`.github/workflows/android.yml`). İmza anahtarı Karanlık Oda / Okur ile aynıdır, yeni sürüm eskisinin üzerine kurulur.
+- Bilinen risk: Karanlık Oda'nın APK'sında grafik birimi uygulama içi tarayıcıda (WebView) çökebiliyordu. Aynı fotoğraf motoru burada da var. Çökerse uygulama kendini yeniden açar; Chrome'daki Stüdyo her zaman en kararlı yol.
 
 ## 1.1 (01.11.2026): fotoğraf editörü InShot düzeninde, fotoğraftan videoya geçiş
 - **Fotoğraf editörü** (yalnız görünüm değişti; araçlar, paneller ve algoritmalar aynı):
@@ -57,5 +71,4 @@ Betik, beklenen yerler değişmişse hata verip durur; yarım ya da bozuk kopya 
 Eski iki uygulama dondurulmuştur (Karanlık Oda 6.67, Kareden Videoya 9.15). Yeni geliştirmeler yalnız Stüdyo'da yapılır. Kayıt biçimine yalnız ekleme yapılır, var olan alanlar değiştirilmez; böylece eski uygulamalar aynı projeleri açmaya devam eder.
 
 ## Henüz yok (sonraki aşamalar)
-- Stüdyo için Android uygulaması (APK).
 - Kolaj (en son).

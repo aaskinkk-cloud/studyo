@@ -10567,6 +10567,15 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     } catch(e){}
     return false;
   }
+  /* Android uygulaması (APK): uygulamanın kendi indirme kodu yalnız ana sayfaya eklenir; fotoğraf/video bu çerçevede
+     kaydedildiği için aynı yakalama burada da kurulur (blob → 1 MB parçalar → İndirilenler). Chrome'da hiçbir şey değişmez. */
+  try { if (window.OkurAndroid && OkurAndroid.parcaBasla && !window.__okurIndir){ window.__okurIndir = 1; var oc = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function(){ var h = this.href || '', ad = this.getAttribute('download');
+      if (ad !== null && /^(blob:|data:)/.test(h)){ fetch(h).then(function(r){ return r.blob(); }).then(function(b){
+        var id = Date.now() + '' + Math.random(), PB = 1048576, ofs = 0; OkurAndroid.parcaBasla(id);
+        var git = function(){ if (ofs >= b.size){ OkurAndroid.parcaBitir(id, ad || 'studyo', b.type || ''); return; } var fr = new FileReader();
+          fr.onload = function(){ var x = String(fr.result); OkurAndroid.parca(id, x.slice(x.indexOf(',') + 1)); ofs += PB; setTimeout(git, 0); }; fr.readAsDataURL(b.slice(ofs, ofs + PB)); }; git(); }); return; }
+      return oc.apply(this, arguments); }; } } catch(e){}
   window.studyoKopru = {tema: tema, geri: geri, eve: eve};
   tema(q.get('tema'));
   async function basla(){

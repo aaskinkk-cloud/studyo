@@ -33,7 +33,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#121a21">
-<meta name="surum" content="1.0" data-ad="Stüdyo" data-tarih="01.11.2026">
+<meta name="surum" content="1.1" data-ad="Stüdyo" data-tarih="01.11.2026">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -158,8 +158,8 @@ nav.altnav button.on svg{color:var(--vurgu)}
   <h1 class="bas">Yaratıcılığını keşfet.</h1>
   <p class="alt">Fotoğraf ve video, tek bir yerde.</p>
   <div class="ikili">
-   <button class="kart foto" data-git="foto-sec"><span class="ik"><svg class="i"><use href="#i-foto"/></svg></span><b>Fotoğraf düzenle</b><small>Filtre, ışık, HSL, kırp, rötuş</small></button>
-   <button class="kart vid" data-git="video-sec"><span class="ik"><svg class="i"><use href="#i-vid"/></svg></span><b>Video düzenle</b><small>Kes, müzik, metin, geçiş</small></button>
+   <button class="kart foto" data-git="foto-sec"><span class="ik"><svg class="i"><use href="#i-foto"/></svg></span><b>Fotoğraf</b><small>Düzenlemeye başla · filtre, ışık, HSL, kırp</small></button>
+   <button class="kart vid" data-git="video-sec"><span class="ik"><svg class="i"><use href="#i-vid"/></svg></span><b>Video</b><small>Düzenlemeye başla · kes, müzik, metin, geçiş</small></button>
   </div>
   <button class="genis" data-git="kv"><span class="ik"><svg class="i"><use href="#i-klaket"/></svg></span><span class="y"><b>Kareden Videoya</b><small>Fotoğraflarından YouTube videosu · video türleri</small></span><svg class="i"><use href="#i-ok"/></svg></button>
   <div class="bolum"><h2>Son çalışmalar</h2><button data-sekme="projeler">Tümünü gör</button></div>
@@ -304,7 +304,7 @@ let cerceve = null, BEKLEYEN = null, ACIK = false;
 window.studyoAl = () => { const b = BEKLEYEN; BEKLEYEN = null; return b; };
 window.studyoEve = () => { if (ACIK) { if (history.state && history.state.studyoModul) history.back(); else modulKapat(); } };
 window.studyoHazir = () => { $('#yukleniyor').hidden = true; };
-function modulAc(yol, bekleyen, yazi){
+function modulAc(yol, bekleyen, yazi, degistir){
   BEKLEYEN = bekleyen || null;
   if (cerceve) cerceve.remove();
   $('#ykYazi').textContent = yazi || 'Açılıyor…'; $('#yukleniyor').hidden = false;
@@ -312,8 +312,13 @@ function modulAc(yol, bekleyen, yazi){
   cerceve.src = yol + (yol.includes('?') ? '&' : '?') + 'studyo=1&tema=' + tema();
   const m = $('#modul'); m.innerHTML = ''; m.appendChild(cerceve); m.hidden = false; ACIK = true;
   setTimeout(() => { $('#yukleniyor').hidden = true; }, 12000);
-  try { history.pushState({studyoModul: 1}, ''); } catch(e){}
+  if (!degistir){ try { history.pushState({studyoModul: 1}, ''); } catch(e){} }
 }
+/* fotoğraf editöründen "Bu fotoğrafla video yap": modül yerinde değişir (geri tuşu yine ana sayfaya döner) */
+window.studyoVideoya = dosyalar => { if (!dosyalar || !dosyalar.length) return;
+  /* dosyalar kapanacak çerçevede üretildi: önce bu pencerenin kendi File nesnesine kopyalanır (veri kopyalanmaz, yalnız sarılır) */
+  const kendi = [...dosyalar].map(f => new File([f], f.name, {type: f.type, lastModified: f.lastModified}));
+  const acik = ACIK; setTimeout(() => modulAc('video/', {dosyalar: kendi}, 'Video hazırlanıyor…', acik), 0); };
 function modulKapat(){ ACIK = false; const m = $('#modul'); m.hidden = true; if (cerceve){ try { cerceve.src = 'about:blank'; } catch(e){} cerceve.remove(); cerceve = null; } m.innerHTML = ''; $('#yukleniyor').hidden = true; projeYukle(); }
 addEventListener('popstate', () => {
   if (!ACIK) return;

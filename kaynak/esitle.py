@@ -5,7 +5,7 @@ Karanlık Oda ve Kareden Videoya'nın GÜNCEL index.html'lerini değiştirmeden 
   2) uygulamanın kendi service worker kaydı Stüdyo içinde atlanır (önbelleği Stüdyo yönetir)
   3) Karanlık Oda'nın GitHub→Cloudflare yönlendirmesi Stüdyo içinde atlanır
   4) Kareden Videoya: boot() ve proje aç/sil işlevlerine dışarıdan erişim (window.__kvBoot, window.__kv)
-  5) sayfa sonuna Stüdyo köprüsü (kopru.js)
+  5) sayfa sonuna Stüdyo köprüsü (kopru.js) ve varsa görünüm katmanı (foto-arayuz.js / video-arayuz.js)
 Kullanım: python3 esitle.py <karanlik-oda klasörü> <kareden-videoya klasörü> <çıktı klasörü> <sürüm> <tarih>
 """
 import sys, os, re, shutil, json
@@ -27,7 +27,10 @@ SW_YENI = "if(!ok||window.STUDYO)return;\n  var had=!!navigator.serviceWorker.co
 def govdeye(s, app):
     i = s.rfind('</body>')
     if i < 0: raise SystemExit('HATA: </body> yok')
-    return s[:i] + '<script>\n' + kopru.replace('%APP%', app) + '\n</script>\n' + s[i:]
+    ek = '<script>\n' + kopru.replace('%APP%', app) + '\n</script>\n'
+    ara = os.path.join(BURA, app + '-arayuz.js')   # uygulamaya özel görünüm katmanı (varsa)
+    if os.path.exists(ara): ek += '<script>\n' + oku(ara) + '\n</script>\n'
+    return s[:i] + ek + s[i:]
 
 # ---- Karanlık Oda → foto/
 ko = oku(os.path.join(KO, 'index.html')); ko_s = surum(ko)

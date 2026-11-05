@@ -7,6 +7,7 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.
 self.addEventListener('fetch',e=>{
   const r=e.request;if(r.method!=='GET')return;
   const u=new URL(r.url);if(u.origin!==location.origin)return;   /* yazı tipleri vb. dış adresler: tarayıcı kendi önbelleği */
+  if(u.pathname.indexOf('/yz/')>=0)return;   /* yapay zekâ modeli ve motoru: sayfa kendi önbelleğinde (yz-) tutar, burada kopyalanmaz */
   if(r.mode==='navigate'||/\.html$/.test(u.pathname)){
     /* önce ağ (güncelleme gelsin); 3 sn'de yanıt yoksa önbellek → internetsiz açılış takılmaz */
     const k=anahtar(r.url);

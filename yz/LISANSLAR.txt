@@ -1,0 +1,5 @@
+Bu klasördeki üçüncü taraf dosyalar:
+- model/isnet.*  : ISNet / DIS (Highly Accurate Dichotomous Image Segmentation), xuebinqin/DIS, Apache License 2.0.
+                   rembg'nin dağıttığı isnet-general-use.onnx'ten; ağırlıklar fp16 olarak saklanır, tarayıcıda fp32'ye açılır.
+- model/u2netp.onnx : U²-Net (küçük), xuebinqin/U-2-Net, Apache License 2.0.
+- ort/ : ONNX Runtime Web 1.30.0, Microsoft, MIT License.

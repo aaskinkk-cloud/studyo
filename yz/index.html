@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121a21">
+<title>YZ Kesme Denemesi</title>
+<style>
+:root{--bg:#121a21;--kart:#1b252e;--ink:#eef2f5;--mute:#93a3b1;--vurgu:#e8762b;--iyi:#3fbf7f;--kotu:#e5534b;--cizgi:#2a3742}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding:14px 16px 40px;max-width:720px;margin:0 auto;-webkit-user-select:none;user-select:none}
+h1{font-size:19px;margin:4px 0 2px}
+.alt{color:var(--mute);font-size:13px;margin:0 0 14px}
+.kart{background:var(--kart);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.kart h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin:0 0 8px;font-weight:600}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:0;border:1.5px solid var(--cizgi);background:transparent;color:var(--ink);border-radius:10px;padding:9px 8px;font:inherit;font-size:14px;text-align:center}
+.seg button small{display:block;color:var(--mute);font-size:11.5px}
+.seg button.on{border-color:var(--vurgu);background:color-mix(in srgb,var(--vurgu) 16%,transparent)}
+.buyuk{display:block;width:100%;border:0;border-radius:12px;background:var(--vurgu);color:#fff;font:600 16px/1 system-ui,sans-serif;padding:15px;margin:0 0 12px}
+.buyuk:disabled{opacity:.45}
+.ikincil{border:1.5px solid var(--cizgi);background:transparent;color:var(--ink);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px}
+#durum{min-height:20px;color:var(--mute);font-size:14px}
+.cubuk{height:6px;background:var(--cizgi);border-radius:3px;overflow:hidden;margin:8px 0 2px}
+.cubuk i{display:block;height:100%;width:0;background:var(--vurgu);transition:width .15s}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td{padding:5px 0;border-bottom:1px solid var(--cizgi);vertical-align:top}
+td:first-child{color:var(--mute);width:44%}
+td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.iyi{color:var(--iyi)}.kotu{color:var(--kotu)}
+#sahne{position:relative;border-radius:12px;overflow:hidden;background:#888}
+#sahne.dama{background-color:#c8c8c8;background-image:linear-gradient(45deg,#969696 25%,transparent 25%,transparent 75%,#969696 75%),linear-gradient(45deg,#969696 25%,transparent 25%,transparent 75%,#969696 75%);background-size:20px 20px;background-position:0 0,10px 10px}
+#sahne.siyah{background:#000}#sahne.beyaz{background:#fff}#sahne.yesil{background:#18b85a}
+#sahne canvas{display:block;width:100%;height:auto}
+#sahne.yakin{overflow:auto;max-height:70vh}
+#sahne.yakin canvas{width:auto;max-width:none}
+.satir{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.satir>*{flex:1 1 auto}
+.not{color:var(--mute);font-size:12.5px;margin:8px 0 0}
+#hata{display:none;background:color-mix(in srgb,var(--kotu) 18%,var(--kart));border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<h1>Yapay zekâ ile nesne kesme · deneme</h1>
+<p class="alt">Bu sayfa fotoğraf editöründen ayrıdır; editöre ve kitaplığa dokunmaz. Fotoğraf telefondan dışarı gönderilmez.</p>
+
+<div class="kart">
+  <h2>Model</h2>
+  <div class="seg" id="segModel">
+    <button data-v="isnet" class="on">Kaliteli<small>ISNet · 90 MB</small></button>
+    <button data-v="u2netp">Hızlı<small>U²-Net küçük · 5 MB</small></button>
+  </div>
+  <h2 style="margin-top:12px">Motor</h2>
+  <div class="seg" id="segMotor">
+    <button data-v="oto" class="on">Otomatik<small>grafik birimi, olmazsa işlemci</small></button>
+    <button data-v="wasm">Yalnız işlemci<small>daha yavaş, en güvenli</small></button>
+  </div>
+  <p class="not">Model yalnız "Fotoğraf seç"e basınca yüklenir ve iş bitince bellekten çıkarılır. İlk denemede model indirilir (Wi-Fi önerilir), sonra telefonda saklanır.</p>
+</div>
+
+<input type="file" id="dosya" accept="image/*" hidden>
+<button class="buyuk" id="sec">Fotoğraf seç ve kes</button>
+<div id="hata"></div>
+
+<div class="kart">
+  <div id="durum">Hazır.</div>
+  <div class="cubuk"><i id="ilerle"></i></div>
+</div>
+
+<div class="kart" id="sonucKart" hidden>
+  <h2>Ölçümler</h2>
+  <table id="olcum"></table>
+  <p class="not">Bu tablonun ekran görüntüsünü gönder.</p>
+</div>
+
+<div class="kart" id="gorselKart" hidden>
+  <h2>Sonuç</h2>
+  <div class="seg" id="segZemin" style="margin-bottom:8px">
+    <button data-v="dama" class="on">Dama</button><button data-v="siyah">Siyah</button><button data-v="beyaz">Beyaz</button><button data-v="yesil">Yeşil</button>
+  </div>
+  <div id="sahne" class="dama"><canvas id="cikti"></canvas></div>
+  <div class="satir">
+    <button class="ikincil" id="yakinBtn">Yakın bak (1:1)</button>
+    <button class="ikincil" id="maskeBtn">Maskeyi göster</button>
+    <button class="ikincil" id="kaydet">Saydam PNG kaydet</button>
+  </div>
+</div>
+
+<div class="kart">
+  <h2>Bakım</h2>
+  <div class="satir"><button class="ikincil" id="sil">İndirilen modeli telefondan sil</button></div>
+  <p class="not" id="depo"></p>
+  <p class="not">Kullanılan açık kaynaklar: ISNet / DIS (Apache-2.0), U²-Net (Apache-2.0), ONNX Runtime Web 1.30.0 (MIT).</p>
+</div>
+
+<script>
+'use strict';
+(function(){
+var $ = function(id){ return document.getElementById(id); };
+var ONB = 'yz-model-1';   /* önbellek adı: Stüdyo'nun st- önbelleklerinden ayrı, güncellemede silinmez */
+var MODEL = {
+  isnet:  {ad:'ISNet (DIS)', boyut:1024, ort:[0.5,0.5,0.5], sap:[1,1,1], grafik:'model/isnet.onnx',
+           agirlik:{parca:['model/isnet.f16.part0','model/isnet.f16.part1','model/isnet.f16.part2','model/isnet.f16.part3','model/isnet.f16.part4'], bayt:88026496, ad:'w.bin'}},
+  u2netp: {ad:'U²-Net küçük', boyut:320, ort:[0.485,0.456,0.406], sap:[0.229,0.224,0.225], grafik:'model/u2netp.onnx'}
+};
+var secim = {model:'isnet', motor:'oto', zemin:'dama'};
+function seg(id, k, f){ var s = $(id); s.addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b || meşgul && id !== 'segZemin') return;
+  [].forEach.call(s.children, function(x){ x.classList.toggle('on', x === b); }); secim[k] = b.dataset.v; if (f) f(); }); }
+var meşgul = false;
+seg('segModel', 'model'); seg('segMotor', 'motor');
+seg('segZemin', 'zemin', function(){ $('sahne').className = secim.zemin + ($('sahne').classList.contains('yakin') ? ' yakin' : ''); });
+
+function durum(t, oran){ $('durum').textContent = t; if (oran != null) $('ilerle').style.width = Math.round(oran * 100) + '%'; }
+function hata(t){ var h = $('hata'); h.style.display = t ? 'block' : 'none'; h.textContent = t || ''; }
+function sn(ms){ return ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1).replace('.', ',') + ' sn'; }
+function mb(b){ return (b / 1048576).toFixed(1).replace('.', ',') + ' MB'; }
+
+/* ---- motoru (ONNX Runtime) yalnız gerektiğinde yükle ---- */
+var ortSoz = null;
+function ortYukle(){ if (ortSoz) return ortSoz;
+  ortSoz = new Promise(function(ok, no){ var s = document.createElement('script'); s.src = 'ort/ort.webgpu.min.js';
+    s.onload = function(){ ort.env.wasm.wasmPaths = new URL('ort/', location.href).href; ort.env.wasm.numThreads = 1; ok(window.ort); };
+    s.onerror = function(){ ortSoz = null; no(new Error('Yapay zekâ motoru (ONNX Runtime) yüklenemedi. İnternet bağlantısını kontrol et.')); };
+    document.head.appendChild(s); });
+  return ortSoz; }
+
+/* ---- model dosyası: önce telefondaki önbellek, yoksa indir ve sakla ---- */
+async function dosyaAl(yol, ilerle){
+  var url = new URL(yol, location.href).href, c = null;
+  try { c = await caches.open(ONB); var h = await c.match(url); if (h){ var b0 = await h.arrayBuffer(); ilerle(b0.byteLength, true); return new Uint8Array(b0); } } catch(e){ c = null; }
+  var r = await fetch(url, {cache:'no-cache'}); if (!r.ok) throw new Error('İndirilemedi: ' + yol + ' (HTTP ' + r.status + ')');
+  var top = +r.headers.get('content-length') || 0, okuyan = r.body.getReader(), par = [], n = 0;
+  for (;;){ var x = await okuyan.read(); if (x.done) break; par.push(x.value); n += x.value.length; ilerle(n, false, top); }
+  var u = new Uint8Array(n), o = 0; par.forEach(function(p){ u.set(p, o); o += p.length; });
+  if (c) try { await c.put(url, new Response(u.slice().buffer, {headers:{'content-type':'application/octet-stream'}})); } catch(e){ console.warn('önbelleğe yazılamadı', e); }
+  return u; }
+
+/* fp16 ağırlıkları fp32'ye açar (hesap fp32 yapılır; indirme yarıya iner) */
+function f16to32(u8){ var h = new Uint16Array(u8.buffer, u8.byteOffset, u8.byteLength >> 1), f = new Float32Array(h.length), u = new Uint32Array(f.buffer);
+  for (var i = 0; i < h.length; i++){ var x = h[i], s = (x & 0x8000) << 16, e = (x >> 10) & 0x1f, m = x & 0x3ff;
+    if (e === 0){ if (m === 0){ u[i] = s; continue; } e = 1; while (!(m & 0x400)){ m <<= 1; e--; } m &= 0x3ff; u[i] = s | ((e + 112) << 23) | (m << 13); }
+    else if (e === 31) u[i] = s | 0x7f800000 | (m << 13);
+    else u[i] = s | ((e + 112) << 23) | (m << 13); }
+  return new Uint8Array(f.buffer); }
+
+async function gpuBilgi(){
+  if (!navigator.gpu) return {var:false, neden:'Bu tarayıcıda WebGPU yok'};
+  try { var a = await navigator.gpu.requestAdapter(); if (!a) return {var:false, neden:'Grafik birimi bağdaştırıcısı verilmedi'};
+    var inf = a.info || (a.requestAdapterInfo ? await a.requestAdapterInfo() : {}) || {};
+    return {var:true, ad:[inf.vendor, inf.architecture, inf.device, inf.description].filter(Boolean).join(' · ') || 'adı bildirilmedi', f16:a.features.has('shader-f16'), maxBuf:a.limits.maxBufferSize}; }
+  catch(e){ return {var:false, neden:String(e && e.message || e)}; } }
+
+/* ---- kesme ---- */
+var son = null;   /* {gorsel, alfa(canvas, orijinal boyut)} */
+async function kes(file){
+  meşgul = true; $('sec').disabled = true; hata(''); var M = MODEL[secim.model], O = [], t0 = performance.now(), sess = null;
+  var satir = function(a, b, cls){ O.push([a, b, cls]); };
+  try {
+    durum('Fotoğraf okunuyor…', 0.02);
+    var bmp = await createImageBitmap(file, {imageOrientation:'from-image'}); var W = bmp.width, H = bmp.height;
+    satir('Fotoğraf', W + ' × ' + H);
+    durum('Grafik birimi denetleniyor…', 0.04); var g = await gpuBilgi();
+    satir('WebGPU', g.var ? 'var' : 'yok (' + g.neden + ')', g.var ? 'iyi' : 'kotu');
+    if (g.var){ satir('Grafik birimi', g.ad); satir('shader-f16', g.f16 ? 'var' : 'yok'); satir('En büyük tampon', mb(g.maxBuf)); }
+    durum('Yapay zekâ motoru yükleniyor…', 0.06); var t1 = performance.now(); await ortYukle(); satir('Motor yükleme', sn(performance.now() - t1));
+    /* model */
+    var t2 = performance.now(), indi = 0, kayitli = true, toplamB = (M.agirlik ? M.agirlik.bayt : 0) + 3e6, sayac = {};
+    var ilerle = function(ad){ return function(n, onb, top){ sayac[ad] = n; if (!onb) kayitli = false; var s = 0; for (var k in sayac) s += sayac[k];
+      durum((onb ? 'Model telefondan okunuyor… ' : 'Model indiriliyor… ') + mb(s) + ' / ~' + mb(toplamB), 0.08 + 0.62 * Math.min(1, s / toplamB)); }; };
+    var grafik = await dosyaAl(M.grafik, ilerle('g')), ek = null;
+    if (M.agirlik){ var pr = await Promise.all(M.agirlik.parca.map(function(p, i){ return dosyaAl(p, ilerle('p' + i)); }));
+      var w = new Uint8Array(M.agirlik.bayt), o = 0; pr.forEach(function(p){ w.set(p, o); o += p.length; }); pr = null;
+      if (o !== M.agirlik.bayt) throw new Error('Model dosyası eksik indi (' + o + ' / ' + M.agirlik.bayt + ' bayt). "İndirilen modeli sil"e basıp yeniden dene.');
+      durum('Ağırlıklar açılıyor…', 0.72); ek = [{path:M.agirlik.ad, data:f16to32(w)}]; w = null; }
+    satir(kayitli ? 'Model (telefondan)' : 'Model indirme', sn(performance.now() - t2) + (kayitli ? '' : ' · ' + mb(toplamB)));
+    /* oturum */
+    durum('Model hazırlanıyor…', 0.76); var t3 = performance.now(), motor = 'işlemci (WASM)';
+    var sec = function(ep){ var o = {executionProviders:[ep], graphOptimizationLevel:'all'}; if (ek) o.externalData = ek; return o; };
+    if (secim.motor === 'oto' && g.var){
+      try { sess = await ort.InferenceSession.create(grafik, sec('webgpu')); motor = 'grafik birimi (WebGPU)'; }
+      catch(e){ satir('WebGPU hatası', String(e && e.message || e).slice(0, 160), 'kotu'); sess = null; } }
+    if (!sess) sess = await ort.InferenceSession.create(grafik, sec('wasm'));
+    satir('Çalışan motor', motor, motor.indexOf('WebGPU') >= 0 ? 'iyi' : ''); satir('Model hazırlama', sn(performance.now() - t3));
+    grafik = null; ek = null;
+    /* girdi: S×S, normalleştirilmiş, CHW */
+    var S = M.boyut, cv = document.createElement('canvas'); cv.width = S; cv.height = S; var cx = cv.getContext('2d', {willReadFrequently:true});
+    cx.imageSmoothingQuality = 'high'; cx.drawImage(bmp, 0, 0, S, S); var px = cx.getImageData(0, 0, S, S).data, N = S * S, x = new Float32Array(3 * N);
+    for (var i = 0; i < N; i++){ for (var c = 0; c < 3; c++) x[c * N + i] = (px[i * 4 + c] / 255 - M.ort[c]) / M.sap[c]; }
+    durum('Nesne ayrıştırılıyor…', 0.85); await new Promise(function(r){ setTimeout(r, 30); });
+    var t4 = performance.now(), gir = {}; gir[sess.inputNames[0]] = new ort.Tensor('float32', x, [1, 3, S, S]);
+    var cik = await sess.run(gir); var y = cik[sess.outputNames[0]].data; var tk = performance.now() - t4;
+    satir('Kesme süresi', sn(tk), tk < 4000 ? 'iyi' : (tk > 15000 ? 'kotu' : ''));
+    /* ikinci çalıştırma: ısınmış hız (asıl kullanımda beklenen) */
+    var t5 = performance.now(); await sess.run(gir); satir('Kesme (2. kez)', sn(performance.now() - t5));
+    try { await sess.release(); } catch(e){} sess = null;
+    /* çıktı → alfa: en küçük–en büyük ölçekleme (modellerin kendi önerdiği gibi) */
+    var mn = Infinity, mx = -Infinity; for (i = 0; i < N; i++){ var v = y[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    var ac = document.createElement('canvas'); ac.width = S; ac.height = S; var ax = ac.getContext('2d'), ad = ax.createImageData(S, S), k = 1 / (mx - mn || 1);
+    for (i = 0; i < N; i++){ var a = Math.round((y[i] - mn) * k * 255); ad.data[i * 4] = ad.data[i * 4 + 1] = ad.data[i * 4 + 2] = 255; ad.data[i * 4 + 3] = a; }
+    ax.putImageData(ad, 0, 0);
+    /* orijinal boyutta birleştir */
+    var alfa = document.createElement('canvas'); alfa.width = W; alfa.height = H; var al = alfa.getContext('2d'); al.imageSmoothingQuality = 'high'; al.drawImage(ac, 0, 0, W, H);
+    var out = $('cikti'); out.width = W; out.height = H; var oc = out.getContext('2d'); oc.clearRect(0, 0, W, H); oc.drawImage(bmp, 0, 0);
+    oc.globalCompositeOperation = 'destination-in'; oc.drawImage(alfa, 0, 0); oc.globalCompositeOperation = 'source-over';
+    son = {bmp:bmp, alfa:alfa, maske:false, ad:(file.name || 'foto').replace(/\.[^.]+$/, '')};
+    satir('Toplam', sn(performance.now() - t0));
+    durum('Bitti. Kenarları "Yakın bak" ve farklı zeminlerle incele.', 1);
+    $('gorselKart').hidden = false; $('maskeBtn').textContent = 'Maskeyi göster';
+  } catch(e){
+    console.error(e); hata('Olmadı: ' + (e && e.message || e)); durum('Hata.', 0);
+    if (sess) try { await sess.release(); } catch(_){}
+  } finally {
+    satir('Model', M.ad + ' · ' + M.boyut + '×' + M.boyut);
+    $('olcum').innerHTML = O.map(function(r){ return '<tr><td>' + r[0] + '</td><td class="' + (r[2] || '') + '">' + String(r[1]).replace(/</g, '&lt;') + '</td></tr>'; }).join('');
+    $('sonucKart').hidden = false; meşgul = false; $('sec').disabled = false; depoGoster(); }
+}
+
+$('sec').onclick = function(){ if (!meşgul) $('dosya').click(); };
+$('dosya').onchange = function(e){ var f = e.target.files[0]; e.target.value = ''; if (f) kes(f); };
+$('yakinBtn').onclick = function(){ var s = $('sahne'), y = !s.classList.contains('yakin'); s.classList.toggle('yakin', y); this.textContent = y ? 'Sığdır' : 'Yakın bak (1:1)'; };
+$('maskeBtn').onclick = function(){ if (!son) return; var out = $('cikti'), oc = out.getContext('2d'); son.maske = !son.maske; oc.clearRect(0, 0, out.width, out.height);
+  if (son.maske){ oc.fillStyle = '#000'; oc.fillRect(0, 0, out.width, out.height); oc.drawImage(son.alfa, 0, 0); this.textContent = 'Kesilmiş hâli göster'; }
+  else { oc.drawImage(son.bmp, 0, 0); oc.globalCompositeOperation = 'destination-in'; oc.drawImage(son.alfa, 0, 0); oc.globalCompositeOperation = 'source-over'; this.textContent = 'Maskeyi göster'; } };
+$('kaydet').onclick = function(){ if (!son) return; var c = document.createElement('canvas'); c.width = son.bmp.width; c.height = son.bmp.height; var x = c.getContext('2d');
+  x.drawImage(son.bmp, 0, 0); x.globalCompositeOperation = 'destination-in'; x.drawImage(son.alfa, 0, 0);
+  c.toBlob(function(b){ var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = son.ad + '-kesik.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000); }, 'image/png'); };
+$('sil').onclick = async function(){ try { await caches.delete(ONB); durum('İndirilen model silindi.', 0); } catch(e){ hata('Silinemedi: ' + e.message); } depoGoster(); };
+async function depoGoster(){ try { var c = await caches.open(ONB), ks = await c.keys(); $('depo').textContent = ks.length ? 'Telefonda kayıtlı model dosyası: ' + ks.length : 'Telefonda kayıtlı model yok.'; } catch(e){ $('depo').textContent = ''; } }
+depoGoster();
+})();
+</script>
+</body>
+</html>

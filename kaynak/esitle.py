@@ -30,6 +30,8 @@ def govdeye(s, app):
     ek = '<script>\n' + kopru.replace('%APP%', app) + '\n</script>\n'
     say = os.path.join(BURA, 'sayfala.js')        # ortak sayfalama (bölümler sekme, kaydırıcılar tek tek, uzun bölümler sayfa)
     if os.path.exists(say): ek += '<script>\n' + oku(say) + '\n</script>\n'
+    nz = os.path.join(BURA, app + '-nesne.js')     # yapay zekâ nesne katmanı (varsa)
+    if os.path.exists(nz): ek += '<script>\n' + oku(nz) + '\n</script>\n'
     lt = os.path.join(BURA, app + '-lut.js')       # yerleşik LUT filtreleri (varsa)
     if os.path.exists(lt): ek += '<script>\n' + oku(lt) + '\n</script>\n'
     ara = os.path.join(BURA, app + '-arayuz.js')   # uygulamaya özel görünüm katmanı (varsa)
@@ -50,7 +52,10 @@ for f in ['icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'mani
 kv = oku(os.path.join(KV, 'index.html')); kv_s = surum(kv)
 kv = degistir(kv, '<head>', BAYRAK, 'kv bayrak')
 kv = degistir(kv, SW_ESKI, SW_YENI, 'kv sw')
-kv = degistir(kv, '\nboot();\n})();\n', '\nwindow.__kvBoot = boot();\nwindow.__kv = {projOpen: projOpen, projDelete: projDelete};\n})();\n', 'kv kanca')
+kv = degistir(kv, '\nboot();\n})();\n', '\nwindow.__kvBoot = boot();\nwindow.__kv = {projOpen: projOpen, projDelete: projDelete, pid: () => PID, yenile: () => requestRender(), kaydet: () => projSaveNow(), an: () => PT, sure: () => timeline().total, klipSonu: () => timeline().clipsTotal, oynuyor: () => playing, durdur: () => { if (playing) pause(); }, klipVar: () => S.clips.length > 0, bicim: () => S.fmt};\n})();\n', 'kv kanca')
+# Stüdyo nesne katmanı (kaynak/video-nesne.js): yazıların altına, klip ve geçişlerin üstüne çizilir; görünürken kare önbelleği kullanılmaz
+kv = degistir(kv, '    drawYazilar(ctx, W, H, t);\n', '    try { window.__kvNesne && window.__kvNesne(ctx, W, H, t, exporting); } catch(e){}\n    drawYazilar(ctx, W, H, t);\n', 'kv nesne çizim')
+kv = degistir(kv, '  function signature(t, tl){\n', '  function signature(t, tl){\n    if (window.__kvNesneVar && window.__kvNesneVar(t)) return null;\n', 'kv nesne imza')
 kv = govdeye(kv, 'video')
 yaz(os.path.join(OUT, 'video', 'index.html'), kv)
 for f in ['icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'manifest.webmanifest']:

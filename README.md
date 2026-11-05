@@ -2,7 +2,45 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.5 (APK 2.0) · 05.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 1.6 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 1.6 (06.11.2026): video editöründe yapay zekâ ile "Nesne" katmanı
+- Video editörünün alt menüsünde yeni araç: **Nesne** (Metin'in yanında).
+- **Fotoğraftan nesne kes ve ekle:**
+  - Telefondan bir fotoğraf seçilir.
+  - Yapay zekâ (ISNet) kişiyi ya da nesneyi arka planından ayırır, boş kenarları kırpar.
+  - Sonuç videonun üstüne katman olarak konur. Örnek: dikey bir fotoğraftaki kişi yatay videoya.
+- **Katman ayarları:**
+  - Önizlemede sürükleyerek taşıma; ortaya gelince yapışır.
+  - İki parmakla büyütme, küçültme ve döndürme.
+  - Kaydırıcılar: Boyut, Açı, Görünürlük.
+  - Gölge, Ayna (yatay çevirme), Ortala, Gizle (silmeden kapatma).
+  - Giriş hareketi: Sabit, Belirerek, Kayarak (yakın kenardan), Yaklaşarak, Süzülerek. Hareketli girişlerde nesne bitişte yumuşakça kaybolur.
+  - Zaman: Başlangıç ve Bitiş için "şu an" (zaman çizelgesindeki yer), Baştan, Kliplerin sonuna. Varsayılan: videonun başından kliplerin sonuna. Kapanış ekranının üstüne binmez.
+  - Birden çok nesne eklenebilir.
+  - PNG kaydet: kesilmiş nesne saydam arka planlı olarak indirilir.
+  - Sil: iki dokunuşla.
+- Nesne, klip ve geçişlerin üstünde, yazı, altyazı ve logonun altında çizilir. Önizleme ile dışa aktarılan video aynıdır.
+- **Motor:** `yz/motor.js` (deneme sayfasıyla aynı model ve aynı önbellek; deneme sayfasında model indirildiyse yeniden inmez).
+  - Önce grafik birimi, olmazsa işlemci.
+  - Model yalnız ekleme sırasında yüklenir, sonra bellekten çıkar. Önizleme ve dışa aktarma modele ihtiyaç duymaz.
+- **Kayıt:**
+  - Katmanlar ve kesilmiş görüntüler ayrı bir veritabanında (`studyo-nesne`), proje kimliğine bağlı.
+  - Kareden Videoya'nın kayıt biçimi değişmedi. Bu yüzden projeyi eski Kareden Videoya uygulamasında açarsan nesneler orada görünmez.
+- **Cloudflare adresinde:** motor ve model GitHub adresinden yüklenir. Motor dosyası Cloudflare'in 25 MB sınırını aşıyor.
+- **Kod:**
+  - `kaynak/video-nesne.js`.
+  - Kareden Videoya kopyasına 2 küçük kanca (`esitle.py`): çizim döngüsünde nesne çağrısı; nesne görünürken kare önbelleği kullanılmaz.
+  - `window.__kv`'ye proje kimliği, oynatma konumu, kaydetme ve yenileme erişimi eklendi.
+- **Test (sunucuda, grafik birimi yok):**
+  - Ekleme, işlemciyle 15–22 sn sürdü; model indirme dahil.
+  - Sürükleme, kayıt, projeyi kapatıp yeniden açınca geri gelme, başka araç açılınca panelin kapanması denendi.
+  - 1920×1080 MP4 dışa aktarıldı. Karelerde nesne gölgesiyle görünüyor, ilk saniyede beliriyor, kapanış ekranında yok.
+- **Henüz yok (sonraki adımlar):**
+  - Videodaki hareketli nesneyi takip etme.
+  - Nesne kenarından sanatsal geçişler.
+  - Fotoğraf editöründe kesme (fırçayla ekle/çıkar, saydam PNG).
+  - Nesne katmanlarının zaman çizelgesinde ayrı satırı.
 
 ## Yapay zekâ deneme sayfası (05.11.2026): `yz/`
 **Adres:** https://aaskinkk-cloud.github.io/studyo/yz/
@@ -121,4 +159,4 @@ Betik, beklenen yerler değişmişse hata verip durur; yarım ya da bozuk kopya 
 Eski iki uygulama dondurulmuştur (Karanlık Oda 6.67, Kareden Videoya 9.15). Yeni geliştirmeler yalnız Stüdyo'da yapılır. Kayıt biçimine yalnız ekleme yapılır, var olan alanlar değiştirilmez; böylece eski uygulamalar aynı projeleri açmaya devam eder.
 
 ## Durum
-Kolaj iptal edildi. Sırada: yapay zekâ ile nesne kesme (önce dikey fotoğraftan kesilen nesneyi yatay videoya yerleştirme, sonra fotoğrafta nesne kesme ve saydam PNG).
+Kolaj iptal edildi. Yapay zekâ: 1. adım (fotoğraftan kesilen nesneyi videoya yerleştirme) 1.6'da. Sırada: fotoğraf editöründe nesne kesme (fırça, saydam PNG), sonra videoda takip ve geçişler.

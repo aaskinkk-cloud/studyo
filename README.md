@@ -2,7 +2,22 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.6 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 1.7 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 1.7 (06.11.2026): seçili klipteki kişiyi kes
+- Zaman çizelgesinde bir fotoğraf klibine dokununca açılan araç çubuğunda yeni düğme: **Kişiyi kes** (Düzenle'nin yanında). Aynı iş Nesne panelinde ✂ düğmesiyle de yapılır.
+- Ne yapar:
+  - Klibin fotoğrafındaki kişiyi ya da nesneyi yapay zekâ ile keser.
+  - Klibin arkasını aynı fotoğrafın **bulanık hâliyle** doldurur. Dikey fotoğrafın çerçevesi ve kenar çizgileri kaybolur.
+  - Kişi tam görünür: yükseklik ekranın %85'i, yatayda klipteki yerine yakın. Fotoğrafın altına değiyorsa ekranın altına oturur. Hafif gölge açık.
+- Nesne **kendi klibine bağlıdır.** Klip taşınır, kısaltılır ya da uzatılırsa birlikte gider. Klip silinirse görünmez.
+- Klip geçişlerinde yumuşakça belirir ve kaybolur.
+- Nesne panelinde bu tür nesnede Başlangıç/Bitiş yerine **Bulanık arka plan** (aç/kapat) var. Kapatınca kişi klibin kendi görüntüsünün üstünde kalır.
+- Sürükleme, iki parmakla boyut ve açı, Gölge, Ayna, Gizle, PNG kaydet, Sil: diğer nesnelerle aynı.
+- Bir klipten bir kez kesilir. Yeniden kesmek için önce mevcut nesneyi sil.
+- Video kliplerde çalışmaz; uyarı verir. Videoda kişiyi kare kare takip ederek kesme sonraki adım.
+- Düzeltme: Stüdyo'nun `window.__kv` erişimi Kareden Videoya'nın kendi `__kv` nesnesinin üstüne yazılıyordu; artık birleştiriliyor.
+- Test: iki fotoğraflı projede klip seçip kesme (işlemciyle 16–18 sn), önizleme karşılaştırması, 1920×1080 dışa aktarma (geçiş anı dahil). 1.6'nın serbest nesne, kayıt ve yeniden açma testleri tekrarlandı.
 
 ## 1.6 (06.11.2026): video editöründe yapay zekâ ile "Nesne" katmanı
 - Video editörünün alt menüsünde yeni araç: **Nesne** (Metin'in yanında).
@@ -41,6 +56,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
   - Nesne kenarından sanatsal geçişler.
   - Fotoğraf editöründe kesme (fırçayla ekle/çıkar, saydam PNG).
   - Nesne katmanlarının zaman çizelgesinde ayrı satırı.
+  - (Seçili fotoğraf klibinden kesme 1.7'de eklendi.)
 
 ## Yapay zekâ deneme sayfası (05.11.2026): `yz/`
 **Adres:** https://aaskinkk-cloud.github.io/studyo/yz/

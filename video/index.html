@@ -10720,7 +10720,7 @@ function isDongu(){
 addEventListener('load', () => setTimeout(() => { try { isKur(); } catch(e){ console.warn('InShot düzeni kurulamadı', e); } }, 60));
 
 window.__kvBoot = boot();
-window.__kv = {projOpen: projOpen, projDelete: projDelete, pid: () => PID, yenile: () => requestRender(), kaydet: () => projSaveNow(), an: () => PT, sure: () => timeline().total, klipSonu: () => timeline().clipsTotal, oynuyor: () => playing, durdur: () => { if (playing) pause(); }, klipVar: () => S.clips.length > 0, bicim: () => S.fmt};
+window.__kv = Object.assign(window.__kv || {}, {projOpen: projOpen, projDelete: projDelete, pid: () => PID, yenile: () => requestRender(), kaydet: () => projSaveNow(), an: () => PT, sure: () => timeline().total, klipSonu: () => timeline().clipsTotal, secKlip: () => { const c = S.clips[S.sel]; return c ? {i: S.sel, kind: c.kind, file: c.file, fkey: c.fkey, aspect: c.aspect, zoom: c.zoom || 1, ox: c.ox || 0, oy: c.oy || 0, ad: c.name || ""} : null; }, klipGeo: i => { const g = pvR && pvR.geo(i); return g ? {cx: (g.cx - (g.dx || 0)) / PW, cy: g.cy / PH, fw: g.fw / PW, fh: g.fh / PH} : null; }, klipAralik: k => { const i = S.clips.findIndex(c => c.fkey === k); if (i < 0) return null; const tl = timeline(); return [tl.starts[i] - (i > 0 ? tl.T : 0), tl.starts[i] + S.clips[i].dur, tl.T]; }, oynuyor: () => playing, durdur: () => { if (playing) pause(); }, klipVar: () => S.clips.length > 0, bicim: () => S.fmt});
 })();
 </script>
 
@@ -11724,7 +11724,8 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     if (!pid) return;
     var l = []; try { l = (await idb('proje', 'readonly', function(s){ return s.get(pid); })) || []; } catch(e){ console.warn('nesne listesi', e); }
     if (N.pid !== pid) return;
-    for (var i = 0; i < l.length; i++){ var o = l[i]; if (!N.img[o.id]){ try { var b = await idb('png', 'readonly', function(s){ return s.get(o.id); }); if (b) N.img[o.id] = await createImageBitmap(b); } catch(e){ console.warn('nesne görüntüsü', e); } } }
+    for (var i = 0; i < l.length; i++){ var o = l[i]; if (!N.img[o.id]){ try { var b = await idb('png', 'readonly', function(s){ return s.get(o.id); }); if (b) N.img[o.id] = await createImageBitmap(b); } catch(e){ console.warn('nesne görüntüsü', e); } }
+      if (o.klip && !N.img[o.id + '_bg']){ try { var bb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_bg'); }); if (bb) N.img[o.id + '_bg'] = await createImageBitmap(bb); } catch(e){} } }
     if (N.pid !== pid) return;
     N.liste = l.filter(function(o){ return N.img[o.id]; }); ciz(); yenile(); }
   setInterval(function(){ var k = KV(); if (!k || !k.pid) return; var p = k.pid() || null; if (p !== N.pid){ N.pid = p; yukle(p); } }, 700);
@@ -11734,22 +11735,29 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
   var ease = function(p){ p = Math.max(0, Math.min(1, p)); return p * p * (3 - 2 * p); };
   /* bitiş boşsa: kliplerin sonu (kapanış ekranının üstüne binmez) */
   function bitis(o){ if (o.t1 != null) return o.t1; var k = KV(); try { return k && k.klipSonu ? k.klipSonu() : Infinity; } catch(e){ return Infinity; } }
-  function gorunur(o, t){ return !o.pasif && N.img[o.id] && t >= (o.t0 || 0) - 1e-4 && t < bitis(o); }
+  /* zaman aralığı: klipten kesilen nesne o klibin aralığını izler (klip taşınsa, kısaltılsa da) */
+  function aralik(o){ if (o.klip){ var k = KV(); try { return k && k.klipAralik ? k.klipAralik(o.klip) : null; } catch(e){ return null; } } return [o.t0 || 0, bitis(o), 0]; }
+  function gorunur(o, t){ if (o.pasif || !N.img[o.id]) return false; var r = aralik(o); return !!r && t >= r[0] - 1e-4 && t < r[1]; }
   window.__kvNesneVar = function(t){ for (var i = 0; i < N.liste.length; i++) if (gorunur(N.liste[i], t)) return true; return false; };
   function durum(o, W, H, t){
     var im = N.img[o.id], h = o.s / 100 * H, w = h * im.width / im.height, cx = o.x * W, cy = o.y * H, sc = 1, a = (o.op == null ? 100 : o.op) / 100;
-    var el = t - (o.t0 || 0), kal = bitis(o) - t, G = 0.7, p = ease(el / G);
+    var ar = aralik(o) || [0, Infinity, 0], el = t - ar[0], kal = ar[1] - t, G = 0.7, p = ease(el / G), kenar = 1;
+    if (o.klip){ var f = Math.max(0.25, ar[2] || 0); kenar = Math.max(0, Math.min(1, ar[0] < 0.01 ? 1 : el / f, kal / f)); a *= kenar; }   /* klip sınırında yumuşak giriş/çıkış */
     if (o.hareket === 'belir') a *= p;
     else if (o.hareket === 'kay'){ var yon = o.x < 0.5 ? -1 : 1; cx += (1 - p) * yon * (W * 0.5 + w * 0.6); }
     else if (o.hareket === 'yaklas'){ sc = 0.55 + 0.45 * p; a *= p; }
     else if (o.hareket === 'suz'){ a *= ease(el / 0.5); cy += Math.sin(el * 1.7) * H * 0.009; sc = 1 + 0.012 * Math.sin(el * 0.9); }
     if (o.hareket && o.hareket !== 'sabit' && isFinite(kal)) a *= Math.min(1, Math.max(0, kal / 0.45));
-    return {im:im, w:w, h:h, cx:cx, cy:cy, sc:sc, a:a, rot:(o.r || 0) * Math.PI / 180}; }
+    return {im:im, w:w, h:h, cx:cx, cy:cy, sc:sc, a:a, kenar:kenar, rot:(o.r || 0) * Math.PI / 180}; }
+  /* arka plan: aynı fotoğrafın bulanık hâli, ekranı doldurur (dikey çerçevenin kenarları görünmez) */
+  function arkaCiz(g, W, H, o, a){ var b = N.img[o.id + '_bg']; if (!b || a <= 0.003) return; var k = Math.max(W / b.width, H / b.height), w = b.width * k, h = b.height * k;
+    g.save(); g.globalAlpha = a; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(b, (W - w) / 2, (H - h) / 2, w, h); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H); g.restore(); }
   window.__kvNesne = function(g, W, H, t, exp){
     if (!N.liste.length) return;
     if (!exp){ N.W = W; N.H = H; }
     for (var i = 0; i < N.liste.length; i++){ var o = N.liste[i]; if (!gorunur(o, t)) continue;
       var d = durum(o, W, H, t); if (!exp) N.geo[o.id] = {cx:d.cx, cy:d.cy, w:d.w * d.sc, h:d.h * d.sc, rot:d.rot};
+      if (o.arka) arkaCiz(g, W, H, o, d.kenar);
       if (d.a <= 0.003) continue;
       g.save(); g.globalAlpha = d.a; g.translate(d.cx, d.cy); g.rotate(d.rot); g.scale(d.sc * (o.ayna ? -1 : 1), d.sc);
       if (o.golge){ g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = H * 0.025; g.shadowOffsetY = H * 0.012; }
@@ -11799,6 +11807,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
   ].join('\n');
   (document.head || document.documentElement).appendChild(css);
   var ic = function(p){ return '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>'; };
+  var IC_KES = '<circle cx="6" cy="7" r="2.6"/><circle cx="6" cy="17" r="2.6"/><path d="M8.2 8.4L20 17M8.2 15.6L20 7"/>';
   var IC_NESNE = '<path d="M7 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="9" r="3.4"/><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3" opacity=".7"/>';
 
   var sh = document.createElement('div'); sh.id = 'stNesne'; sh.hidden = true; document.body.appendChild(sh);
@@ -11818,10 +11827,12 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     h += '<div class="nb"><b>Nesne</b><button type="button" data-a="kapat" aria-label="Tamam">' + ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>') + '</button></div>';
     if (!N.liste.length){
       h += '<button type="button" class="bos" data-a="ekle"><span style="width:44px;height:44px;flex:none">' + ic(IC_NESNE).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Fotoğraftan nesne kes ve ekle</b><small>Bir fotoğraf seç; yapay zekâ nesneyi ya da kişiyi arka planından ayırır, videonun üstüne katman olarak koyar.</small></span></button>';
+      h += '<button type="button" class="bos" data-a="klip" style="margin-top:8px"><span style="width:44px;height:44px;flex:none">' + ic(IC_KES).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Seçili klipteki kişiyi kes</b><small>Zaman çizelgesinde seçtiğin fotoğraftaki kişi yerinde kalır, arkası aynı fotoğrafın bulanık hâliyle dolar; dikey çerçeve kaybolur.</small></span></button>';
       h += '<p class="not">İlk kullanımda model iner (yaklaşık 90 MB, Wi-Fi önerilir); sonra telefonda kalır. Fotoğraf telefondan dışarı gönderilmez.</p>';
     } else {
       h += '<div class="ns">' + N.liste.map(function(x){ return '<button type="button" data-n="' + x.id + '" class="' + (x.id === N.sec ? 'on' : '') + (x.pasif ? ' pas' : '') + '"><img alt="" src="' + kucuk(x) + '"></button>'; }).join('')
-        + '<button type="button" class="ekle" data-a="ekle" aria-label="Nesne ekle">' + ic('<path d="M12 5v14M5 12h14"/>') + '</button></div>';
+        + '<button type="button" class="ekle" data-a="ekle" aria-label="Fotoğraftan nesne ekle">' + ic('<path d="M12 5v14M5 12h14"/>') + '</button>'
+        + '<button type="button" class="ekle" data-a="klip" aria-label="Seçili klipteki kişiyi kes">' + ic(IC_KES) + '</button></div>';
       if (o){
         var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0] || AYAR[0], v = o[A[0]] == null ? (A[0] === 'op' ? 100 : 0) : o[A[0]];
         h += '<div class="cp">' + AYAR.map(function(a){ return '<button type="button" data-ay="' + a[0] + '" class="' + (a[0] === N.ayar ? 'on' : '') + '">' + a[1] + '</button>'; }).join('')
@@ -11829,9 +11840,14 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
           + '<button type="button" data-a="ortala">Ortala</button><button type="button" data-t="pasif" class="' + (o.pasif ? 'on' : '') + '">Gizle</button></div>';
         h += '<div class="kr"><input type="range" id="stNk" min="' + A[2] + '" max="' + A[3] + '" step="1" value="' + Math.round(v) + '"><output id="stNo">' + Math.round(v) + A[4] + '</output></div>';
         h += '<div class="cp">' + HAREKET.map(function(a){ return '<button type="button" data-h="' + a[0] + '" class="' + ((o.hareket || 'sabit') === a[0] ? 'on' : '') + '">' + a[1] + '</button>'; }).join('') + '</div>';
+        if (o.klip){
+          h += '<div class="cp"><button type="button" data-t="arka" class="' + (o.arka ? 'on' : '') + '">Bulanık arka plan</button><button type="button" data-a="png">PNG kaydet</button><button type="button" data-a="sil" class="sil' + (silOnay > Date.now() ? ' on' : '') + '">' + (silOnay > Date.now() ? 'Silmek için yeniden dokun' : 'Sil') + '</button></div>';
+          h += '<p class="not">Kendi klibi boyunca görünür; klip taşınır ya da kısaltılırsa birlikte gider. Sürükle, iki parmakla büyüt / döndür.</p>';
+        } else {
         h += '<div class="zs"><button type="button" data-a="t0"><small>Başlangıç · dokun: şu an</small>' + zaman(o.t0 || 0) + '</button><button type="button" data-a="t1"><small>Bitiş · dokun: şu an</small>' + zaman(o.t1) + '</button></div>';
         h += '<div class="cp"><button type="button" data-a="bastan">Baştan</button><button type="button" data-a="sona">Kliplerin sonuna</button><button type="button" data-a="png">PNG kaydet</button><button type="button" data-a="sil" class="sil' + (silOnay > Date.now() ? ' on' : '') + '">' + (silOnay > Date.now() ? 'Silmek için yeniden dokun' : 'Sil') + '</button></div>';
         h += '<p class="not">Önizlemede nesneyi sürükleyerek taşı; iki parmakla büyüt, küçült, döndür.</p>';
+        }
       }
     }
     sh.innerHTML = h; yerles();
@@ -11848,6 +11864,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     var a = b.dataset.a;
     if (a === 'kapat'){ kapat(); return; }
     if (a === 'ekle'){ ekleBasla(); return; }
+    if (a === 'klip'){ klipKes(); return; }
     if (!o) return;
     if (a === 'ortala'){ o.x = 0.5; o.y = 0.5; o.r = 0; degisti(true); }
     else if (a === 't0'){ var t = k ? k.an() : 0; o.t0 = Math.round(t * 10) / 10; if (o.t1 != null && o.t1 <= o.t0 + 0.2) o.t1 = null; degisti(true); }
@@ -11856,7 +11873,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     else if (a === 'sona'){ o.t1 = null; degisti(true); }
     else if (a === 'png'){ pngKaydet(o); }
     else if (a === 'sil'){ if (silOnay > Date.now()){ silOnay = 0; N.liste = N.liste.filter(function(x){ return x !== o; }); N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null;
-        idb('png', 'readwrite', function(s){ return s.delete(o.id); }).catch(function(){}); delete N.img[o.id]; delete urlOnb[o.id]; degisti(true); }
+        idb('png', 'readwrite', function(s){ s.delete(o.id + '_bg'); return s.delete(o.id); }).catch(function(){}); delete N.img[o.id]; delete N.img[o.id + '_bg']; delete urlOnb[o.id]; degisti(true); }
       else { silOnay = Date.now() + 3000; ciz(); setTimeout(ciz, 3100); } }
   });
   function uyari(m){ is.hidden = false; is.querySelector('b').textContent = 'Nesne'; is.querySelector('#stNIsM').textContent = m; is.querySelector('#stNIsC').style.width = '0'; is.querySelector('#stNIsA').textContent = ''; is.querySelector('#stNIsT').hidden = false; }
@@ -11875,6 +11892,53 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     var k = KV(); if (!k){ uyari('Video editörü hazır değil.'); return; }
     if (!k.klipVar()){ uyari('Önce videoya en az bir fotoğraf ya da video ekle; nesne onun üstüne konur.'); return; }
     k.durdur(); gir.value = ''; gir.click(); }
+  /* seçili klipteki kişiyi kes: nesne yerinde kalır, arkası aynı fotoğrafın bulanık hâli */
+  function isAc(baslik){ is.hidden = false; is.querySelector('b').textContent = baslik; is.querySelector('#stNIsT').hidden = true; is.querySelector('#stNIsA').textContent = '';
+    var m = is.querySelector('#stNIsM'), c = is.querySelector('#stNIsC'); return function(t, o){ m.textContent = t; if (o != null) c.style.width = Math.round(o * 100) + '%'; }; }
+  async function bulanik(dosya){ var b = await createImageBitmap(dosya, {imageOrientation:'from-image'}), k = 420 / Math.max(b.width, b.height), w = Math.max(8, Math.round(b.width * k)), h = Math.max(8, Math.round(b.height * k));
+    var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d'); x.filter = 'blur(' + Math.round(Math.max(w, h) * 0.035) + 'px)';
+    x.drawImage(b, -w * 0.08, -h * 0.08, w * 1.16, h * 1.16); x.filter = 'none'; try { b.close(); } catch(e){}
+    return await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.85); }); }
+  async function klipKes(){
+    var k = KV(); if (!k){ uyari('Video editörü hazır değil.'); return; }
+    k.durdur(); var sk = k.secKlip();
+    if (!sk){ uyari('Önce zaman çizelgesinde bir fotoğraf klibine dokun.'); return; }
+    if (sk.kind !== 'photo'){ uyari('Seçili klip bir video. Videoda kişiyi kare kare takip ederek kesme sonraki adımda gelecek; şimdilik fotoğraf kliplerinde çalışır.'); return; }
+    if (N.liste.some(function(o){ return o.klip && o.klip === sk.fkey; })){ uyari('Bu klipten zaten kesilmiş bir nesne var. Nesne panelinden düzenleyebilir ya da silip yeniden kesebilirsin.'); return; }
+    var bildir = isAc('Klipteki kişi kesiliyor');
+    try {
+      bildir('Proje kaydediliyor…', 0.01); await k.kaydet(); N.pid = k.pid() || N.pid; sk = k.secKlip();
+      if (!N.pid || !sk || !sk.fkey || !sk.file) throw new Error('Proje kaydedilemedi; yeniden dene.');
+      /* klibin ekrandaki yatay konumu (Kareden Videoya'nın kendi çiziminden, varsa) */
+      var geo = null; try { geo = k.klipGeo ? k.klipGeo(sk.i) : null; } catch(e){ geo = null; }
+      var YZ = await motorYukle();
+      var r = await YZ.kes(sk.file, bildir);
+      bildir('Arka plan hazırlanıyor…', 0.97);
+      var id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), bg = await bulanik(sk.file);
+      await idb('png', 'readwrite', function(s){ s.put(r.png, id); return s.put(bg, id + '_bg'); });
+      N.img[id] = await createImageBitmap(r.png); N.img[id + '_bg'] = await createImageBitmap(bg);
+      /* klibin ekrandaki yeri (Kareden Videoya'nın çizimiyle aynı hesap, Ken Burns hariç) → nesne tam yerine oturur */
+      /* yerleşim: kişinin tamamı görünsün (Ken Burns / Doldur yakınlaştırması kişiyi kesmesin).
+         Yükseklik ekranın %85'i (geniş nesnede ekrana sığacak kadar), yatayda klipteki yerine yakın, fotoğrafın altına değiyorsa ekranın altına oturur. */
+      var W = N.W || 1920, H = N.H || 1080, oran = r.w / r.h, s = 85, wf = s / 100 * H * oran / W;
+      if (wf > 0.9){ s = Math.max(10, Math.round(0.9 * W / (H * oran) * 100)); wf = s / 100 * H * oran / W; }
+      var mx = geo ? geo.cx + (r.x + r.w / r.W / 2 - 0.5) * geo.fw : 0.5; mx = Math.max(wf / 2 + 0.02, Math.min(1 - wf / 2 - 0.02, mx));
+      var alta = r.y + r.h / r.H > 0.97, my = alta ? 1 - s / 200 : 0.5;
+      var o = {id:id, ad:'Klip ' + (sk.i + 1), klip:sk.fkey, arka:true, x:mx, y:my, s:s, r:0, op:100, golge:true, ayna:false, hareket:'sabit'};
+      N.liste.push(o); N.sec = id; kaydet(); yenile();
+      is.querySelector('b').textContent = 'Kişi kesildi';
+      bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn. Kişi tam görünür, arkası bulanık; sürükleyip büyütebilirsin.', 1);
+      is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (is.querySelector('b').textContent === 'Kişi kesildi') is.hidden = true; }, 2500);
+      if (!N.acik) ac(); else ciz();
+    } catch(e){ console.error(e); is.querySelector('b').textContent = 'Olmadı'; bildir(String(e && e.message || e), 0); is.querySelector('#stNIsT').hidden = false; }
+  }
+  /* seçili klip araç çubuğuna "Kişiyi kes" */
+  function klipButonKur(){ var ka = document.getElementById('isKlipAr'); if (!ka || ka.querySelector('#stKesBtn')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'stKesBtn'; b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">' + IC_KES + '</svg><span>Kişiyi kes</span>';
+    b.addEventListener('click', function(e){ e.stopPropagation(); klipKes(); });
+    var ilk = ka.querySelector('button'); ilk ? ilk.after(b) : ka.prepend(b); }
+  (function bagla2(n){ var ka = document.getElementById('isKlipAr'); if (!ka){ if (n < 150) setTimeout(function(){ bagla2(n + 1); }, 400); return; }
+    klipButonKur(); new MutationObserver(klipButonKur).observe(ka, {childList:true}); })(0);
   gir.addEventListener('change', async function(){
     var f = gir.files && gir.files[0]; gir.value = ''; if (!f) return; var k = KV();
     is.hidden = false; is.querySelector('b').textContent = 'Nesne kesiliyor'; is.querySelector('#stNIsT').hidden = true; is.querySelector('#stNIsA').textContent = '';

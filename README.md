@@ -17,6 +17,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
   - "Ana nesneyi otomatik seç" artık yapay zekâ (ISNet) maskesiyle seçer. Eskiden renk, netlik ve yüz ipuçlarıyla tahmin ediyordu.
   - Seçim aynı biçimde kalır: fırçayla ekle/çıkar, karınca çizgisi, "Nerede bulanıklaşsın" seçenekleri.
   - "Nesneyi çerçevele" eski yolla çalışır. Yapay zekâ yüklenemezse eski yönteme döner.
+- Test (sunucu, grafik birimi yok, deneme için 1 kare/sn):
+  - 4 sn'lik videoda 5 kare 69 sn'de işlendi.
+  - Önizlemede ve 1920×1080 dışa aktarmada nesne net, arkası aynı videonun bulanık hâli.
+  - Veritabanı kaydı doğrulandı.
+  - Fotoğrafta akıllı bulanıklaştırma: seçim yapay zekâ ile (%63 alan), saç kenarı net, arka plan bulanık.
+- Sınır: video klipte izlenecek nesne seçilemiyor; ilk karedeki en büyük nesne alınıyor. Dokunarak seçme sonraki adım.
 - Motor: `yz/motor.js`'e ortak `takipci` (video takibi) eklendi. Video editörü bunu kullanır.
 - Kareden Videoya kopyasına kanca: nesne çizimine klibin kare kaynağı (`getSrc`) geçirilir; `__kv`'ye `klipKaynak` ve `klipAn` (klibin kaynak zamanı) eklendi.
 

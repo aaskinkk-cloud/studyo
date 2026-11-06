@@ -2,7 +2,37 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.9 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.0 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.0 (06.11.2026): talimattaki eksik küçük maddeler (kesme kalitesi ve kontroller)
+Yapay zekâ talimatı madde madde yeniden denetlendi; takip, sanatsal geçişler ve saydam video dışındaki eksikler tamamlandı.
+- **Ortak motor (`yz/motor.js`), fotoğraf ve video aynı işlevleri kullanır:**
+  - `parcalar`: maskedeki ayrı nesneleri bulur. Kırıntılar elenir, en çok 8–12 nesne, büyükten küçüğe. Yumuşak kenar pikselleri en yakın nesneye katılır.
+  - `incelt`: kenarı daraltır / genişletir ve yumuşatır.
+  - `renkTemizle`: yarı saydam kenar piksellerinin rengini nesnenin kendi rengine çeker. Eski arka planın rengi yeni bir arka plan önünde hale ya da kontur bırakmaz.
+  - Kesme sonucu (video Nesne) bu temizlikten geçer.
+- **Fotoğraf editörü › Kes:**
+  - **Kenar** aracı (4. araç): "Daralt ⟷ Genişlet" ve "Yumuşaklık". Daraltma arka plan kalıntısını yer, genişletme kesik kenarı geri verir. Geri alınabilir.
+  - **Kenar rengini temizle** (açık gelir): kaydederken uygulanır.
+  - **Karşılaştır** (üstte göz): basılı tutunca orijinal fotoğraf, bırakınca kesilmiş hâl.
+  - Kaydet sayfasında **Ayrı nesneler (N)**: fotoğrafta birden çok nesne kaldıysa küçük resimleri görünür. Dokunulan nesne ayrı saydam PNG olarak iner; "Her nesneyi ayrı saydam PNG indir" ile hepsi iner.
+- **Video editörü › Nesne:**
+  - Fotoğrafta birden çok nesne bulunursa sorulur: **N ayrı katman** ya da **Tek katman**.
+  - Ayrı katmanlar fotoğraftaki yerlerine göre dizilir. Her biri ayrı taşınır, büyütülür, döndürülür, zamanlanır.
+  - **Geri al / İleri al** (panel başlığında, 30 adım): konum, boyut, açı, görünürlük, hareket, zaman, arka plan, gölge/ayna/gizle, ekleme ve silme. Sürükleme ve kaydırıcı hareketi tek adım sayılır.
+  - Silinen nesnenin görüntüsü panel kapanınca veritabanından silinir; o zamana kadar geri alınabilir.
+- **Test:**
+  - Birim testi: iki kare ve bir kırıntı → iki nesne. Daraltma/genişletme piksel sayısı. Kenardaki yeşil taşma nesnenin rengine çekildi.
+  - Fotoğraf: kenar daralt/genişlet/sıfır (piksel sayısı birebir geri geldi), geri al, karşılaştır, iki nesneli fotoğrafta 2 ayrı PNG ve tüm PNG.
+  - Video: iki nesneli fotoğraftan "2 ayrı katman", hareket değiştir → geri al, sil → geri al → ileri al, panel kapanınca görüntü temizliği.
+  - 1.9 testleri tekrarlandı; bütün sayfa betiklerinde sözdizimi hatası yok.
+- **Hâlâ yok:**
+  - Videoda takip.
+  - Sanatsal geçişler.
+  - Saydam video çıktısı.
+  - Nesnelerin zaman çizelgesi satırı.
+  - İnsan için özel matting modeli.
+  - Kuş tüyü ve dal testleri: gerçek fotoğrafla yapılmadı.
 
 ## 1.9 (06.11.2026): kesilen nesnenin arkasına fotoğraf
 - **Fotoğraf editörü › Kes › Bitti:**

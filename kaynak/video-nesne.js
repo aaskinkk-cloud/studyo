@@ -21,7 +21,7 @@
   function kaydet(){ clearTimeout(kayT); var pid = N.pid, l = N.liste.map(function(o){ var c = {}; for (var k in o) c[k] = o[k]; return c; });
     if (!pid) return; kayT = setTimeout(function(){ idb('proje', 'readwrite', function(s){ return s.put(l, pid); }).catch(function(e){ console.warn('nesne kaydı', e); }); }, 300); }
   async function yukle(pid){
-    N.liste = []; N.sec = null; N.geo = {}; ciz();
+    N.liste = []; N.sec = null; N.geo = {}; N.gecmis = []; N.ileriL = []; ciz();
     if (!pid) return;
     var l = []; try { l = (await idb('proje', 'readonly', function(s){ return s.get(pid); })) || []; } catch(e){ console.warn('nesne listesi', e); }
     if (N.pid !== pid) return;
@@ -106,6 +106,7 @@
     '#stNesneIs b{display:block;font-size:16px;margin:0 0 6px}',
     '#stNesneIs .cb{height:6px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden;margin:10px 0 4px}',
     '#stNesneIs .cb i{display:block;height:100%;width:0;background:#e8762b;transition:width .15s}',
+    '#stNIsSec{display:grid;gap:8px;margin-top:12px}#stNIsSec button{margin:0!important}',
     '#stNesneIs button{margin-top:12px;width:100%;border:0;border-radius:10px;padding:10px;font:600 15px system-ui,sans-serif;background:var(--is-ink,#fff);color:var(--is-bg,#111)}'
   ].join('\n');
   (document.head || document.documentElement).appendChild(css);
@@ -127,7 +128,7 @@
   var silOnay = 0;
   function ciz(){
     if (!N.acik) return; var o = secili(), h = '';
-    h += '<div class="nb"><b>Nesne</b><button type="button" data-a="kapat" aria-label="Tamam">' + ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>') + '</button></div>';
+    h += '<div class="nb"><b style="flex:1">Nesne</b><button type="button" data-a="geri" aria-label="Geri al"' + (N.gecmis.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>') + '</button><button type="button" data-a="ileri" aria-label="İleri al"' + (N.ileriL.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>') + '</button><button type="button" data-a="kapat" aria-label="Tamam">' + ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>') + '</button></div>';
     if (!N.liste.length){
       h += '<button type="button" class="bos" data-a="ekle"><span style="width:44px;height:44px;flex:none">' + ic(IC_NESNE).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Fotoğraftan nesne kes ve ekle</b><small>Bir fotoğraf seç; yapay zekâ nesneyi ya da kişiyi arka planından ayırır, videonun üstüne katman olarak koyar.</small></span></button>';
       h += '<button type="button" class="bos" data-a="klip" style="margin-top:8px"><span style="width:44px;height:44px;flex:none">' + ic(IC_KES).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Seçili klipteki kişiyi kes</b><small>Zaman çizelgesinde seçtiğin fotoğraftaki kişi yerinde kalır, arkası aynı fotoğrafın bulanık hâliyle dolar; dikey çerçeve kaybolur.</small></span></button>';
@@ -159,9 +160,11 @@
   }
   function degisti(yenidenCiz){ kaydet(); yenile(); if (yenidenCiz) ciz(); }
   sh.addEventListener('input', function(e){ if (e.target.id !== 'stNk') return; var o = secili(); if (!o) return; var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0];
-    o[A[0]] = +e.target.value; var out = sh.querySelector('#stNo'); if (out) out.textContent = e.target.value + A[4]; degisti(false); });
+    anlik(false); o[A[0]] = +e.target.value; var out = sh.querySelector('#stNo'); if (out) out.textContent = e.target.value + A[4]; degisti(false); });
   sh.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b) return; var o = secili(), k = KV();
+    if ((b.dataset.ark && b.dataset.ark !== 'foto') || b.dataset.h || b.dataset.t || ['ortala','t0','t1','bastan','sona'].indexOf(b.dataset.a) >= 0) if (o) anlik(true);
+    if (b.dataset.a === 'geri'){ geriAl(false); return; } if (b.dataset.a === 'ileri'){ geriAl(true); return; }
     if (b.dataset.n){ N.sec = b.dataset.n; silOnay = 0; ciz(); yenile(); return; }
     if (b.dataset.ay){ N.ayar = b.dataset.ay; ciz(); return; }
     if (b.dataset.h && o){ o.hareket = b.dataset.h; degisti(true); return; }
@@ -178,8 +181,8 @@
     else if (a === 'bastan'){ o.t0 = 0; degisti(true); }
     else if (a === 'sona'){ o.t1 = null; degisti(true); }
     else if (a === 'png'){ pngKaydet(o); }
-    else if (a === 'sil'){ if (silOnay > Date.now()){ silOnay = 0; N.liste = N.liste.filter(function(x){ return x !== o; }); N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null;
-        idb('png', 'readwrite', function(s){ s.delete(o.id + '_bg'); s.delete(o.id + '_af'); return s.delete(o.id); }).catch(function(){}); delete N.img[o.id]; delete N.img[o.id + '_bg']; delete N.img[o.id + '_af']; delete urlOnb[o.id]; degisti(true); }
+    else if (a === 'sil'){ if (silOnay > Date.now()){ silOnay = 0; anlik(true); N.liste = N.liste.filter(function(x){ return x !== o; }); N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null;
+        N.silinen[o.id] = 1; degisti(true); }
       else { silOnay = Date.now() + 3000; ciz(); setTimeout(ciz, 3100); } }
   });
   function uyari(m){ is.hidden = false; is.querySelector('b').textContent = 'Nesne'; is.querySelector('#stNIsM').textContent = m; is.querySelector('#stNIsC').style.width = '0'; is.querySelector('#stNIsA').textContent = ''; is.querySelector('#stNIsT').hidden = false; }
@@ -205,7 +208,7 @@
     try { var b = await createImageBitmap(f, {imageOrientation:'from-image'}), q = Math.min(1, 1920 / Math.max(b.width, b.height)), c = document.createElement('canvas');
       c.width = Math.round(b.width * q); c.height = Math.round(b.height * q); var x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(b, 0, 0, c.width, c.height); try { b.close(); } catch(e){}
       var jb = await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.9); }); c.width = 0;
-      await idb('png', 'readwrite', function(s){ return s.put(jb, o.id + '_af'); }); N.img[o.id + '_af'] = await createImageBitmap(jb); o.arka = 'foto'; degisti(true);
+      await idb('png', 'readwrite', function(s){ return s.put(jb, o.id + '_af'); }); N.img[o.id + '_af'] = await createImageBitmap(jb); anlik(true); o.arka = 'foto'; degisti(true);
     } catch(e){ console.error(e); uyari('Arka plan fotoğrafı açılamadı: ' + (e && e.message || e)); } });
   /* seçili klipteki kişiyi kes: nesne yerinde kalır, arkası aynı fotoğrafın bulanık hâli */
   function isAc(baslik){ is.hidden = false; is.querySelector('b').textContent = baslik; is.querySelector('#stNIsT').hidden = true; is.querySelector('#stNIsA').textContent = '';
@@ -240,7 +243,7 @@
       var mx = geo ? geo.cx + (r.x + r.w / r.W / 2 - 0.5) * geo.fw : 0.5; mx = Math.max(wf / 2 + 0.02, Math.min(1 - wf / 2 - 0.02, mx));
       var alta = r.y + r.h / r.H > 0.97, my = alta ? 1 - s / 200 : 0.5;
       var o = {id:id, ad:'Klip ' + (sk.i + 1), klip:sk.fkey, arka:true, x:mx, y:my, s:s, r:0, op:100, golge:true, ayna:false, hareket:'sabit'};
-      N.liste.push(o); N.sec = id; kaydet(); yenile();
+      anlik(true); N.liste.push(o); N.sec = id; kaydet(); yenile();
       is.querySelector('b').textContent = 'Kişi kesildi';
       bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn. Kişi tam görünür, arkası bulanık; sürükleyip büyütebilirsin.', 1);
       is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (is.querySelector('b').textContent === 'Kişi kesildi') is.hidden = true; }, 2500);
@@ -263,19 +266,54 @@
       if (!N.pid){ await k.kaydet(); N.pid = k.pid() || null; }
       if (!N.pid) throw new Error('Proje kaydedilemedi; bir klip ekleyip yeniden dene.');
       var YZ = await motorYukle();
-      var r = await YZ.kes(f, bildir);
+      var r = await YZ.kes(f, bildir, {parcalar:true});
+      if (r.parcalar && r.parcalar.length > 1){
+        var sec = await secim(r.parcalar.length);
+        if (sec === 'ayri'){ await ayriEkle(r, f); return; } }
       var id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       await idb('png', 'readwrite', function(s){ return s.put(r.png, id); });
       N.img[id] = await createImageBitmap(r.png);
       var W = N.W || 1920, H = N.H || 1080, oran = r.w / r.h, s = 80;
       if (oran * s / 100 * H > W * 0.9) s = Math.max(10, Math.round(W * 0.9 / oran / H * 100));   /* geniş nesne ekrana sığsın */
       var o = {id:id, ad:(f.name || 'nesne').replace(/\.[^.]+$/, '').slice(0, 40), x:0.5, y:Math.min(0.5, 0.97 - s / 200), s:s, r:0, op:100, golge:true, ayna:false, hareket:'belir', t0:0, t1:null};   /* varsayılan: videonun başından sonuna; Başlangıç/Bitiş ile daraltılır */
-      N.liste.push(o); N.sec = id; degisti(true);
+      anlik(true); N.liste.push(o); N.sec = id; degisti(true);
       is.querySelector('b').textContent = 'Nesne eklendi';
       bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn' + (r.indi ? ' (model indirme dahil)' : '') + '. Önizlemede sürükleyerek yerleştir.', 1);
       is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (!is.querySelector('#stNIsT').hidden && is.querySelector('b').textContent === 'Nesne eklendi') is.hidden = true; }, 2500);
     } catch(e){ console.error(e); is.querySelector('b').textContent = 'Olmadı'; bildir(String(e && e.message || e), 0); is.querySelector('#stNIsT').hidden = false; }
   });
+
+  /* fotoğrafta birden çok nesne: tek katman mı, her biri ayrı katman mı */
+  function secim(n){ return new Promise(function(ok){ var t = is.querySelector('#stNIsT'), kutu = document.createElement('div'); kutu.id = 'stNIsSec';
+    is.querySelector('b').textContent = 'Fotoğrafta ' + n + ' ayrı nesne bulundu'; is.querySelector('#stNIsM').textContent = 'Hepsi tek katman olarak mı eklensin, yoksa her biri ayrı katman mı (ayrı ayrı taşınır, büyütülür, zamanlanır)?';
+    t.hidden = true; kutu.innerHTML = '<button type="button" data-s="ayri">' + n + ' ayrı katman</button><button type="button" data-s="tek" style="background:transparent;color:inherit;border:1.5px solid currentColor">Tek katman</button>';
+    is.querySelector('#stNIsT').after(kutu);
+    kutu.addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; kutu.remove(); ok(b.dataset.s); }); }); }
+  async function ayriEkle(r, f){
+    var W = N.W || 1920, H = N.H || 1080, ad = (f.name || 'nesne').replace(/\.[^.]+$/, '').slice(0, 34), k = KV();
+    /* fotoğrafın sanal çerçevesi: yüksekliğin %85'i, ortada, altta hafif boşluk; parçalar fotoğraftaki yerlerine göre dizilir */
+    var PH = 0.85 * H, PW = PH * r.W / r.H; if (PW > 0.95 * W){ PW = 0.95 * W; PH = PW * r.H / r.W; } var ust = 0.97 - PH / H, ilk = null;
+    anlik(true);
+    for (var i = 0; i < r.parcalar.length; i++){ var p = r.parcalar[i], id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + i;
+      await idb('png', 'readwrite', function(s){ return s.put(p.png, id); }); N.img[id] = await createImageBitmap(p.png);
+      var wf = p.w / r.W, hf = p.h / r.H;
+      N.liste.push({id:id, ad:ad + ' ' + (i + 1), x:0.5 + (p.x + wf / 2 - 0.5) * PW / W, y:ust + (p.y + hf / 2) * PH / H, s:Math.max(3, hf * PH / H * 100), r:0, op:100, golge:true, ayna:false, hareket:'belir', t0:0, t1:null});
+      if (!ilk) ilk = id; }
+    N.sec = ilk; degisti(true);
+    is.querySelector('b').textContent = 'Nesne eklendi';
+    is.querySelector('#stNIsM').textContent = r.parcalar.length + ' nesne ayrı katman olarak eklendi (' + (r.motor === 'grafik birimi' ? 'grafik birimiyle' : 'işlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn). Panelde her birini seçip ayrı ayarla.';
+    is.querySelector('#stNIsT').hidden = false; }
+
+  /* ---------- geri al / ileri al (katman ayarları) ---------- */
+  N.gecmis = []; N.ileriL = []; N.sonAnlik = 0; N.silinen = {};
+  function anlik(zorla){ var t = Date.now(); if (!zorla && t - N.sonAnlik < 700){ N.sonAnlik = t; return; } N.sonAnlik = t;
+    N.gecmis.push(JSON.stringify(N.liste)); if (N.gecmis.length > 30) N.gecmis.shift(); N.ileriL = []; }
+  function geriAl(ileri){ var A = ileri ? N.ileriL : N.gecmis, B = ileri ? N.gecmis : N.ileriL; if (!A.length) return;
+    B.push(JSON.stringify(N.liste)); N.liste = JSON.parse(A.pop()).filter(function(o){ return N.img[o.id]; });
+    if (!N.liste.some(function(o){ return o.id === N.sec; })) N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null; N.sonAnlik = 0; degisti(true); }
+  /* silinen görüntüler panel kapanınca veritabanından silinir (o zamana kadar geri alınabilir) */
+  function copTopla(){ var ids = Object.keys(N.silinen); N.silinen = {}; ids.forEach(function(id){ if (N.liste.some(function(o){ return o.id === id; })) return;
+    idb('png', 'readwrite', function(s){ s.delete(id + '_bg'); s.delete(id + '_af'); return s.delete(id); }).catch(function(){}); delete N.img[id]; delete N.img[id + '_bg']; delete N.img[id + '_af']; delete urlOnb[id]; }); }
 
   /* ---------- aç / kapat / yerleşim ---------- */
   var altSarili = false;
@@ -286,7 +324,7 @@
   function ac(){ var k = KV(); if (k) k.durdur(); try { window.kvStudyo && kvStudyo.kapat(true); } catch(e){}
     ['isTuval', 'isMetin', 'isOdak'].forEach(function(id){ var x = document.getElementById(id); if (x && !x.hidden && id !== 'isOdak') x.hidden = true; });
     altSar(); N.acik = true; sh.hidden = false; if (!N.sec && N.liste.length) N.sec = N.liste[N.liste.length - 1].id; ciz(); butonDurum(); yenile(); setTimeout(yerles, 60); }
-  function kapat(){ N.acik = false; sh.hidden = true; silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
+  function kapat(){ copTopla(); N.acik = false; sh.hidden = true; silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
   function butonDurum(){ var b = document.getElementById('stNsBtn'); if (b) b.setAttribute('aria-current', N.acik ? 'true' : 'false'); }
   function butonKur(){ var mn = document.getElementById('mininav'); if (!mn || mn.querySelector('#stNsBtn')) return;
     var b = document.createElement('button'); b.type = 'button'; b.id = 'stNsBtn'; b.innerHTML = ic(IC_NESNE) + '<span>Nesne</span>';
@@ -315,7 +353,7 @@
     var o = isabet(p); if (!o) return;
     e.stopImmediatePropagation(); e.preventDefault(); var k = KV(); if (k) k.durdur();
     if (N.sec !== o.id){ N.sec = o.id; ciz(); }
-    P = {}; P[e.pointerId] = p; surukle = {o:o, p0:p, x0:o.x, y0:o.y, oy:false}; N._yut = true;
+    anlik(true); P = {}; P[e.pointerId] = p; surukle = {o:o, p0:p, x0:o.x, y0:o.y, oy:false}; N._yut = true;
     try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch(_){}
   }, true);
   function ikiBasla(){ var ks = Object.keys(P), a = P[ks[0]], b = P[ks[1]]; surukle.iki = {d:Math.hypot(b.x - a.x, b.y - a.y) || 1, aci:Math.atan2(b.y - a.y, b.x - a.x), s0:surukle.o.s, r0:surukle.o.r || 0, mx:(a.x + b.x) / 2, my:(a.y + b.y) / 2, x0:surukle.o.x, y0:surukle.o.y}; }

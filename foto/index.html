@@ -10836,13 +10836,16 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     '#stKes .sira::-webkit-scrollbar{display:none}',
     '#stKes .sira button{flex:none;border:1.5px solid #3a3a3a;background:none;border-radius:999px;padding:7px 13px;font-size:13.5px;color:#bbb}',
     '#stKes .sira button.on{background:#f2f2f2;color:#111;border-color:#f2f2f2}',
-    '#stKes .araclar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px}',
+    '#stKes .araclar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}',
     '#stKes .araclar button{background:#262626;border:1.5px solid transparent;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12.5px}',
     '#stKes .araclar button small{color:#999;font-size:10.5px}',
     '#stKes .araclar button.on{border-color:#e8762b;background:#2e2219}',
     '#stKes .kr{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:13px;color:#bbb}',
     '#stKes .kr input{flex:1;min-width:0;accent-color:#e8762b}',
     '#stKes .not{color:#999;font-size:12px;margin:0}',
+    '#stKes .parca{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px}',
+    '#stKes .parca button{flex:none;width:64px;height:64px;border-radius:10px;border:1.5px solid #3a3a3a;padding:0;overflow:hidden;background:repeating-conic-gradient(#555 0 25%,#777 0 50%) 0 0/10px 10px}',
+    '#stKes .parca img{width:100%;height:100%;object-fit:contain;display:block}',
     '#stKes .is{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);z-index:3;padding:24px}',
     '#stKes .is[hidden]{display:none}',
     '#stKes .is>div{background:#222;border-radius:16px;padding:16px;width:min(360px,100%)}',
@@ -10867,22 +10870,26 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     kes:'<circle cx="6" cy="7" r="2.6"/><circle cx="6" cy="17" r="2.6"/><path d="M8.2 8.4L20 17M8.2 15.6L20 7"/>',
     kapat:'<path d="M6 6l12 12M18 6L6 18"/>', geri:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>', ileri:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>',
     sec:'<path d="M5 3l12 7-5 1.5L10 17z"/><path d="M13 13l5 5"/>', koru:'<path d="M18 4l2 2-9 9-3 1 1-3z"/><path d="M4 20c1.5 0 3-1 3-3"/><path d="M12 4v3M12 4H9" opacity=".0"/>',
+    kenar:'<rect x="4" y="4" width="16" height="16" rx="4" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="2"/>', goz:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     sil:'<path d="M7 20h10"/><path d="M5 14l7-7 5 5-7 7H7z"/>', sifir:'<path d="M4 4v6h6"/><path d="M4.5 15a8 8 0 102-8.5L4 10"/>'
   };
 
   var kok = document.createElement('div'); kok.id = 'stKes'; kok.hidden = true;
   kok.innerHTML = '<div class="ku"><button type="button" class="ib" data-a="kapat" aria-label="Kapat">' + ic(I.kapat) + '</button>'
     + '<button type="button" class="ib" data-a="geri" aria-label="Geri al" disabled>' + ic(I.geri) + '</button><button type="button" class="ib" data-a="ileri" aria-label="İleri al" disabled>' + ic(I.ileri) + '</button>'
-    + '<b>Kes</b><button type="button" class="ib" data-a="sifir" aria-label="Yapay zekâ sonucuna dön">' + ic(I.sifir) + '</button><button type="button" class="kaydet" data-a="bitti">Bitti</button></div>'
+    + '<b>Kes</b><button type="button" class="ib" data-a="kars" aria-label="Basılı tut: orijinal">' + ic(I.goz) + '</button><button type="button" class="ib" data-a="sifir" aria-label="Yapay zekâ sonucuna dön">' + ic(I.sifir) + '</button><button type="button" class="kaydet" data-a="bitti">Bitti</button></div>'
     + '<div class="sahne" id="stKesS"><canvas id="stKesC"></canvas><div class="imlec" id="stKesI"></div>'
     + '<div class="is" id="stKesIs" hidden><div><b id="stKesIsB">Nesne kesiliyor</b><div id="stKesIsM">Hazırlanıyor…</div><div class="cb"><i id="stKesIsC"></i></div><button type="button" class="tm" id="stKesIsT" hidden>Tamam</button></div></div>'
     + '<div class="sayfa" id="stKesSf" hidden></div></div>'
     + '<div class="alt"><div class="araclar">'
     + '<button type="button" data-m="sec" class="on">' + ic(I.sec) + 'Dokun, seç<small>o nesneyi tut</small></button>'
     + '<button type="button" data-m="koru">' + ic(I.koru) + 'Koru<small>fırçayla geri getir</small></button>'
-    + '<button type="button" data-m="sil">' + ic(I.sil) + 'Sil<small>fırçayla kaldır</small></button></div>'
+    + '<button type="button" data-m="sil">' + ic(I.sil) + 'Sil<small>fırçayla kaldır</small></button>'
+    + '<button type="button" data-m="kenar">' + ic(I.kenar) + 'Kenar<small>daralt, yumuşat</small></button></div>'
+    + '<div id="stKesKn" hidden><div class="kr"><span style="width:76px">Daralt ⟷ Genişlet</span><input type="range" id="stKesKk" min="-10" max="10" step="1" value="0"><span id="stKesKkO" style="width:34px;text-align:right">0</span></div>'
+    + '<div class="kr"><span style="width:76px">Yumuşaklık</span><input type="range" id="stKesKy" min="0" max="10" step="1" value="0"><span id="stKesKyO" style="width:34px;text-align:right">0</span></div></div>'
     + '<div class="kr" id="stKesFr" hidden><span>Fırça</span><input type="range" id="stKesBoy" min="1" max="20" step="0.5" value="5"><span id="stKesBoyO">5%</span></div>'
-    + '<div class="sira" id="stKesZ"><button type="button" data-z="dama" class="on">Dama</button><button type="button" data-z="siyah">Siyah</button><button type="button" data-z="beyaz">Beyaz</button><button type="button" data-z="yesil">Yeşil</button><button type="button" data-g="maske">Maskeyi göster</button><button type="button" data-g="kenar" class="on">Yumuşak fırça</button></div>'
+    + '<div class="sira" id="stKesZ"><button type="button" data-z="dama" class="on">Dama</button><button type="button" data-z="siyah">Siyah</button><button type="button" data-z="beyaz">Beyaz</button><button type="button" data-z="yesil">Yeşil</button><button type="button" data-g="maske">Maskeyi göster</button><button type="button" data-g="kenar" class="on">Yumuşak fırça</button><button type="button" data-g="temiz" class="on">Kenar rengini temizle</button></div>'
     + '<p class="not" id="stKesNot">Tutmak istediğin nesneye dokun; diğerleri silinir. Yakınlaştırmak için iki parmak.</p></div>';
   document.body.appendChild(kok);
   var $ = function(id){ return document.getElementById(id); };
@@ -11009,23 +11016,38 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     tek = null; imlec.style.display = 'none'; }
   sahne.addEventListener('pointerup', birak); sahne.addEventListener('pointercancel', birak);
 
+  /* ---------- kenar: daralt / genişlet / yumuşat (ortak motor: stYZ.incelt) ---------- */
+  function kenarBasla(kayitsiz){ if (!K || !K.alfa) return; if (!kayitsiz) kayitAl(); K.kb = new Uint8ClampedArray(K.alfa); $('stKesKk').value = 0; $('stKesKy').value = 0; $('stKesKkO').textContent = '0'; $('stKesKyO').textContent = '0'; }
+  var knT = 0;
+  function kenarUygula(){ clearTimeout(knT); knT = setTimeout(function(){ if (!K || !K.kb || !window.stYZ) return; var o = Math.max(K.W, K.H) / 1000, kk = +$('stKesKk').value, ky = +$('stKesKy').value;
+    K.alfa.set(kk || ky ? stYZ.incelt(K.kb, K.W, K.H, Math.round(kk * o * 1.5), Math.round(ky * o)) : K.kb); yenidenCiz(0, 0, K.W, K.H); }, 60); }
+  $('stKesKk').addEventListener('input', function(){ $('stKesKkO').textContent = this.value; kenarUygula(); });
+  $('stKesKy').addEventListener('input', function(){ $('stKesKyO').textContent = this.value; kenarUygula(); });
+  /* karşılaştır: göz düğmesine basılı tutunca orijinal fotoğraf */
+  (function(){ var gb = kok.querySelector('[data-a=kars]'), on = false;
+    var bas = function(e){ if (!K || !K.alfa) return; e.preventDefault(); on = true; K.cg.clearRect(0, 0, K.W, K.H); K.cg.drawImage(K.src, 0, 0); };
+    var bit = function(){ if (!on) return; on = false; if (K && K.alfa) yenidenCiz(0, 0, K.W, K.H); };
+    gb.addEventListener('pointerdown', bas); gb.addEventListener('pointerup', bit); gb.addEventListener('pointerleave', bit); gb.addEventListener('pointercancel', bit);
+    gb.addEventListener('contextmenu', function(e){ e.preventDefault(); }); })();
   /* ---------- düğmeler ---------- */
   function not(m){ $('stKesNot').textContent = m; }
-  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || K.mod === 'sec';
+  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil'); $('stKesKn').hidden = !K || K.mod !== 'kenar';
     kok.querySelectorAll('[data-z]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.z === K.zemin); }); sahne.className = 'sahne' + (K && K.zemin !== 'dama' ? ' z-' + K.zemin : '');
-    var mk = kok.querySelector('[data-g=maske]'), kn = kok.querySelector('[data-g=kenar]'); if (mk) mk.classList.toggle('on', !!(K && K.maske)); if (kn) kn.classList.toggle('on', !!(K && K.yumusak)); dugmeler(); }
+    var mk = kok.querySelector('[data-g=maske]'), kn = kok.querySelector('[data-g=kenar]'); if (mk) mk.classList.toggle('on', !!(K && K.maske)); if (kn) kn.classList.toggle('on', !!(K && K.yumusak)); var tz = kok.querySelector('[data-g=temiz]'); if (tz) tz.classList.toggle('on', !!(K && K.temiz !== false)); dugmeler(); }
   kok.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b || !K) return;
-    if (b.dataset.m){ K.mod = b.dataset.m; arayuz(); not(K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir. İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç. İnce iş için iki parmakla yakınlaştır.'); return; }
+    if (b.dataset.m){ K.mod = b.dataset.m; if (K.mod === 'kenar') kenarBasla(); else K.kb = null; arayuz(); not(K.mod === 'kenar' ? 'Kenarı daralt (arka plan kalıntısı) ya da genişlet; yumuşaklığı ayarla. Karşılaştırmak için üstteki göze basılı tut.' : K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir. İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç. İnce iş için iki parmakla yakınlaştır.'); return; }
     if (b.dataset.z){ K.zemin = b.dataset.z; arayuz(); return; }
     if (b.dataset.g === 'maske'){ K.maske = !K.maske; arayuz(); yenidenCiz(0, 0, K.W, K.H); return; }
     if (b.dataset.g === 'kenar'){ K.yumusak = !K.yumusak; arayuz(); return; }
+    if (b.dataset.g === 'temiz'){ K.temiz = K.temiz === false; K.nesS = -1; arayuz(); not(K.temiz !== false ? 'Kenar rengi temizlenecek: eski arka planın rengi kenarda hale bırakmaz (kaydederken uygulanır).' : 'Kenar rengi olduğu gibi kalacak.'); return; }
     var a = b.dataset.a; if (!a) return;
     if (a === 'kapat'){ kapat(); return; }
     if (!K.alfa) return;
     if (a === 'geri' && K.yigin.length){ K.ileri.push(new Uint8ClampedArray(K.alfa)); K.alfa.set(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
     else if (a === 'ileri' && K.ileri.length){ K.yigin.push(new Uint8ClampedArray(K.alfa)); K.alfa.set(K.ileri.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
     else if (a === 'sifir'){ kayitAl(); K.alfa.set(K.ai); yenidenCiz(0, 0, K.W, K.H); not('Yapay zekânın ilk sonucuna dönüldü.'); }
+    if ((a === 'geri' || a === 'ileri' || a === 'sifir') && K.mod === 'kenar') kenarBasla(true);
     else if (a === 'bitti') sayfaAc();
   });
   $('stKesBoy').addEventListener('input', function(){ if (!K) return; K.boy = +this.value; $('stKesBoyO').textContent = this.value + '%'; });
@@ -11048,7 +11070,20 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
       + '<div class="bt"><button type="button" class="ana" data-c="indir">' + (K.ap === 'saydam' ? 'Saydam PNG indir' : 'JPG indir') + '<small>' + (K.ap === 'saydam' ? 'Arka planı boş; başka yerde üstüne koymak için' : foto ? 'Kesilen nesne seçtiğin fotoğrafın üstünde' : 'Kesilen nesne seçtiğin arka planla') + '</small></button>'
       + '<button type="button" data-c="kitap">Kitaplığa yeni fotoğraf olarak ekle<small>' + (K.ap === 'saydam' ? 'Saydam yerler beyaz olur; ' : '') + 'sonra Karanlık Oda araçlarıyla düzenlemeye devam et</small></button>'
       + '<button type="button" data-c="don">Düzeltmeye dön</button></div>';
+    /* ayrı nesneler: fotoğrafta birden çok nesne kaldıysa her biri ayrı saydam PNG */
+    var PL = parcaListe();
+    if (PL.length > 1) sf.querySelector('.bt').insertAdjacentHTML('beforebegin', '<h3 style="margin-top:4px">Ayrı nesneler (' + PL.length + ')</h3><div class="parca">'
+      + PL.map(function(x, i){ return '<button type="button" data-pr="' + i + '" aria-label="' + (i + 1) + '. nesneyi PNG indir"><img alt="" src="' + x.kucuk + '"></button>'; }).join('') + '</div>'
+      + '<div class="bt" style="margin:0 0 4px"><button type="button" data-c="parcalar">Her nesneyi ayrı saydam PNG indir (' + PL.length + ')<small>Tek tek indirmek için küçük resme dokun</small></button></div>');
     sf.hidden = false; onizle(); }
+  function parcaListe(){ if (K.plS === K.surum && K.pl) return K.pl; var W = K.W, H = K.H, P = stYZ.parcalar(K.alfa, W, H, {oran:0.01, enCok:8});
+    K.pP = P; K.pl = P.liste.length > 1 ? P.liste.map(function(p, i){ var c = parcaTuval(i, P), k = c.getContext('2d'), t = document.createElement('canvas'), q = 128 / Math.max(c.width, c.height);
+      t.width = Math.max(1, Math.round(c.width * q)); t.height = Math.max(1, Math.round(c.height * q)); t.getContext('2d').drawImage(c, 0, 0, t.width, t.height); var u = t.toDataURL('image/png'); c.width = 0; return {kucuk:u}; }) : [];
+    K.plS = K.surum; return K.pl; }
+  function parcaTuval(i, P){ P = P || K.pP; var M = stYZ.parcaMaske(K.alfa, P, P.liste[i]), nes = nesneTuval(), c = document.createElement('canvas'); c.width = M.w; c.height = M.h;
+    var g = c.getContext('2d', {willReadFrequently:true}); g.drawImage(nes, M.x, M.y, M.w, M.h, 0, 0, M.w, M.h); var im = g.getImageData(0, 0, M.w, M.h);
+    for (var z = 0; z < M.w * M.h; z++) im.data[z * 4 + 3] = M.alfa[z]; g.putImageData(im, 0, 0); return c; }
+  async function parcaIndir(i){ var c = parcaTuval(i), b = await new Promise(function(r){ c.toBlob(r, 'image/png'); }); c.width = 0; indir(b, K.ad + '-nesne-' + (i + 1) + '.png'); }
   /* küçük önizleme (çıktının aynısı, ölçekli) */
   var onzT = 0;
   function onizle(){ cancelAnimationFrame(onzT); onzT = requestAnimationFrame(function(){ var c = $('stKesOn'); if (!c || !K) return;
@@ -11056,6 +11091,8 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
   $('stKesSf').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b || !K) return;
     if (b.dataset.ap){ if (b.dataset.ap === 'foto' && (!K.af || K.ap === 'foto')){ afGir.click(); return; } K.ap = b.dataset.ap; sayfaAc(); return; }
     if (b.dataset.kp){ K.kirp = !K.kirp; sayfaAc(); return; }
+    if (b.dataset.pr != null){ parcaIndir(+b.dataset.pr).catch(hata); return; }
+    if (b.dataset.c === 'parcalar'){ (async function(){ for (var i = 0; i < K.pl.length; i++){ await parcaIndir(i); await new Promise(function(r){ setTimeout(r, 400); }); } })().catch(hata); return; }
     if (b.dataset.c === 'don'){ $('stKesSf').hidden = true; return; }
     if (b.dataset.c === 'indir') cikti().then(function(o){ indir(o.blob, K.ad + (K.ap === 'saydam' ? '-kesik.png' : '-arka-plan.jpg')); }).catch(hata);
     if (b.dataset.c === 'kitap') cikti(true).then(function(o){ kitapligaEkle(o.blob); }).catch(hata); });
@@ -11076,7 +11113,7 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
   function hata(e){ console.error(e); isGoster('Olmadı', String(e && e.message || e), 0); $('stKesIsT').hidden = false; }
   /* nesne katmanı (piksel + alfa), alfa değişene kadar önbellekte */
   function nesneTuval(){ if (K.nesC && K.nesS === K.surum) return K.nesC; var W = K.W, H = K.H, a = K.alfa;
-    var nes = K.nesC || document.createElement('canvas'); nes.width = W; nes.height = H; var nx = nes.getContext('2d'), im = nx.createImageData(W, H), d = im.data, p = K.px;
+    var nes = K.nesC || document.createElement('canvas'); nes.width = W; nes.height = H; var nx = nes.getContext('2d'), im = nx.createImageData(W, H), d = im.data, p = K.temiz !== false && window.stYZ ? stYZ.renkTemizle(K.px, a, W, H) : K.px;
     for (var i = 0, j = 0; i < W * H; i++, j += 4){ d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } nx.putImageData(im, 0, 0);
     K.nesC = nes; K.nesS = K.surum; return nes; }
   function altaDeger(){ if (K.altS === K.surum) return K.altV; var W = K.W, a = K.alfa, r0 = (K.H - 2) * W, n = 0; for (var x = 0; x < W; x++) if (a[r0 + x] > 128) n++; K.altS = K.surum; return K.altV = n > W * 0.03; }

@@ -30,6 +30,48 @@
       if (e === 0){ if (m === 0){ u[i] = s; continue; } e = 1; while (!(m & 0x400)){ m <<= 1; e--; } m &= 0x3ff; u[i] = s | ((e + 112) << 23) | (m << 13); }
       else if (e === 31) u[i] = s | 0x7f800000 | (m << 13); else u[i] = s | ((e + 112) << 23) | (m << 13); }
     return new Uint8Array(f.buffer); }
+  /* ---------- ortak maske işlevleri (fotoğraf ve video aynı motoru kullanır) ---------- */
+  /* ayrılabilir kutu bulanıklığı (koşan toplam, O(N)); a: Float32Array W*H */
+  function kutu(a, W, H, r){ if (r < 1) return a; r = Math.round(r); var t = new Float32Array(W * H), o = new Float32Array(W * H), x, y, s, i, n = 2 * r + 1;
+    for (y = 0; y < H; y++){ var b = y * W; s = 0; for (x = -r; x <= r; x++) s += a[b + Math.min(W - 1, Math.max(0, x))];
+      for (x = 0; x < W; x++){ t[b + x] = s / n; s += a[b + Math.min(W - 1, x + r + 1)] - a[b + Math.max(0, x - r)]; } }
+    for (x = 0; x < W; x++){ s = 0; for (y = -r; y <= r; y++) s += t[Math.min(H - 1, Math.max(0, y)) * W + x];
+      for (y = 0; y < H; y++){ o[y * W + x] = s / n; s += t[Math.min(H - 1, y + r + 1) * W + x] - t[Math.max(0, y - r) * W + x]; } }
+    return o; }
+  /* kenar: kaydir < 0 daraltır, > 0 genişletir (piksel); yumusak: kenar yumuşatma yarıçapı */
+  function incelt(alfa, W, H, kaydir, yumusak){ var N = W * H, a = new Float32Array(N), i; for (i = 0; i < N; i++) a[i] = alfa[i];
+    if (kaydir){ var b = kutu(kutu(a, W, H, Math.abs(kaydir) / 2), W, H, Math.abs(kaydir) / 2);
+      if (kaydir > 0) for (i = 0; i < N; i++) a[i] = Math.min(255, Math.max(a[i], b[i] * 2));
+      else for (i = 0; i < N; i++) a[i] = Math.max(0, Math.min(a[i], b[i] * 2 - 255)); }
+    if (yumusak) a = kutu(kutu(a, W, H, yumusak / 2), W, H, yumusak / 2);
+    var o = new Uint8ClampedArray(N); for (i = 0; i < N; i++) o[i] = a[i]; return o; }
+  /* renk taşmasını temizle: yarı saydam kenar piksellerinin rengi, yakındaki dolu nesne pikselinin rengine çekilir
+     (eski arka planın rengi kenarda hale/kontur bırakmasın). px: RGBA (değişmez), dönüş: yeni RGBA */
+  function renkTemizle(px, alfa, W, H, r){ var N = W * H, w = new Float32Array(N), cr = new Float32Array(N), cg = new Float32Array(N), cb = new Float32Array(N), i;
+    r = r || Math.max(3, Math.round(Math.max(W, H) / 300));
+    for (i = 0; i < N; i++){ var q = alfa[i] / 255; q = q * q * q * q; w[i] = q; cr[i] = px[i * 4] * q; cg[i] = px[i * 4 + 1] * q; cb[i] = px[i * 4 + 2] * q; }
+    w = kutu(w, W, H, r); cr = kutu(cr, W, H, r); cg = kutu(cg, W, H, r); cb = kutu(cb, W, H, r);
+    var o = new Uint8ClampedArray(px);
+    for (i = 0; i < N; i++){ var a = alfa[i]; if (a === 0 || a >= 250 || w[i] < 1e-4) continue; var m = Math.min(1, (1 - a / 255) * 1.6), j = i * 4;
+      o[j] += (cr[i] / w[i] - o[j]) * m; o[j + 1] += (cg[i] / w[i] - o[j + 1]) * m; o[j + 2] += (cb[i] / w[i] - o[j + 2]) * m; }
+    return o; }
+  /* ayrı nesneler: bağlı alanlar (alfa > esik), küçük kırıntılar elenir, büyükten küçüğe. Yumuşak kenar pikselleri en yakın nesneye katılır. */
+  function parcalar(alfa, W, H, sec){ sec = sec || {}; var esik = sec.esik || 40, N = W * H, et = new Int32Array(N), yig = new Int32Array(N), L = [], top = 0, i;
+    for (i = 0; i < N; i++) if (alfa[i] > esik) top++;
+    for (var s0 = 0; s0 < N; s0++){ if (et[s0] || alfa[s0] <= esik) continue; var no = L.length + 1, n = 0, alan = 0, x0 = W, y0 = H, x1 = -1, y1 = -1; yig[n++] = s0; et[s0] = no;
+      while (n){ i = yig[--n]; alan++; var x = i % W, y = (i - x) / W; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && !et[i - 1] && alfa[i - 1] > esik){ et[i - 1] = no; yig[n++] = i - 1; } if (x < W - 1 && !et[i + 1] && alfa[i + 1] > esik){ et[i + 1] = no; yig[n++] = i + 1; }
+        if (y > 0 && !et[i - W] && alfa[i - W] > esik){ et[i - W] = no; yig[n++] = i - W; } if (y < H - 1 && !et[i + W] && alfa[i + W] > esik){ et[i + W] = no; yig[n++] = i + W; } }
+      L.push({no:no, alan:alan, x0:x0, y0:y0, x1:x1, y1:y1}); }
+    var enAz = Math.max(sec.enAz || 0, top * (sec.oran || 0.006)), liste = L.filter(function(p){ return p.alan >= enAz; }).sort(function(a, b){ return b.alan - a.alan; }).slice(0, sec.enCok || 12);
+    return {etiket:et, liste:liste, W:W, H:H}; }
+  /* bir parçanın alfa maskesi (kutusu ve yumuşak kenarıyla); dönüş: {alfa (kutu boyunda), x, y, w, h} */
+  function parcaMaske(alfa, P, p, pay){ var W = P.W, H = P.H, et = P.etiket; pay = pay == null ? Math.max(3, Math.round(Math.max(W, H) * 0.01)) : pay;
+    var x0 = Math.max(0, p.x0 - pay), y0 = Math.max(0, p.y0 - pay), x1 = Math.min(W - 1, p.x1 + pay), y1 = Math.min(H - 1, p.y1 + pay), w = x1 - x0 + 1, h = y1 - y0 + 1;
+    var uye = new Float32Array(w * h), x, y; for (y = 0; y < h; y++) for (x = 0; x < w; x++) uye[y * w + x] = et[(y + y0) * W + x + x0] === p.no ? 1 : 0;
+    var gen = kutu(uye, w, h, 3), o = new Uint8ClampedArray(w * h);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++){ var i = (y + y0) * W + x + x0, e = et[i], k = y * w + x; if (e === p.no || (!e && gen[k] > 0)) o[k] = alfa[i]; }
+    return {alfa:o, x:x0, y:y0, w:w, h:h}; }
   var bekle = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
 
   async function kes(dosya, bildir, sec){
@@ -78,15 +120,24 @@
         var td = tx.getImageData(0, 0, W, H).data, al = new Uint8ClampedArray(W * H); for (i = 0; i < W * H; i++) al[i] = td[i * 4 + 3];
         bildir('Bitti.', 1); return {alfa:al, W:W, H:H, motor:motor, ms:Math.round(performance.now() - t0), indi:!kayitli}; }
       /* nesnenin kutusu: boş kenarlar kırpılır (yerleştirmesi kolay, dosya küçük) */
-      var dt = oc.getImageData(0, 0, W, H).data, x0 = W, y0 = H, x1 = -1, y1 = -1;
+      /* kenar rengini temizle (yeni arka plan önünde hale kalmasın) */
+      var idt = oc.getImageData(0, 0, W, H), al0 = new Uint8ClampedArray(W * H); for (i = 0; i < W * H; i++) al0[i] = idt.data[i * 4 + 3];
+      if (sec.temiz !== false){ bildir('Kenarlar temizleniyor…', 0.95); await bekle(10); idt.data.set(renkTemizle(idt.data, al0, W, H)); oc.putImageData(idt, 0, 0); }
+      var dt = idt.data, x0 = W, y0 = H, x1 = -1, y1 = -1;
       for (var yy = 0; yy < H; yy++){ var r0 = yy * W * 4; for (var xx = 0; xx < W; xx++) if (dt[r0 + xx * 4 + 3] > 10){ if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }
       if (x1 < 0) throw new Error('Fotoğrafta belirgin bir nesne bulunamadı.');
       var pad = Math.round(Math.max(W, H) * 0.01); x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
       var kw = x1 - x0 + 1, kh = y1 - y0 + 1, kc = document.createElement('canvas'); kc.width = kw; kc.height = kh; kc.getContext('2d').drawImage(out, x0, y0, kw, kh, 0, 0, kw, kh);
       var png = await new Promise(function(r){ kc.toBlob(r, 'image/png'); });
+      /* ayrı nesneler (istenirse): her biri kendi kutusunda saydam PNG */
+      var par = [];
+      if (sec.parcalar){ var P = parcalar(al0, W, H, {oran:0.01, enCok:8});
+        if (P.liste.length > 1) for (var q = 0; q < P.liste.length; q++){ var PM = parcaMaske(al0, P, P.liste[q]), pc = document.createElement('canvas'); pc.width = PM.w; pc.height = PM.h;
+          var pcx = pc.getContext('2d'), pim = oc.getImageData(PM.x, PM.y, PM.w, PM.h); for (var z = 0; z < PM.w * PM.h; z++) pim.data[z * 4 + 3] = PM.alfa[z]; pcx.putImageData(pim, 0, 0);
+          par.push({png:await new Promise(function(r){ pc.toBlob(r, 'image/png'); }), w:PM.w, h:PM.h, x:PM.x / W, y:PM.y / H}); pc.width = 0; } }
       bildir('Bitti.', 1);
-      return {png:png, w:kw, h:kh, x:x0 / W, y:y0 / H, W:W, H:H, motor:motor, ms:Math.round(performance.now() - t0), indi:!kayitli};
+      return {png:png, parcalar:par, w:kw, h:kh, x:x0 / W, y:y0 / H, W:W, H:H, motor:motor, ms:Math.round(performance.now() - t0), indi:!kayitli};
     } finally { if (sess) try { await sess.release(); } catch(e){} mesgul = false; }
   }
-  window.stYZ = {kes:kes, kok:KOK, model:'ISNet (DIS)'};
+  window.stYZ = {kes:kes, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
 })();

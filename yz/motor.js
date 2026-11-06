@@ -72,6 +72,11 @@
       var out = document.createElement('canvas'); out.width = W; out.height = H; var oc = out.getContext('2d', {willReadFrequently:true});
       oc.imageSmoothingQuality = 'high'; oc.drawImage(bmp, 0, 0, W, H); oc.globalCompositeOperation = 'destination-in'; oc.drawImage(ac, 0, 0, W, H); oc.globalCompositeOperation = 'source-over';
       try { bmp.close(); } catch(e){}
+      /* ham: tam boy kaynak ve alfa (fotoğraf editöründe fırçayla düzeltmek için) */
+      if (sec.ham){
+        var tam = document.createElement('canvas'); tam.width = W; tam.height = H; var tx = tam.getContext('2d', {willReadFrequently:true}); tx.imageSmoothingQuality = 'high'; tx.drawImage(ac, 0, 0, W, H);
+        var td = tx.getImageData(0, 0, W, H).data, al = new Uint8ClampedArray(W * H); for (i = 0; i < W * H; i++) al[i] = td[i * 4 + 3];
+        bildir('Bitti.', 1); return {alfa:al, W:W, H:H, motor:motor, ms:Math.round(performance.now() - t0), indi:!kayitli}; }
       /* nesnenin kutusu: boş kenarlar kırpılır (yerleştirmesi kolay, dosya küçük) */
       var dt = oc.getImageData(0, 0, W, H).data, x0 = W, y0 = H, x1 = -1, y1 = -1;
       for (var yy = 0; yy < H; yy++){ var r0 = yy * W * 4; for (var xx = 0; xx < W; xx++) if (dt[r0 + xx * 4 + 3] > 10){ if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }

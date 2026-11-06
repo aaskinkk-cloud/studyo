@@ -2,7 +2,34 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.7 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 1.8 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 1.8 (06.11.2026): fotoğraf editöründe yapay zekâ ile nesne kesme
+- Fotoğraf editörünün araç çubuğunda yeni araç: **Kes** (Filtreler'in yanında).
+- Kesilen görüntü **düzenlenmiş fotoğraftır**: ışık, renk, filtre ve kırpma dahil. Karanlık Oda'nın kendi tam çözünürlük çizimi kullanılır; uzun kenar en çok 2048 px.
+- Kesme ayrı bir ekranda açılır:
+  - **Dokun, seç:** tutmak istediğin nesneye dokun. Yalnız o nesne kalır, fotoğraftaki diğer ayrık parçalar silinir.
+  - **Koru** (fırça): yanlışlıkla silinen yeri geri getirir.
+  - **Sil** (fırça): kalmasın istediğin yeri kaldırır.
+  - Fırça boyu %1–20 arası. "Yumuşak fırça" açıkken kenar geçişi yumuşak olur.
+  - İki parmakla yakınlaştırma ve kaydırma; ince kenar işi için.
+  - Geri al / İleri al (12 adım), ↺ yapay zekânın ilk sonucuna dönüş.
+  - Zemin: Dama / Siyah / Beyaz / Yeşil. Kenar hatası farklı zeminde daha kolay görülür. "Maskeyi göster": siyah-beyaz maske.
+- **Bitti → Kaydet:**
+  - Arka plan: Saydam, Beyaz, Siyah, Bulanık (aynı fotoğrafın bulanık hâli) ya da Renk (renk seçici).
+  - "Boşlukları kırp": nesnenin çevresi kırpılır (açık gelir).
+  - **Saydam PNG indir** ya da **JPG indir**.
+  - **Kitaplığa yeni fotoğraf olarak ekle:** sonuç yeni bir fotoğraf olarak açılır, Karanlık Oda araçlarıyla düzenlemeye devam edilir. Asıl fotoğraf ve düzenlemesi değişmez. Saydam seçiliyse saydam yerler beyaz olur.
+- Geri tuşu önce Kaydet sayfasını, sonra kesme ekranını kapatır.
+- Grafik birimi: kesme ekranı yalnız 2B tuval kullanır. Tam çözünürlük çizimi için açılan geçici grafik bağlamı, yapay zekâ başlamadan kapatılır. Model işi bitince bellekten çıkar.
+- Kod: `kaynak/foto-nesne.js`. `yz/motor.js`'e tam boy maske seçeneği (`ham`) eklendi.
+- Test (sunucuda, grafik birimi yok):
+  - Kesme işlemciyle 19 sn sürdü (model indirme dahil).
+  - Dokun-seç, sil fırçası, geri al (piksel sayısı birebir geri geldi) ve koru fırçası denendi.
+  - Saydam PNG ve bulanık arka planlı JPG indirildi.
+  - Kitaplığa ekleme sonrası yeni fotoğraf editörde açıldı.
+  - Video Nesne aracının testleri tekrarlandı.
+  - Bütün sayfa betiklerinin sözdizimi denetlendi.
 
 ## 1.7 (06.11.2026): seçili klipteki kişiyi kes
 - Zaman çizelgesinde bir fotoğraf klibine dokununca açılan araç çubuğunda yeni düğme: **Kişiyi kes** (Düzenle'nin yanında). Aynı iş Nesne panelinde ✂ düğmesiyle de yapılır.
@@ -54,7 +81,6 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Henüz yok (sonraki adımlar):**
   - Videodaki hareketli nesneyi takip etme.
   - Nesne kenarından sanatsal geçişler.
-  - Fotoğraf editöründe kesme (fırçayla ekle/çıkar, saydam PNG).
   - Nesne katmanlarının zaman çizelgesinde ayrı satırı.
   - (Seçili fotoğraf klibinden kesme 1.7'de eklendi.)
 
@@ -175,4 +201,4 @@ Betik, beklenen yerler değişmişse hata verip durur; yarım ya da bozuk kopya 
 Eski iki uygulama dondurulmuştur (Karanlık Oda 6.67, Kareden Videoya 9.15). Yeni geliştirmeler yalnız Stüdyo'da yapılır. Kayıt biçimine yalnız ekleme yapılır, var olan alanlar değiştirilmez; böylece eski uygulamalar aynı projeleri açmaya devam eder.
 
 ## Durum
-Kolaj iptal edildi. Yapay zekâ: 1. adım (fotoğraftan kesilen nesneyi videoya yerleştirme) 1.6'da. Sırada: fotoğraf editöründe nesne kesme (fırça, saydam PNG), sonra videoda takip ve geçişler.
+Kolaj iptal edildi. Yapay zekâ: videoya nesne yerleştirme (1.6), klipten kişi kesme (1.7), fotoğraf editöründe kesme (1.8) tamam. Sırada: videoda hareketli kişiyi takip, sonra nesne kenarından sanatsal geçişler.

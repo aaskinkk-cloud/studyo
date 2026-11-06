@@ -28,7 +28,7 @@
     '#stKes .sira::-webkit-scrollbar{display:none}',
     '#stKes .sira button{flex:none;border:1.5px solid #3a3a3a;background:none;border-radius:999px;padding:7px 13px;font-size:13.5px;color:#bbb}',
     '#stKes .sira button.on{background:#f2f2f2;color:#111;border-color:#f2f2f2}',
-    '#stKes .araclar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}',
+    '#stKes .araclar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 8px}',
     '#stKes .araclar button{background:#262626;border:1.5px solid transparent;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12.5px}',
     '#stKes .araclar button small{color:#999;font-size:10.5px}',
     '#stKes .araclar button.on{border-color:#e8762b;background:#2e2219}',
@@ -62,6 +62,7 @@
     kes:'<circle cx="6" cy="7" r="2.6"/><circle cx="6" cy="17" r="2.6"/><path d="M8.2 8.4L20 17M8.2 15.6L20 7"/>',
     kapat:'<path d="M6 6l12 12M18 6L6 18"/>', geri:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>', ileri:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>',
     sec:'<path d="M5 3l12 7-5 1.5L10 17z"/><path d="M13 13l5 5"/>', koru:'<path d="M18 4l2 2-9 9-3 1 1-3z"/><path d="M4 20c1.5 0 3-1 3-3"/><path d="M12 4v3M12 4H9" opacity=".0"/>',
+    cam:'<path d="M7 3h10l-1.5 17a1.5 1.5 0 01-1.5 1.4h-4A1.5 1.5 0 018.5 20z"/><path d="M10 7v6" opacity=".6"/>',
     kenar:'<rect x="4" y="4" width="16" height="16" rx="4" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="2"/>', goz:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
     sil:'<path d="M7 20h10"/><path d="M5 14l7-7 5 5-7 7H7z"/>', sifir:'<path d="M4 4v6h6"/><path d="M4.5 15a8 8 0 102-8.5L4 10"/>'
   };
@@ -77,7 +78,8 @@
     + '<button type="button" data-m="sec" class="on">' + ic(I.sec) + 'Dokun, seç<small>o nesneyi tut</small></button>'
     + '<button type="button" data-m="koru">' + ic(I.koru) + 'Koru<small>fırçayla geri getir</small></button>'
     + '<button type="button" data-m="sil">' + ic(I.sil) + 'Sil<small>fırçayla kaldır</small></button>'
-    + '<button type="button" data-m="kenar">' + ic(I.kenar) + 'Kenar · cam<small>daralt, saydam</small></button></div>'
+    + '<button type="button" data-m="camf">' + ic(I.cam) + 'Cam<small>fırça</small></button>'
+    + '<button type="button" data-m="kenar">' + ic(I.kenar) + 'Kenar<small>daralt, saydam</small></button></div>'
     + '<div id="stKesKn" hidden><div class="kr"><span style="width:76px">Daralt ⟷ Genişlet</span><input type="range" id="stKesKk" min="-10" max="10" step="1" value="0"><span id="stKesKkO" style="width:34px;text-align:right">0</span></div>'
     + '<div class="kr"><span style="width:76px">Yumuşaklık</span><input type="range" id="stKesKy" min="0" max="10" step="1" value="0"><span id="stKesKyO" style="width:34px;text-align:right">0</span></div>'
     + '<div class="sira" style="margin:2px 0 6px"><button type="button" data-g="cam">Saydam nesne (cam, bardak)</button></div>'
@@ -135,10 +137,10 @@
 
   /* ---------- çizim ---------- */
   function yenidenCiz(x0, y0, x1, y1){
-    if (!K || !K.alfa) return; K.surum = (K.surum || 0) + 1; var W = K.W, d = K.img.data, p = K.px, a = K.alfa, m = K.maske;
+    if (!K || !K.alfa) return; K.surum = (K.surum || 0) + 1; var W = K.W, d = K.img.data, p = K.px, a = K.alfa, m = K.maske, cm = K.cm, hl = K.hl;
     x0 = Math.max(0, x0 | 0); y0 = Math.max(0, y0 | 0); x1 = Math.min(K.W, Math.ceil(x1)); y1 = Math.min(K.H, Math.ceil(y1)); if (x1 <= x0 || y1 <= y0) return;
     for (var y = y0; y < y1; y++){ for (var x = x0, i = y * W + x, j = i * 4; x < x1; x++, i++, j += 4){
-      if (m){ d[j] = d[j + 1] = d[j + 2] = a[i]; d[j + 3] = 255; } else { d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } } }
+      if (m){ d[j] = d[j + 1] = d[j + 2] = a[i]; d[j + 3] = 255; } else { var c0 = cm ? cm[i] : 0; if (c0){ var q = c0 / 255 * (1 - hl[i] / 255); d[j] = p[j] + (CAMR - p[j]) * q; d[j + 1] = p[j + 1] + (CAMG - p[j + 1]) * q; d[j + 2] = p[j + 2] + (CAMB - p[j + 2]) * q; } else { d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; } d[j + 3] = a[i]; } } }
     K.cg.putImageData(K.img, 0, 0, x0, y0, x1 - x0, y1 - y0); }
   /* görünüm: sığdır / yakınlaştır */
   var V = {s:1, x:0, y:0};
@@ -148,7 +150,9 @@
   function resimNokta(cx, cy){ var r = sahne.getBoundingClientRect(); return {x:(cx - r.left - V.x) / V.s, y:(cy - r.top - V.y) / V.s}; }
 
   /* ---------- geri al ---------- */
-  function kayitAl(){ if (!K || !K.alfa) return; K.yigin.push(new Uint8ClampedArray(K.alfa)); if (K.yigin.length > 12) K.yigin.shift(); K.ileri = []; dugmeler(); }
+  function anlik(){ return {a:new Uint8ClampedArray(K.alfa), c:K.cm ? new Uint8ClampedArray(K.cm) : null}; }
+  function don(e){ K.alfa.set(e.a); K.cm = e.c ? new Uint8ClampedArray(e.c) : null; }
+  function kayitAl(){ if (!K || !K.alfa) return; K.yigin.push(anlik()); if (K.yigin.length > 12) K.yigin.shift(); K.ileri = []; dugmeler(); }
   function dugmeler(){ var g = kok.querySelector('[data-a=geri]'), i = kok.querySelector('[data-a=ileri]'); if (g) g.disabled = !(K && K.yigin.length); if (i) i.disabled = !(K && K.ileri.length); }
 
   /* ---------- dokun, seç: o nesnenin bağlı alanı kalır, diğerleri silinir ---------- */
@@ -173,13 +177,25 @@
   var F = null;
   function boyPx(){ return Math.max(K.W, K.H) * K.boy / 100 / 2; }
   function firca(p){
-    var r = boyPx(), W = K.W, H = K.H, a = K.alfa, ai = K.ai, koru = K.mod === 'koru', ic0 = K.yumusak ? 0.55 : 0.97;
+    var r = boyPx(), W = K.W, H = K.H, a = K.alfa, ai = K.ai, koru = K.mod === 'koru', cam = K.mod === 'camf', ic0 = K.yumusak ? 0.55 : 0.97, cm, hl;
+    if (cam){ camHazirla(); cm = K.cm; hl = K.hl; }
     var x0 = Math.max(0, Math.floor(p.x - r)), x1 = Math.min(W - 1, Math.ceil(p.x + r)), y0 = Math.max(0, Math.floor(p.y - r)), y1 = Math.min(H - 1, Math.ceil(p.y + r)), r2 = r * r;
     for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++){ var dx = x - p.x, dy = y - p.y, d2 = dx * dx + dy * dy; if (d2 > r2) continue;
       var d = Math.sqrt(d2) / r, w = d <= ic0 ? 1 : 1 - (d - ic0) / (1 - ic0), i = y * W + x, v = a[i];
-      if (koru){ var hedef = 255; v = v + (hedef - v) * w; if (w >= 1) v = 255; } else { v = v * (1 - w); if (w >= 1) v = 0; }
+      if (cam){ if (v < 4) continue; var h0 = hl[i] / 255, hedefC = K.camB0[i] * Math.max(CAMTABAN, h0); if (hedefC < v) v = v + (hedefC - v) * w; var cc = cm[i] + (255 - cm[i]) * w; cm[i] = cc; }
+      else if (koru){ var hedef = 255; v = v + (hedef - v) * w; if (w >= 1) v = 255; if (cm && w >= 1) cm[i] = 0; } else { v = v * (1 - w); if (w >= 1) v = 0; }
       a[i] = v; }
     yenidenCiz(x0, y0, x1 + 1, y1 + 1); }
+  /* cam fırçası: parlama haritası (yerel ortalamadan belirgin aydınlık, beyazımsı pikseller) bir kez hesaplanır; fırçanın geçtiği yerde
+     alfa, parlamalar dışında taban değere iner (arka planın içinden görünmesi) ve renk nötr cam tonuna çekilir (arkadaki manzara silinir) */
+  var CAMR = 236, CAMG = 240, CAMB = 244, CAMTABAN = 0.10;
+  function camHazirla(){ if (!K.cm) K.cm = new Uint8ClampedArray(K.W * K.H); if (!K.camB0) K.camB0 = new Uint8ClampedArray(K.alfa);   /* ilk dokunuştaki alfa: cam fırçası yalnız azaltır */
+    if (K.hl) return; var W = K.W, H = K.H, N = W * H, p = K.px, L = new Float32Array(N), i;
+    for (i = 0; i < N; i++) L[i] = 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2];
+    var Lm = stYZ.kutu(stYZ.kutu(L, W, H, Math.max(4, Math.round(Math.max(W, H) / 70))), W, H, Math.max(4, Math.round(Math.max(W, H) / 70))), hl = new Uint8ClampedArray(N);
+    for (i = 0; i < N; i++){ var r = p[i * 4], g = p[i * 4 + 1], b = p[i * 4 + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), doy = mx ? (mx - mn) / mx : 0;
+      var t = (L[i] - Lm[i] - 10) / 40; if (L[i] > 205 && doy < 0.18) t = Math.max(t, (L[i] - 205) / 30); hl[i] = Math.max(0, Math.min(1, t)) * 255; }
+    K.hl = hl; }
   function cizgi(a, b){ var r = boyPx(), adim = Math.max(1, r * 0.3), d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.ceil(d / adim);
     for (var k = 1; k <= n; k++) firca({x:a.x + (b.x - a.x) * k / n, y:a.y + (b.y - a.y) * k / n}); }
   var imlec = $('stKesI');
@@ -191,7 +207,7 @@
   sahne.addEventListener('pointerdown', function(e){
     if (!K || !K.alfa || e.target.closest('.is,.sayfa')) return; e.preventDefault(); try { sahne.setPointerCapture(e.pointerId); } catch(_){}
     P[e.pointerId] = {x:e.clientX, y:e.clientY}; var ks = Object.keys(P);
-    if (ks.length === 2){ if (tek && tek.boyadi){ /* fırça yeni başlamıştı: geri al */ if (K.yigin.length){ K.alfa.set(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); } } tek = null; imlec.style.display = 'none';
+    if (ks.length === 2){ if (tek && tek.boyadi){ /* fırça yeni başlamıştı: geri al */ if (K.yigin.length){ don(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); } } tek = null; imlec.style.display = 'none';
       var a = P[ks[0]], b = P[ks[1]]; iki = {d:Math.hypot(b.x - a.x, b.y - a.y) || 1, mx:(a.x + b.x) / 2, my:(a.y + b.y) / 2, s:V.s, x:V.x, y:V.y}; return; }
     if (ks.length > 2) return;
     tek = {p:resimNokta(e.clientX, e.clientY), cx:e.clientX, cy:e.clientY, t:Date.now(), boyadi:false};
@@ -234,12 +250,12 @@
     gb.addEventListener('contextmenu', function(e){ e.preventDefault(); }); })();
   /* ---------- düğmeler ---------- */
   function not(m){ $('stKesNot').textContent = m; }
-  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil'); $('stKesKn').hidden = !K || K.mod !== 'kenar';
+  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'); $('stKesKn').hidden = !K || K.mod !== 'kenar';
     kok.querySelectorAll('[data-z]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.z === K.zemin); }); sahne.className = 'sahne' + (K && K.zemin !== 'dama' ? ' z-' + K.zemin : '');
     var mk = kok.querySelector('[data-g=maske]'), kn = kok.querySelector('[data-g=kenar]'); if (mk) mk.classList.toggle('on', !!(K && K.maske)); if (kn) kn.classList.toggle('on', !!(K && K.yumusak)); var tz = kok.querySelector('[data-g=temiz]'); if (tz) tz.classList.toggle('on', !!(K && K.temiz !== false)); var cm = kok.querySelector('[data-g=cam]'); if (cm) cm.classList.toggle('on', !!(K && K.cam)); $('stKesCamR').hidden = !(K && K.cam); dugmeler(); }
   kok.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b || !K) return;
-    if (b.dataset.m){ K.mod = b.dataset.m; if (K.mod === 'kenar') kenarBasla(); else K.kb = null; arayuz(); not(K.mod === 'kenar' ? 'Kenarı daralt (arka plan kalıntısı) ya da genişlet; yumuşaklığı ayarla. Karşılaştırmak için üstteki göze basılı tut.' : K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir. İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç. İnce iş için iki parmakla yakınlaştır.'); return; }
+    if (b.dataset.m){ K.mod = b.dataset.m; if (K.mod === 'kenar') kenarBasla(); else K.kb = null; arayuz(); not(K.mod === 'camf' ? 'Camın, arkasından manzara görünen kısmının üstünden geç: manzara silinir, parlamalar ve kenar çizgileri kalır. Fazla gittiysen Koru ile geri getir.' : K.mod === 'kenar' ? 'Kenarı daralt (arka plan kalıntısı) ya da genişlet; yumuşaklığı ayarla. Karşılaştırmak için üstteki göze basılı tut.' : K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir. İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç. İnce iş için iki parmakla yakınlaştır.'); return; }
     if (b.dataset.z){ K.zemin = b.dataset.z; arayuz(); return; }
     if (b.dataset.g === 'maske'){ K.maske = !K.maske; arayuz(); yenidenCiz(0, 0, K.W, K.H); return; }
     if (b.dataset.g === 'kenar'){ K.yumusak = !K.yumusak; arayuz(); return; }
@@ -249,9 +265,9 @@
     if (a === 'kapat'){ kapat(); return; }
     if (!K.alfa) return;
     if ((a === 'geri' || a === 'ileri' || a === 'sifir') && K.cam){ K.px = K.px0; K.cam = false; var cb0 = kok.querySelector('[data-g=cam]'); if (cb0) cb0.classList.remove('on'); $('stKesCamR').hidden = true; }
-    if (a === 'geri' && K.yigin.length){ K.ileri.push(new Uint8ClampedArray(K.alfa)); K.alfa.set(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
-    else if (a === 'ileri' && K.ileri.length){ K.yigin.push(new Uint8ClampedArray(K.alfa)); K.alfa.set(K.ileri.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
-    else if (a === 'sifir'){ kayitAl(); K.alfa.set(K.ai); yenidenCiz(0, 0, K.W, K.H); not('Yapay zekânın ilk sonucuna dönüldü.'); }
+    if (a === 'geri' && K.yigin.length){ K.ileri.push(anlik()); don(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
+    else if (a === 'ileri' && K.ileri.length){ K.yigin.push(anlik()); don(K.ileri.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); }
+    else if (a === 'sifir'){ kayitAl(); K.alfa.set(K.ai); K.cm = null; K.camB0 = null; yenidenCiz(0, 0, K.W, K.H); not('Yapay zekânın ilk sonucuna dönüldü.'); }
     if ((a === 'geri' || a === 'ileri' || a === 'sifir') && K.mod === 'kenar') kenarBasla(true);
     else if (a === 'bitti') sayfaAc();
   });
@@ -319,7 +335,8 @@
   /* nesne katmanı (piksel + alfa), alfa değişene kadar önbellekte */
   function nesneTuval(){ if (K.nesC && K.nesS === K.surum) return K.nesC; var W = K.W, H = K.H, a = K.alfa;
     var nes = K.nesC || document.createElement('canvas'); nes.width = W; nes.height = H; var nx = nes.getContext('2d'), im = nx.createImageData(W, H), d = im.data, p = K.temiz !== false && window.stYZ ? stYZ.renkTemizle(K.px, a, W, H) : K.px;
-    for (var i = 0, j = 0; i < W * H; i++, j += 4){ d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } nx.putImageData(im, 0, 0);
+    var cm = K.cm, hl = K.hl;
+    for (var i = 0, j = 0; i < W * H; i++, j += 4){ var c0 = cm ? cm[i] : 0; if (c0){ var q = c0 / 255 * (1 - hl[i] / 255); d[j] = p[j] + (CAMR - p[j]) * q; d[j + 1] = p[j + 1] + (CAMG - p[j + 1]) * q; d[j + 2] = p[j + 2] + (CAMB - p[j + 2]) * q; } else { d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; } d[j + 3] = a[i]; } nx.putImageData(im, 0, 0);
     K.nesC = nes; K.nesS = K.surum; return nes; }
   function altaDeger(){ if (K.altS === K.surum) return K.altV; var W = K.W, a = K.alfa, r0 = (K.H - 2) * W, n = 0; for (var x = 0; x < W; x++) if (a[r0 + x] > 128) n++; K.altS = K.surum; return K.altV = n > W * 0.03; }
   function ciktiTuval(jpgZorla, enBoy){

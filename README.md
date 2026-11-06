@@ -2,7 +2,20 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.3 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.4 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.4 (06.11.2026): cam fırçası
+- Fotoğraf editörü › Kes'te 5. araç: **Cam** (fırça).
+- Camın arkasından manzara görünen kısmının üstünden geçilince o bölge cam sayılır:
+  - Arkadaki görüntü silinir; renk nötr açık cam tonuna çekilir.
+  - Parlamalar ve kenar çizgileri kalır (yerel ortalamadan belirgin aydınlık, beyazımsı pikseller). Geri kalanın opaklığı %10'a iner.
+  - Böylece yeni arka plan camın içinden görünür.
+- Yalnız azaltır: nesne olmayan yere etki etmez. Fazla gidilen yer **Koru** ile geri gelir.
+- Geri al / ileri al / ↺ cam fırçasını da kapsar (alfa ve cam haritası birlikte saklanır).
+- Kaydetme, ayrı nesne PNG'leri ve arka plan seçeneklerinin hepsi cam fırçasını uygular.
+- Otomatik "Saydam nesne" modu (2.3) ayrıca durur. Camın arkası çevresine benziyorsa iş görür; benzemiyorsa (ağaç, eşya) cam fırçası kullanılır.
+- Test: kullanıcının gönderdiği çay bardağı fotoğrafında, bardağın üstünde görünen ağaçlar fırçayla silindi. Gökyüzü arka planı camın içinden göründü, kenar parlamaları kaldı. Kenar, geri al, karşılaştır, ayrı nesne testleri tekrarlandı.
+- Videoda cam fırçası yok (her kareye fırça sürülemez).
 
 ## 2.3 (06.11.2026): saydam nesne (cam, bardak) modu
 - **Sorun:** Yapay zekâ nesneyi "var / yok" diye ayırır; camın yarı saydam olduğunu bilmez. Camın içinden görünen eski arka plan kesilen parçada kalıyordu ve yeni arka plan camın içinden görünmüyordu.

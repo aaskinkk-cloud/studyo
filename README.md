@@ -2,7 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.4 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.5 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.5 (06.11.2026): cam fırçası videoda da
+- Video editörü › Nesne panelinde seçili nesnede **Cam fırçası** var. Videodan kesilen kişi/nesne ile fotoğraftan eklenen nesnenin ikisinde de çalışır.
+- Açıkken önizlemede nesnenin üstünden fırçayla geçilir. Fırça boyu %2–25; nesneyi sürüklemek için fırçayı kapat.
+- Fırçalanan yerde arkadaki görüntü silinir, nötr cam tonu kalır. Opaklık %10'a iner; yeni arka plan camın içinden görünür.
+- Parlamalar her karenin kendi ışığından hesaplanır, bu yüzden videoda kıpırdayan ışık doğal kalır.
+- Harita nesnenin kendi kutusundadır (384×384). Nesne taşınır, büyütülür ya da döndürülürse fırçalanan yer onunla gider.
+- Sabit duran bardakta tek fırçalama bütün karelere uygulanır. Bardak hareket ederse fırçalanan yer onu izlemez; bu durumda nesnenin kutusuna göre kalır.
+- **Fırçayı geri al** (15 adım) ve **Cam fırçasını temizle** düğmeleri var. Harita projeyle saklanır (`_c`).
+- Önizleme ve dışa aktarma aynı.
+- Test: çay bardağı fotoğrafı videoya nesne olarak eklendi. Üst kısım fırçalanınca arkadaki çiçek ve yeşillik camın içinden göründü, parlamalar kaldı. Fırçayı geri al son darbeyi kaldırdı, kayıt doğrulandı. Önceki Nesne testleri tekrarlandı.
 
 ## 2.4 (06.11.2026): cam fırçası
 - Fotoğraf editörü › Kes'te 5. araç: **Cam** (fırça).
@@ -15,7 +26,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Kaydetme, ayrı nesne PNG'leri ve arka plan seçeneklerinin hepsi cam fırçasını uygular.
 - Otomatik "Saydam nesne" modu (2.3) ayrıca durur. Camın arkası çevresine benziyorsa iş görür; benzemiyorsa (ağaç, eşya) cam fırçası kullanılır.
 - Test: kullanıcının gönderdiği çay bardağı fotoğrafında, bardağın üstünde görünen ağaçlar fırçayla silindi. Gökyüzü arka planı camın içinden göründü, kenar parlamaları kaldı. Kenar, geri al, karşılaştır, ayrı nesne testleri tekrarlandı.
-- Videoda cam fırçası yok (her kareye fırça sürülemez).
+- Videoda cam fırçası 2.5'te eklendi.
 
 ## 2.3 (06.11.2026): saydam nesne (cam, bardak) modu
 - **Sorun:** Yapay zekâ nesneyi "var / yok" diye ayırır; camın yarı saydam olduğunu bilmez. Camın içinden görünen eski arka plan kesilen parçada kalıyordu ve yeni arka plan camın içinden görünmüyordu.

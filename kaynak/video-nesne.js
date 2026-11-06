@@ -28,6 +28,7 @@
     if (N.pid !== pid) return;
     for (var i = 0; i < l.length; i++){ var o = l[i]; if (!N.img[o.id]){ try { var b = await idb('png', 'readonly', function(s){ return s.get(o.id); }); if (b) N.img[o.id] = await createImageBitmap(b); } catch(e){ console.warn('nesne görüntüsü', e); } }
       if (o.arka === 'foto' && !N.img[o.id + '_af']){ try { var ab = await idb('png', 'readonly', function(s){ return s.get(o.id + '_af'); }); if (ab) N.img[o.id + '_af'] = await createImageBitmap(ab); } catch(e){} }
+      if (o.cam && !N.cam[o.id]){ try { var cb2 = await idb('png', 'readonly', function(s){ return s.get(o.id + '_c'); }); if (cb2){ N.cam[o.id] = new Uint8ClampedArray(await cb2.arrayBuffer()); N.cam[o.id]._s = 1; } } catch(e){} }
       if (o.video && !N.mask[o.id]){ try { var mb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_m'); }); if (mb) N.mask[o.id] = new Uint8Array(await mb.arrayBuffer()); } catch(e){} }
       if (o.klip && !o.video && !N.img[o.id + '_bg']){ try { var bb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_bg'); }); if (bb) N.img[o.id + '_bg'] = await createImageBitmap(bb); } catch(e){} } }
     if (N.pid !== pid) return;
@@ -75,10 +76,37 @@
     if (c.kc.width !== kw || c.kc.height !== kh){ c.kc.width = kw; c.kc.height = kh; }
     var kx = c.kc.getContext('2d'); kx.globalCompositeOperation = 'source-over'; kx.clearRect(0, 0, kw, kh); kx.drawImage(src, 0, 0, kw, kh);
     kx.globalCompositeOperation = 'destination-in'; kx.imageSmoothingQuality = 'high'; kx.drawImage(c.mc, 0, 0, kw, kh); kx.globalCompositeOperation = 'source-over';
+    if (N.cam[o.id]) camUygula(c.kc, N.cam[o.id]);
     return {kare:donuk(c.kc, o.rot || 0), src:src}; }
   function arkaVideo(g, W, H, src, rot, a){ if (a <= 0.003) return; var b = _vk.bul || (_vk.bul = document.createElement('canvas')), s0 = donuk(src, rot), sw = s0.videoWidth || s0.width, sh = s0.videoHeight || s0.height;
     var bw = 160, bh = Math.max(8, Math.round(bw * sh / sw)); b.width = bw; b.height = bh; var x = b.getContext('2d'); x.filter = 'blur(5px)'; x.drawImage(s0, -bw * 0.06, -bh * 0.06, bw * 1.12, bh * 1.12); x.filter = 'none';
     var k = Math.max(W / bw, H / bh), w = bw * k, h = bh * k; g.save(); g.globalAlpha = a; g.imageSmoothingEnabled = true; g.drawImage(b, (W - w) / 2, (H - h) / 2, w, h); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H); g.restore(); }
+  /* ---------- cam fırçası (nesne başına sabit harita, 384×384, nesnenin kendi kutusunda) ----------
+     Fırçalanan yerde: parlamalar (karenin kendi ışığından, her karede yeniden) kalır; geri kalan %10 opaklığa iner ve rengi nötr cam tonuna çekilir.
+     Videoda bardak sabit durduğu için tek harita bütün karelere uygulanır. */
+  N.cam = {}; var CM = 384, CS = 192, CAMRGB = [236, 240, 244], CAMTABAN = 0.10, _cs = {};
+  function kutu1(a, w, h, r){ return window.stYZ && stYZ.kutu ? stYZ.kutu(a, w, h, r) : a; }
+  function camUygula(cnv, cm){   /* cnv: nesne tuvali (alfalı), yerinde değişir */
+    var w = cnv.width, h = cnv.height; if (!w || !h) return;
+    var k = _cs.k || (_cs.k = document.createElement('canvas')); k.width = CS; k.height = CS; var kx = k.getContext('2d', {willReadFrequently:true}); kx.clearRect(0, 0, CS, CS); kx.drawImage(cnv, 0, 0, CS, CS);
+    var px = kx.getImageData(0, 0, CS, CS).data, N2 = CS * CS, L = new Float32Array(N2), i;
+    for (i = 0; i < N2; i++) L[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+    var Lm = kutu1(kutu1(L, CS, CS, 4), CS, CS, 4);
+    var A = _cs.a || (_cs.a = document.createElement('canvas')), B = _cs.b || (_cs.b = document.createElement('canvas')); A.width = B.width = CS; A.height = B.height = CS;
+    var ax = A.getContext('2d'), bx = B.getContext('2d'), ai = ax.createImageData(CS, CS), bi = bx.createImageData(CS, CS), r = CM / CS;
+    for (var y = 0; y < CS; y++) for (var x = 0; x < CS; x++){ i = y * CS + x; var c = cm[Math.floor(y * r) * CM + Math.floor(x * r)] / 255; if (!c) continue;
+      var R0 = px[i * 4], G0 = px[i * 4 + 1], B0 = px[i * 4 + 2], mx = Math.max(R0, G0, B0), mn = Math.min(R0, G0, B0), doy = mx ? (mx - mn) / mx : 0;
+      var t = (L[i] - Lm[i] - 10) / 40; if (L[i] > 205 && doy < 0.18) t = Math.max(t, (L[i] - 205) / 30); var hl = Math.max(0, Math.min(1, t));
+      bi.data[i * 4] = CAMRGB[0]; bi.data[i * 4 + 1] = CAMRGB[1]; bi.data[i * 4 + 2] = CAMRGB[2]; bi.data[i * 4 + 3] = c * (1 - hl) * 255;
+      ai.data[i * 4 + 3] = c * (1 - Math.max(CAMTABAN, hl)) * 255; }
+    ax.putImageData(ai, 0, 0); bx.putImageData(bi, 0, 0);
+    var g = cnv.getContext('2d'); g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.globalCompositeOperation = 'source-atop'; g.drawImage(B, 0, 0, w, h); g.globalCompositeOperation = 'destination-out'; g.drawImage(A, 0, 0, w, h); g.restore(); }
+  /* fotoğraf nesnesi: işlenmiş görüntü önbellekte (harita değişince yenilenir) */
+  var _camImg = {};
+  function camliGoruntu(o){ var cm = N.cam[o.id], im = N.img[o.id]; if (!cm || !im) return im; var c = _camImg[o.id];
+    if (c && c.s === cm._s) return c.cv; var cv = (c && c.cv) || document.createElement('canvas'); cv.width = im.width; cv.height = im.height; var x = cv.getContext('2d'); x.clearRect(0, 0, cv.width, cv.height); x.drawImage(im, 0, 0);
+    camUygula(cv, cm); _camImg[o.id] = {cv:cv, s:cm._s}; return cv; }
   window.__kvNesne = function(g, W, H, t, exp, getSrc){
     if (!N.liste.length) return;
     if (!exp){ N.W = W; N.H = H; }
@@ -91,7 +119,7 @@
       g.save(); g.globalAlpha = d.a; g.translate(d.cx, d.cy); g.rotate(d.rot); g.scale(d.sc * (o.ayna ? -1 : 1), d.sc);
       if (o.golge){ g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = H * 0.025; g.shadowOffsetY = H * 0.012; }
       g.imageSmoothingEnabled = true; g.imageSmoothingQuality = exp ? 'high' : 'medium';
-      g.drawImage(vk ? vk.kare : d.im, -d.w / 2, -d.h / 2, d.w, d.h); g.restore();
+      g.drawImage(vk ? vk.kare : (N.cam[o.id] ? camliGoruntu(o) : d.im), -d.w / 2, -d.h / 2, d.w, d.h); g.restore();
       if (!exp){
         if (N.acik && o.id === N.sec){ g.save(); g.translate(d.cx, d.cy); g.rotate(d.rot); g.lineWidth = Math.max(2, H * 0.004); g.setLineDash([H * 0.014, H * 0.01]);
           g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeRect(-d.w * d.sc / 2, -d.h * d.sc / 2, d.w * d.sc, d.h * d.sc); g.restore(); } } }
@@ -170,6 +198,8 @@
         h += '<div class="cp">' + AYAR.map(function(a){ return '<button type="button" data-ay="' + a[0] + '" class="' + (a[0] === N.ayar ? 'on' : '') + '">' + a[1] + '</button>'; }).join('')
           + '<button type="button" data-t="golge" class="' + (o.golge ? 'on' : '') + '">Gölge</button><button type="button" data-t="ayna" class="' + (o.ayna ? 'on' : '') + '">Ayna</button>'
           + '<button type="button" data-a="ortala">Ortala</button><button type="button" data-t="pasif" class="' + (o.pasif ? 'on' : '') + '">Gizle</button></div>';
+        h += '<div class="cp"><button type="button" data-a="camf" class="' + (N.camFirca ? 'on' : '') + '">Cam fırçası' + (N.camFirca ? ': açık' : '') + '</button>' + (N.cam[o.id] ? '<button type="button" data-a="camgeri">Fırçayı geri al</button><button type="button" data-a="camtemiz">Cam fırçasını temizle</button>' : '') + '</div>';
+        if (N.camFirca) h += '<div class="kr"><span style="font-size:12.5px;color:var(--is-mute)">Fırça</span><input type="range" id="stNcB" min="2" max="25" step="1" value="' + N.camBoy + '"><output>' + N.camBoy + '%</output></div><p class="not" style="margin:-2px 0 6px">Önizlemede camın, arkası görünen kısmının üstünden geç: arkadaki görüntü silinir, parlamalar kalır. Videoda bütün karelere uygulanır.</p>';
         h += '<div class="kr"><input type="range" id="stNk" min="' + A[2] + '" max="' + A[3] + '" step="1" value="' + Math.round(v) + '"><output id="stNo">' + Math.round(v) + A[4] + '</output></div>';
         h += '<div class="cp">' + HAREKET.map(function(a){ return '<button type="button" data-h="' + a[0] + '" class="' + ((o.hareket || 'sabit') === a[0] ? 'on' : '') + '">' + a[1] + '</button>'; }).join('') + '</div>';
         if (o.klip){
@@ -187,7 +217,8 @@
     sh.innerHTML = h; yerles();
   }
   function degisti(yenidenCiz){ kaydet(); yenile(); if (yenidenCiz) ciz(); }
-  sh.addEventListener('input', function(e){ if (e.target.id !== 'stNk') return; var o = secili(); if (!o) return; var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0];
+  N.camBoy = 8; N.camY = {};
+  sh.addEventListener('input', function(e){ if (e.target.id === 'stNcB'){ N.camBoy = +e.target.value; var oo = e.target.nextElementSibling; if (oo) oo.textContent = N.camBoy + '%'; return; } if (e.target.id !== 'stNk') return; var o = secili(); if (!o) return; var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0];
     anlik(false); o[A[0]] = +e.target.value; var out = sh.querySelector('#stNo'); if (out) out.textContent = e.target.value + A[4]; degisti(false); });
   sh.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b) return; var o = secili(), k = KV();
@@ -202,6 +233,9 @@
     if (a === 'kapat'){ kapat(); return; }
     if (a === 'ekle'){ ekleBasla(); return; }
     if (a === 'klip'){ klipKes(); return; }
+    if (a === 'camf'){ N.camFirca = !N.camFirca; if (N.camFirca){ var kv0 = KV(); if (kv0) kv0.durdur(); } ciz(); return; }
+    if (a === 'camtemiz' && o){ delete N.cam[o.id]; delete _camImg[o.id]; o.cam = false; idb('png', 'readwrite', function(s){ return s.delete(o.id + '_c'); }).catch(function(){}); degisti(true); return; }
+    if (a === 'camgeri' && o){ var yg = N.camY[o.id]; if (yg && yg.length){ var eskiC = yg.pop(); if (eskiC){ N.cam[o.id] = eskiC; eskiC._s = Date.now(); } else { delete N.cam[o.id]; o.cam = false; } camKaydet(o); degisti(true); } return; }
     if (a === 'cam'){ CAM = !CAM; try { localStorage.setItem('st.nesneCam', CAM ? '1' : '0'); } catch(e){} ciz(); return; }
     if (!o) return;
     if (a === 'ortala'){ o.x = 0.5; o.y = 0.5; o.r = 0; degisti(true); }
@@ -391,7 +425,7 @@
     if (!N.liste.some(function(o){ return o.id === N.sec; })) N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null; N.sonAnlik = 0; degisti(true); }
   /* silinen görüntüler panel kapanınca veritabanından silinir (o zamana kadar geri alınabilir) */
   function copTopla(){ var ids = Object.keys(N.silinen); N.silinen = {}; ids.forEach(function(id){ if (N.liste.some(function(o){ return o.id === id; })) return;
-    idb('png', 'readwrite', function(s){ s.delete(id + '_bg'); s.delete(id + '_af'); s.delete(id + '_m'); return s.delete(id); }).catch(function(){}); delete N.mask[id]; delete _vk[id]; delete N.img[id]; delete N.img[id + '_bg']; delete N.img[id + '_af']; delete urlOnb[id]; }); }
+    idb('png', 'readwrite', function(s){ s.delete(id + '_bg'); s.delete(id + '_af'); s.delete(id + '_m'); s.delete(id + '_c'); return s.delete(id); }).catch(function(){}); delete N.cam[id]; delete N.mask[id]; delete _vk[id]; delete N.img[id]; delete N.img[id + '_bg']; delete N.img[id + '_af']; delete urlOnb[id]; }); }
 
   /* ---------- aç / kapat / yerleşim ---------- */
   var altSarili = false;
@@ -402,7 +436,7 @@
   function ac(){ var k = KV(); if (k) k.durdur(); try { window.kvStudyo && kvStudyo.kapat(true); } catch(e){}
     ['isTuval', 'isMetin', 'isOdak'].forEach(function(id){ var x = document.getElementById(id); if (x && !x.hidden && id !== 'isOdak') x.hidden = true; });
     altSar(); N.acik = true; sh.hidden = false; if (!N.sec && N.liste.length) N.sec = N.liste[N.liste.length - 1].id; ciz(); butonDurum(); yenile(); setTimeout(yerles, 60); }
-  function kapat(){ copTopla(); N.acik = false; sh.hidden = true; silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
+  function kapat(){ copTopla(); N.camFirca = false; N.acik = false; sh.hidden = true; silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
   function butonDurum(){ var b = document.getElementById('stNsBtn'); if (b) b.setAttribute('aria-current', N.acik ? 'true' : 'false'); }
   function butonKur(){ var mn = document.getElementById('mininav'); if (!mn || mn.querySelector('#stNsBtn')) return;
     var b = document.createElement('button'); b.type = 'button'; b.id = 'stNsBtn'; b.innerHTML = ic(IC_NESNE) + '<span>Nesne</span>';
@@ -424,10 +458,22 @@
       var dx = p.x - g.cx, dy = p.y - g.cy, c = Math.cos(-g.rot), s = Math.sin(-g.rot), lx = dx * c - dy * s, ly = dx * s + dy * c, pay = Math.max(g.w, g.h) * 0.06;
       if (Math.abs(lx) <= g.w / 2 + pay && Math.abs(ly) <= g.h / 2 + pay) return o; }
     return null; }
+  /* cam fırçası boyama: ekran noktası → seçili nesnenin kendi kutusu (dönüş, ayna dahil) */
+  var camBoya = null;
+  function camNokta(o, p){ var g = N.geo[o.id]; if (!g) return null; var dx = p.x - g.cx, dy = p.y - g.cy, c = Math.cos(-g.rot), s = Math.sin(-g.rot), lx = dx * c - dy * s, ly = dx * s + dy * c;
+    var u = lx / g.w + 0.5, v = ly / g.h + 0.5; if (o.ayna) u = 1 - u; return {u:u, v:v, g:g}; }
+  function camFirca(o, p){ var q = camNokta(o, p); if (!q) return; var cm = N.cam[o.id], rp = N.camBoy / 100 * Math.max(N.W, N.H) / 2, ru = rp / q.g.w * CM, rv = rp / q.g.h * CM, cx = q.u * CM, cy = q.v * CM;
+    for (var y = Math.max(0, Math.floor(cy - rv)); y <= Math.min(CM - 1, Math.ceil(cy + rv)); y++) for (var x = Math.max(0, Math.floor(cx - ru)); x <= Math.min(CM - 1, Math.ceil(cx + ru)); x++){
+      var d = Math.sqrt(Math.pow((x - cx) / ru, 2) + Math.pow((y - cy) / rv, 2)); if (d > 1) continue; var w = d < 0.6 ? 1 : 1 - (d - 0.6) / 0.4, i = y * CM + x; cm[i] = Math.max(cm[i], w * 255); }
+    cm._s = Date.now(); }
+  function camKaydet(o){ var cm = N.cam[o.id]; if (cm){ o.cam = true; idb('png', 'readwrite', function(s){ return s.put(new Blob([cm]), o.id + '_c'); }).catch(function(){}); } else { o.cam = false; } kaydet(); }
   function icinde(e){ var v = document.getElementById('viewer'); return v && v.contains(e.target); }
   addEventListener('pointerdown', function(e){
     if (!N.acik || !icinde(e)) return; var p = noktaDonustur(e); if (!p) return;
     if (surukle && surukle.o){ P[e.pointerId] = p; if (Object.keys(P).length === 2) ikiBasla(); e.stopImmediatePropagation(); e.preventDefault(); return; }
+    if (N.camFirca){ var oc = secili(); if (oc && N.geo[oc.id]){ e.stopImmediatePropagation(); e.preventDefault(); var kc = KV(); if (kc) kc.durdur();
+        N.camY[oc.id] = N.camY[oc.id] || []; N.camY[oc.id].push(N.cam[oc.id] ? new Uint8ClampedArray(N.cam[oc.id]) : null); if (N.camY[oc.id].length > 15) N.camY[oc.id].shift();
+        if (!N.cam[oc.id]) N.cam[oc.id] = new Uint8ClampedArray(CM * CM); camBoya = {o:oc, id:e.pointerId, p:p}; camFirca(oc, p); yenile(); N._yut = true; return; } }
     var o = isabet(p); if (!o) return;
     e.stopImmediatePropagation(); e.preventDefault(); var k = KV(); if (k) k.durdur();
     if (N.sec !== o.id){ N.sec = o.id; ciz(); }
@@ -436,6 +482,9 @@
   }, true);
   function ikiBasla(){ var ks = Object.keys(P), a = P[ks[0]], b = P[ks[1]]; surukle.iki = {d:Math.hypot(b.x - a.x, b.y - a.y) || 1, aci:Math.atan2(b.y - a.y, b.x - a.x), s0:surukle.o.s, r0:surukle.o.r || 0, mx:(a.x + b.x) / 2, my:(a.y + b.y) / 2, x0:surukle.o.x, y0:surukle.o.y}; }
   addEventListener('pointermove', function(e){
+    if (camBoya && e.pointerId === camBoya.id){ var pc = noktaDonustur(e); if (!pc) return; e.stopImmediatePropagation(); e.preventDefault();
+      var n = Math.max(1, Math.ceil(Math.hypot(pc.x - camBoya.p.x, pc.y - camBoya.p.y) / Math.max(2, N.camBoy / 100 * Math.max(N.W, N.H) * 0.15)));
+      for (var j = 1; j <= n; j++) camFirca(camBoya.o, {x:camBoya.p.x + (pc.x - camBoya.p.x) * j / n, y:camBoya.p.y + (pc.y - camBoya.p.y) * j / n}); camBoya.p = pc; yenile(); return; }
     if (!surukle || !(e.pointerId in P)) return; var p = noktaDonustur(e); if (!p) return; P[e.pointerId] = p; e.stopImmediatePropagation(); e.preventDefault();
     var o = surukle.o, W = N.W, H = N.H, ks = Object.keys(P);
     if (ks.length >= 2 && surukle.iki){ var a = P[ks[0]], b = P[ks[1]], I = surukle.iki, d = Math.hypot(b.x - a.x, b.y - a.y);
@@ -445,7 +494,8 @@
       if (Math.abs(o.x - 0.5) < 0.012) o.x = 0.5; }   /* ortaya yapışır */
     o.x = Math.max(-0.4, Math.min(1.4, o.x)); o.y = Math.max(-0.4, Math.min(1.4, o.y)); surukle.oy = true; yenile();
   }, true);
-  function birak(e){ if (!surukle || !(e.pointerId in P)) return; delete P[e.pointerId]; e.stopImmediatePropagation();
+  function birak(e){ if (camBoya && e.pointerId === camBoya.id){ e.stopImmediatePropagation(); var ob = camBoya.o; camBoya = null; camKaydet(ob); ciz(); return; }
+    if (!surukle || !(e.pointerId in P)) return; delete P[e.pointerId]; e.stopImmediatePropagation();
     if (Object.keys(P).length === 1 && surukle.iki){ var k0 = Object.keys(P)[0]; surukle.iki = null; surukle.p0 = P[k0]; surukle.x0 = surukle.o.x; surukle.y0 = surukle.o.y; return; }
     if (!Object.keys(P).length){ if (surukle.oy){ kaydet(); ciz(); } surukle = null; } }
   addEventListener('pointerup', birak, true); addEventListener('pointercancel', birak, true);

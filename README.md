@@ -2,7 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.5 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.6 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.6 (06.11.2026): Nesne paneli sade, önizleme büyük
+- Video editörü › Nesne paneli bölümlere ayrıldı: **Ayar · Efekt · Arka plan · Cam fırçası · Diğer**. Her seferinde yalnız seçili bölüm görünür; panel yaklaşık 650 px'ten 270 px'e indi, önizleme artık panelin altında kalmıyor.
+- **▾ Paneli küçült:** yalnız başlık satırı kalır, önizleme ekranın ortasına iner. ▴ ile geri açılır.
+- **Cam fırçası** açılınca nesne listesi gizlenir; panelde yalnız fırça düğmeleri ve boyut kaydırıcısı kalır.
+- **Parmakla düzenleme:** panel açıkken önizlemenin herhangi bir yerinde sürükleyince seçili nesne taşınır (nesnenin tam üstüne basmak gerekmez). İki parmakla büyüt, küçült, döndür; **çift dokun: ortala**. Panel açıkken tarayıcının sayfa kaydırma/yakınlaştırması önizlemede kapalı, iki parmak hareketi nesneye gider.
+- Son açılan bölüm hatırlanır. Kayıt biçimi değişmedi.
+- Kod: `kaynak/video-nesne.js`.
 
 ## 2.5 (06.11.2026): cam fırçası videoda da
 - Video editörü › Nesne panelinde seçili nesnede **Cam fırçası** var. Videodan kesilen kişi/nesne ile fotoğraftan eklenen nesnenin ikisinde de çalışır.

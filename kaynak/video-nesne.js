@@ -130,12 +130,19 @@
   css.textContent = [
     '#stNesne{display:none}',
     'body.kv-studyo.is-mod #stNesne:not([hidden]){display:block;position:fixed;left:0;right:0;z-index:33;background:var(--is-bg2);color:var(--is-ink);border-radius:16px 16px 0 0;padding:4px 12px 10px;box-shadow:0 -8px 24px rgba(0,0,0,.25)}',
+    '#stNesne{max-height:46vh;overflow-y:auto;overscroll-behavior:contain}',
+    'body.st-ns-acik #viewer,body.st-ns-acik #viewer *{touch-action:none}',
+    '#stNesne .sk{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px;border-bottom:1px solid color-mix(in srgb,var(--is-ink) 10%,transparent)}',
+    '#stNesne .sk::-webkit-scrollbar{display:none}',
+    '#stNesne .sk button{flex:1 0 auto;background:none;border:0;border-bottom:2.5px solid transparent;color:var(--is-mute);padding:6px 10px 7px;font:inherit;font-size:13.5px}',
+    '#stNesne .sk button.on{color:var(--is-ink);border-bottom-color:#e8762b;font-weight:600}',
+    '#stNesne.kucuk{padding-bottom:4px}',
     '#stNesne .nb{display:flex;align-items:center;justify-content:space-between;font-size:15px;padding:2px 0 6px}',
     '#stNesne .nb button{background:none;border:0;color:var(--is-ink);width:40px;height:36px;display:grid;place-items:center;padding:0}',
     '#stNesne svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}',
     '#stNesne .ns{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px}',
     '#stNesne .ns::-webkit-scrollbar{display:none}',
-    '#stNesne .ns>button{flex:none;width:58px;height:58px;border-radius:10px;border:2px solid transparent;padding:0;background:repeating-conic-gradient(#555 0 25%,#777 0 50%) 0 0/10px 10px;overflow:hidden;position:relative}',
+    '#stNesne .ns>button{flex:none;width:50px;height:50px;border-radius:10px;border:2px solid transparent;padding:0;background:repeating-conic-gradient(#555 0 25%,#777 0 50%) 0 0/10px 10px;overflow:hidden;position:relative}',
     '#stNesne .ns>button img{width:100%;height:100%;object-fit:contain;display:block}',
     '#stNesne .ns>button.on{border-color:var(--is-ink)}',
     '#stNesne .ns>button.pas img{opacity:.35}',
@@ -182,42 +189,52 @@
   var silOnay = 0;
   function ciz(){
     if (!N.acik) return; var o = secili(), h = '';
-    h += '<div class="nb"><b style="flex:1">Nesne</b><button type="button" data-a="geri" aria-label="Geri al"' + (N.gecmis.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>') + '</button><button type="button" data-a="ileri" aria-label="İleri al"' + (N.ileriL.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>') + '</button><button type="button" data-a="kapat" aria-label="Tamam">' + ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>') + '</button></div>';
+    h += '<div class="nb"><b style="flex:1">Nesne</b><button type="button" data-a="geri" aria-label="Geri al"' + (N.gecmis.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>') + '</button><button type="button" data-a="ileri" aria-label="İleri al"' + (N.ileriL.length ? '' : ' disabled style="opacity:.3"') + '>' + ic('<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/>') + '</button><button type="button" data-a="kucult" aria-label="' + (N.kucuk ? 'Paneli aç' : 'Paneli küçült (önizleme büyür)') + '">' + ic(N.kucuk ? '<path d="M6 15l6-6 6 6"/>' : '<path d="M6 9l6 6 6-6"/>') + '</button><button type="button" data-a="kapat" aria-label="Tamam">' + ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>') + '</button></div>';
+    if (N.kucuk && N.liste.length){ h += '<p class="not" style="margin:0 0 4px">Önizlemede nesneyi sürükle · iki parmakla büyüt, küçült, döndür · çift dokun: ortala</p>'; sh.innerHTML = h; sh.classList.add('kucuk'); yerles(); return; }
+    sh.classList.remove('kucuk');
     if (!N.liste.length){
       h += '<button type="button" class="bos" data-a="ekle"><span style="width:44px;height:44px;flex:none">' + ic(IC_NESNE).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Fotoğraftan nesne kes ve ekle</b><small>Bir fotoğraf seç; yapay zekâ nesneyi ya da kişiyi arka planından ayırır, videonun üstüne katman olarak koyar.</small></span></button>';
       h += '<button type="button" class="bos" data-a="klip" style="margin-top:8px"><span style="width:44px;height:44px;flex:none">' + ic(IC_KES).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Seçili klipteki kişiyi kes</b><small>Zaman çizelgesinde seçtiğin fotoğraftaki kişi yerinde kalır, arkası aynı fotoğrafın bulanık hâliyle dolar; dikey çerçeve kaybolur.</small></span></button>';
       h += '<div class="cp" style="margin-top:8px"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
       h += '<p class="not">İlk kullanımda model iner (yaklaşık 90 MB, Wi-Fi önerilir); sonra telefonda kalır. Fotoğraf telefondan dışarı gönderilmez.</p>';
     } else {
-      h += '<div class="ns">' + N.liste.map(function(x){ return '<button type="button" data-n="' + x.id + '" class="' + (x.id === N.sec ? 'on' : '') + (x.pasif ? ' pas' : '') + '"><img alt="" src="' + kucuk(x) + '"></button>'; }).join('')
+      if (!N.camFirca) h += '<div class="ns">' + N.liste.map(function(x){ return '<button type="button" data-n="' + x.id + '" class="' + (x.id === N.sec ? 'on' : '') + (x.pasif ? ' pas' : '') + '"><img alt="" src="' + kucuk(x) + '"></button>'; }).join('')
         + '<button type="button" class="ekle" data-a="ekle" aria-label="Fotoğraftan nesne ekle">' + ic('<path d="M12 5v14M5 12h14"/>') + '</button>'
-        + '<button type="button" class="ekle" data-a="klip" aria-label="Seçili klipteki kişiyi kes">' + ic(IC_KES) + '</button></div>'
-        + '<div class="cp"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Yeni kesimlerde saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
+        + '<button type="button" class="ekle" data-a="klip" aria-label="Seçili klipteki kişiyi kes">' + ic(IC_KES) + '</button></div>';
       if (o){
-        var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0] || AYAR[0], v = o[A[0]] == null ? (A[0] === 'op' ? 100 : 0) : o[A[0]];
-        h += '<div class="cp">' + AYAR.map(function(a){ return '<button type="button" data-ay="' + a[0] + '" class="' + (a[0] === N.ayar ? 'on' : '') + '">' + a[1] + '</button>'; }).join('')
-          + '<button type="button" data-t="golge" class="' + (o.golge ? 'on' : '') + '">Gölge</button><button type="button" data-t="ayna" class="' + (o.ayna ? 'on' : '') + '">Ayna</button>'
-          + '<button type="button" data-a="ortala">Ortala</button><button type="button" data-t="pasif" class="' + (o.pasif ? 'on' : '') + '">Gizle</button></div>';
-        h += '<div class="cp"><button type="button" data-a="camf" class="' + (N.camFirca ? 'on' : '') + '">Cam fırçası' + (N.camFirca ? ': açık' : '') + '</button>' + (N.cam[o.id] ? '<button type="button" data-a="camgeri">Fırçayı geri al</button><button type="button" data-a="camtemiz">Cam fırçasını temizle</button>' : '') + '</div>';
-        if (N.camFirca) h += '<div class="kr"><span style="font-size:12.5px;color:var(--is-mute)">Fırça</span><input type="range" id="stNcB" min="2" max="25" step="1" value="' + N.camBoy + '"><output>' + N.camBoy + '%</output></div><p class="not" style="margin:-2px 0 6px">Önizlemede camın, arkası görünen kısmının üstünden geç: arkadaki görüntü silinir, parlamalar kalır. Videoda bütün karelere uygulanır.</p>';
-        h += '<div class="kr"><input type="range" id="stNk" min="' + A[2] + '" max="' + A[3] + '" step="1" value="' + Math.round(v) + '"><output id="stNo">' + Math.round(v) + A[4] + '</output></div>';
-        h += '<div class="cp">' + HAREKET.map(function(a){ return '<button type="button" data-h="' + a[0] + '" class="' + ((o.hareket || 'sabit') === a[0] ? 'on' : '') + '">' + a[1] + '</button>'; }).join('') + '</div>';
-        if (o.klip){
+        var BOL = [['ayar','Ayar'],['hareket','Efekt'],['arka','Arka plan'],['cam','Cam fırçası'],['diger','Diğer']];
+        if (N.camFirca) N.bol = 'cam'; if (!BOL.some(function(x){ return x[0] === N.bol; })) N.bol = 'ayar';
+        h += '<div class="sk">' + BOL.map(function(x){ return '<button type="button" data-bol="' + x[0] + '" class="' + (x[0] === N.bol ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>';
+        if (N.bol === 'ayar'){
+          var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0] || AYAR[0], v = o[A[0]] == null ? (A[0] === 'op' ? 100 : 0) : o[A[0]];
+          h += '<div class="cp">' + AYAR.map(function(a){ return '<button type="button" data-ay="' + a[0] + '" class="' + (a[0] === N.ayar ? 'on' : '') + '">' + a[1] + '</button>'; }).join('')
+            + '<button type="button" data-a="ortala">Ortala</button><button type="button" data-t="golge" class="' + (o.golge ? 'on' : '') + '">Gölge</button><button type="button" data-t="ayna" class="' + (o.ayna ? 'on' : '') + '">Ayna</button>'
+            + '<button type="button" data-t="pasif" class="' + (o.pasif ? 'on' : '') + '">Gizle</button></div>';
+          h += '<div class="kr"><input type="range" id="stNk" min="' + A[2] + '" max="' + A[3] + '" step="1" value="' + Math.round(v) + '"><output id="stNo">' + Math.round(v) + A[4] + '</output></div>';
+          h += '<p class="not">Önizlemede sürükle · iki parmakla büyüt, küçült, döndür · çift dokun: ortala. ▾ ile paneli küçültüp önizlemeyi büyütebilirsin.</p>';
+        } else if (N.bol === 'hareket'){
+          h += '<div class="cp">' + HAREKET.map(function(a){ return '<button type="button" data-h="' + a[0] + '" class="' + ((o.hareket || 'sabit') === a[0] ? 'on' : '') + '">' + a[1] + '</button>'; }).join('') + '</div>';
+          h += '<p class="not">Nesnenin giriş hareketi. Hareketli girişlerde nesne bitişte yumuşakça kaybolur.</p>';
+          if (!o.klip){
+            h += '<div class="zs"><button type="button" data-a="t0"><small>Başlangıç · dokun: şu an</small>' + zaman(o.t0 || 0) + '</button><button type="button" data-a="t1"><small>Bitiş · dokun: şu an</small>' + zaman(o.t1) + '</button></div>';
+            h += '<div class="cp"><button type="button" data-a="bastan">Baştan</button><button type="button" data-a="sona">Kliplerin sonuna</button></div>';
+          } else h += '<p class="not">Kendi klibi boyunca görünür; klip taşınır ya da kısaltılırsa birlikte gider.</p>';
+        } else if (N.bol === 'arka'){
           h += '<div class="cp"><button type="button" data-ark="yok" class="' + (!o.arka ? 'on' : '') + '">Arka plan yok</button>' + (o.klip ? '<button type="button" data-ark="bulanik" class="' + (o.arka === true ? 'on' : '') + '">Bulanık</button>' : '') + '<button type="button" data-ark="foto" class="' + (o.arka === 'foto' ? 'on' : '') + '">' + (o.arka === 'foto' ? 'Fotoğraf · değiştir' : 'Arkaya fotoğraf') + '</button></div>';
-          h += '<div class="cp"><button type="button" data-a="png">PNG kaydet</button><button type="button" data-a="sil" class="sil' + (silOnay > Date.now() ? ' on' : '') + '">' + (silOnay > Date.now() ? 'Silmek için yeniden dokun' : 'Sil') + '</button></div>';
-          h += '<p class="not">Kendi klibi boyunca görünür; klip taşınır ya da kısaltılırsa birlikte gider. Sürükle, iki parmakla büyüt / döndür.</p>';
+        } else if (N.bol === 'cam'){
+          h += '<div class="cp"><button type="button" data-a="camf" class="' + (N.camFirca ? 'on' : '') + '">' + (N.camFirca ? 'Fırça açık · kapat' : 'Fırçayı aç') + '</button>' + (N.cam[o.id] ? '<button type="button" data-a="camgeri">Geri al</button><button type="button" data-a="camtemiz">Temizle</button>' : '') + '</div>';
+          h += '<div class="kr"><span style="font-size:12.5px;color:var(--is-mute)">Fırça</span><input type="range" id="stNcB" min="2" max="25" step="1" value="' + N.camBoy + '"><output>' + N.camBoy + '%</output></div>';
+          h += '<p class="not" style="margin:-2px 0 4px">' + (N.camFirca ? 'Camın arkası görünen kısmının üstünden geç. Nesneyi taşımak için fırçayı kapat.' : 'Fırçayı açınca nesne listesi gizlenir, önizleme büyür.') + '</p>';
         } else {
-        h += '<div class="zs"><button type="button" data-a="t0"><small>Başlangıç · dokun: şu an</small>' + zaman(o.t0 || 0) + '</button><button type="button" data-a="t1"><small>Bitiş · dokun: şu an</small>' + zaman(o.t1) + '</button></div>';
-        h += '<div class="cp"><button type="button" data-ark="yok" class="' + (!o.arka ? 'on' : '') + '">Arka plan yok</button>' + (o.klip ? '<button type="button" data-ark="bulanik" class="' + (o.arka === true ? 'on' : '') + '">Bulanık</button>' : '') + '<button type="button" data-ark="foto" class="' + (o.arka === 'foto' ? 'on' : '') + '">' + (o.arka === 'foto' ? 'Fotoğraf · değiştir' : 'Arkaya fotoğraf') + '</button></div>';
-        h += '<div class="cp"><button type="button" data-a="bastan">Baştan</button><button type="button" data-a="sona">Kliplerin sonuna</button><button type="button" data-a="png">PNG kaydet</button><button type="button" data-a="sil" class="sil' + (silOnay > Date.now() ? ' on' : '') + '">' + (silOnay > Date.now() ? 'Silmek için yeniden dokun' : 'Sil') + '</button></div>';
-        h += '<p class="not">Önizlemede nesneyi sürükleyerek taşı; iki parmakla büyüt, küçült, döndür.</p>';
+          h += '<div class="cp"><button type="button" data-a="png">PNG kaydet</button><button type="button" data-a="sil" class="sil' + (silOnay > Date.now() ? ' on' : '') + '">' + (silOnay > Date.now() ? 'Silmek için yeniden dokun' : 'Sil') + '</button></div>';
+          h += '<div class="cp"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Yeni kesimlerde saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
         }
-      }
+      } else h += '<div class="cp"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Yeni kesimlerde saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
     }
     sh.innerHTML = h; yerles();
   }
   function degisti(yenidenCiz){ kaydet(); yenile(); if (yenidenCiz) ciz(); }
-  N.camBoy = 8; N.camY = {};
+  N.camBoy = 8; N.camY = {}; N.kucuk = false; N.bol = 'ayar'; try { N.bol = localStorage.getItem('st.nesneBol') || 'ayar'; } catch(_){}
   sh.addEventListener('input', function(e){ if (e.target.id === 'stNcB'){ N.camBoy = +e.target.value; var oo = e.target.nextElementSibling; if (oo) oo.textContent = N.camBoy + '%'; return; } if (e.target.id !== 'stNk') return; var o = secili(); if (!o) return; var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0];
     anlik(false); o[A[0]] = +e.target.value; var out = sh.querySelector('#stNo'); if (out) out.textContent = e.target.value + A[4]; degisti(false); });
   sh.addEventListener('click', function(e){
@@ -226,11 +243,13 @@
     if (b.dataset.a === 'geri'){ geriAl(false); return; } if (b.dataset.a === 'ileri'){ geriAl(true); return; }
     if (b.dataset.n){ N.sec = b.dataset.n; silOnay = 0; ciz(); yenile(); return; }
     if (b.dataset.ay){ N.ayar = b.dataset.ay; ciz(); return; }
+    if (b.dataset.bol){ N.bol = b.dataset.bol; if (N.bol !== 'cam') N.camFirca = false; try { localStorage.setItem('st.nesneBol', N.bol); } catch(_){} ciz(); return; }
     if (b.dataset.h && o){ o.hareket = b.dataset.h; degisti(true); return; }
     if (b.dataset.ark && o){ if (b.dataset.ark === 'foto'){ arkaSec(o); return; } o.arka = b.dataset.ark === 'bulanik'; degisti(true); return; }
     if (b.dataset.t && o){ o[b.dataset.t] = !o[b.dataset.t]; degisti(true); return; }
     var a = b.dataset.a;
     if (a === 'kapat'){ kapat(); return; }
+    if (a === 'kucult'){ N.kucuk = !N.kucuk; ciz(); return; }
     if (a === 'ekle'){ ekleBasla(); return; }
     if (a === 'klip'){ klipKes(); return; }
     if (a === 'camf'){ N.camFirca = !N.camFirca; if (N.camFirca){ var kv0 = KV(); if (kv0) kv0.durdur(); } ciz(); return; }
@@ -435,8 +454,8 @@
     sh.style.bottom = (zs + (mn && !mn.hidden ? mn.offsetHeight : 0)) + 'px'; try { window.kvStudyo && kvStudyo.yerlesim(); } catch(e){} }
   function ac(){ var k = KV(); if (k) k.durdur(); try { window.kvStudyo && kvStudyo.kapat(true); } catch(e){}
     ['isTuval', 'isMetin', 'isOdak'].forEach(function(id){ var x = document.getElementById(id); if (x && !x.hidden && id !== 'isOdak') x.hidden = true; });
-    altSar(); N.acik = true; sh.hidden = false; if (!N.sec && N.liste.length) N.sec = N.liste[N.liste.length - 1].id; ciz(); butonDurum(); yenile(); setTimeout(yerles, 60); }
-  function kapat(){ copTopla(); N.camFirca = false; N.acik = false; sh.hidden = true; silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
+    altSar(); N.acik = true; sh.hidden = false; document.body.classList.add('st-ns-acik'); if (!N.sec && N.liste.length) N.sec = N.liste[N.liste.length - 1].id; ciz(); butonDurum(); yenile(); setTimeout(yerles, 60); }
+  function kapat(){ copTopla(); N.camFirca = false; N.acik = false; sh.hidden = true; document.body.classList.remove('st-ns-acik'); silOnay = 0; butonDurum(); yenile(); setTimeout(yerles, 30); }
   function butonDurum(){ var b = document.getElementById('stNsBtn'); if (b) b.setAttribute('aria-current', N.acik ? 'true' : 'false'); }
   function butonKur(){ var mn = document.getElementById('mininav'); if (!mn || mn.querySelector('#stNsBtn')) return;
     var b = document.createElement('button'); b.type = 'button'; b.id = 'stNsBtn'; b.innerHTML = ic(IC_NESNE) + '<span>Nesne</span>';
@@ -474,7 +493,9 @@
     if (N.camFirca){ var oc = secili(); if (oc && N.geo[oc.id]){ e.stopImmediatePropagation(); e.preventDefault(); var kc = KV(); if (kc) kc.durdur();
         N.camY[oc.id] = N.camY[oc.id] || []; N.camY[oc.id].push(N.cam[oc.id] ? new Uint8ClampedArray(N.cam[oc.id]) : null); if (N.camY[oc.id].length > 15) N.camY[oc.id].shift();
         if (!N.cam[oc.id]) N.cam[oc.id] = new Uint8ClampedArray(CM * CM); camBoya = {o:oc, id:e.pointerId, p:p}; camFirca(oc, p); yenile(); N._yut = true; return; } }
-    var o = isabet(p); if (!o) return;
+    var o = isabet(p);
+    if (!o){ var so = secili(), kt = KV(), tn = kt ? kt.an() : 0; if (so && N.geo[so.id] && gorunur(so, tn) && !so.pasif) o = so; }   /* boşta da seçili nesne tutulur */
+    if (!o) return;
     e.stopImmediatePropagation(); e.preventDefault(); var k = KV(); if (k) k.durdur();
     if (N.sec !== o.id){ N.sec = o.id; ciz(); }
     anlik(true); P = {}; P[e.pointerId] = p; surukle = {o:o, p0:p, x0:o.x, y0:o.y, oy:false}; N._yut = true;
@@ -497,7 +518,11 @@
   function birak(e){ if (camBoya && e.pointerId === camBoya.id){ e.stopImmediatePropagation(); var ob = camBoya.o; camBoya = null; camKaydet(ob); ciz(); return; }
     if (!surukle || !(e.pointerId in P)) return; delete P[e.pointerId]; e.stopImmediatePropagation();
     if (Object.keys(P).length === 1 && surukle.iki){ var k0 = Object.keys(P)[0]; surukle.iki = null; surukle.p0 = P[k0]; surukle.x0 = surukle.o.x; surukle.y0 = surukle.o.y; return; }
-    if (!Object.keys(P).length){ if (surukle.oy){ kaydet(); ciz(); } surukle = null; } }
+    if (!Object.keys(P).length){ if (surukle.oy){ kaydet(); ciz(); }
+      else { var tn = Date.now(), so = surukle.o;   /* çift dokunuş: ortala */
+        if (N._tap && N._tap.id === so.id && tn - N._tap.t < 320){ anlik(true); so.x = 0.5; so.y = 0.5; so.r = 0; N._tap = null; degisti(true); }
+        else N._tap = {id:so.id, t:tn}; }
+      surukle = null; } }
   addEventListener('pointerup', birak, true); addEventListener('pointercancel', birak, true);
   /* sürüklerken önizlemenin kendi tıklaması (oynat/durdur) çalışmasın */
   addEventListener('click', function(e){ if (N.acik && icinde(e) && N._yut){ e.stopImmediatePropagation(); e.preventDefault(); } N._yut = false; }, true);

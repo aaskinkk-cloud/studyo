@@ -156,5 +156,35 @@
         var mn = Infinity, mx = -Infinity; for (i = 0; i < N; i++){ var v = y[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
         var o = new Float32Array(N), k = 1 / (mx - mn || 1); for (i = 0; i < N; i++){ var a = (y[i] - mn) * k; o[i] = a < 0.04 ? 0 : (a - 0.04) / 0.96; } return o; },
       kapat: async function(){ if (!acik) return; acik = false; try { await Y.sess.release(); } catch(e){} mesgul = false; } }; }
-  window.stYZ = {kes:kes, oturum:oturum, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
+  /* ---------- video takibi (ortak): kare kare ham çıktıdan seçili nesnenin maskesi ----------
+     İlk karede en büyük nesne (ya da verilen üyelik) seçilir; sonraki karelerde önceki maskeyle örtüşen parçalar alınır,
+     çok uzaktaki parçalar atılır (yapışık arka plan), boşalan yer hemen boşalır, küçük titreşim yumuşatılır, kenar hafif daraltılır. */
+  function takipci(sec){ sec = sec || {}; var S0 = sec.boyut || 1024, L = 256, Mx = sec.maske || 384, kenar = sec.kenar == null ? 1 : sec.kenar;
+    function kucult(a, S, D){ var o = new Float32Array(D * D), k = S / D; for (var y = 0; y < D; y++) for (var x = 0; x < D; x++){ var s = 0, n = 0;
+      for (var yy = Math.floor(y * k); yy < Math.floor((y + 1) * k); yy++) for (var xx = Math.floor(x * k); xx < Math.floor((x + 1) * k); xx++){ s += a[yy * S + xx]; n++; } o[y * D + x] = s / n; } return o; }
+    function bilesen(a, D, esik){ var et = new Int32Array(D * D), yig = new Int32Array(D * D), Lb = [], i;
+      for (var s0 = 0; s0 < D * D; s0++){ if (et[s0] || a[s0] <= esik) continue; var no = Lb.length + 1, n = 0, alan = 0; yig[n++] = s0; et[s0] = no;
+        while (n){ i = yig[--n]; alan++; var x = i % D, y = (i - x) / D;
+          if (x > 0 && !et[i - 1] && a[i - 1] > esik){ et[i - 1] = no; yig[n++] = i - 1; } if (x < D - 1 && !et[i + 1] && a[i + 1] > esik){ et[i + 1] = no; yig[n++] = i + 1; }
+          if (y > 0 && !et[i - D] && a[i - D] > esik){ et[i - D] = no; yig[n++] = i - D; } if (y < D - 1 && !et[i + D] && a[i + D] > esik){ et[i + D] = no; yig[n++] = i + D; } }
+        Lb.push({no:no, alan:alan}); }
+      return {et:et, L:Lb}; }
+    function genislet(m, D, r){ var o = new Uint8Array(D * D); for (var y = 0; y < D; y++) for (var x = 0; x < D; x++){ if (!m[y * D + x]) continue;
+      for (var yy = Math.max(0, y - r); yy <= Math.min(D - 1, y + r); yy++) for (var xx = Math.max(0, x - r); xx <= Math.min(D - 1, x + r); xx++) o[yy * D + xx] = 1; } return o; }
+    var onceki = null, onM = null, kayip = 0;
+    function ekle(a){
+      var kk = kucult(a, S0, L), B = bilesen(kk, L, 0.5), uye = null, i;
+      if (!onceki){ var en = B.L.slice().sort(function(p, q){ return q.alan - p.alan; })[0]; if (en){ uye = new Uint8Array(L * L); for (i = 0; i < L * L; i++) if (B.et[i] === en.no) uye[i] = 1; } }
+      else { var g = genislet(onceki, L, 6), ort = {}, var_ = false; for (i = 0; i < L * L; i++){ var e = B.et[i]; if (e && g[i]) ort[e] = (ort[e] || 0) + 1; }
+        B.L.forEach(function(c){ if ((ort[c.no] || 0) > Math.max(4, c.alan * 0.15)){ c.sec = true; var_ = true; } });
+        if (var_){ uye = new Uint8Array(L * L); for (i = 0; i < L * L; i++){ var e2 = B.et[i]; if (e2 && B.L[e2 - 1].sec) uye[i] = 1; }
+          var kap = genislet(onceki, L, 10), at = 0, top0 = 0; for (i = 0; i < L * L; i++) if (uye[i]){ top0++; if (!kap[i]){ uye[i] = 0; at++; } } if (at > top0 * 0.6) uye = null; } }
+      if (!uye){ kayip++; uye = new Uint8Array(L * L); } else onceki = uye;
+      var a5 = kucult(a, S0, Mx), ug = genislet(uye, L, 2), m8 = new Uint8ClampedArray(Mx * Mx), r = L / Mx, x, y;
+      for (y = 0; y < Mx; y++) for (x = 0; x < Mx; x++){ i = y * Mx + x; m8[i] = ug[Math.floor(y * r) * L + Math.floor(x * r)] ? a5[i] * 255 : 0; }
+      for (var kd = 0; kd < kenar; kd++){ var e8 = new Uint8ClampedArray(m8); for (y = 1; y < Mx - 1; y++) for (x = 1; x < Mx - 1; x++){ i = y * Mx + x; var v0 = m8[i]; if (!v0) continue; e8[i] = Math.min(v0, m8[i - 1], m8[i + 1], m8[i - Mx], m8[i + Mx]); } m8 = e8; }
+      if (onM) for (i = 0; i < Mx * Mx; i++){ var yeni = m8[i], d = yeni - onM[i]; if (yeni > 40 && onM[i] > 40 && Math.abs(d) < 50) m8[i] = onM[i] + d * 0.55; }
+      onM = m8; return m8; }
+    return {ekle:ekle, boyut:Mx, kayip:function(){ return kayip; }}; }
+  window.stYZ = {kes:kes, oturum:oturum, takipci:takipci, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
 })();

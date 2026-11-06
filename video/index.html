@@ -4069,7 +4069,7 @@ function makeRenderer(ctx, W, H, getSrc){
     let fade = 0;
     if (S.fadeIn && t < tl.F && !pvStatic) fade = 1 - t/tl.F;
     if (fade > 0){ ctx.fillStyle = `rgba(0,0,0,${clamp(fade,0,1)})`; ctx.fillRect(0, 0, W, H); }
-    try { window.__kvNesne && window.__kvNesne(ctx, W, H, t, exporting); } catch(e){}
+    try { window.__kvNesne && window.__kvNesne(ctx, W, H, t, exporting, getSrc); } catch(e){}
     drawYazilar(ctx, W, H, t);
     drawSubs(ctx, W, H, t);
     drawTakip(ctx, W, H, t);
@@ -10720,7 +10720,7 @@ function isDongu(){
 addEventListener('load', () => setTimeout(() => { try { isKur(); } catch(e){ console.warn('InShot düzeni kurulamadı', e); } }, 60));
 
 window.__kvBoot = boot();
-window.__kv = Object.assign(window.__kv || {}, {projOpen: projOpen, projDelete: projDelete, pid: () => PID, yenile: () => requestRender(), kaydet: () => projSaveNow(), an: () => PT, sure: () => timeline().total, klipSonu: () => timeline().clipsTotal, secKlip: () => { const c = S.clips[S.sel]; return c ? {i: S.sel, kind: c.kind, file: c.file, fkey: c.fkey, aspect: c.aspect, zoom: c.zoom || 1, ox: c.ox || 0, oy: c.oy || 0, ad: c.name || ""} : null; }, klipGeo: i => { const g = pvR && pvR.geo(i); return g ? {cx: (g.cx - (g.dx || 0)) / PW, cy: g.cy / PH, fw: g.fw / PW, fh: g.fh / PH} : null; }, klipAralik: k => { const i = S.clips.findIndex(c => c.fkey === k); if (i < 0) return null; const tl = timeline(); return [tl.starts[i] - (i > 0 ? tl.T : 0), tl.starts[i] + S.clips[i].dur, tl.T]; }, oynuyor: () => playing, durdur: () => { if (playing) pause(); }, klipVar: () => S.clips.length > 0, bicim: () => S.fmt});
+window.__kv = Object.assign(window.__kv || {}, {projOpen: projOpen, projDelete: projDelete, pid: () => PID, yenile: () => requestRender(), kaydet: () => projSaveNow(), an: () => PT, sure: () => timeline().total, klipSonu: () => timeline().clipsTotal, secKlip: () => { const c = S.clips[S.sel]; return c ? {i: S.sel, kind: c.kind, file: c.file, fkey: c.fkey, aspect: c.aspect, zoom: c.zoom || 1, ox: c.ox || 0, oy: c.oy || 0, ad: c.name || ""} : null; }, klipGeo: i => { const g = pvR && pvR.geo(i); return g ? {cx: (g.cx - (g.dx || 0)) / PW, cy: g.cy / PH, fw: g.fw / PW, fh: g.fh / PH} : null; }, klipKaynak: k => { const c = S.clips.find(x => x.fkey === k); if (!c) return null; const m = vMap(c, timeline()); return {a: m.a, b: m.end, rot: c.rot || 0, file: c.file}; }, klipAn: (k, t) => { const i = S.clips.findIndex(c => c.fkey === k); if (i < 0) return null; const tl = timeline(), c = S.clips[i], local = t - tl.starts[i]; if (local < -tl.T - 0.05 || local > c.dur + 0.05) return null; return {i: i, tv: videoTime(c, Math.max(0, local), tl)}; }, klipAralik: k => { const i = S.clips.findIndex(c => c.fkey === k); if (i < 0) return null; const tl = timeline(); return [tl.starts[i] - (i > 0 ? tl.T : 0), tl.starts[i] + S.clips[i].dur, tl.T]; }, oynuyor: () => playing, durdur: () => { if (playing) pause(); }, klipVar: () => S.clips.length > 0, bicim: () => S.fmt});
 })();
 </script>
 
@@ -11726,7 +11726,8 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     if (N.pid !== pid) return;
     for (var i = 0; i < l.length; i++){ var o = l[i]; if (!N.img[o.id]){ try { var b = await idb('png', 'readonly', function(s){ return s.get(o.id); }); if (b) N.img[o.id] = await createImageBitmap(b); } catch(e){ console.warn('nesne görüntüsü', e); } }
       if (o.arka === 'foto' && !N.img[o.id + '_af']){ try { var ab = await idb('png', 'readonly', function(s){ return s.get(o.id + '_af'); }); if (ab) N.img[o.id + '_af'] = await createImageBitmap(ab); } catch(e){} }
-      if (o.klip && !N.img[o.id + '_bg']){ try { var bb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_bg'); }); if (bb) N.img[o.id + '_bg'] = await createImageBitmap(bb); } catch(e){} } }
+      if (o.video && !N.mask[o.id]){ try { var mb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_m'); }); if (mb) N.mask[o.id] = new Uint8Array(await mb.arrayBuffer()); } catch(e){} }
+      if (o.klip && !o.video && !N.img[o.id + '_bg']){ try { var bb = await idb('png', 'readonly', function(s){ return s.get(o.id + '_bg'); }); if (bb) N.img[o.id + '_bg'] = await createImageBitmap(bb); } catch(e){} } }
     if (N.pid !== pid) return;
     N.liste = l.filter(function(o){ return N.img[o.id]; }); ciz(); yenile(); }
   setInterval(function(){ var k = KV(); if (!k || !k.pid) return; var p = k.pid() || null; if (p !== N.pid){ N.pid = p; yukle(p); } }, 700);
@@ -11754,17 +11755,41 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
   /* arka = true: bulanık aynı fotoğraf (klipten kesilende) · 'foto': kullanıcının seçtiği fotoğraf, ekranı doldurur */
   function arkaCiz(g, W, H, o, a){ var b = N.img[o.id + (o.arka === 'foto' ? '_af' : '_bg')]; if (!b || a <= 0.003) return; var k = Math.max(W / b.width, H / b.height), w = b.width * k, h = b.height * k;
     g.save(); g.globalAlpha = a; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(b, (W - w) / 2, (H - h) / 2, w, h); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H); g.restore(); }
-  window.__kvNesne = function(g, W, H, t, exp){
+  /* ---------- video klipten kesilen kişi: her karede klibin canlı görüntüsü × o karenin maskesi ---------- */
+  N.mask = {}; var _vk = {};
+  function donuk(src, rot){ if (!rot) return src; var sw = src.videoWidth || src.width, sh = src.videoHeight || src.height, c = _vk.don || (_vk.don = document.createElement('canvas')), q = rot % 2;
+    c.width = q ? sh : sw; c.height = q ? sw : sh; var x = c.getContext('2d'); x.save(); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 2); x.drawImage(src, -sw / 2, -sh / 2, sw, sh); x.restore(); return c; }
+  function videoKare(o, t, getSrc, exp){
+    var k = KV(), mk = N.mask[o.id]; if (!k || !k.klipAn || !mk || !getSrc) return null;
+    var an = k.klipAn(o.klip, t); if (!an) return null; var p = getSrc(an.i), src = p && p.video; if (!src) return null;
+    if (src.readyState !== undefined && src.readyState < 2) return null;
+    var sw = src.videoWidth || src.width, sh = src.videoHeight || src.height; if (!sw || !sh) return null;
+    var V = o.video, M = V.M, fr = (an.tv - V.a) * V.fps; if (fr > V.n - 0.5 + 0.5) return null;   /* iptal edilen işlemde işlenmemiş kısım: kişi gösterilmez (donmuş maske olmasın) */
+    var f = Math.max(0, Math.min(V.n - 1, Math.round(fr)));
+    var c = _vk[o.id] || (_vk[o.id] = {mc:document.createElement('canvas'), kc:document.createElement('canvas'), f:-1});
+    if (c.f !== f){ c.mc.width = M; c.mc.height = M; var mx = c.mc.getContext('2d'), im = c.img || (c.img = mx.createImageData(M, M)), d = im.data, base = f * M * M;
+      for (var i = 0; i < M * M; i++){ d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = mk[base + i]; } mx.putImageData(im, 0, 0); c.f = f; }
+    var q = Math.min(1, (exp ? 1600 : 900) / Math.max(sw, sh)), kw = Math.round(sw * q), kh = Math.round(sh * q);
+    if (c.kc.width !== kw || c.kc.height !== kh){ c.kc.width = kw; c.kc.height = kh; }
+    var kx = c.kc.getContext('2d'); kx.globalCompositeOperation = 'source-over'; kx.clearRect(0, 0, kw, kh); kx.drawImage(src, 0, 0, kw, kh);
+    kx.globalCompositeOperation = 'destination-in'; kx.imageSmoothingQuality = 'high'; kx.drawImage(c.mc, 0, 0, kw, kh); kx.globalCompositeOperation = 'source-over';
+    return {kare:donuk(c.kc, o.rot || 0), src:src}; }
+  function arkaVideo(g, W, H, src, rot, a){ if (a <= 0.003) return; var b = _vk.bul || (_vk.bul = document.createElement('canvas')), s0 = donuk(src, rot), sw = s0.videoWidth || s0.width, sh = s0.videoHeight || s0.height;
+    var bw = 160, bh = Math.max(8, Math.round(bw * sh / sw)); b.width = bw; b.height = bh; var x = b.getContext('2d'); x.filter = 'blur(5px)'; x.drawImage(s0, -bw * 0.06, -bh * 0.06, bw * 1.12, bh * 1.12); x.filter = 'none';
+    var k = Math.max(W / bw, H / bh), w = bw * k, h = bh * k; g.save(); g.globalAlpha = a; g.imageSmoothingEnabled = true; g.drawImage(b, (W - w) / 2, (H - h) / 2, w, h); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, 0, W, H); g.restore(); }
+  window.__kvNesne = function(g, W, H, t, exp, getSrc){
     if (!N.liste.length) return;
     if (!exp){ N.W = W; N.H = H; }
     for (var i = 0; i < N.liste.length; i++){ var o = N.liste[i]; if (!gorunur(o, t)) continue;
+      var vk = null; if (o.video){ vk = videoKare(o, t, getSrc, exp); if (!vk) continue; }
       var d = durum(o, W, H, t); if (!exp) N.geo[o.id] = {cx:d.cx, cy:d.cy, w:d.w * d.sc, h:d.h * d.sc, rot:d.rot};
-      if (o.arka){ var ka = d.kenar; if (!o.klip){ var ar0 = aralik(o) || [0, Infinity], e0 = t - ar0[0], k0 = ar0[1] - t; ka = Math.max(0, Math.min(1, ar0[0] < 0.01 ? 1 : e0 / 0.4, k0 / 0.4)); } arkaCiz(g, W, H, o, ka); }
+      if (o.arka && vk && o.arka === true){ arkaVideo(g, W, H, vk.src, o.rot || 0, d.kenar); }
+      else if (o.arka){ var ka = d.kenar; if (!o.klip){ var ar0 = aralik(o) || [0, Infinity], e0 = t - ar0[0], k0 = ar0[1] - t; ka = Math.max(0, Math.min(1, ar0[0] < 0.01 ? 1 : e0 / 0.4, k0 / 0.4)); } arkaCiz(g, W, H, o, ka); }
       if (d.a <= 0.003) continue;
       g.save(); g.globalAlpha = d.a; g.translate(d.cx, d.cy); g.rotate(d.rot); g.scale(d.sc * (o.ayna ? -1 : 1), d.sc);
       if (o.golge){ g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = H * 0.025; g.shadowOffsetY = H * 0.012; }
       g.imageSmoothingEnabled = true; g.imageSmoothingQuality = exp ? 'high' : 'medium';
-      g.drawImage(d.im, -d.w / 2, -d.h / 2, d.w, d.h); g.restore();
+      g.drawImage(vk ? vk.kare : d.im, -d.w / 2, -d.h / 2, d.w, d.h); g.restore();
       if (!exp){
         if (N.acik && o.id === N.sec){ g.save(); g.translate(d.cx, d.cy); g.rotate(d.rot); g.lineWidth = Math.max(2, H * 0.004); g.setLineDash([H * 0.014, H * 0.01]);
           g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeRect(-d.w * d.sc / 2, -d.h * d.sc / 2, d.w * d.sc, d.h * d.sc); g.restore(); } } }
@@ -11920,7 +11945,8 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     var k = KV(); if (!k){ uyari('Video editörü hazır değil.'); return; }
     k.durdur(); var sk = k.secKlip();
     if (!sk){ uyari('Önce zaman çizelgesinde bir fotoğraf klibine dokun.'); return; }
-    if (sk.kind !== 'photo'){ uyari('Seçili klip bir video. Videoda kişiyi kare kare takip ederek kesme sonraki adımda gelecek; şimdilik fotoğraf kliplerinde çalışır.'); return; }
+    if (sk.kind === 'video'){ if (N.liste.some(function(o){ return o.klip && o.klip === sk.fkey; })){ uyari('Bu klipten zaten kesilmiş bir nesne var. Nesne panelinden silip yeniden kesebilirsin.'); return; } return videoKes(sk, k); }
+    if (sk.kind !== 'photo'){ uyari('Bu klip türünde kesme yapılamıyor.'); return; }
     if (N.liste.some(function(o){ return o.klip && o.klip === sk.fkey; })){ uyari('Bu klipten zaten kesilmiş bir nesne var. Nesne panelinden düzenleyebilir ya da silip yeniden kesebilirsin.'); return; }
     var bildir = isAc('Klipteki kişi kesiliyor');
     try {
@@ -11948,6 +11974,52 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
       is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (is.querySelector('b').textContent === 'Kişi kesildi') is.hidden = true; }, 2500);
       if (!N.acik) ac(); else ciz();
     } catch(e){ console.error(e); is.querySelector('b').textContent = 'Olmadı'; bildir(String(e && e.message || e), 0); is.querySelector('#stNIsT').hidden = false; }
+  }
+  /* video klip: kişi kare kare (10 kare/sn) kesilip izlenir; maskeler projeyle saklanır, çizimde klibin canlı görüntüsüne uygulanır */
+  var vIptal = false;
+  async function videoKes(sk, k){
+    var bildir = isAc('Videodaki kişi izleniyor'), ot = null, v = null, url = null;
+    var ip = document.createElement('button'); ip.type = 'button'; ip.id = 'stNIsIptal'; ip.textContent = 'İptal'; ip.style.cssText = 'background:transparent;color:inherit;border:1.5px solid currentColor';
+    vIptal = false; ip.onclick = function(){ vIptal = true; ip.disabled = true; ip.textContent = 'Durduruluyor…'; }; is.querySelector('#stNIsT').after(ip);
+    try {
+      bildir('Proje kaydediliyor…', 0.01); await k.kaydet(); N.pid = k.pid() || N.pid; sk = k.secKlip();
+      if (!N.pid || !sk || !sk.fkey || !sk.file) throw new Error('Proje kaydedilemedi; yeniden dene.');
+      var kk = k.klipKaynak(sk.fkey); if (!kk) throw new Error('Klip bulunamadı.');
+      var FPS = window.__stNesneFps || 10, a = kk.a, b = Math.max(a + 0.05, kk.b), n = Math.max(1, Math.floor((b - a) * FPS) + 1), EN = 600;
+      if (n > EN){ n = EN; }
+      v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; url = URL.createObjectURL(sk.file); v.src = url;
+      await new Promise(function(ok, no){ v.onloadedmetadata = ok; v.onerror = function(){ no(new Error('Video açılamadı.')); }; });
+      var git = function(t){ return new Promise(function(ok){ var bitti = false, son = function(){ if (!bitti){ bitti = true; v.removeEventListener('seeked', sk2); ok(); } };
+        var sk2 = function(){ if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(son); setTimeout(son, 120); }; v.addEventListener('seeked', sk2); setTimeout(son, 4000); v.currentTime = Math.min(t, Math.max(0, v.duration - 0.01)); }); };
+      var YZ = await motorYukle(); ot = await YZ.oturum(function(t, o){ bildir(t, o * 0.15); }); var ot_motor = ot.motor;
+      var T = YZ.takipci({boyut:ot.boyut, maske:384, kenar:1}), M = T.boyut, veri = new Uint8Array(n * M * M);
+      var kare = document.createElement('canvas'), kx = kare.getContext('2d', {willReadFrequently:true}), t0 = performance.now(), yapilan = 0, ilkKare = null;
+      for (var f = 0; f < n && !vIptal; f++){
+        await git(a + f / FPS); var q = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight)); kare.width = Math.round(v.videoWidth * q); kare.height = Math.round(v.videoHeight * q); kx.drawImage(v, 0, 0, kare.width, kare.height);
+        if (f === 0){ ilkKare = document.createElement('canvas'); ilkKare.width = kare.width; ilkKare.height = kare.height; ilkKare.getContext('2d').drawImage(kare, 0, 0); }
+        veri.set(T.ekle(await ot.calistir(kare)), f * M * M); yapilan = f + 1;
+        var gecen = performance.now() - t0, kalan = gecen / yapilan * (n - yapilan);
+        bildir('Kare ' + yapilan + ' / ' + n + ' · kalan yaklaşık ' + (kalan < 60000 ? Math.round(kalan / 1000) + ' sn' : Math.round(kalan / 60000) + ' dk'), 0.15 + 0.83 * yapilan / n); }
+      await ot.kapat(); ot = null;
+      if (!yapilan) throw new Error('Hiç kare işlenmedi.');
+      if (yapilan < n){ veri = veri.slice(0, yapilan * M * M); }
+      /* küçük resim: ilk karenin kesilmiş hâli (panel şeridi ve dokunma alanı için) */
+      var th = document.createElement('canvas'); th.width = ilkKare.width; th.height = ilkKare.height; var tx = th.getContext('2d'); tx.drawImage(ilkKare, 0, 0);
+      var mc = document.createElement('canvas'); mc.width = M; mc.height = M; var mx = mc.getContext('2d'), im = mx.createImageData(M, M); for (var i = 0; i < M * M; i++){ im.data[i * 4 + 3] = veri[i]; } mx.putImageData(im, 0, 0);
+      tx.globalCompositeOperation = 'destination-in'; tx.drawImage(mc, 0, 0, th.width, th.height);
+      var rot = kk.rot || 0, thr = rot ? (function(){ var c = document.createElement('canvas'), q2 = rot % 2; c.width = q2 ? th.height : th.width; c.height = q2 ? th.width : th.height; var x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 2); x.drawImage(th, -th.width / 2, -th.height / 2); return c; })() : th;
+      var png = await new Promise(function(r){ thr.toBlob(r, 'image/png'); });
+      var id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await idb('png', 'readwrite', function(s){ s.put(new Blob([veri]), id + '_m'); return s.put(png, id); });
+      N.img[id] = await createImageBitmap(png); N.mask[id] = veri;
+      var o = {id:id, ad:'Klip ' + (sk.i + 1) + ' · video', klip:sk.fkey, video:{fps:FPS, a:a, n:yapilan, M:M}, rot:rot, arka:true, x:0.5, y:0.5, s:100, r:0, op:100, golge:false, ayna:false, hareket:'sabit'};
+      anlik(true); N.liste.push(o); N.sec = id; kaydet(); yenile();
+      ip.remove(); is.querySelector('b').textContent = 'Kişi kesildi';
+      bildir(yapilan + ' kare ' + Math.round((performance.now() - t0) / 1000) + ' sn’de işlendi (' + ot_motor + ')' + (vIptal ? '; iptal edildiği için klibin ilk ' + (yapilan / FPS).toFixed(1).replace('.', ',') + ' sn’si' : '') + '. Arkası bulanık; Nesne panelinden fotoğraf da koyabilirsin.', 1);
+      is.querySelector('#stNIsT').hidden = false;
+      if (!N.acik) ac(); else ciz();
+    } catch(e){ console.error(e); var ib = is.querySelector('#stNIsIptal'); if (ib) ib.remove(); is.querySelector('b').textContent = 'Olmadı'; bildir(String(e && e.message || e), 0); is.querySelector('#stNIsT').hidden = false; }
+    finally { if (ot) try { await ot.kapat(); } catch(e){} if (url) URL.revokeObjectURL(url); if (v){ v.removeAttribute('src'); try { v.load(); } catch(e){} } }
   }
   /* seçili klip araç çubuğuna "Kişiyi kes" */
   function klipButonKur(){ var ka = document.getElementById('isKlipAr'); if (!ka || ka.querySelector('#stKesBtn')) return;
@@ -12012,7 +12084,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     if (!N.liste.some(function(o){ return o.id === N.sec; })) N.sec = N.liste.length ? N.liste[N.liste.length - 1].id : null; N.sonAnlik = 0; degisti(true); }
   /* silinen görüntüler panel kapanınca veritabanından silinir (o zamana kadar geri alınabilir) */
   function copTopla(){ var ids = Object.keys(N.silinen); N.silinen = {}; ids.forEach(function(id){ if (N.liste.some(function(o){ return o.id === id; })) return;
-    idb('png', 'readwrite', function(s){ s.delete(id + '_bg'); s.delete(id + '_af'); return s.delete(id); }).catch(function(){}); delete N.img[id]; delete N.img[id + '_bg']; delete N.img[id + '_af']; delete urlOnb[id]; }); }
+    idb('png', 'readwrite', function(s){ s.delete(id + '_bg'); s.delete(id + '_af'); s.delete(id + '_m'); return s.delete(id); }).catch(function(){}); delete N.mask[id]; delete _vk[id]; delete N.img[id]; delete N.img[id + '_bg']; delete N.img[id + '_af']; delete urlOnb[id]; }); }
 
   /* ---------- aç / kapat / yerleşim ---------- */
   var altSarili = false;

@@ -338,6 +338,28 @@
     kapat(); try { closeEditor(); } catch(e){}
     setTimeout(function(){ inp.files = dt.files; inp.dispatchEvent(new Event('change', {bubbles:true})); }, 300); }
 
+  /* ---------- Efektler › Akıllı bulanıklaştırma: ana nesne seçimi yapay zekâ ile ----------
+     Karanlık Oda'nın "Ana nesneyi otomatik seç"i renk/netlik/yüz ipuçlarıyla tahmin ediyordu. Artık aynı seçim (s.sel, aynı biçim) ISNet maskesinden yapılır;
+     çerçeveyle seçim ve fırçayla ekle/çıkar aynen çalışır. Yapay zekâ yüklenemezse eski yöntem kullanılır. */
+  async function yzOzne(etiket){
+    var cv = ED.prevCanvas; if (!cv) throw new Error('önizleme yok');
+    var sz = selSize(cv.width, cv.height), W = sz[0], H = sz[1], b = busy('Yapay zekâ ana nesneyi ayırıyor…'), ot = null;
+    try {
+      var YZ = await motorYukle(); ot = await YZ.oturum(function(){});
+      var a = await ot.calistir(cv), S = ot.boyut; await ot.kapat(); ot = null;
+      var k = document.createElement('canvas'); k.width = S; k.height = S; var kx = k.getContext('2d'), im = kx.createImageData(S, S);
+      for (var i = 0; i < S * S; i++){ var v = Math.round(a[i] * 255); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } kx.putImageData(im, 0, 0);
+      var o = document.createElement('canvas'); o.width = W; o.height = H; var ox = o.getContext('2d', {willReadFrequently:true}); ox.imageSmoothingQuality = 'high'; ox.drawImage(k, 0, 0, W, H);
+      var d = ox.getImageData(0, 0, W, H).data, M = new Float32Array(W * H), top = 0; for (i = 0; i < W * H; i++){ M[i] = d[i * 4] / 255; top += M[i]; }
+      var st = ED.state; st.sel = {m:maskePng(M, W, H), ops:[], src:'otomatik'}; ED.selOran = top / (W * H); _ants.key = null;
+      commit(etiket || 'Ana nesne seçildi (yapay zekâ)'); rebuildBase(true); renderPanel(); requestRender();
+      toast(ED.selOran < .01 ? 'Belirgin bir nesne bulunamadı — fırçayla seçime ekleyebilirsin.' : 'Yapay zekâ ile seçildi · kenarları fırçayla düzeltebilirsin');
+    } finally { if (ot) try { await ot.kapat(); } catch(e){} b.close(); } }
+  (function ozneSar(n){ if (typeof window.ozneSec !== 'function'){ if (n < 60) setTimeout(function(){ ozneSar(n + 1); }, 300); return; }
+    var eski = window.ozneSec;
+    window.ozneSec = async function(rect, etiket){ if (rect) return eski.apply(this, arguments);   /* çerçeveyle seçim: eski yol (çerçevenin içi) */
+      try { await yzOzne(etiket); } catch(e){ console.warn('Yapay zekâ seçimi olmadı, eski yöntem', e); try { toast('Yapay zekâ yüklenemedi; eski yöntemle seçiliyor.'); } catch(_){} return eski.apply(this, arguments); } }; })(0);
+
   /* ---------- araç çubuğu: "Kes" ---------- */
   function sekmeKur(){ var tb = document.getElementById('tabs'); if (!tb || document.getElementById('stKesTab')) return;
     var ilk = tb.querySelector('.tab'); var b = document.createElement('button'); b.type = 'button'; b.id = 'stKesTab'; b.className = ilk ? ilk.className.replace(/\b(on|gizli)\b/g, '').trim() : 'tab';

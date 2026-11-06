@@ -2,7 +2,23 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.1 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.2 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.2 (06.11.2026): videoda kişi takibi editörde, arka plan bulanıklaştırmada yapay zekâ
+- **Video editörü › video klip › Kişiyi kes:**
+  - Video klipte de çalışır. Klibin kullanılan bölümü 10 kare/sn hızında kare kare kesilir.
+  - İlk karedeki en büyük nesne izlenir. Takip yöntemi test sayfasıyla aynıdır: örtüşme, uzak parça eleme, yumuşatma, kenar hafif daraltma.
+  - İlerleme ve kalan süre gösterilir. **İptal** edilirse o ana kadar işlenen kısım kullanılır; işlenmemiş kısımda kişi gösterilmez.
+  - Maskeler projeyle saklanır (384×384, `studyo-nesne` veritabanında `_m`). Önizleme ve dışa aktarma modele ihtiyaç duymaz: her karede klibin canlı görüntüsü o anın maskesiyle kesilir.
+  - Arkası varsayılan olarak aynı videonun bulanık hâlidir; Nesne panelinden fotoğraf da konabilir ya da kapatılabilir. Kişi taşınır, büyütülür, döndürülür.
+  - En uzun 60 sn işlenir (600 kare).
+  - Telefonda beklenen süre: kare başına ~1,1 sn (test sayfası ölçümü). 10 sn'lik klip yaklaşık 2 dakika sürer.
+- **Fotoğraf editörü › Efektler › Akıllı bulanıklaştırma:**
+  - "Ana nesneyi otomatik seç" artık yapay zekâ (ISNet) maskesiyle seçer. Eskiden renk, netlik ve yüz ipuçlarıyla tahmin ediyordu.
+  - Seçim aynı biçimde kalır: fırçayla ekle/çıkar, karınca çizgisi, "Nerede bulanıklaşsın" seçenekleri.
+  - "Nesneyi çerçevele" eski yolla çalışır. Yapay zekâ yüklenemezse eski yönteme döner.
+- Motor: `yz/motor.js`'e ortak `takipci` (video takibi) eklendi. Video editörü bunu kullanır.
+- Kareden Videoya kopyasına kanca: nesne çizimine klibin kare kaynağı (`getSrc`) geçirilir; `__kv`'ye `klipKaynak` ve `klipAn` (klibin kaynak zamanı) eklendi.
 
 ## Video takip testi (06.11.2026): `yz/video.html`
 **Adres:** https://aaskinkk-cloud.github.io/studyo/yz/video.html

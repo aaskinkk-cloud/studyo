@@ -12111,6 +12111,10 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
   ].join('\n');
   (document.head || document.documentElement).appendChild(css);
 
+  /* ⋯ (Diğer) menüsü önizleme bölümünün içinde duruyordu; o bölüm alttaki panelin arkasında çizildiği için menü panelin altında kalıyordu.
+     Menü sayfanın en üst katmanına (body) taşınır; konumu ve düğmeleri aynı kalır (kendi sınıfıyla biçimlenir, bağlı olduğu bölüm yok). */
+  (function menuTasi(n){ var m = document.getElementById('pvDahaMenu'); if (!m){ if (n < 100) setTimeout(function(){ menuTasi(n + 1); }, 300); return; }
+    if (m.parentElement !== document.body) document.body.appendChild(m); m.style.zIndex = '200'; })(0);
   var row = null, mesgul = false, gozcu = null;
   function aktif(){ return B.classList.contains('kv-studyo') && B.classList.contains('is-mod') && !B.classList.contains('kv-kapali') && !B.classList.contains('kv-klv'); }
   function ikinciSiraSimge(){

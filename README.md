@@ -2,7 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.0 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.1 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.1 (06.11.2026): ⋯ menüsü panelin altında kalmıyor
+- Video editöründe önizlemenin altındaki **⋯** (Diğer) menüsünde Klasik görünüm, Tema, Yeni video ve Basit mod var. Bu menü, bir bölüm paneli açıkken panelin arkasında kalıyordu.
+- Neden: menü önizleme bölümünün içinde duruyordu ve o bölüm paneli üstte çiziyordu.
+- Çözüm: menü sayfanın en üst katmanına taşındı. Konumu, düğmeleri ve davranışı aynı kaldı.
+- Test: Klip paneli açıkken menüdeki 4 düğmenin de üstte olduğu doğrulandı.
 
 ## 2.0 (06.11.2026): talimattaki eksik küçük maddeler (kesme kalitesi ve kontroller)
 Yapay zekâ talimatı madde madde yeniden denetlendi; takip, sanatsal geçişler ve saydam video dışındaki eksikler tamamlandı.

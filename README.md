@@ -2,7 +2,25 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 1.8 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 1.9 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 1.9 (06.11.2026): kesilen nesnenin arkasına fotoğraf
+- **Fotoğraf editörü › Kes › Bitti:**
+  - Arka plan seçeneklerine **Fotoğraf** eklendi; telefondan bir fotoğraf seçilir. Tekrar dokununca "değiştir".
+  - Seçilen fotoğraf çıktının tuvali olur (uzun kenar en çok 2048 px). Nesne onun üstüne konur.
+  - Önizlemede nesne sürüklenir; iki parmakla ya da "Nesne boyu" kaydırıcısıyla (%20–250) büyütülür.
+  - Asıl fotoğrafın altına değen nesne (insan, gövde) yeni fotoğrafın da altına oturur; havada kesik kenar kalmaz.
+  - Bütün arka plan seçeneklerinde Kaydet sayfasında küçük bir **önizleme** var (çıktının aynısı).
+  - Çıktı: JPG indir ya da Kitaplığa yeni fotoğraf olarak ekle.
+- **Video editörü › Nesne:**
+  - Her nesnede arka plan sırası: **Arka plan yok · Bulanık** (yalnız klipten kesilende) **· Arkaya fotoğraf**.
+  - Seçilen fotoğraf ekranı doldurur (uzun kenar en çok 1920 px), nesnenin görünür olduğu süre boyunca arkasında durur. Girişte ve çıkışta yumuşak geçiş var.
+  - Nesne silinince arka plan fotoğrafı da silinir.
+- Düzeltme: Kaydet sayfası uzun olunca yukarıdan taşıyordu; artık kendi içinde kayar.
+- Test:
+  - Fotoğrafta arka fotoğraf seçme, sürükleme, boyut ve JPG indirme denendi.
+  - Videoda arka fotoğraf seçme, kayıt (veritabanında `_af` görüntüsü), önizleme ve "Arka plan yok"a dönüş denendi.
+  - Önceki kesme, nesne, kayıt ve yeniden açma testleri tekrarlandı.
 
 ## 1.8 (06.11.2026): fotoğraf editöründe yapay zekâ ile nesne kesme
 - Fotoğraf editörünün araç çubuğunda yeni araç: **Kes** (Filtreler'in yanında).

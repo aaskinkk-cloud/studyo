@@ -21,7 +21,7 @@
     '#stKes .kaydet{background:#e8762b;border:0;border-radius:999px;padding:9px 16px;font-weight:700;color:#fff}',
     '#stKes .sahne{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;background-color:#bbb;background-image:linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%),linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%);background-size:22px 22px;background-position:0 0,11px 11px}',
     '#stKes .sahne.z-siyah{background:#000}#stKes .sahne.z-beyaz{background:#fff}#stKes .sahne.z-yesil{background:#18b85a}',
-    '#stKes .sahne canvas{position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:auto}',
+    '#stKes #stKesC{position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:auto}',
     '#stKes .imlec{position:absolute;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.5);pointer-events:none;display:none}',
     '#stKes .alt{background:#1c1c1c;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);border-radius:16px 16px 0 0}',
     '#stKes .sira{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px}',
@@ -42,7 +42,7 @@
     '#stKes .cb{height:6px;border-radius:3px;background:#3a3a3a;overflow:hidden;margin:10px 0 2px}',
     '#stKes .cb i{display:block;height:100%;width:0;background:#e8762b;transition:width .15s}',
     '#stKes .is button.tm{margin-top:12px;width:100%;border:0;border-radius:10px;padding:10px;font-weight:700;background:#f2f2f2;color:#111}',
-    '#stKes .sayfa{position:absolute;left:0;right:0;bottom:0;z-index:4;background:#1c1c1c;border-radius:16px 16px 0 0;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 12px);box-shadow:0 -8px 24px rgba(0,0,0,.4)}',
+    '#stKes .sayfa{position:absolute;left:0;right:0;bottom:0;z-index:4;max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:#1c1c1c;border-radius:16px 16px 0 0;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 12px);box-shadow:0 -8px 24px rgba(0,0,0,.4)}',
     '#stKes .sayfa[hidden]{display:none}',
     '#stKes .sayfa h3{margin:0 0 8px;font-size:15px}',
     '#stKes .sayfa .bt{display:grid;gap:8px;margin-top:10px}',
@@ -126,7 +126,7 @@
 
   /* ---------- çizim ---------- */
   function yenidenCiz(x0, y0, x1, y1){
-    if (!K || !K.alfa) return; var W = K.W, d = K.img.data, p = K.px, a = K.alfa, m = K.maske;
+    if (!K || !K.alfa) return; K.surum = (K.surum || 0) + 1; var W = K.W, d = K.img.data, p = K.px, a = K.alfa, m = K.maske;
     x0 = Math.max(0, x0 | 0); y0 = Math.max(0, y0 | 0); x1 = Math.min(K.W, Math.ceil(x1)); y1 = Math.min(K.H, Math.ceil(y1)); if (x1 <= x0 || y1 <= y0) return;
     for (var y = y0; y < y1; y++){ for (var x = x0, i = y * W + x, j = i * 4; x < x1; x++, i++, j += 4){
       if (m){ d[j] = d[j + 1] = d[j + 2] = a[i]; d[j + 3] = 255; } else { d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } } }
@@ -223,36 +223,75 @@
   $('stKesBoy').addEventListener('input', function(){ if (!K) return; K.boy = +this.value; $('stKesBoyO').textContent = this.value + '%'; });
 
   /* ---------- çıktı ---------- */
-  var AP = [['saydam','Saydam'],['beyaz','Beyaz'],['siyah','Siyah'],['bulanik','Bulanık'],['renk','Renk']];
-  function sayfaAc(){ var sf = $('stKesSf'); K.ap = K.ap || 'saydam'; K.kirp = K.kirp == null ? true : K.kirp; K.renk = K.renk || '#1e6fd9';
-    sf.innerHTML = '<h3>Kaydet</h3><div class="sira" id="stKesAp">' + AP.map(function(x){ return '<button type="button" data-ap="' + x[0] + '" class="' + (K.ap === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('')
-      + '<button type="button" data-kp="1" class="' + (K.kirp ? 'on' : '') + '">Boşlukları kırp</button></div>'
+  var AP = [['saydam','Saydam'],['foto','Fotoğraf'],['beyaz','Beyaz'],['siyah','Siyah'],['bulanik','Bulanık'],['renk','Renk']];
+  /* arkaya fotoğraf: seçilen fotoğraf tuvalin kendisi olur (uzun kenar en çok 2048); nesne sürüklenip büyütülerek yerleştirilir */
+  var afGir = document.createElement('input'); afGir.type = 'file'; afGir.accept = 'image/*'; afGir.hidden = true; kok.appendChild(afGir);
+  afGir.addEventListener('change', async function(){ var f = afGir.files && afGir.files[0]; afGir.value = ''; if (!f || !K) return;
+    try { var b = await createImageBitmap(f, {imageOrientation:'from-image'}), q = Math.min(1, EN / Math.max(b.width, b.height)), c = document.createElement('canvas');
+      c.width = Math.round(b.width * q); c.height = Math.round(b.height * q); var x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(b, 0, 0, c.width, c.height); try { b.close(); } catch(e){}
+      K.af = c; K.fs = 1; K.fx = 0; K.fy = 0; K.ap = 'foto'; sayfaAc(); } catch(e){ hata(e); } });
+  function sayfaAc(){ var sf = $('stKesSf'); K.ap = K.ap || 'saydam'; if (K.ap === 'foto' && !K.af) K.ap = 'saydam'; K.kirp = K.kirp == null ? true : K.kirp; K.renk = K.renk || '#1e6fd9';
+    var foto = K.ap === 'foto';
+    sf.innerHTML = '<h3>Kaydet</h3><div class="sira" id="stKesAp">' + AP.map(function(x){ return '<button type="button" data-ap="' + x[0] + '" class="' + (K.ap === x[0] ? 'on' : '') + '">' + (x[0] === 'foto' && K.af ? 'Fotoğraf · değiştir' : x[1]) + '</button>'; }).join('')
+      + (foto ? '' : '<button type="button" data-kp="1" class="' + (K.kirp ? 'on' : '') + '">Boşlukları kırp</button>') + '</div>'
+      + '<div style="display:grid;place-items:center;margin:0 0 8px"><canvas id="stKesOn" style="max-width:100%;max-height:28vh;border-radius:8px;touch-action:none;background-color:#bbb;background-image:linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%),linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%);background-size:16px 16px;background-position:0 0,8px 8px"></canvas></div>'
+      + (foto ? '<div class="kr"><span>Nesne boyu</span><input type="range" id="stKesFs" min="20" max="250" step="1" value="' + Math.round(K.fs * 100) + '"><span id="stKesFsO">' + Math.round(K.fs * 100) + '%</span></div><p class="not" style="margin:-4px 0 6px">Önizlemede nesneyi sürükle; iki parmakla büyüt.</p>' : '')
       + '<div class="kr" id="stKesRk"' + (K.ap === 'renk' ? '' : ' hidden') + '><span>Arka plan rengi</span><input type="color" id="stKesRenk" value="' + K.renk + '" style="flex:none;width:56px;height:34px;border:0;background:none"></div>'
-      + '<div class="bt"><button type="button" class="ana" data-c="indir">' + (K.ap === 'saydam' ? 'Saydam PNG indir' : 'JPG indir') + '<small>' + (K.ap === 'saydam' ? 'Arka planı boş; başka yerde üstüne koymak için' : 'Kesilen nesne seçtiğin arka planla') + '</small></button>'
+      + '<div class="bt"><button type="button" class="ana" data-c="indir">' + (K.ap === 'saydam' ? 'Saydam PNG indir' : 'JPG indir') + '<small>' + (K.ap === 'saydam' ? 'Arka planı boş; başka yerde üstüne koymak için' : foto ? 'Kesilen nesne seçtiğin fotoğrafın üstünde' : 'Kesilen nesne seçtiğin arka planla') + '</small></button>'
       + '<button type="button" data-c="kitap">Kitaplığa yeni fotoğraf olarak ekle<small>' + (K.ap === 'saydam' ? 'Saydam yerler beyaz olur; ' : '') + 'sonra Karanlık Oda araçlarıyla düzenlemeye devam et</small></button>'
       + '<button type="button" data-c="don">Düzeltmeye dön</button></div>';
-    sf.hidden = false; }
+    sf.hidden = false; onizle(); }
+  /* küçük önizleme (çıktının aynısı, ölçekli) */
+  var onzT = 0;
+  function onizle(){ cancelAnimationFrame(onzT); onzT = requestAnimationFrame(function(){ var c = $('stKesOn'); if (!c || !K) return;
+    try { var t = ciktiTuval(false, 360); c.width = t.width; c.height = t.height; c.getContext('2d').drawImage(t, 0, 0); t.width = 0; } catch(e){ c.width = 1; c.height = 1; } }); }
   $('stKesSf').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b || !K) return;
-    if (b.dataset.ap){ K.ap = b.dataset.ap; sayfaAc(); return; } if (b.dataset.kp){ K.kirp = !K.kirp; sayfaAc(); return; }
+    if (b.dataset.ap){ if (b.dataset.ap === 'foto' && (!K.af || K.ap === 'foto')){ afGir.click(); return; } K.ap = b.dataset.ap; sayfaAc(); return; }
+    if (b.dataset.kp){ K.kirp = !K.kirp; sayfaAc(); return; }
     if (b.dataset.c === 'don'){ $('stKesSf').hidden = true; return; }
     if (b.dataset.c === 'indir') cikti().then(function(o){ indir(o.blob, K.ad + (K.ap === 'saydam' ? '-kesik.png' : '-arka-plan.jpg')); }).catch(hata);
     if (b.dataset.c === 'kitap') cikti(true).then(function(o){ kitapligaEkle(o.blob); }).catch(hata); });
-  $('stKesSf').addEventListener('input', function(e){ if (e.target.id === 'stKesRenk' && K) K.renk = e.target.value; });
+  $('stKesSf').addEventListener('input', function(e){ if (!K) return;
+    if (e.target.id === 'stKesRenk'){ K.renk = e.target.value; onizle(); }
+    if (e.target.id === 'stKesFs'){ K.fs = +e.target.value / 100; $('stKesFsO').textContent = e.target.value + '%'; onizle(); } });
+  /* önizlemede sürükle / iki parmakla büyüt (yalnız arkaya fotoğrafta) */
+  var OP = {}, oiki = null, otek = null;
+  $('stKesSf').addEventListener('pointerdown', function(e){ if (!K || K.ap !== 'foto' || e.target.id !== 'stKesOn') return; e.preventDefault(); try { e.target.setPointerCapture(e.pointerId); } catch(_){}
+    OP[e.pointerId] = {x:e.clientX, y:e.clientY}; var ks = Object.keys(OP);
+    if (ks.length === 2){ var a = OP[ks[0]], b = OP[ks[1]]; oiki = {d:Math.hypot(b.x - a.x, b.y - a.y) || 1, fs:K.fs}; otek = null; } else { otek = {x:e.clientX, y:e.clientY, fx:K.fx, fy:K.fy}; } });
+  $('stKesSf').addEventListener('pointermove', function(e){ if (!(e.pointerId in OP)) return; OP[e.pointerId] = {x:e.clientX, y:e.clientY}; var c = $('stKesOn'), r = c.getBoundingClientRect(), ks = Object.keys(OP);
+    if (oiki && ks.length >= 2){ var a = OP[ks[0]], b = OP[ks[1]]; K.fs = Math.max(0.2, Math.min(2.5, oiki.fs * Math.hypot(b.x - a.x, b.y - a.y) / oiki.d)); var sl = $('stKesFs'); if (sl){ sl.value = Math.round(K.fs * 100); $('stKesFsO').textContent = sl.value + '%'; } }
+    else if (otek){ K.fx = otek.fx + (e.clientX - otek.x) / r.width; K.fy = otek.fy + (e.clientY - otek.y) / r.height; }
+    onizle(); });
+  function obirak(e){ if (!(e.pointerId in OP)) return; delete OP[e.pointerId]; if (Object.keys(OP).length < 2) oiki = null; if (!Object.keys(OP).length) otek = null; }
+  $('stKesSf').addEventListener('pointerup', obirak); $('stKesSf').addEventListener('pointercancel', obirak);
   function hata(e){ console.error(e); isGoster('Olmadı', String(e && e.message || e), 0); $('stKesIsT').hidden = false; }
-  async function cikti(jpgZorla){
-    var W = K.W, H = K.H, x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1, a = K.alfa;
+  /* nesne katmanı (piksel + alfa), alfa değişene kadar önbellekte */
+  function nesneTuval(){ if (K.nesC && K.nesS === K.surum) return K.nesC; var W = K.W, H = K.H, a = K.alfa;
+    var nes = K.nesC || document.createElement('canvas'); nes.width = W; nes.height = H; var nx = nes.getContext('2d'), im = nx.createImageData(W, H), d = im.data, p = K.px;
+    for (var i = 0, j = 0; i < W * H; i++, j += 4){ d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } nx.putImageData(im, 0, 0);
+    K.nesC = nes; K.nesS = K.surum; return nes; }
+  function altaDeger(){ if (K.altS === K.surum) return K.altV; var W = K.W, a = K.alfa, r0 = (K.H - 2) * W, n = 0; for (var x = 0; x < W; x++) if (a[r0 + x] > 128) n++; K.altS = K.surum; return K.altV = n > W * 0.03; }
+  function ciktiTuval(jpgZorla, enBoy){
+    var W = K.W, H = K.H, x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1, a = K.alfa, ap = jpgZorla && K.ap === 'saydam' ? 'beyaz' : K.ap, nes = nesneTuval();
+    if (ap === 'foto' && K.af){
+      var bw = K.af.width, bh = K.af.height, q = enBoy ? Math.min(1, enBoy / Math.max(bw, bh)) : 1, c0 = document.createElement('canvas'); c0.width = Math.round(bw * q); c0.height = Math.round(bh * q);
+      var g0 = c0.getContext('2d'); g0.imageSmoothingQuality = 'high'; g0.drawImage(K.af, 0, 0, c0.width, c0.height);
+      var k0 = Math.max(c0.width / W, c0.height / H) * K.fs, ow = W * k0, oh = H * k0;
+      /* fotoğrafın altına değen nesne (insan, gövde) yeni fotoğrafın da altına oturur; havada kesik kenar kalmaz */
+      var alt = altaDeger(), oy = alt ? c0.height - oh : c0.height / 2 - oh / 2;
+      g0.drawImage(nes, c0.width / 2 + K.fx * c0.width - ow / 2, oy + K.fy * c0.height, ow, oh); return c0; }
     if (K.kirp){ x0 = W; y0 = H; x1 = -1; y1 = -1; for (var y = 0; y < H; y++){ var r0 = y * W; for (var x = 0; x < W; x++) if (a[r0 + x] > 8){ if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
       if (x1 < 0) throw new Error('Kalan nesne yok; Koru fırçasıyla geri getir ya da sıfırla.');
       var pd = Math.round(Math.max(W, H) * 0.02); x0 = Math.max(0, x0 - pd); y0 = Math.max(0, y0 - pd); x1 = Math.min(W - 1, x1 + pd); y1 = Math.min(H - 1, y1 + pd); }
-    var kw = x1 - x0 + 1, kh = y1 - y0 + 1;
-    /* nesne katmanı (piksel + alfa) */
-    var nes = document.createElement('canvas'); nes.width = W; nes.height = H; var nx = nes.getContext('2d'), im = nx.createImageData(W, H), d = im.data, p = K.px;
-    for (var i = 0, j = 0; i < W * H; i++, j += 4){ d[j] = p[j]; d[j + 1] = p[j + 1]; d[j + 2] = p[j + 2]; d[j + 3] = a[i]; } nx.putImageData(im, 0, 0);
-    var c = document.createElement('canvas'); c.width = kw; c.height = kh; var g = c.getContext('2d'), ap = jpgZorla && K.ap === 'saydam' ? 'beyaz' : K.ap;
-    if (ap === 'beyaz' || ap === 'siyah' || ap === 'renk'){ g.fillStyle = ap === 'beyaz' ? '#fff' : ap === 'siyah' ? '#000' : K.renk; g.fillRect(0, 0, kw, kh); }
-    else if (ap === 'bulanik'){ g.filter = 'blur(' + Math.round(Math.max(kw, kh) * 0.03) + 'px)'; g.drawImage(K.src, x0 - kw * 0.05, y0 - kh * 0.05, kw * 1.1, kh * 1.1, -kw * 0.05, -kh * 0.05, kw * 1.1, kh * 1.1); g.filter = 'none'; g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(0, 0, kw, kh); }
-    g.drawImage(nes, x0, y0, kw, kh, 0, 0, kw, kh); nes.width = 0;
-    var png = ap === 'saydam'; var blob = await new Promise(function(r){ c.toBlob(r, png ? 'image/png' : 'image/jpeg', 0.95); }); c.width = 0;
+    var kw = x1 - x0 + 1, kh = y1 - y0 + 1, s = enBoy ? Math.min(1, enBoy / Math.max(kw, kh)) : 1, cw = Math.max(1, Math.round(kw * s)), ch = Math.max(1, Math.round(kh * s));
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch; var g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    if (ap === 'beyaz' || ap === 'siyah' || ap === 'renk'){ g.fillStyle = ap === 'beyaz' ? '#fff' : ap === 'siyah' ? '#000' : K.renk; g.fillRect(0, 0, cw, ch); }
+    else if (ap === 'bulanik'){ g.filter = 'blur(' + Math.round(Math.max(cw, ch) * 0.03) + 'px)'; g.drawImage(K.src, x0 - kw * 0.05, y0 - kh * 0.05, kw * 1.1, kh * 1.1, -cw * 0.05, -ch * 0.05, cw * 1.1, ch * 1.1); g.filter = 'none'; g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(0, 0, cw, ch); }
+    g.drawImage(nes, x0, y0, kw, kh, 0, 0, cw, ch); return c; }
+  async function cikti(jpgZorla){
+    var c = ciktiTuval(jpgZorla), png = !jpgZorla && K.ap === 'saydam';
+    var blob = await new Promise(function(r){ c.toBlob(r, png ? 'image/png' : 'image/jpeg', 0.95); }); c.width = 0;
     return {blob:blob, png:png}; }
   function indir(b, ad){ var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = ad; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 6000);
     try { toast('Kaydedildi: ' + ad); } catch(e){} }

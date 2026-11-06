@@ -74,6 +74,25 @@
     return {alfa:o, x:x0, y:y0, w:w, h:h}; }
   var bekle = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
 
+  /* model oturumu: indir/önbellekten oku, fp16→fp32 aç, grafik birimi olmazsa işlemci */
+  async function modelAc(bildir, sec){ sec = sec || {}; var sess = null;
+    bildir('Yapay zekâ motoru yükleniyor…', 0.05); await ortYukle();
+    var top = M.bayt + 2602833, sayac = {}, kayitli = true;
+    var ilerle = function(ad){ return function(n, onb){ sayac[ad] = n; if (!onb) kayitli = false; var s = 0; for (var q in sayac) s += sayac[q];
+      bildir((onb ? 'Model hazırlanıyor… ' : 'Model indiriliyor… ') + Math.min(100, Math.round(s / top * 100)) + '%', 0.06 + 0.6 * Math.min(1, s / top)); }; };
+    var grafik = await dosyaAl(M.grafik, ilerle('g'));
+    var pr = await Promise.all(M.parca.map(function(p, i){ return dosyaAl(p, ilerle('p' + i)); }));
+    var w = new Uint8Array(M.bayt), o = 0; pr.forEach(function(p){ w.set(p, o); o += p.length; }); pr = null;
+    if (o !== M.bayt){ try { await caches.delete(ONB); } catch(e){} throw new Error('Model eksik indi; silindi. Yeniden dene.'); }
+    bildir('Model hazırlanıyor…', 0.7); await bekle(20);
+    var ek = [{path:M.ad, data:f16to32(w)}]; w = null;
+    var motor = 'işlemci', gpu = false;
+    try { gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch(e){ gpu = false; }
+    var ayar = function(ep){ return {executionProviders:[ep], graphOptimizationLevel:'all', externalData:ek}; };
+    if (gpu && !sec.yalnizIslemci){ try { sess = await ort.InferenceSession.create(grafik, ayar('webgpu')); motor = 'grafik birimi'; } catch(e){ console.warn('WebGPU olmadı, işlemciye geçiliyor', e); sess = null; } }
+    if (!sess) sess = await ort.InferenceSession.create(grafik, ayar('wasm'));
+    grafik = null; ek = null;
+    return {sess:sess, motor:motor, kayitli:kayitli}; }
   async function kes(dosya, bildir, sec){
     sec = sec || {}; bildir = bildir || function(){};
     if (mesgul) throw new Error('Başka bir kesme sürüyor.'); mesgul = true; var sess = null, t0 = performance.now();
@@ -82,22 +101,7 @@
       var bmp = await createImageBitmap(dosya, {imageOrientation:'from-image'});
       /* bellek için uzun kenar en çok 2048 px */
       var EN = sec.enBoy || 2048, k0 = Math.min(1, EN / Math.max(bmp.width, bmp.height)), W = Math.round(bmp.width * k0), H = Math.round(bmp.height * k0);
-      bildir('Yapay zekâ motoru yükleniyor…', 0.05); await ortYukle();
-      var top = M.bayt + 2602833, sayac = {}, kayitli = true;
-      var ilerle = function(ad){ return function(n, onb){ sayac[ad] = n; if (!onb) kayitli = false; var s = 0; for (var q in sayac) s += sayac[q];
-        bildir((onb ? 'Model hazırlanıyor… ' : 'Model indiriliyor… ') + Math.min(100, Math.round(s / top * 100)) + '%', 0.06 + 0.6 * Math.min(1, s / top)); }; };
-      var grafik = await dosyaAl(M.grafik, ilerle('g'));
-      var pr = await Promise.all(M.parca.map(function(p, i){ return dosyaAl(p, ilerle('p' + i)); }));
-      var w = new Uint8Array(M.bayt), o = 0; pr.forEach(function(p){ w.set(p, o); o += p.length; }); pr = null;
-      if (o !== M.bayt){ try { await caches.delete(ONB); } catch(e){} throw new Error('Model eksik indi; silindi. Yeniden dene.'); }
-      bildir('Model hazırlanıyor…', 0.7); await bekle(20);
-      var ek = [{path:M.ad, data:f16to32(w)}]; w = null;
-      var motor = 'işlemci', gpu = false;
-      try { gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch(e){ gpu = false; }
-      var ayar = function(ep){ return {executionProviders:[ep], graphOptimizationLevel:'all', externalData:ek}; };
-      if (gpu && !sec.yalnizIslemci){ try { sess = await ort.InferenceSession.create(grafik, ayar('webgpu')); motor = 'grafik birimi'; } catch(e){ console.warn('WebGPU olmadı, işlemciye geçiliyor', e); sess = null; } }
-      if (!sess) sess = await ort.InferenceSession.create(grafik, ayar('wasm'));
-      grafik = null; ek = null;
+      var Y = await modelAc(bildir, sec); sess = Y.sess; var motor = Y.motor, kayitli = Y.kayitli;
       var S = M.boyut, cv = document.createElement('canvas'); cv.width = S; cv.height = S; var cx = cv.getContext('2d', {willReadFrequently:true});
       cx.imageSmoothingQuality = 'high'; cx.drawImage(bmp, 0, 0, S, S); var px = cx.getImageData(0, 0, S, S).data, N = S * S, x = new Float32Array(3 * N);
       for (var i = 0; i < N; i++) for (var c = 0; c < 3; c++) x[c * N + i] = (px[i * 4 + c] / 255 - M.ort[c]) / M.sap[c];
@@ -139,5 +143,18 @@
       return {png:png, parcalar:par, w:kw, h:kh, x:x0 / W, y:y0 / H, W:W, H:H, motor:motor, ms:Math.round(performance.now() - t0), indi:!kayitli};
     } finally { if (sess) try { await sess.release(); } catch(e){} mesgul = false; }
   }
-  window.stYZ = {kes:kes, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
+  /* çok kare (video): model bir kez yüklenir; her karede S×S ham çıktı (0–1) döner. İş bitince kapat() çağrılmalı. */
+  async function oturum(bildir, sec){
+    if (mesgul) throw new Error('Başka bir kesme sürüyor.'); mesgul = true; var Y;
+    try { Y = await modelAc(bildir || function(){}, sec); } catch(e){ mesgul = false; throw e; }
+    var S = M.boyut, cv = document.createElement('canvas'); cv.width = S; cv.height = S; var cx = cv.getContext('2d', {willReadFrequently:true}); cx.imageSmoothingQuality = 'high';
+    var x = new Float32Array(3 * S * S), acik = true;
+    return {motor:Y.motor, boyut:S, kayitli:Y.kayitli,
+      calistir: async function(kaynak){ if (!acik) throw new Error('oturum kapalı'); cx.drawImage(kaynak, 0, 0, S, S); var px = cx.getImageData(0, 0, S, S).data, N = S * S;
+        for (var i = 0; i < N; i++) for (var c = 0; c < 3; c++) x[c * N + i] = (px[i * 4 + c] / 255 - M.ort[c]) / M.sap[c];
+        var gir = {}; gir[Y.sess.inputNames[0]] = new ort.Tensor('float32', x, [1, 3, S, S]); var y = (await Y.sess.run(gir))[Y.sess.outputNames[0]].data;
+        var mn = Infinity, mx = -Infinity; for (i = 0; i < N; i++){ var v = y[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+        var o = new Float32Array(N), k = 1 / (mx - mn || 1); for (i = 0; i < N; i++){ var a = (y[i] - mn) * k; o[i] = a < 0.04 ? 0 : (a - 0.04) / 0.96; } return o; },
+      kapat: async function(){ if (!acik) return; acik = false; try { await Y.sess.release(); } catch(e){} mesgul = false; } }; }
+  window.stYZ = {kes:kes, oturum:oturum, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
 })();

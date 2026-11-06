@@ -4,6 +4,26 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Güncel sürüm:** 2.1 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
 
+## Video takip testi (06.11.2026): `yz/video.html`
+**Adres:** https://aaskinkk-cloud.github.io/studyo/yz/video.html
+- Amaç: videoda nesne takibini editöre eklemeden önce telefonda hızını ve kararlılığını ölçmek.
+- Yöntem (gerçek model, kare kare):
+  1. Her kare ISNet ile kesilir.
+  2. İlk karede dokunulan nesne, sonraki karelerde önceki maskeyle örtüşen parçalar seçilerek izlenir.
+  3. Nesne kaybolursa son bilinen yeri tutulur, geri gelince yeniden yakalanır.
+  4. Küçük kare-kare farkları yumuşatılır (titreme azalır); büyük değişim (hareket) aynen alınır.
+  5. Aradaki kareler komşu iki maskeden tamamlanır.
+- Ayarlar: 5 / 10 / 15 kare/sn; ilk 5 / 10 / 20 sn.
+- Ölçümler:
+  - çalışan motor, kare başına süre, toplam süre,
+  - 1 dakikalık video tahmini,
+  - nesnenin bulunamadığı kare sayısı,
+  - kareler arası kararlılık (IoU).
+- Sonuç oynatılır; zemin dama / yeşil / siyah / maske / orijinal seçilebilir, yavaş oynatma var.
+- Motor: `yz/motor.js`'e çok kareli `oturum` eklendi; model bir kez yüklenir, iş bitince kapatılır. Kesme fonksiyonu aynı yükleyiciyi kullanır.
+- SAM 2.1 kullanılmadı: video bellek yapısı ve boyutuyla telefon tarayıcısında gerçekçi değil; bilgisayar ya da ücretli sunucu gerektirir.
+- Sunucu testi (grafik birimi yok): 4 karelik deneme videosunda kare başına 12,8 sn (işlemci), nesne kaybı 0/4, kararlılık %94. Telefonda grafik birimiyle çok daha hızlı olması beklenir; asıl ölçüm telefonda.
+
 ## 2.1 (06.11.2026): ⋯ menüsü panelin altında kalmıyor
 - Video editöründe önizlemenin altındaki **⋯** (Diğer) menüsünde Klasik görünüm, Tema, Yeni video ve Basit mod var. Bu menü, bir bölüm paneli açıkken panelin arkasında kalıyordu.
 - Neden: menü önizleme bölümünün içinde duruyordu ve o bölüm paneli üstte çiziyordu.

@@ -46,6 +46,7 @@ video{display:none}
   <h2>Ayarlar</h2>
   <div class="seg" id="segFps"><button data-v="5">5 kare/sn<small>en hızlı</small></button><button data-v="10" class="on">10 kare/sn<small>önerilen</small></button><button data-v="15">15 kare/sn<small>en akıcı</small></button></div>
   <div class="seg" id="segSure" style="margin-top:8px"><button data-v="5">İlk 5 sn</button><button data-v="10" class="on">İlk 10 sn</button><button data-v="20">İlk 20 sn</button></div>
+  <div class="seg" id="segKenar" style="margin-top:8px"><button data-v="0">Kenar: olduğu gibi</button><button data-v="1" class="on">Kenar: hafif daralt</button><button data-v="2">Kenar: daralt</button></div>
   <p class="not">Kare kare yapılır; arada kalan kareler iki komşu maskeden yumuşakça tamamlanır.</p>
 </div>
 
@@ -83,11 +84,11 @@ video{display:none}
 (function(){
 var $ = function(id){ return document.getElementById(id); };
 var Q = new URLSearchParams(location.search);
-var A = {fps:10, sure:10, zemin:'dama'}, V = $('vid'), oturum = null, iptal = false;
+var A = {fps:10, sure:10, zemin:'dama', kenar:1}, V = $('vid'), oturum = null, iptal = false;
 var M = 512;   /* saklanan maske çözünürlüğü */
 var L = 256;   /* nesne eşleştirme çözünürlüğü */
 function seg(id, k, f){ $(id).addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; [].forEach.call($(id).children, function(x){ x.classList.toggle('on', x === b); }); A[k] = b.dataset.v; if (f) f(); }); }
-seg('segFps', 'fps'); seg('segSure', 'sure'); seg('segZemin', 'zemin', function(){ $('sonSahne').className = 'sahne' + (A.zemin === 'yesil' || A.zemin === 'siyah' ? ' ' + A.zemin : ''); ciz(); });
+seg('segFps', 'fps'); seg('segSure', 'sure'); seg('segKenar', 'kenar'); seg('segZemin', 'zemin', function(){ $('sonSahne').className = 'sahne' + (A.zemin === 'yesil' || A.zemin === 'siyah' ? ' ' + A.zemin : ''); ciz(); });
 function durum(t, o){ $('durum').textContent = t; if (o != null) $('ilerle').style.width = Math.round(o * 100) + '%'; }
 function hata(t){ var h = $('hata'); h.style.display = t ? 'block' : 'none'; h.textContent = t || ''; }
 function sn(ms){ if (ms < 1000) return Math.round(ms) + ' ms'; if (ms < 60000) return (ms / 1000).toFixed(1).replace('.', ',') + ' sn'; var d = Math.floor(ms / 60000), x = Math.round((ms - d * 60000) / 1000); return d + ' dk' + (x ? ' ' + x + ' sn' : ''); }
@@ -168,6 +169,7 @@ $('basla').onclick = async function(){
       await git(t); var k = kareAl(), ta = performance.now();
       var a = f === 0 ? ilk.a : await oturum.calistir(k); tSum += performance.now() - ta;
       var kk = f === 0 ? ilk.k : kucult(a, oturum.boyut, L), B = f === 0 ? ilk.B : bilesen(kk, L, 0.5), uye = f === 0 ? secUye : esle(B, onceki, L);
+      if (uye && f > 0){ var kap = genislet(onceki, L, 10), at = 0, top0 = 0; for (var q = 0; q < L * L; q++) if (uye[q]){ top0++; if (!kap[q]){ uye[q] = 0; at++; } } if (at > top0 * 0.6) uye = null; }   /* sıçrama: büyük kısmı dışarıdaysa yanlış eşleşme say */
       if (!uye){ kayip++; uye = new Uint8Array(L * L); }   /* nesne yok ya da kayıp: son bilinen yer korunur, geri gelince yeniden yakalanır */
       else onceki = uye;
       if (f > 0 && onUye.some(function(v){ return v; }) && uye.some(function(v){ return v; })){ iouT += iou(onUye, uye); iouN++; }
@@ -175,8 +177,10 @@ $('basla').onclick = async function(){
       /* son maske: tam alfa (512) × üyelik (yumuşak kenar için 2 hücre genişletilmiş) */
       var a5 = kucult(a, oturum.boyut, M), ug = genislet(uye, L, 2), m8 = new Uint8ClampedArray(M * M), r = L / M;
       for (var y = 0; y < M; y++) for (var x = 0; x < M; x++){ var i = y * M + x; m8[i] = ug[Math.floor(y * r) * L + Math.floor(x * r)] ? a5[i] * 255 : 0; }
+      for (var kd = 0; kd < +A.kenar; kd++){ var e8 = new Uint8ClampedArray(m8); for (y = 1; y < M - 1; y++) for (x = 1; x < M - 1; x++){ i = y * M + x; var v0 = m8[i]; if (!v0) continue;
+        e8[i] = Math.min(v0, m8[i - 1], m8[i + 1], m8[i - M], m8[i + M]); } m8 = e8; }
       /* kareler arası titreşim: küçük farklar yumuşatılır, büyük değişim (hareket) aynen alınır */
-      if (onMaske) for (i = 0; i < M * M; i++){ var d = m8[i] - onMaske[i]; if (Math.abs(d) < 60) m8[i] = onMaske[i] + d * 0.55; }
+      if (onMaske) for (i = 0; i < M * M; i++){ var yeni = m8[i], d = yeni - onMaske[i]; if (yeni > 40 && onMaske[i] > 40 && Math.abs(d) < 50) m8[i] = onMaske[i] + d * 0.55; }
       onMaske = m8; MASK.push({t:t, m:m8});
     }
     var top = performance.now() - t0;
@@ -193,7 +197,7 @@ $('basla').onclick = async function(){
 /* ---------- 3: oynatma (komşu iki maske arası geçişli) ---------- */
 var mk = document.createElement('canvas'); mk.width = M; mk.height = M; var mkx = mk.getContext('2d'), mim = mkx.createImageData(M, M);
 function maskeAn(t){ if (!MASK.length) return null; var i = Math.min(MASK.length - 1, Math.max(0, Math.floor(t / ADIM))), j = Math.min(MASK.length - 1, i + 1), k = MASK.length > 1 ? Math.min(1, Math.max(0, (t - MASK[i].t) / ADIM)) : 0;
-  var a = MASK[i].m, b = MASK[j].m, d = mim.data; for (var p = 0; p < M * M; p++){ d[p * 4] = d[p * 4 + 1] = d[p * 4 + 2] = 255; d[p * 4 + 3] = a[p] + (b[p] - a[p]) * k; } mkx.putImageData(mim, 0, 0); return mk; }
+  var a = MASK[i].m, b = MASK[j].m, d = mim.data; for (var p = 0; p < M * M; p++){ d[p * 4] = d[p * 4 + 1] = d[p * 4 + 2] = 255; var lo = a[p] < b[p] ? a[p] : b[p]; d[p * 4 + 3] = lo + (a[p] + (b[p] - a[p]) * k - lo) * 0.35; }   /* ara an: eski konumda yarı saydam iz (arka plan sızması) bırakmamak için kesişime yakın */ mkx.putImageData(mim, 0, 0); return mk; }
 function ciz(){ if (!MASK.length || !V.videoWidth) return; var c = $('son'), w = Math.min(960, V.videoWidth), h = Math.round(w * V.videoHeight / V.videoWidth); if (c.width !== w){ c.width = w; c.height = h; }
   var g = c.getContext('2d'); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, h); var m = maskeAn(V.currentTime);
   if (A.zemin === 'maske'){ g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.drawImage(m, 0, 0, w, h); return; }

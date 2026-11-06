@@ -22,6 +22,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Sonuç oynatılır; zemin dama / yeşil / siyah / maske / orijinal seçilebilir, yavaş oynatma var.
 - Motor: `yz/motor.js`'e çok kareli `oturum` eklendi; model bir kez yüklenir, iş bitince kapatılır. Kesme fonksiyonu aynı yükleyiciyi kullanır.
 - SAM 2.1 kullanılmadı: video bellek yapısı ve boyutuyla telefon tarayıcısında gerçekçi değil; bilgisayar ya da ücretli sunucu gerektirir.
+- **Telefon ölçümü (06.11.2026, S25 Ultra, 1080×1920, 15 sn, 10 kare/sn):** grafik birimi; kare başına 1,1 sn; 101 kare 2 dk 21 sn; nesne kaybı 0/101; kararlılık %95. Kullanıcı gözlemi: kopma yok, ara sıra arka plan sızıyor.
+- **Sızma düzeltmesi (aynı gün):**
+  - Ara anlarda iki maske, kesişime yakın birleştirilir. Eski konumda yarı saydam iz kalmaz.
+  - Boşalan yer hemen boşalır; yumuşatma yalnız iki karede de dolu olan yerlerde uygulanır.
+  - Önceki maskeden çok uzaktaki parçalar (kişiye yapışık arka plan) atılır. Kare başına hareket payı yaklaşık %4 ekrandır. Sıçrayan yanlış eşleşmeler "kayıp" sayılır.
+  - "Kenar: olduğu gibi / hafif daralt (varsayılan) / daralt" ayarı eklendi.
 - Sunucu testi (grafik birimi yok): 4 karelik deneme videosunda kare başına 12,8 sn (işlemci), nesne kaybı 0/4, kararlılık %94. Telefonda grafik birimiyle çok daha hızlı olması beklenir; asıl ölçüm telefonda.
 
 ## 2.1 (06.11.2026): ⋯ menüsü panelin altında kalmıyor

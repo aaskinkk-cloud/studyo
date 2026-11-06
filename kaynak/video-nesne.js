@@ -6,6 +6,7 @@
 (function(){
   if (!window.STUDYO) return;
   var B = document.body, KV = function(){ return window.__kv || null; };
+  var CAM = (function(){ try { return localStorage.getItem('st.nesneCam') === '1'; } catch(e){ return false; } })();
   var N = {pid:null, liste:[], img:{}, sec:null, acik:false, W:1920, H:1080, geo:{}, ayar:'s'};
   var HAREKET = [['sabit','Sabit'],['belir','Belirerek'],['kay','Kayarak'],['yaklas','Yaklaşarak'],['suz','Süzülerek']];
   var AYAR = [['s','Boyut',10,150,'%'],['r','Açı',-180,180,'°'],['op','Görünürlük',10,100,'%']];
@@ -157,11 +158,13 @@
     if (!N.liste.length){
       h += '<button type="button" class="bos" data-a="ekle"><span style="width:44px;height:44px;flex:none">' + ic(IC_NESNE).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Fotoğraftan nesne kes ve ekle</b><small>Bir fotoğraf seç; yapay zekâ nesneyi ya da kişiyi arka planından ayırır, videonun üstüne katman olarak koyar.</small></span></button>';
       h += '<button type="button" class="bos" data-a="klip" style="margin-top:8px"><span style="width:44px;height:44px;flex:none">' + ic(IC_KES).replace('<svg', '<svg style="width:44px;height:44px"') + '</span><span><b>Seçili klipteki kişiyi kes</b><small>Zaman çizelgesinde seçtiğin fotoğraftaki kişi yerinde kalır, arkası aynı fotoğrafın bulanık hâliyle dolar; dikey çerçeve kaybolur.</small></span></button>';
+      h += '<div class="cp" style="margin-top:8px"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
       h += '<p class="not">İlk kullanımda model iner (yaklaşık 90 MB, Wi-Fi önerilir); sonra telefonda kalır. Fotoğraf telefondan dışarı gönderilmez.</p>';
     } else {
       h += '<div class="ns">' + N.liste.map(function(x){ return '<button type="button" data-n="' + x.id + '" class="' + (x.id === N.sec ? 'on' : '') + (x.pasif ? ' pas' : '') + '"><img alt="" src="' + kucuk(x) + '"></button>'; }).join('')
         + '<button type="button" class="ekle" data-a="ekle" aria-label="Fotoğraftan nesne ekle">' + ic('<path d="M12 5v14M5 12h14"/>') + '</button>'
-        + '<button type="button" class="ekle" data-a="klip" aria-label="Seçili klipteki kişiyi kes">' + ic(IC_KES) + '</button></div>';
+        + '<button type="button" class="ekle" data-a="klip" aria-label="Seçili klipteki kişiyi kes">' + ic(IC_KES) + '</button></div>'
+        + '<div class="cp"><button type="button" data-a="cam" class="' + (CAM ? 'on' : '') + '">Yeni kesimlerde saydam nesne (cam, bardak): ' + (CAM ? 'açık' : 'kapalı') + '</button></div>';
       if (o){
         var A = AYAR.filter(function(a){ return a[0] === N.ayar; })[0] || AYAR[0], v = o[A[0]] == null ? (A[0] === 'op' ? 100 : 0) : o[A[0]];
         h += '<div class="cp">' + AYAR.map(function(a){ return '<button type="button" data-ay="' + a[0] + '" class="' + (a[0] === N.ayar ? 'on' : '') + '">' + a[1] + '</button>'; }).join('')
@@ -199,6 +202,7 @@
     if (a === 'kapat'){ kapat(); return; }
     if (a === 'ekle'){ ekleBasla(); return; }
     if (a === 'klip'){ klipKes(); return; }
+    if (a === 'cam'){ CAM = !CAM; try { localStorage.setItem('st.nesneCam', CAM ? '1' : '0'); } catch(e){} ciz(); return; }
     if (!o) return;
     if (a === 'ortala'){ o.x = 0.5; o.y = 0.5; o.r = 0; degisti(true); }
     else if (a === 't0'){ var t = k ? k.an() : 0; o.t0 = Math.round(t * 10) / 10; if (o.t1 != null && o.t1 <= o.t0 + 0.2) o.t1 = null; degisti(true); }
@@ -256,7 +260,7 @@
       /* klibin ekrandaki yatay konumu (Kareden Videoya'nın kendi çiziminden, varsa) */
       var geo = null; try { geo = k.klipGeo ? k.klipGeo(sk.i) : null; } catch(e){ geo = null; }
       var YZ = await motorYukle();
-      var r = await YZ.kes(sk.file, bildir);
+      var r = await YZ.kes(sk.file, bildir, {saydam:CAM ? 60 : false});
       bildir('Arka plan hazırlanıyor…', 0.97);
       var id = 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), bg = await bulanik(sk.file);
       await idb('png', 'readwrite', function(s){ s.put(r.png, id); return s.put(bg, id + '_bg'); });
@@ -294,11 +298,13 @@
         var sk2 = function(){ if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(son); setTimeout(son, 120); }; v.addEventListener('seeked', sk2); setTimeout(son, 4000); v.currentTime = Math.min(t, Math.max(0, v.duration - 0.01)); }); };
       var YZ = await motorYukle(); ot = await YZ.oturum(function(t, o){ bildir(t, o * 0.15); }); var ot_motor = ot.motor;
       var T = YZ.takipci({boyut:ot.boyut, maske:384, kenar:1}), M = T.boyut, veri = new Uint8Array(n * M * M);
-      var kare = document.createElement('canvas'), kx = kare.getContext('2d', {willReadFrequently:true}), t0 = performance.now(), yapilan = 0, ilkKare = null;
+      var camK = null, kare = document.createElement('canvas'), kx = kare.getContext('2d', {willReadFrequently:true}), t0 = performance.now(), yapilan = 0, ilkKare = null;
       for (var f = 0; f < n && !vIptal; f++){
         await git(a + f / FPS); var q = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight)); kare.width = Math.round(v.videoWidth * q); kare.height = Math.round(v.videoHeight * q); kx.drawImage(v, 0, 0, kare.width, kare.height);
         if (f === 0){ ilkKare = document.createElement('canvas'); ilkKare.width = kare.width; ilkKare.height = kare.height; ilkKare.getContext('2d').drawImage(kare, 0, 0); }
-        veri.set(T.ekle(await ot.calistir(kare)), f * M * M); yapilan = f + 1;
+        var m8 = T.ekle(await ot.calistir(kare));
+        if (CAM){ camK = camK || document.createElement('canvas'); camK.width = M; camK.height = M; var cx2 = camK.getContext('2d', {willReadFrequently:true}); cx2.drawImage(kare, 0, 0, M, M); m8 = YZ.saydamlastir(cx2.getImageData(0, 0, M, M).data, m8, M, M, 60, false).alfa; }
+        veri.set(m8, f * M * M); yapilan = f + 1;
         var gecen = performance.now() - t0, kalan = gecen / yapilan * (n - yapilan);
         bildir('Kare ' + yapilan + ' / ' + n + ' · kalan yaklaşık ' + (kalan < 60000 ? Math.round(kalan / 1000) + ' sn' : Math.round(kalan / 60000) + ' dk'), 0.15 + 0.83 * yapilan / n); }
       await ot.kapat(); ot = null;
@@ -338,7 +344,7 @@
       if (!N.pid){ await k.kaydet(); N.pid = k.pid() || null; }
       if (!N.pid) throw new Error('Proje kaydedilemedi; bir klip ekleyip yeniden dene.');
       var YZ = await motorYukle();
-      var r = await YZ.kes(f, bildir, {parcalar:true});
+      var r = await YZ.kes(f, bildir, {parcalar:true, saydam:CAM ? 60 : false});
       if (r.parcalar && r.parcalar.length > 1){
         var sec = await secim(r.parcalar.length);
         if (sec === 'ayri'){ await ayriEkle(r, f); return; } }

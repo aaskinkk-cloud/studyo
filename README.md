@@ -2,7 +2,26 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.2 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.3 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.3 (06.11.2026): saydam nesne (cam, bardak) modu
+- **Sorun:** Yapay zekâ nesneyi "var / yok" diye ayırır; camın yarı saydam olduğunu bilmez. Camın içinden görünen eski arka plan kesilen parçada kalıyordu ve yeni arka plan camın içinden görünmüyordu.
+- **Çözüm (ortak motor `saydamlastir`):**
+  - Nesnenin arkasındaki temiz arka plan, çevredeki arka plan piksellerinden tahmin edilir; düşük çözünürlükte içe doğru doldurulur.
+  - Nesnenin bu tahmine benzeyen pikselleri (camın boş kısmı) saydamlaşır. Farklı olanlar (çay, kenar, parlama) kalır.
+  - Fotoğrafta camdan geçen arka plan rengi pikselden ayrıştırılır, böylece yeni arka plan camın içinden görünür.
+  - Yalnız istenince açılır. Her zaman açık olsaydı arka plana benzeyen opak nesneleri (beyaz duvar önünde beyaz gömlek) yanlışlıkla saydam yapardı.
+- **Fotoğraf editörü › Kes › Kenar · cam:**
+  - **Saydam nesne (cam, bardak)** düğmesi ve **Saydamlık** kaydırıcısı (10–100).
+  - Geri al, ileri al ya da sıfırla cam modunu kapatır.
+- **Video editörü › Nesne panelinde "Yeni kesimlerde saydam nesne (cam, bardak)"** (açık/kapalı, hatırlanır):
+  - Fotoğraftan ekleme, fotoğraf klibinden ve video klibinden kesme bu ayarla yapılır.
+  - Videoda her karede uygulanır; renk ayrıştırması yapılmaz, yalnız saydamlık.
+- **Test:**
+  - Birim: yapay bardakta camın içi opaklığı %100 → %34; çay ve kenar tam; siyah zeminde camın içi karardı.
+  - Uygulama: bardağın üstü opak olarak işaretlendiğinde cam modu opaklığı 255 → 46 (Saydamlık 90'da 23) yaptı; çay 254 kaldı. Fotoğraf arka planlı JPG indirildi.
+  - Önceki fotoğraf ve video testleri tekrarlandı.
+- **Sınır:** Camın arkasındaki arka plan, çevresindekinden çok farklıysa (camın arkasında ayrı bir nesne ya da gökyüzü parçası) o kısım kalır. Fotoğrafta **Sil** fırçasıyla giderilir; videoda fırça yok.
 
 ## 2.2 (06.11.2026): videoda kişi takibi editörde, arka plan bulanıklaştırmada yapay zekâ
 - **Video editörü › video klip › Kişiyi kes:**

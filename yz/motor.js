@@ -55,6 +55,30 @@
     for (i = 0; i < N; i++){ var a = alfa[i]; if (a === 0 || a >= 250 || w[i] < 1e-4) continue; var m = Math.min(1, (1 - a / 255) * 1.6), j = i * 4;
       o[j] += (cr[i] / w[i] - o[j]) * m; o[j + 1] += (cg[i] / w[i] - o[j + 1]) * m; o[j + 2] += (cb[i] / w[i] - o[j + 2]) * m; }
     return o; }
+  /* saydam nesne (cam, bardak): nesnenin arkasındaki temiz arka plan, çevredeki arka plan piksellerinden tahmin edilir (düşük çözünürlükte
+     içe doğru doldurma). Nesne pikseli bu tahmine ne kadar benziyorsa o kadar saydamlaşır (camın içinden görünen arka plan); farklı olanlar (çay,
+     kenar, parlama) kalır. Ön plan rengi karışımdan ayrıştırılır: F = (I − (1−a)·B) / a. guc 0–100: saydamlaştırma gücü. Dönüş {alfa, px} */
+  function saydamlastir(px, alfa, W, H, guc, renkAyir){
+    guc = guc == null ? 60 : guc; var Ls = 160, k = Ls / Math.max(W, H), lw = Math.max(4, Math.round(W * k)), lh = Math.max(4, Math.round(H * k)), N = lw * lh, i, x, y;
+    var br = new Float32Array(N), bg = new Float32Array(N), bb = new Float32Array(N), bw = new Float32Array(N);
+    for (y = 0; y < H; y++){ var ly = Math.min(lh - 1, Math.floor(y * k)); for (x = 0; x < W; x++){ var j = y * W + x, a = alfa[j] / 255, w = a < 0.1 ? 1 : (a < 0.5 ? 0.3 : 0); if (!w) continue;
+      var li = ly * lw + Math.min(lw - 1, Math.floor(x * k)), p = j * 4; br[li] += px[p] * w; bg[li] += px[p + 1] * w; bb[li] += px[p + 2] * w; bw[li] += w; } }
+    /* doldurma: ağırlığı olmayan hücreler büyüyen yarıçaplarla çevreden doldurulur */
+    var R = br, G = bg, Bl = bb, Wt = bw;
+    for (var it = 0, r = 2; it < 7; it++, r *= 2){ var r2 = kutu(R, lw, lh, r), g2 = kutu(G, lw, lh, r), b2 = kutu(Bl, lw, lh, r), w2 = kutu(Wt, lw, lh, r), eks = 0;
+      for (i = 0; i < N; i++){ if (Wt[i] > 1e-3) continue; if (w2[i] > 1e-6){ R[i] = r2[i]; G[i] = g2[i]; Bl[i] = b2[i]; Wt[i] = w2[i]; } else eks++; }
+      if (!eks) break; }
+    var tr = new Float32Array(N), tg = new Float32Array(N), tb = new Float32Array(N); for (i = 0; i < N; i++){ var q = Wt[i] || 1; tr[i] = R[i] / q; tg[i] = G[i] / q; tb[i] = Bl[i] / q; }
+    tr = kutu(tr, lw, lh, 1); tg = kutu(tg, lw, lh, 1); tb = kutu(tb, lw, lh, 1);
+    var oa = new Uint8ClampedArray(alfa), op = renkAyir ? new Uint8ClampedArray(px) : null, d0 = 8 + (100 - guc) * 0.35, d1 = d0 + 30 + (100 - guc) * 0.6, taban = 0.06 + (100 - guc) / 100 * 0.3;
+    for (y = 0; y < H; y++){ var fy = Math.min(lh - 1.001, y * k), y0 = Math.floor(fy), yy = fy - y0, y1 = Math.min(lh - 1, y0 + 1);
+      for (x = 0; x < W; x++){ var j2 = y * W + x, a0 = alfa[j2]; if (a0 < 8) continue; var fx = Math.min(lw - 1.001, x * k), x0 = Math.floor(fx), xx = fx - x0, x1 = Math.min(lw - 1, x0 + 1);
+        var i00 = y0 * lw + x0, i01 = y0 * lw + x1, i10 = y1 * lw + x0, i11 = y1 * lw + x1;
+        var Br = (tr[i00] * (1 - xx) + tr[i01] * xx) * (1 - yy) + (tr[i10] * (1 - xx) + tr[i11] * xx) * yy, Bg = (tg[i00] * (1 - xx) + tg[i01] * xx) * (1 - yy) + (tg[i10] * (1 - xx) + tg[i11] * xx) * yy, Bb = (tb[i00] * (1 - xx) + tb[i01] * xx) * (1 - yy) + (tb[i10] * (1 - xx) + tb[i11] * xx) * yy;
+        var p2 = j2 * 4, dr = px[p2] - Br, dg = px[p2 + 1] - Bg, db = px[p2 + 2] - Bb, d = Math.sqrt(dr * dr + dg * dg + db * db), t = d <= d0 ? 0 : d >= d1 ? 1 : (d - d0) / (d1 - d0);
+        var an = a0 / 255 * (taban + (1 - taban) * t); oa[j2] = an * 255;
+        if (op && an > 0.04){ op[p2] = (px[p2] - (1 - an) * Br) / an; op[p2 + 1] = (px[p2 + 1] - (1 - an) * Bg) / an; op[p2 + 2] = (px[p2 + 2] - (1 - an) * Bb) / an; } } }
+    return {alfa:oa, px:op}; }
   /* ayrı nesneler: bağlı alanlar (alfa > esik), küçük kırıntılar elenir, büyükten küçüğe. Yumuşak kenar pikselleri en yakın nesneye katılır. */
   function parcalar(alfa, W, H, sec){ sec = sec || {}; var esik = sec.esik || 40, N = W * H, et = new Int32Array(N), yig = new Int32Array(N), L = [], top = 0, i;
     for (i = 0; i < N; i++) if (alfa[i] > esik) top++;
@@ -126,6 +150,7 @@
       /* nesnenin kutusu: boş kenarlar kırpılır (yerleştirmesi kolay, dosya küçük) */
       /* kenar rengini temizle (yeni arka plan önünde hale kalmasın) */
       var idt = oc.getImageData(0, 0, W, H), al0 = new Uint8ClampedArray(W * H); for (i = 0; i < W * H; i++) al0[i] = idt.data[i * 4 + 3];
+      if (sec.saydam){ bildir('Saydam bölgeler ayrıştırılıyor…', 0.94); await bekle(10); var sy = saydamlastir(idt.data, al0, W, H, sec.saydam === true ? 60 : sec.saydam, true); al0 = sy.alfa; for (i = 0; i < W * H; i++) sy.px[i * 4 + 3] = al0[i]; idt.data.set(sy.px); oc.putImageData(idt, 0, 0); }
       if (sec.temiz !== false){ bildir('Kenarlar temizleniyor…', 0.95); await bekle(10); idt.data.set(renkTemizle(idt.data, al0, W, H)); oc.putImageData(idt, 0, 0); }
       var dt = idt.data, x0 = W, y0 = H, x1 = -1, y1 = -1;
       for (var yy = 0; yy < H; yy++){ var r0 = yy * W * 4; for (var xx = 0; xx < W; xx++) if (dt[r0 + xx * 4 + 3] > 10){ if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }
@@ -186,5 +211,5 @@
       if (onM) for (i = 0; i < Mx * Mx; i++){ var yeni = m8[i], d = yeni - onM[i]; if (yeni > 40 && onM[i] > 40 && Math.abs(d) < 50) m8[i] = onM[i] + d * 0.55; }
       onM = m8; return m8; }
     return {ekle:ekle, boyut:Mx, kayip:function(){ return kayip; }}; }
-  window.stYZ = {kes:kes, oturum:oturum, takipci:takipci, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
+  window.stYZ = {kes:kes, oturum:oturum, takipci:takipci, saydamlastir:saydamlastir, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
 })();

@@ -37,7 +37,7 @@
      Menü sayfanın en üst katmanına (body) taşınır; konumu ve düğmeleri aynı kalır (kendi sınıfıyla biçimlenir, bağlı olduğu bölüm yok). */
   (function menuTasi(n){ var m = document.getElementById('pvDahaMenu'); if (!m){ if (n < 100) setTimeout(function(){ menuTasi(n + 1); }, 300); return; }
     if (m.parentElement !== document.body) document.body.appendChild(m); m.style.zIndex = '200'; })(0);
-  var row = null, mesgul = false, gozcu = null;
+  var row = null, mesgul = false, gozcu = null, sonImza = '';
   function aktif(){ return B.classList.contains('kv-studyo') && B.classList.contains('is-mod') && !B.classList.contains('kv-kapali') && !B.classList.contains('kv-klv'); }
   function ikinciSiraSimge(){
     var r2 = document.getElementById('isAltSek2'); if (!r2 || r2.hidden) return;
@@ -51,7 +51,7 @@
     return row;
   }
   function temizle(){ var pan = document.querySelector('.kv-pan'); if (pan) [].forEach.call(pan.querySelectorAll('.st-gz'), function(e){ e.classList.remove('st-gz'); });
-    if (row) row.hidden = true; var ks = document.querySelector('.kv-pan .st-ksat'); if (ks) ks.remove(); }
+    sonImza = ''; if (row) row.hidden = true; var ks = document.querySelector('.kv-pan .st-ksat'); if (ks) ks.remove(); }
   function pas(yeniSecim){
     if (mesgul) return; mesgul = true;
     try {
@@ -67,9 +67,13 @@
       var r1 = document.getElementById('isAltSek'), r2 = document.getElementById('isAltSek2'), ust = 46;
       if (r1 && !r1.hidden) ust += r1.offsetHeight + 6; if (r2 && !r2.hidden) ust += r2.offsetHeight + 4;
       r.style.top = ust + 'px';
-      if (yeniSecim) pan.scrollTop = 0;
       var a1 = (document.querySelector('#isAltSek button.on') || {}).textContent || '', a2 = (document.querySelector('#isAltSek2:not([hidden]) button.on') || {}).textContent || '';
-      var o = {anahtar: 'kv|' + t + '|' + a1.trim() + '|' + a2.trim(), birimler: birimler, satir: r, kok: pan, yenile: function(){ pas(true); }};
+      var o = {anahtar: 'kv|' + t + '|' + a1.trim() + '|' + a2.trim(), birimler: birimler, satir: r, kok: pan, yenile: function(){ pas('sayfa'); }};
+      /* 2.8: yalnız içerik değiştiyse (liste doldu, süre yazısı değişti…) sayfalar yeniden kurulmaz: düğmeler kendi kendine kaymaz, kaydırma yeri korunur */
+      var imza = o.anahtar + '|' + birimler.length + '|' + pan.clientHeight + '|' + innerWidth + '|' + ust;
+      if (yeniSecim !== 'sayfa' && imza === sonImza) return;
+      var yeni = yeniSecim === 'sayfa' || imza.split('|').slice(0, 4).join('|') !== sonImza.split('|').slice(0, 4).join('|');   /* başka bölüm / sayfa seçildi */
+      sonImza = imza; var kay = yeni ? 0 : pan.scrollTop;
       var hesap = function(){ var pr = pan.getBoundingClientRect(), ps = getComputedStyle(pan), alt = parseFloat(ps.paddingBottom) || 0;
         var ilk = birimler.filter(function(e){ return getComputedStyle(e).display !== 'none'; })[0]; var ust2 = ilk ? ilk.getBoundingClientRect().top + pan.scrollTop : pr.top + 160;
         return pr.bottom - alt - ust2 - (r.hidden ? 46 : 0) - 10; };
@@ -81,6 +85,7 @@
       if (!o._satirOnce && !r.hidden) ustK += r.offsetHeight + 8;
       var gercek = pr.bottom - alt - ustK - 8;
       if (Math.abs(gercek - o.maxH) > 4){ o.maxH = gercek; window.stSayfala(o); }
+      pan.scrollTop = kay;
     } catch(e){ console.warn('Stüdyo video bölümleri', e); }
     finally { if (gozcu) gozcu.takeRecords(); mesgul = false; }
   }

@@ -67,6 +67,9 @@ kv = degistir(kv, "  const G = gruplar[sec], anahtar = imza + '#' + sec;\n",
 # 2.7: şeritte/katmanda klip başına ses·çoğalt·sil, seçili klip çubuğu — kapanışın içinde, boot() öncesi
 _sira = os.path.join(BURA, 'video-sira.js')
 if os.path.exists(_sira): kv = degistir(kv, '\nwindow.__kvBoot = boot();\n', '\n' + oku(_sira) + '\nwindow.__kvBoot = boot();\n', 'kv sira')
+# 2.8: önizlemede yazıya dokun → ekranda düzenle; Otomatik harekette klip başına rastgele yön
+_ek = os.path.join(BURA, 'video-ek.js')
+if os.path.exists(_ek): kv = degistir(kv, '\nwindow.__kvBoot = boot();\n', '\n' + oku(_ek) + '\nwindow.__kvBoot = boot();\n', 'kv ek')
 kv = govdeye(kv, 'video')
 yaz(os.path.join(OUT, 'video', 'index.html'), kv)
 for f in ['icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'manifest.webmanifest']:

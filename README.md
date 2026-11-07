@@ -2,7 +2,22 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.7 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.8 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.8 (07.11.2026): yazıya dokun → ekranda düzenle · rastgele hareket yönü · müzik düğmeleri sabit
+- **Önizlemede yazıya tek dokunuş:** başlık, alt başlık, ek yazılar, vurgu bantları, kanca, abone hatırlatıcı, kapanış yazıları, altyazı ve Metin yazıları.
+  - İlgili bölüm açılır: alt menü sekmesi, ara sekme, ikinci sıra ve sayfa kendiliğinden seçilir; alan ortalanıp parlar.
+  - Önizlemenin üstünde **düzenleme kutusu** çıkar (yazıyı örtmez, klavyenin altında kalmaz). Yazdıkça hem alan hem görüntü anında değişir. **✓ Bitti**, Enter ya da dışarı dokunmak kapatır.
+  - Çift dokunuş eskisi gibi tam ekran; sürükleme eskisi gibi kadraj. Nesne, Metin, Tuval, Odak panelleri açıkken ve logo sekmesinde devre dışı.
+  - Nasıl bulunur: her aday yazı bir anlığına değiştirilir, dokunulan yerdeki piksel farkı en büyük olan seçilir (çizim yolundan bağımsız). Tarih rozeti gibi yazı alanı olmayan öğeler bulunmaz.
+- **Hareket efekti › Otomatik artık rastgele yönlü** (klip başına sabit; önizleme ve video aynı):
+  - Dikey fotoğraf aşağı ya da yukarı kayar. Kadrajın en üstteyse bile kadrajına varış ya da kadrajından ayrılış seçilerek iki yön de olur.
+  - Yüzlü dikey fotoğraf: yüze iki yanda yer varsa üstten ya da alttan varır.
+  - Yatay fotoğraf: yaklaşır ya da uzaklaşır.
+  - Aynı yön üst üste üçten fazla gelmez. Hepsi aynı yöne gitsin istenirse Aşağıdan yukarı / Yukarıdan aşağı / Hep yaklaş seçenekleri aynen duruyor.
+- **Müzik (ve diğer) bölümlerde düğmelerin kendi kendine kayması giderildi:** sayfa sırası yalnız bölüm/sayfa seçilince ya da panel boyu değişince yeniden kurulur; liste dolarken, süre yazısı değişirken kurulmaz. Panelin kaydırma yeri de artık sıfırlanmaz.
+- Kod: `kaynak/video-ek.js` (yeni; Kareden Videoya kapanışının içine eklenir), `kaynak/video-arayuz.js` (sayfalama), `esitle.py` (ekleme).
+- Test (sunucuda, 412×915): başlığa ve abone yazısına dokunma → doğru bölüm ve alan, kutudan yazınca alan ve görüntü değişti; çift dokunuşta kutu açılmadı; 8 dikey fotoğrafta yönler karışık; müzik panelinde içerik 10 kez değişti, sayfalar 0 kez yeniden kuruldu. Hata yok. Telefonda denenmedi.
 
 ## 2.7 (07.11.2026): Sıra ve seçili klip tek ekranda
 - Video editörü › Klip: **Sıra** ile **Seçili klip** sekmeleri birleşti → **Sıra ve klip**. Yukarıdan aşağı: büyük klip şeridi · seçili klip çubuğu · klibin ayarları (Süre · Kadraj · Hareket · Takip yazı) · Katmanlar. Bu sekme sayfalara bölünmez, kaydırılır.

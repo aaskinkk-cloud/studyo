@@ -84,6 +84,7 @@
     + '<div class="kr"><span style="width:76px">Yumuşaklık</span><input type="range" id="stKesKy" min="0" max="10" step="1" value="0"><span id="stKesKyO" style="width:34px;text-align:right">0</span></div>'
     + '<div class="sira" style="margin:2px 0 6px"><button type="button" data-g="cam">Saydam nesne (cam, bardak)</button></div>'
     + '<div class="kr" id="stKesCamR" hidden><span style="width:76px">Saydamlık</span><input type="range" id="stKesCam" min="10" max="100" step="5" value="60"><span id="stKesCamO" style="width:34px;text-align:right">60</span></div></div>'
+    + '<div class="sira" id="stKesOto" hidden><button type="button" data-g="otocam">✨ Camı otomatik bul</button><button type="button" data-g="otoac"></button></div>'
     + '<div class="kr" id="stKesFr" hidden><span>Fırça</span><input type="range" id="stKesBoy" min="1" max="20" step="0.5" value="5"><span id="stKesBoyO">5%</span></div>'
     + '<div class="sira" id="stKesZ"><button type="button" data-z="dama" class="on">Dama</button><button type="button" data-z="siyah">Siyah</button><button type="button" data-z="beyaz">Beyaz</button><button type="button" data-z="yesil">Yeşil</button><button type="button" data-g="maske">Maskeyi göster</button><button type="button" data-g="kenar" class="on">Yumuşak fırça</button><button type="button" data-g="temiz" class="on">Kenar rengini temizle</button></div>'
     + '<p class="not" id="stKesNot">Tutmak istediğin nesneye dokun; diğerleri silinir. Yakınlaştırmak için iki parmak.</p></div>';
@@ -126,8 +127,9 @@
       K.comp = document.createElement('canvas'); K.comp.width = W; K.comp.height = H; K.cx = K.comp.getContext('2d'); K.img = K.cx.createImageData(W, H);
       cv.width = W; cv.height = H; K.cg = cv.getContext('2d');
       yenidenCiz(0, 0, W, H); sigdir();
-      isBitir('Kesildi', (r.motor === 'grafik birimi' ? 'Grafik birimiyle ' : 'İşlemciyle ') + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn' + (r.indi ? ' (model indirme dahil)' : '') + '. Kenarları fırçayla düzeltebilirsin.');
-      setTimeout(function(){ if ($('stKesIsB').textContent === 'Kesildi') $('stKesIs').hidden = true; }, 2200);
+      var oto = otoAcik() ? otoCam() : null;
+      isBitir(oto ? 'Kesildi · cam otomatik' : 'Kesildi', (r.motor === 'grafik birimi' ? 'Grafik birimiyle ' : 'İşlemciyle ') + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn' + (r.indi ? ' (model indirme dahil)' : '') + '. Kenarları fırçayla düzeltebilirsin.');
+      setTimeout(function(){ if (/^Kesildi/.test($('stKesIsB').textContent)) $('stKesIs').hidden = true; }, oto ? 3200 : 2200);
     } catch(e){ console.error(e); if (pipe) try { pipe.destroy(); } catch(_){} isBitir('Olmadı', String(e && e.message || e)); }
   }
   function kapat(){ if (!K) return; K = null; kok.hidden = true; $('stKesSf').hidden = true; $('stKesIs').hidden = true; cv.width = 1; cv.height = 1; }
@@ -186,6 +188,20 @@
       else if (koru){ var hedef = 255; v = v + (hedef - v) * w; if (w >= 1) v = 255; if (cm && w >= 1) cm[i] = 0; } else { v = v * (1 - w); if (w >= 1) v = 0; }
       a[i] = v; }
     yenidenCiz(x0, y0, x1 + 1, y1 + 1); }
+  /* 2.9: otomatik cam fırçası — cam bölgesi stYZ.camBul ile bulunur, fırçanın kendisiyle aynı formülle (ağırlıklı) uygulanır; tek Geri al ile döner */
+  function otoAcik(){ try { return localStorage.getItem('st.otoCam') !== '0'; } catch(e){ return true; } }
+  function otoCam(elle){
+    if (!K || !K.alfa || !window.stYZ || !stYZ.camBul) return null;
+    var r = null; try { r = stYZ.camBul(K.px, K.alfa, K.W, K.H); } catch(e){ console.warn('otomatik cam', e); }
+    if (!r || !r.harita) return null;
+    kayitAl(); camHazirla();
+    var a = K.alfa, cm = K.cm, hl = K.hl, G = r.harita, b0 = K.camB0, n = 0;
+    for (var i = 0; i < a.length; i++){ var w = G[i] / 255; if (!w || a[i] < 4) continue; var h0 = hl[i] / 255, hedef = b0[i] * Math.max(CAMTABAN, h0);
+      if (hedef < a[i]) a[i] = a[i] + (hedef - a[i]) * w; if (cm[i] < 255 * w) cm[i] = 255 * w; n++; }
+    if (!n){ K.yigin.pop(); dugmeler(); return null; }
+    yenidenCiz(0, 0, K.W, K.H);
+    not((r.yontem === 'cay' ? 'Cam otomatik fırçalandı: çayın üstündeki cam kısım saydam, parlamalar kaldı.' : 'Cam otomatik fırçalandı: nesnenin içinden arka plan görünen yerler saydam.') + ' Beğenmezsen ↶ Geri al; fazla giden yeri Koru, eksik yeri Cam fırçasıyla düzelt.');
+    return r; }
   /* cam fırçası: parlama haritası (yerel ortalamadan belirgin aydınlık, beyazımsı pikseller) bir kez hesaplanır; fırçanın geçtiği yerde
      alfa, parlamalar dışında taban değere iner (arka planın içinden görünmesi) ve renk nötr cam tonuna çekilir (arkadaki manzara silinir) */
   var CAMR = 236, CAMG = 240, CAMB = 244, CAMTABAN = 0.10;
@@ -250,7 +266,7 @@
     gb.addEventListener('contextmenu', function(e){ e.preventDefault(); }); })();
   /* ---------- düğmeler ---------- */
   function not(m){ $('stKesNot').textContent = m; }
-  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'); $('stKesKn').hidden = !K || K.mod !== 'kenar';
+  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'); $('stKesKn').hidden = !K || K.mod !== 'kenar'; $('stKesOto').hidden = !K || K.mod !== 'camf'; var oa = kok.querySelector('[data-g=otoac]'); if (oa){ oa.textContent = 'Kesince otomatik: ' + (otoAcik() ? 'açık' : 'kapalı'); oa.classList.toggle('on', otoAcik()); }
     kok.querySelectorAll('[data-z]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.z === K.zemin); }); sahne.className = 'sahne' + (K && K.zemin !== 'dama' ? ' z-' + K.zemin : '');
     var mk = kok.querySelector('[data-g=maske]'), kn = kok.querySelector('[data-g=kenar]'); if (mk) mk.classList.toggle('on', !!(K && K.maske)); if (kn) kn.classList.toggle('on', !!(K && K.yumusak)); var tz = kok.querySelector('[data-g=temiz]'); if (tz) tz.classList.toggle('on', !!(K && K.temiz !== false)); var cm = kok.querySelector('[data-g=cam]'); if (cm) cm.classList.toggle('on', !!(K && K.cam)); $('stKesCamR').hidden = !(K && K.cam); dugmeler(); }
   kok.addEventListener('click', function(e){
@@ -260,6 +276,8 @@
     if (b.dataset.g === 'maske'){ K.maske = !K.maske; arayuz(); yenidenCiz(0, 0, K.W, K.H); return; }
     if (b.dataset.g === 'kenar'){ K.yumusak = !K.yumusak; arayuz(); return; }
     if (b.dataset.g === 'cam'){ camAyarla(!K.cam); return; }
+    if (b.dataset.g === 'otoac'){ try { localStorage.setItem('st.otoCam', otoAcik() ? '0' : '1'); } catch(_){} arayuz(); not(otoAcik() ? 'Kestiğin her nesnede cam bölgesi otomatik fırçalanacak.' : 'Otomatik cam kapalı; istersen "Camı otomatik bul"a dokun.'); return; }
+    if (b.dataset.g === 'otocam'){ if (!K.alfa) return; var ro = otoCam(true); if (!ro) not('Bu nesnede cam bölgesi bulunamadı. Camın arkası görünen yerin üstünden Cam fırçasıyla geç.'); return; }
     if (b.dataset.g === 'temiz'){ K.temiz = K.temiz === false; K.nesS = -1; arayuz(); not(K.temiz !== false ? 'Kenar rengi temizlenecek: eski arka planın rengi kenarda hale bırakmaz (kaydederken uygulanır).' : 'Kenar rengi olduğu gibi kalacak.'); return; }
     var a = b.dataset.a; if (!a) return;
     if (a === 'kapat'){ kapat(); return; }

@@ -211,5 +211,56 @@
       if (onM) for (i = 0; i < Mx * Mx; i++){ var yeni = m8[i], d = yeni - onM[i]; if (yeni > 40 && onM[i] > 40 && Math.abs(d) < 50) m8[i] = onM[i] + d * 0.55; }
       onM = m8; return m8; }
     return {ekle:ekle, boyut:Mx, kayip:function(){ return kayip; }}; }
-  window.stYZ = {kes:kes, oturum:oturum, takipci:takipci, saydamlastir:saydamlastir, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske};
+  /* 2.9: CAM BÖLGESİNİ OTOMATİK BUL (cam fırçasının otomatiği). Dönüş {harita: W·H (0–255, cam fırçasının ağırlığı), yontem:'cay'|'genel', oran} ya da null.
+     1) Çay bardağı: nesnede çay bandı (koyu kırmızı-kehribar) aranır; bandın üstünde, çayın genişliği boyunca kalan nesne kısmı camdır
+        (ten rengi ve çay renkli pikseller hariç; parlamaları fırçanın kendisi korur).
+     2) Çay yoksa genel: nesnenin iç kısmında (kenardan uzak) çevredeki arka plana çok benzeyen pikseller camdır. Böyle yerler nesnenin
+        %6–85'i değilse (cam gibi durmuyorsa) hiçbir şey uygulanmaz. */
+  function hsv(r, g, b){ var mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b), d = mx - mn, h = 0;
+    if (d){ if (mx === r) h = ((g - b) / d + 6) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; } return [h, mx ? d / mx : 0, mx / 255]; }
+  function cayMi(q){ return (q[0] <= 45 || q[0] >= 345) && q[1] >= 0.45 && q[2] >= 0.10 && q[2] <= 0.82 && (q[2] <= 0.6 || q[1] >= 0.55); }
+  function tenMi(q){ return q[0] >= 5 && q[0] <= 45 && q[1] >= 0.15 && q[1] < 0.6 && q[2] >= 0.45; }
+  function camBul(px, alfa, W, H){
+    var N = W * H, i, x, y, y0 = H, y1 = -1, ox0 = W, ox1 = -1, alan = 0, sN = new Float32Array(H), sC = new Float32Array(H), cay = new Uint8Array(N);
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++){ i = y * W + x; if (alfa[i] < 128) continue; alan++; sN[y]++;
+      if (y < y0) y0 = y; if (y > y1) y1 = y; if (x < ox0) ox0 = x; if (x > ox1) ox1 = x;
+      var p = i * 4; if (cayMi(hsv(px[p], px[p + 1], px[p + 2]))){ cay[i] = 1; sC[y]++; } }
+    if (alan < N * 0.005 || y1 - y0 < 20) return null;
+    var oh = y1 - y0 + 1, rr = Math.max(1, Math.round(oh * 0.01)), f = new Float32Array(H);
+    for (y = y0; y <= y1; y++){ var a = 0, b = 0; for (var k = Math.max(y0, y - rr); k <= Math.min(y1, y + rr); k++){ a += sC[k]; b += sN[k]; } f[y] = b >= 3 ? a / b : 0; }
+    /* en uzun çay bandı (küçük boşluklara izin) */
+    var bos = Math.round(oh * 0.015), eB = -1, eS = -2, bas = -1, son = -1, gap = 0;
+    for (y = y0; y <= y1; y++){ if (f[y] >= 0.3){ if (bas < 0) bas = y; son = y; gap = 0; } else if (bas >= 0 && ++gap > bos){ if (son - bas > eS - eB){ eB = bas; eS = son; } bas = -1; gap = 0; } }
+    if (bas >= 0 && son - bas > eS - eB){ eB = bas; eS = son; }
+    var G = new Float32Array(N), n = 0;
+    if (eB >= 0){
+      var cPx = 0, tx0 = W, tx1 = -1;
+      for (y = eB; y <= eS; y++) for (x = ox0; x <= ox1; x++){ i = y * W + x; if (cay[i]){ cPx++; if (x < tx0) tx0 = x; if (x > tx1) tx1 = x; } }
+      if (eS - eB + 1 >= oh * 0.07 && cPx >= alan * 0.02 && eB - y0 >= oh * 0.04){
+        var pay = Math.round((tx1 - tx0 + 1) * 0.12), xa = Math.max(0, tx0 - pay), xb = Math.min(W - 1, tx1 + pay);
+        var ust = eB - Math.round(oh * 0.012), bant = Math.max(2, Math.round(oh * 0.02));
+        for (y = y0; y <= ust; y++){ var w = y > ust - bant ? (ust - y) / bant : 1;
+          for (x = xa; x <= xb; x++){ i = y * W + x; if (alfa[i] < 8) continue; var q = hsv(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]); if (cayMi(q) || tenMi(q)) continue; G[i] = w; n++; } }
+        if (n){ G = kutu(G, W, H, Math.max(1, Math.round(Math.max(W, H) / 400))); var o1 = new Uint8ClampedArray(N); for (i = 0; i < N; i++) if (alfa[i] >= 8) o1[i] = Math.min(1, G[i] * 1.15) * 255;
+          return {harita:o1, yontem:'cay', oran:n / alan}; }
+      }
+    }
+    /* genel: arka plan tahmini (saydamlastir ile aynı yöntem), iç kısımda çok benzeyen pikseller */
+    var Ls = 160, kk = Ls / Math.max(W, H), lw = Math.max(4, Math.round(W * kk)), lh = Math.max(4, Math.round(H * kk)), M = lw * lh;
+    var br = new Float32Array(M), bg = new Float32Array(M), bb = new Float32Array(M), bw = new Float32Array(M);
+    for (y = 0; y < H; y++){ var ly = Math.min(lh - 1, Math.floor(y * kk)); for (x = 0; x < W; x++){ i = y * W + x; var aa = alfa[i] / 255, ww = aa < 0.1 ? 1 : (aa < 0.5 ? 0.3 : 0); if (!ww) continue;
+      var li = ly * lw + Math.min(lw - 1, Math.floor(x * kk)), p2 = i * 4; br[li] += px[p2] * ww; bg[li] += px[p2 + 1] * ww; bb[li] += px[p2 + 2] * ww; bw[li] += ww; } }
+    for (var it = 0, r = 2; it < 7; it++, r *= 2){ var r2 = kutu(br, lw, lh, r), g2 = kutu(bg, lw, lh, r), b2 = kutu(bb, lw, lh, r), w2 = kutu(bw, lw, lh, r), eks = 0;
+      for (i = 0; i < M; i++){ if (bw[i] > 1e-3) continue; if (w2[i] > 1e-6){ br[i] = r2[i]; bg[i] = g2[i]; bb[i] = b2[i]; bw[i] = w2[i]; } else eks++; } if (!eks) break; }
+    for (i = 0; i < M; i++){ var qq = bw[i] || 1; br[i] /= qq; bg[i] /= qq; bb[i] /= qq; }
+    var O = new Float32Array(N); for (i = 0; i < N; i++) O[i] = alfa[i] >= 128 ? 1 : 0;
+    var ic = kutu(O, W, H, Math.max(2, Math.round(Math.max(ox1 - ox0, oh) * 0.03))), C = new Float32Array(N), aday = 0;
+    for (y = 0; y < H; y++){ var ly2 = Math.min(lh - 1, Math.floor(y * kk)); for (x = 0; x < W; x++){ i = y * W + x; if (ic[i] < 0.995) continue;
+      var l2 = ly2 * lw + Math.min(lw - 1, Math.floor(x * kk)), p3 = i * 4, dr = px[p3] - br[l2], dg = px[p3 + 1] - bg[l2], db = px[p3 + 2] - bb[l2], d = Math.sqrt(dr * dr + dg * dg + db * db);
+      var s = d <= 18 ? 1 : d >= 40 ? 0 : (40 - d) / 22; if (s > 0){ C[i] = s; if (s > 0.5) aday++; } } }
+    var oran = aday / alan; if (oran < 0.06 || oran > 0.85) return null;
+    C = kutu(C, W, H, Math.max(2, Math.round(Math.max(W, H) / 120)));   /* dokulu arka planda benzeyen noktalar birleşsin */
+    var o2 = new Uint8ClampedArray(N); for (i = 0; i < N; i++) if (alfa[i] >= 8 && ic[i] > 0.9 && C[i] > 0.12) o2[i] = Math.min(1, (C[i] - 0.12) / 0.35) * 255;
+    return {harita:o2, yontem:'genel', oran:oran}; }
+  window.stYZ = {kes:kes, oturum:oturum, takipci:takipci, saydamlastir:saydamlastir, kok:KOK, model:'ISNet (DIS)', kutu:kutu, incelt:incelt, renkTemizle:renkTemizle, parcalar:parcalar, parcaMaske:parcaMaske, camBul:camBul};
 })();

@@ -12198,6 +12198,20 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     ax.putImageData(ai, 0, 0); bx.putImageData(bi, 0, 0);
     var g = cnv.getContext('2d'); g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     g.globalCompositeOperation = 'source-atop'; g.drawImage(B, 0, 0, w, h); g.globalCompositeOperation = 'destination-out'; g.drawImage(A, 0, 0, w, h); g.restore(); }
+  /* 2.9: otomatik cam fırçası — nesnenin görüntüsünde cam bölgesi stYZ.camBul ile bulunur, cam haritasına (CM×CM) yazılır.
+     "Fırçayı geri al" tek dokunuşla kaldırır. Yalnız fotoğraftan gelen nesnelerde (videodan kesilen kişide değil). */
+  function otoAcik(){ try { return localStorage.getItem('st.otoCam') !== '0'; } catch(e){ return true; } }
+  function otoCamNesne(o){
+    var im = N.img[o.id]; if (!o || o.video || !im || !window.stYZ || !stYZ.camBul) return null;
+    var c = document.createElement('canvas'); c.width = CM; c.height = CM; var x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(im, 0, 0, CM, CM);
+    var d = x.getImageData(0, 0, CM, CM).data, al = new Uint8ClampedArray(CM * CM); for (var i = 0; i < al.length; i++) al[i] = d[i * 4 + 3];
+    var r = null; try { r = stYZ.camBul(d, al, CM, CM); } catch(e){ console.warn('otomatik cam', e); }
+    if (!r || !r.harita) return null;
+    var eski = N.cam[o.id] || null, h = eski ? new Uint8ClampedArray(eski) : new Uint8ClampedArray(CM * CM);
+    for (i = 0; i < h.length; i++) if (r.harita[i] > h[i]) h[i] = r.harita[i];
+    N.camY[o.id] = N.camY[o.id] || []; N.camY[o.id].push(eski ? new Uint8ClampedArray(eski) : null); if (N.camY[o.id].length > 15) N.camY[o.id].shift();
+    h._s = Date.now(); N.cam[o.id] = h; delete _camImg[o.id]; camKaydet(o); return r; }
+  function otoMesaj(r){ return r ? (r.yontem === 'cay' ? ' Cam otomatik fırçalandı (çayın üstündeki kısım).' : ' Cam otomatik fırçalandı (arkası görünen yerler).') + ' Beğenmezsen Cam › Geri al.' : ''; }
   /* fotoğraf nesnesi: işlenmiş görüntü önbellekte (harita değişince yenilenir) */
   var _camImg = {};
   function camliGoruntu(o){ var cm = N.cam[o.id], im = N.img[o.id]; if (!cm || !im) return im; var c = _camImg[o.id];
@@ -12319,6 +12333,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
           h += '<div class="cp"><button type="button" data-ark="yok" class="' + (!o.arka ? 'on' : '') + '">Arka plan yok</button>' + (o.klip ? '<button type="button" data-ark="bulanik" class="' + (o.arka === true ? 'on' : '') + '">Bulanık</button>' : '') + '<button type="button" data-ark="foto" class="' + (o.arka === 'foto' ? 'on' : '') + '">' + (o.arka === 'foto' ? 'Fotoğraf · değiştir' : 'Arkaya fotoğraf') + '</button></div>';
         } else if (N.bol === 'cam'){
           h += '<div class="cp"><button type="button" data-a="camf" class="' + (N.camFirca ? 'on' : '') + '">' + (N.camFirca ? 'Fırça açık · kapat' : 'Fırçayı aç') + '</button>' + (N.cam[o.id] ? '<button type="button" data-a="camgeri">Geri al</button><button type="button" data-a="camtemiz">Temizle</button>' : '') + '</div>';
+          if (!o.video) h += '<div class="cp"><button type="button" data-a="otocam">✨ Camı otomatik bul</button><button type="button" data-a="otoac" class="' + (otoAcik() ? 'on' : '') + '">Yeni nesnede otomatik: ' + (otoAcik() ? 'açık' : 'kapalı') + '</button></div>';
           h += '<div class="kr"><span style="font-size:12.5px;color:var(--is-mute)">Fırça</span><input type="range" id="stNcB" min="2" max="25" step="1" value="' + N.camBoy + '"><output>' + N.camBoy + '%</output></div>';
           h += '<p class="not" style="margin:-2px 0 4px">' + (N.camFirca ? 'Camın arkası görünen kısmının üstünden geç. Nesneyi taşımak için fırçayı kapat.' : 'Fırçayı açınca nesne listesi gizlenir, önizleme büyür.') + '</p>';
         } else {
@@ -12351,6 +12366,8 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     if (a === 'camf'){ N.camFirca = !N.camFirca; if (N.camFirca){ var kv0 = KV(); if (kv0) kv0.durdur(); } ciz(); return; }
     if (a === 'camtemiz' && o){ delete N.cam[o.id]; delete _camImg[o.id]; o.cam = false; idb('png', 'readwrite', function(s){ return s.delete(o.id + '_c'); }).catch(function(){}); degisti(true); return; }
     if (a === 'camgeri' && o){ var yg = N.camY[o.id]; if (yg && yg.length){ var eskiC = yg.pop(); if (eskiC){ N.cam[o.id] = eskiC; eskiC._s = Date.now(); } else { delete N.cam[o.id]; o.cam = false; } camKaydet(o); degisti(true); } return; }
+    if (a === 'otoac'){ try { localStorage.setItem('st.otoCam', otoAcik() ? '0' : '1'); } catch(e){} ciz(); return; }
+    if (a === 'otocam' && o){ var ro = otoCamNesne(o); if (!ro) uyari('Bu nesnede cam bölgesi bulunamadı. Fırçayı açıp camın arkası görünen yerin üstünden geç.'); else { degisti(true); uyari(otoMesaj(ro).trim()); } return; }
     if (a === 'cam'){ CAM = !CAM; try { localStorage.setItem('st.nesneCam', CAM ? '1' : '0'); } catch(e){} ciz(); return; }
     if (!o) return;
     if (a === 'ortala'){ o.x = 0.5; o.y = 0.5; o.r = 0; degisti(true); }
@@ -12422,8 +12439,8 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
       var mx = geo ? geo.cx + (r.x + r.w / r.W / 2 - 0.5) * geo.fw : 0.5; mx = Math.max(wf / 2 + 0.02, Math.min(1 - wf / 2 - 0.02, mx));
       var alta = r.y + r.h / r.H > 0.97, my = alta ? 1 - s / 200 : 0.5;
       var o = {id:id, ad:'Klip ' + (sk.i + 1), klip:sk.fkey, arka:true, x:mx, y:my, s:s, r:0, op:100, golge:true, ayna:false, hareket:'sabit'};
-      anlik(true); N.liste.push(o); N.sec = id; kaydet(); yenile();
-      is.querySelector('b').textContent = 'Kişi kesildi';
+      anlik(true); N.liste.push(o); N.sec = id; var oc0 = otoAcik() ? otoCamNesne(o) : null; kaydet(); yenile();
+      is.querySelector('b').textContent = 'Kişi kesildi' + (oc0 ? ' · cam otomatik' : '');
       bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn. Kişi tam görünür, arkası bulanık; sürükleyip büyütebilirsin.', 1);
       is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (is.querySelector('b').textContent === 'Kişi kesildi') is.hidden = true; }, 2500);
       if (!N.acik) ac(); else ciz();
@@ -12503,10 +12520,10 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
       var W = N.W || 1920, H = N.H || 1080, oran = r.w / r.h, s = 80;
       if (oran * s / 100 * H > W * 0.9) s = Math.max(10, Math.round(W * 0.9 / oran / H * 100));   /* geniş nesne ekrana sığsın */
       var o = {id:id, ad:(f.name || 'nesne').replace(/\.[^.]+$/, '').slice(0, 40), x:0.5, y:Math.min(0.5, 0.97 - s / 200), s:s, r:0, op:100, golge:true, ayna:false, hareket:'belir', t0:0, t1:null};   /* varsayılan: videonun başından sonuna; Başlangıç/Bitiş ile daraltılır */
-      anlik(true); N.liste.push(o); N.sec = id; degisti(true);
+      anlik(true); N.liste.push(o); N.sec = id; var oc1 = otoAcik() ? otoCamNesne(o) : null; degisti(true);
       is.querySelector('b').textContent = 'Nesne eklendi';
-      bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn' + (r.indi ? ' (model indirme dahil)' : '') + '. Önizlemede sürükleyerek yerleştir.', 1);
-      is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (!is.querySelector('#stNIsT').hidden && is.querySelector('b').textContent === 'Nesne eklendi') is.hidden = true; }, 2500);
+      bildir((r.motor === 'grafik birimi' ? 'Grafik birimiyle' : 'İşlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn' + (r.indi ? ' (model indirme dahil)' : '') + '. Önizlemede sürükleyerek yerleştir.' + otoMesaj(oc1), 1);
+      is.querySelector('#stNIsT').hidden = false; setTimeout(function(){ if (!is.querySelector('#stNIsT').hidden && is.querySelector('b').textContent === 'Nesne eklendi') is.hidden = true; }, oc1 ? 6000 : 2500);
     } catch(e){ console.error(e); is.querySelector('b').textContent = 'Olmadı'; bildir(String(e && e.message || e), 0); is.querySelector('#stNIsT').hidden = false; }
   });
 
@@ -12526,9 +12543,10 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
       var wf = p.w / r.W, hf = p.h / r.H;
       N.liste.push({id:id, ad:ad + ' ' + (i + 1), x:0.5 + (p.x + wf / 2 - 0.5) * PW / W, y:ust + (p.y + hf / 2) * PH / H, s:Math.max(3, hf * PH / H * 100), r:0, op:100, golge:true, ayna:false, hareket:'belir', t0:0, t1:null});
       if (!ilk) ilk = id; }
+    var ocn = 0; if (otoAcik()) N.liste.slice(-r.parcalar.length).forEach(function(p){ if (otoCamNesne(p)) ocn++; });
     N.sec = ilk; degisti(true);
     is.querySelector('b').textContent = 'Nesne eklendi';
-    is.querySelector('#stNIsM').textContent = r.parcalar.length + ' nesne ayrı katman olarak eklendi (' + (r.motor === 'grafik birimi' ? 'grafik birimiyle' : 'işlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn). Panelde her birini seçip ayrı ayarla.';
+    is.querySelector('#stNIsM').textContent = r.parcalar.length + ' nesne ayrı katman olarak eklendi (' + (r.motor === 'grafik birimi' ? 'grafik birimiyle' : 'işlemciyle') + ' ' + (r.ms / 1000).toFixed(1).replace('.', ',') + ' sn). Panelde her birini seçip ayrı ayarla.' + (ocn ? ' ' + ocn + ' nesnede cam otomatik fırçalandı.' : '');
     is.querySelector('#stNIsT').hidden = false; }
 
   /* ---------- geri al / ileri al (katman ayarları) ---------- */

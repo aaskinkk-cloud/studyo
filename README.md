@@ -2,7 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.8 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.9 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.9 (07.11.2026): cam fırçası otomatik
+- Nesne kesilince cam bölgesi **kendiliğinden fırçalanır**: fotoğraf editörü › Kes ve video editörü › Nesne (fotoğraftan eklenen nesne, ayrı parçalar, fotoğraf klibinden kesilen). Videodan kesilen hareketli kişide uygulanmaz.
+- **1) Çay bardağı:** nesnede çay bandı (koyu kırmızı-kehribar) aranır. Çay seviyesinin üstünde, çayın genişliği boyunca kalan kısım cam sayılır; ten rengi ve çay renkli pikseller hariç. Parlamalar ve kenar çizgileri fırçanın kendisi gibi korunur. Çay ve tabak olduğu gibi kalır.
+- **2) Çay yoksa genel tahmin:** nesnenin iç kısmında (kenardan uzak) çevredeki arka plana çok benzeyen yerler cam sayılır. Böyle yerler nesnenin %6–85'i değilse hiçbir şey uygulanmaz. Genel tahmin daha çok hata yapar: arka planla aynı renkteki opak nesneyi (beyaz masada beyaz fincan gibi) cam sanabilir.
+- **Düzeltme:** fotoğrafta ↶ Geri al (tek adım), fazla giden yer Koru, eksik yer Cam fırçası. Videoda Nesne › Cam › Geri al.
+- **Ayar:** Cam fırçası seçiliyken **✨ Camı otomatik bul** (istediğin an yeniden uygula) ve **Kesince otomatik: açık/kapalı** (video: Yeni nesnede otomatik). Ayar iki editörde ortak, hatırlanır; varsayılan açık.
+- Kod: `yz/motor.js` › `stYZ.camBul` (ortak motor), `kaynak/foto-nesne.js`, `kaynak/video-nesne.js`. Kayıt biçimi değişmedi (fotoğrafta alfa + cam haritası, videoda `_c` haritası).
+- Test (sunucuda): yeşillik önünde ince belli çay bardağı (çay, tabak, parlama çizgisi). Fotoğraf editöründe ve video Nesne'de çayın üstü saydamlaştı; parlama, ağız çizgisi, çay ve tabak kaldı. Yapay sahnelerde: boş cam genel yöntemle bulundu, düz renkli opak nesneye uygulanmadı. Gerçek fotoğrafla telefonda denenmedi.
 
 ## 2.8 (07.11.2026): yazıya dokun → ekranda düzenle · rastgele hareket yönü · müzik düğmeleri sabit
 - **Önizlemede yazıya tek dokunuş:** başlık, alt başlık, ek yazılar, vurgu bantları, kanca, abone hatırlatıcı, kapanış yazıları, altyazı ve Metin yazıları.

@@ -56,6 +56,8 @@ kv = degistir(kv, '\nboot();\n})();\n', '\nwindow.__kvBoot = boot();\nwindow.__k
 # Stüdyo nesne katmanı (kaynak/video-nesne.js): yazıların altına, klip ve geçişlerin üstüne çizilir; görünürken kare önbelleği kullanılmaz
 kv = degistir(kv, '    drawYazilar(ctx, W, H, t);\n', '    try { window.__kvNesne && window.__kvNesne(ctx, W, H, t, exporting, getSrc); } catch(e){}\n    drawYazilar(ctx, W, H, t);\n', 'kv nesne çizim')
 kv = degistir(kv, '  function signature(t, tl){\n', '  function signature(t, tl){\n    if (window.__kvNesneVar && window.__kvNesneVar(t)) return null;\n', 'kv nesne imza')
+# 2.10: panel kabuğu yeniden kurulunca (döndürme, tam ekran, pencere boyu) başlık en üstte kalsın; alt sekme sıraları başlığın üstüne çıkıp arkasında kalmasın
+kv = degistir(kv, "if (pan.isConnected) return; stg.after(pan); pan.append(pb);", "if (pan.isConnected) return; stg.after(pan); pan.prepend(pb);", 'kv başlık sırası')
 # 2.7: Klipler › "Sıra" ile "Seçili klip" tek sekmede ("Sıra ve klip"); seçili klip çubuğu (kaynak/video-sira.js) bu gruba girer
 kv = degistir(kv, "  if (siraEk.length) gruplar.splice(Math.min(1, gruplar.length), 0, {ad: 'Sıra', els: siraEk});\n",
   "  if (siraEk.length){ const stb = document.querySelector('.kv-pan > #stKlipBar'); if (stb && getComputedStyle(stb).display !== 'none') siraEk.push(stb);\n"

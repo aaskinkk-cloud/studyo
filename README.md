@@ -2,7 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.9 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.10 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.10 (07.11.2026): menüler başlığın arkasında kalmıyor · videodan kişi kesme 2 kat hızlı
+- **Hata:** Görünüm · Efekt (ve diğer bölümlerde) alt sekme sırası panel başlığının üstüne çıkıp arkasında yarım kalıyordu. Neden: telefon döndürülünce, tam ekrana girip çıkınca ya da pencere boyu değişince panel kabuğu yeniden kuruluyor, başlık en sona ekleniyordu. Başlık artık hep en üste eklenir (`esitle.py` kancası). Test: geniş ekrana geçip dönünce sıra başlık › sekmeler.
+- **Videodan kişi kesme hızı** (Nesne panelinde ayar, varsayılan Hızlı):
+  - **Hızlı · 5 kare/sn:** işlenecek kare yarıya iner, süre yaklaşık yarıya düşer. Aradaki kareler iki maskenin karışımıyla doldurulur, hareket akıcı kalır.
+  - **Akıcı · 10 kare/sn:** eski davranış; hızlı hareketli kişide daha doğru.
+  - İki modda da sıradaki kareye atlama artık yapay zekâ çalışırken yapılır; bu da her karede biraz zaman kazandırır.
+  - Çizimde iki işlenmiş kare arasındaki maskeler karıştırılır (Akıcı modda da daha yumuşak).
+- Model boyutu (1024) küçültülemedi: ISNet modelinde sabit boyutlu ara katmanlar var; 768 px'te çalışmadı (denendi).
+- Test (sunucuda, grafik birimi yok): 3 sn'lik videoda Hızlı mod 16 kare işledi (Akıcı 31 kare), kesilen kişi önizlemede doğru göründü, hata yok.
 
 ## 2.9 (07.11.2026): cam fırçası otomatik
 - Nesne kesilince cam bölgesi **kendiliğinden fırçalanır**: fotoğraf editörü › Kes ve video editörü › Nesne (fotoğraftan eklenen nesne, ayrı parçalar, fotoğraf klibinden kesilen). Videodan kesilen hareketli kişide uygulanmaz.

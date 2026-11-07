@@ -56,6 +56,17 @@ kv = degistir(kv, '\nboot();\n})();\n', '\nwindow.__kvBoot = boot();\nwindow.__k
 # Stüdyo nesne katmanı (kaynak/video-nesne.js): yazıların altına, klip ve geçişlerin üstüne çizilir; görünürken kare önbelleği kullanılmaz
 kv = degistir(kv, '    drawYazilar(ctx, W, H, t);\n', '    try { window.__kvNesne && window.__kvNesne(ctx, W, H, t, exporting, getSrc); } catch(e){}\n    drawYazilar(ctx, W, H, t);\n', 'kv nesne çizim')
 kv = degistir(kv, '  function signature(t, tl){\n', '  function signature(t, tl){\n    if (window.__kvNesneVar && window.__kvNesneVar(t)) return null;\n', 'kv nesne imza')
+# 2.7: Klipler › "Sıra" ile "Seçili klip" tek sekmede ("Sıra ve klip"); seçili klip çubuğu (kaynak/video-sira.js) bu gruba girer
+kv = degistir(kv, "  if (siraEk.length) gruplar.splice(Math.min(1, gruplar.length), 0, {ad: 'Sıra', els: siraEk});\n",
+  "  if (siraEk.length){ const stb = document.querySelector('.kv-pan > #stKlipBar'); if (stb && getComputedStyle(stb).display !== 'none') siraEk.push(stb);\n"
+  "    const si = gruplar.findIndex(x => x.sect && x.sect.id === 'clipSect');\n"
+  "    if (si >= 0){ const sg = gruplar.splice(si, 1)[0]; gruplar.splice(Math.min(1, gruplar.length), 0, {ad: 'Sıra ve klip', els: siraEk.concat(sg.els), sect: sg.sect}); }\n"
+  "    else gruplar.splice(Math.min(1, gruplar.length), 0, {ad: 'Sıra', els: siraEk}); }\n", 'kv sıra+klip')
+kv = degistir(kv, "  const G = gruplar[sec], anahtar = imza + '#' + sec;\n",
+  "  const G = gruplar[sec], anahtar = imza + '#' + sec;\n  document.body.classList.toggle('st-sk', t === 'photo' && !!G && G.ad === 'Sıra ve klip');\n", 'kv st-sk')
+# 2.7: şeritte/katmanda klip başına ses·çoğalt·sil, seçili klip çubuğu — kapanışın içinde, boot() öncesi
+_sira = os.path.join(BURA, 'video-sira.js')
+if os.path.exists(_sira): kv = degistir(kv, '\nwindow.__kvBoot = boot();\n', '\n' + oku(_sira) + '\nwindow.__kvBoot = boot();\n', 'kv sira')
 kv = govdeye(kv, 'video')
 yaz(os.path.join(OUT, 'video', 'index.html'), kv)
 for f in ['icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'manifest.webmanifest']:

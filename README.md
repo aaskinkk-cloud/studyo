@@ -2,7 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.6 (APK 2.0) · 06.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.7 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.7 (07.11.2026): Sıra ve seçili klip tek ekranda
+- Video editörü › Klip: **Sıra** ile **Seçili klip** sekmeleri birleşti → **Sıra ve klip**. Yukarıdan aşağı: büyük klip şeridi · seçili klip çubuğu · klibin ayarları (Süre · Kadraj · Hareket · Takip yazı) · Katmanlar. Bu sekme sayfalara bölünmez, kaydırılır.
+- **Büyük klip resimleri:** şeritteki kareler 74 → 118 px, net çizilir. Klip katmanındaki bloklar 30 → 60 px; klibin resmi blok boyunca yan yana tekrarlanır.
+- **Her klipte düğmeler** (şeritte, karenin altında): 🔊 ses aç/kapat (yalnız video; kısıksa üstünde % yazar) · ⧉ çoğalt · 🗑 sil. Sil yanlışlıkla silmeye karşı iki dokunuş ister: seçili olmayan klipte ilk dokunuş klibi seçer, ikincisi siler. Hepsi ↶ Geri al ile geri alınır (ses hariç; ses tek dokunuşla geri açılır).
+- **Seçili klip çubuğu:** Sola · Sağa · Sessiz/Sesi aç · Çoğalt · Böl · Sil, sağ üstte Çoklu seçim. Videoda altında **Klibin sesi** kaydırıcısı (%0–150; %0 = kapalı). Böl: oynatma çizgisi seçili klibin dışındaysa klibi ortasından böler.
+- Klip katmanında sesi kapalı (kırmızı) ya da kısık videoda sağ altta ses simgesi.
+- Eski "Sıra" ara başlığı (Sola al · Sağa al · Çoğalt · Kaldır) bu sekmede gizlendi; işlevleri çubukta. Kayıt biçimi değişmedi (`c.vol`, `c.mute` zaten vardı).
+- Kod: `kaynak/video-sira.js` (Kareden Videoya kapanışının içine eklenir), `esitle.py` içinde iki küçük kanca (sekme birleştirme, `st-sk` sınıfı), `kaynak/video-arayuz.js` (bu sekmede sayfalama kapalı).
+- Test (sunucuda, 412×915): 2 video + 2 fotoğraf; şeritten ses kapat, çubuktan %40, seçili olmayan klipte sil (önce seçti, sonra sildi), çoğalt, katman simgeleri, diğer sekmelerde şerit/çubuğun gizlenmesi. Hata yok. Telefonda denenmedi.
 
 ## 2.6 (06.11.2026): Nesne paneli sade, önizleme büyük
 - Video editörü › Nesne paneli bölümlere ayrıldı: **Ayar · Efekt · Arka plan · Cam fırçası · Diğer**. Her seferinde yalnız seçili bölüm görünür; panel yaklaşık 650 px'ten 270 px'e indi, önizleme artık panelin altında kalmıyor.

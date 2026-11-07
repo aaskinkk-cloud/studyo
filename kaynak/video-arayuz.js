@@ -58,6 +58,7 @@
       if (!aktif()){ temizle(); return; }
       var pan = document.querySelector('.kv-pan'), t = B.dataset.kvtab, pn = pan && document.querySelector('#editor [data-panel="' + t + '"]');
       if (!pan || !pn){ temizle(); return; }
+      if (t === 'photo' && B.classList.contains('st-sk')){ temizle(); return; }   /* 2.7: Sıra ve klip sekmesi kaydırılır, sayfalanmaz */
       ikinciSiraSimge();
       var r = satirKur(); if (!r) return;
       var birimler = [].filter.call(pn.children, function(c){ return !c.matches('.phead') && getComputedStyle(c).display !== 'none'; });

@@ -2,7 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.13 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.14 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.14 (08.11.2026): video editöründe sade düzen (menü arkasında menü yok)
+- **Neden:** video ekranında üç katman üst üste çalışıyordu: alttaki bölüm (Klip, Şablon…) → bölüm içi sekmeler (Hızlı yol / Sıra ve klip / Yeni klipler / Tümü) → ara başlık sırası → sayfa sırası ve tek tek kaydırıcı. Bir ayara 3-4 adımda ulaşılıyordu; bir yerde yazı da alttaki şeridin arkasında yarım kalıyordu.
+- **Sade düzen (varsayılan):** alttan bir bölüme dokununca o bölümün tüm ayarları **tek sayfada, alt alta** durur. Bölüm içi sekmeler, ara başlık sırası, sayfa sırası ve tek tek kaydırıcı yok. Bölümler başlığına dokununca açılır-kapanır (akordeon). Uzun seçenek şeritleri yana kaymaz, düzgün satırlara sarılır. Bölüm başlığı kartın iki kenarına kadar uzanır.
+- **Eski sekmeli düzen silinmedi:** ⋯ menüsü › **Sekmeli düzene geç** (geri: **Sade düzene geç**). Seçim hatırlanır (`localStorage['studyo.vSade']`).
+- Hiçbir işlev kaldırılmadı; öğeler taşınmaz, yalnız gizleme kalktı. Fotoğraf editörü (Karanlık Oda) değişmedi.
+- Kod: `kaynak/video-arayuz.js` (sonundaki blok; sayfalama `aktif()` sade düzende çalışmaz), `video/index.html` içindeki kopyası.
+- Test (sunucuda, 412×915, iki fotoğraflı proje): Klip ve Şablon bölümlerinde sekme sırası yok, gizli öğe 0; Sekmeli düzene geçince sekmeler ve gizleme geri geldi, tekrar Sade'ye geçince kalktı. Hata yok. Telefonda denenmedi.
 
 ## 2.13 (08.11.2026): APK'da tam ekran uyarısı yok · gizli önizleme tek dokunuşla geri
 - **"Tam ekrandan çıkmak için yukarıdan sürükleyip…" uyarısı:** Stüdyo APK'sı bir Trusted Web Activity'dir; sayfayı telefondaki Chrome'un kendisi açar (WebView değil). Uyarı, sayfa tam ekran isteği gönderince Chrome'un kendisinden çıkıyordu (önizleme gizliyken ⛶ düğmesi sayfa tam ekranı istiyordu). APK'da (ve kurulu uygulamada) sayfa zaten tam ekran olduğu için artık hiçbir tam ekran isteği gönderilmez → uyarı çıkmaz. Önizleme tam ekranı CSS ile aynen çalışır. Chrome sekmesinde eski davranış aynı.

@@ -12709,7 +12709,7 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
   (function menuTasi(n){ var m = document.getElementById('pvDahaMenu'); if (!m){ if (n < 100) setTimeout(function(){ menuTasi(n + 1); }, 300); return; }
     if (m.parentElement !== document.body) document.body.appendChild(m); m.style.zIndex = '200'; })(0);
   var row = null, mesgul = false, gozcu = null, sonImza = '';
-  function aktif(){ return B.classList.contains('kv-studyo') && B.classList.contains('is-mod') && !B.classList.contains('kv-kapali') && !B.classList.contains('kv-klv'); }
+  function aktif(){ return B.classList.contains('kv-studyo') && B.classList.contains('is-mod') && !B.classList.contains('kv-kapali') && !B.classList.contains('kv-klv') && !B.classList.contains('st-sade'); }
   function ikinciSiraSimge(){
     var r2 = document.getElementById('isAltSek2'); if (!r2 || r2.hidden) return;
     [].forEach.call(r2.querySelectorAll('button'), function(b){ if (b.querySelector('svg')) return; var ad = b.textContent.trim();
@@ -12804,6 +12804,41 @@ body.kv-studyo.is-mod .toast{bottom:calc(var(--isZsH,0px) + 76px + env(safe-area
     }, true);
     new MutationObserver(yaz).observe(stg, {attributes: true, attributeFilter: ['class']});
     yaz();
+  })(0);
+})();
+/* 2.14: SADE DÜZEN (varsayılan). Alttan bir bölüme dokununca o bölümün tüm ayarları tek sayfada, alt alta durur:
+   bölüm içi sekme sıraları (Hızlı yol / Sıra ve klip / … / Tümü), ara başlık sırası, sayfa sırası ve tek tek kaydırıcı yok;
+   uzun seçenek şeritleri yana kaymaz, satırlara sarılır. Bölümler başlıklarıyla açılır-kapanır (Kareden Videoya'nın akordeonu).
+   Eski sekmeli düzen silinmedi: ⋯ menüsü › "Sekmeli düzene geç" (seçim hatırlanır, localStorage 'studyo.vSade' = '0'). */
+(function(){
+  if (!window.STUDYO) return;
+  var B = document.body, K = 'studyo.vSade';
+  function sade(){ try { return localStorage.getItem(K) !== '0'; } catch(e){ return true; } }
+  var css = document.createElement('style'); css.id = 'st-sade-css';
+  css.textContent = [
+    'body.st-sade #isAltSek,body.st-sade #isAltSek2,body.st-sade #stVsayfa,body.st-sade .kv-pan .st-ksat{display:none!important}',
+    'body.st-sade.kv-studyo.is-mod .kv-pan .seg,body.st-sade.kv-studyo.is-mod .kv-pan .chips{flex-wrap:wrap!important;overflow-x:visible!important}',
+    'body.st-sade.kv-studyo.is-mod .kv-pan .seg>button,body.st-sade.kv-studyo.is-mod .kv-pan .chips>*{flex:1 1 auto!important}',
+    /* bölüm başlığı kartın iki kenarına kadar uzansın (kenar boşluğuna taşan başlık %100 sınırına takılıp sağda boşluk bırakıyordu) */
+    'body.st-sade.kv-studyo.is-mod .kv-pan .sect>h3{max-width:none!important}'
+  ].join('\n');
+  (document.head || document.documentElement).appendChild(css);
+  /* sekmeli düzenin gizlediği öğeler geri açılır (öğeler taşınmaz, silinmez; yalnız gizleme sınıfları kaldırılır) */
+  function ac(){ if (!B.classList.contains('st-sade')) return; var pan = document.querySelector('.kv-pan'); if (!pan) return;
+    [].forEach.call(pan.querySelectorAll('.is-gizle,.is-tek,.is-alt2,.st-gz'), function(e){ e.classList.remove('is-gizle', 'is-tek', 'is-alt2', 'st-gz'); }); }
+  function uygula(){ B.classList.toggle('st-sade', sade()); ac();
+    var b = document.getElementById('stSadeSec'); if (b) b.dataset.lb = sade() ? 'Sekmeli düzene geç' : 'Sade düzene geç';
+    try { window.stVideoPas && window.stVideoPas(true); } catch(e){} window.dispatchEvent(new Event('resize')); }
+  (function bagla(n){
+    var pan = document.querySelector('.kv-pan'), m = document.getElementById('pvDahaMenu');
+    if (!pan || !m){ if (n < 150) setTimeout(function(){ bagla(n + 1); }, 400); return; }
+    new MutationObserver(function(){ ac(); }).observe(pan, {subtree: true, attributes: true, attributeFilter: ['class']});
+    if (!document.getElementById('stSadeSec')){ var b = document.createElement('button'); b.type = 'button'; b.id = 'stSadeSec';
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+      b.addEventListener('click', function(){ try { localStorage.setItem(K, sade() ? '0' : '1'); } catch(e){} uygula();
+        if (window.toast) try { toast(sade() ? 'Sade düzen: her bölüm tek sayfa' : 'Sekmeli düzen'); } catch(e){} });
+      m.appendChild(b); }
+    uygula();
   })(0);
 })();
 

@@ -10831,6 +10831,11 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     '#stKes .sahne.z-siyah{background:#000}#stKes .sahne.z-beyaz{background:#fff}#stKes .sahne.z-yesil{background:#18b85a}',
     '#stKes #stKesC{position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:auto}',
     '#stKes .imlec{position:absolute;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.5);pointer-events:none;display:none}',
+    '#stKes .imlec.akilli{border-color:#ffb067}',
+    '#stKes .parmak{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 0 0 1px rgba(0,0,0,.5);pointer-events:none;display:none}',
+    '#stKes .buyutec{position:absolute;top:10px;left:10px;width:132px;height:132px;border-radius:14px;border:2px solid #f2f2f2;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;display:none;z-index:2;background-color:#bbb;background-image:linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%),linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%);background-size:14px 14px;background-position:0 0,7px 7px}',
+    '#stKes .buyutec.sag{left:auto;right:10px}',
+    '#stKes .sahne.z-siyah .buyutec{background:#000}#stKes .sahne.z-beyaz .buyutec{background:#fff}#stKes .sahne.z-yesil .buyutec{background:#18b85a}',
     '#stKes .alt{background:#1c1c1c;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);border-radius:16px 16px 0 0}',
     '#stKes .sira{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px}',
     '#stKes .sira::-webkit-scrollbar{display:none}',
@@ -10879,7 +10884,7 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
   kok.innerHTML = '<div class="ku"><button type="button" class="ib" data-a="kapat" aria-label="Kapat">' + ic(I.kapat) + '</button>'
     + '<button type="button" class="ib" data-a="geri" aria-label="Geri al" disabled>' + ic(I.geri) + '</button><button type="button" class="ib" data-a="ileri" aria-label="İleri al" disabled>' + ic(I.ileri) + '</button>'
     + '<b>Kes</b><button type="button" class="ib" data-a="kars" aria-label="Basılı tut: orijinal">' + ic(I.goz) + '</button><button type="button" class="ib" data-a="sifir" aria-label="Yapay zekâ sonucuna dön">' + ic(I.sifir) + '</button><button type="button" class="kaydet" data-a="bitti">Bitti</button></div>'
-    + '<div class="sahne" id="stKesS"><canvas id="stKesC"></canvas><div class="imlec" id="stKesI"></div>'
+    + '<div class="sahne" id="stKesS"><canvas id="stKesC"></canvas><div class="imlec" id="stKesI"></div><div class="parmak" id="stKesP"></div><canvas class="buyutec" id="stKesB" width="264" height="264"></canvas>'
     + '<div class="is" id="stKesIs" hidden><div><b id="stKesIsB">Nesne kesiliyor</b><div id="stKesIsM">Hazırlanıyor…</div><div class="cb"><i id="stKesIsC"></i></div><button type="button" class="tm" id="stKesIsT" hidden>Tamam</button></div></div>'
     + '<div class="sayfa" id="stKesSf" hidden></div></div>'
     + '<div class="alt"><div class="araclar">'
@@ -10894,6 +10899,8 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     + '<div class="kr" id="stKesCamR" hidden><span style="width:76px">Saydamlık</span><input type="range" id="stKesCam" min="10" max="100" step="5" value="60"><span id="stKesCamO" style="width:34px;text-align:right">60</span></div></div>'
     + '<div class="sira" id="stKesOto" hidden><button type="button" data-g="otocam">✨ Camı otomatik bul</button><button type="button" data-g="otoac"></button></div>'
     + '<div class="kr" id="stKesFr" hidden><span>Fırça</span><input type="range" id="stKesBoy" min="1" max="20" step="0.5" value="5"><span id="stKesBoyO">5%</span></div>'
+    + '<div id="stKesAk" hidden><div class="kr" id="stKesHsR"><span>Hassasiyet</span><input type="range" id="stKesHs" min="0" max="100" step="1" value="45"><span id="stKesHsO">45</span></div>'
+    + '<div class="sira"><button type="button" data-g="akilli">Akıllı kenar</button><button type="button" data-g="ofset">İmleç parmağın üstünde</button><button type="button" data-g="buyutec">Büyüteç</button></div></div>'
     + '<div class="sira" id="stKesZ"><button type="button" data-z="dama" class="on">Dama</button><button type="button" data-z="siyah">Siyah</button><button type="button" data-z="beyaz">Beyaz</button><button type="button" data-z="yesil">Yeşil</button><button type="button" data-g="maske">Maskeyi göster</button><button type="button" data-g="kenar" class="on">Yumuşak fırça</button><button type="button" data-g="temiz" class="on">Kenar rengini temizle</button></div>'
     + '<p class="not" id="stKesNot">Tutmak istediğin nesneye dokun; diğerleri silinir. Yakınlaştırmak için iki parmak.</p></div>';
   document.body.appendChild(kok);
@@ -10986,12 +10993,48 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
   /* ---------- fırça ---------- */
   var F = null;
   function boyPx(){ return Math.max(K.W, K.H) * K.boy / 100 / 2; }
+  /* 2.12: ayarlar (hatırlanır) — akıllı kenar, hassasiyet, imleç parmağın üstünde, büyüteç */
+  function ayar(k, v0){ try { var v = localStorage.getItem('st.kes.' + k); return v == null ? v0 : v; } catch(e){ return v0; } }
+  function ayarYaz(k, v){ try { localStorage.setItem('st.kes.' + k, String(v)); } catch(e){} }
+  var A = {akilli:ayar('akilli', '1') !== '0', hs:+ayar('hs', '45') || 45, ofset:ayar('ofset', '1') !== '0', buyutec:ayar('buyutec', '1') !== '0'};
+  function akilliMi(){ return A.akilli && K && (K.mod === 'koru' || K.mod === 'sil'); }
+  /* 2.12: akıllı kenar — fırçanın merkezindeki renk örneklenir; daire içinde merkezden başlayıp yalnız bu renge benzeyen ve
+     keskin renk sıçraması (kenar çizgisi) geçmeden ulaşılabilen pikseller etkilenir. Benzerlik azaldıkça etki yumuşak azalır (kenar tırtıksız).
+     Yapay zekânın kesin dediği sınır da duvar sayılır: arka plandan başlayan Sil, yapay zekânın emin olduğu nesneye girmez (Koru tersi). */
+  var AB = {m:null, q:null};
+  function renkFark2(px, j, r0, g0, b0){ var R = px[j] - r0, G = px[j + 1] - g0, B = px[j + 2] - b0, rm = (px[j] + r0) / 2; return (2 + rm / 256) * R * R + 4 * G * G + (2 + (255 - rm) / 256) * B * B; }   /* algısal renk farkının karesi */
+  function akilliHarita(p, r, x0, y0, x1, y1){
+    var W = K.W, px = K.px, ai = K.ai, bw = x1 - x0 + 1, bh = y1 - y0 + 1, n = bw * bh, r2 = r * r;
+    if (!AB.m || AB.m.length < n){ AB.m = new Float32Array(n); AB.q = new Int32Array(n); }
+    var M = AB.m, Q = AB.q; M.fill(0, 0, n);
+    var cx = Math.min(x1, Math.max(x0, Math.round(p.x))), cy = Math.min(y1, Math.max(y0, Math.round(p.y)));
+    /* örnek renk: merkezin küçük çevresinin ortalaması (tek piksel gürültüsüne takılmaz) */
+    var sr = Math.max(1, Math.round(r * 0.08)), sR = 0, sG = 0, sB = 0, sn = 0, xx, yy;
+    for (yy = Math.max(y0, cy - sr); yy <= Math.min(y1, cy + sr); yy++) for (xx = Math.max(x0, cx - sr); xx <= Math.min(x1, cx + sr); xx++){ var jj = (yy * W + xx) * 4; sR += px[jj]; sG += px[jj + 1]; sB += px[jj + 2]; sn++; }
+    sR /= sn; sG /= sn; sB /= sn;
+    var T = 22 + A.hs * 2.4, Tic = T * 0.55, ADIM = Math.max(16, T * 0.5), T2 = T * T, Tic2 = Tic * Tic, ADIM2 = ADIM * ADIM, ci = cy * W + cx, sa = ai ? ai[ci] : 128, du = sa < 70 ? 1 : sa > 185 ? 2 : 0;
+    var qn = 0, li = (cy - y0) * bw + (cx - x0); M[li] = 1; Q[qn++] = li;
+    var dx4 = [-1, 1, 0, 0], dy4 = [0, 0, -1, 1];
+    while (qn){ var l = Q[--qn], lx = l % bw, ly = (l - lx) / bw, gx = lx + x0, gy = ly + y0, gj = (gy * W + gx) * 4;
+      for (var k = 0; k < 4; k++){ var nx = lx + dx4[k], ny = ly + dy4[k]; if (nx < 0 || ny < 0 || nx >= bw || ny >= bh) continue;
+        var nl = ny * bw + nx; if (M[nl] !== 0) continue;
+        var X = nx + x0, Y = ny + y0, ddx = X - p.x, ddy = Y - p.y; if (ddx * ddx + ddy * ddy > r2){ M[nl] = -1; continue; }
+        var ni = Y * W + X, nj = ni * 4;
+        if (du && ai){ var av = ai[ni]; if ((du === 1 && av > 200) || (du === 2 && av < 55)){ M[nl] = -1; continue; } }
+        var ds = renkFark2(px, nj, sR, sG, sB); if (ds > T2){ M[nl] = -1; continue; }
+        if (renkFark2(px, nj, px[gj], px[gj + 1], px[gj + 2]) > ADIM2) continue;   /* keskin sıçrama: bu yoldan geçme (başka yoldan ulaşılabilir) */
+        M[nl] = ds <= Tic2 ? 1 : Math.max(0.02, (T - Math.sqrt(ds)) / (T - Tic)); Q[qn++] = nl; } }
+    return M; }
   function firca(p){
     var r = boyPx(), W = K.W, H = K.H, a = K.alfa, ai = K.ai, koru = K.mod === 'koru', cam = K.mod === 'camf', ic0 = K.yumusak ? 0.55 : 0.97, cm, hl;
     if (cam){ camHazirla(); cm = K.cm; hl = K.hl; }
     var x0 = Math.max(0, Math.floor(p.x - r)), x1 = Math.min(W - 1, Math.ceil(p.x + r)), y0 = Math.max(0, Math.floor(p.y - r)), y1 = Math.min(H - 1, Math.ceil(p.y + r)), r2 = r * r;
+    if (x1 < x0 || y1 < y0) return;
+    var M = akilliMi() ? akilliHarita(p, r, x0, y0, x1, y1) : null, bw = x1 - x0 + 1, dg = K.deg;
+    if (M && dg && F){ F.x0 = Math.min(F.x0, x0); F.y0 = Math.min(F.y0, y0); F.x1 = Math.max(F.x1, x1); F.y1 = Math.max(F.y1, y1); }
     for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++){ var dx = x - p.x, dy = y - p.y, d2 = dx * dx + dy * dy; if (d2 > r2) continue;
       var d = Math.sqrt(d2) / r, w = d <= ic0 ? 1 : 1 - (d - ic0) / (1 - ic0), i = y * W + x, v = a[i];
+      if (M){ var mw = M[(y - y0) * bw + (x - x0)]; if (mw <= 0) continue; w *= mw; if (dg) dg[i] = 1; }
       if (cam){ if (v < 4) continue; var h0 = hl[i] / 255, hedefC = K.camB0[i] * Math.max(CAMTABAN, h0); if (hedefC < v) v = v + (hedefC - v) * w; var cc = cm[i] + (255 - cm[i]) * w; cm[i] = cc; }
       else if (koru){ var hedef = 255; v = v + (hedef - v) * w; if (w >= 1) v = 255; if (cm && w >= 1) cm[i] = 0; } else { v = v * (1 - w); if (w >= 1) v = 0; }
       a[i] = v; }
@@ -11022,32 +11065,63 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     K.hl = hl; }
   function cizgi(a, b){ var r = boyPx(), adim = Math.max(1, r * 0.3), d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.ceil(d / adim);
     for (var k = 1; k <= n; k++) firca({x:a.x + (b.x - a.x) * k / n, y:a.y + (b.y - a.y) * k / n}); }
-  var imlec = $('stKesI');
-  function imlecGoster(cx, cy){ if (!K || K.mod === 'sec'){ imlec.style.display = 'none'; return; } var r = sahne.getBoundingClientRect(), d = boyPx() * 2 * V.s;
-    imlec.style.display = 'block'; imlec.style.width = imlec.style.height = d + 'px'; imlec.style.left = (cx - r.left - d / 2) + 'px'; imlec.style.top = (cy - r.top - d / 2) + 'px'; }
+  var imlec = $('stKesI'), parmak = $('stKesP'), buy = $('stKesB'), bx = buy.getContext('2d'), byR = 0, byS = null;
+  /* imleç: fırçanın etki edeceği yer (İmleç parmağın üstünde açıkken parmağın OFS px yukarısı; parmak noktası ayrıca gösterilir) */
+  var OFS = 72;
+  function imlecGoster(cx, cy){ if (!K || K.mod === 'sec' || K.mod === 'kenar'){ imlecGizle(); return; } var r = sahne.getBoundingClientRect(), d = boyPx() * 2 * V.s, oy = A.ofset ? OFS : 0;
+    imlec.style.display = 'block'; imlec.classList.toggle('akilli', !!akilliMi()); imlec.style.width = imlec.style.height = d + 'px'; imlec.style.left = (cx - r.left - d / 2) + 'px'; imlec.style.top = (cy - oy - r.top - d / 2) + 'px';
+    if (oy){ parmak.style.display = 'block'; parmak.style.left = (cx - r.left) + 'px'; parmak.style.top = (cy - r.top) + 'px'; } else parmak.style.display = 'none';
+    if (A.buyutec){ byS = {cx:cx, cy:cy - oy, fx:cx - r.left, fy:cy - r.top, w:r.width}; if (!byR) byR = requestAnimationFrame(buyutecCiz); } }
+  function imlecGizle(){ imlec.style.display = 'none'; parmak.style.display = 'none'; buy.style.display = 'none'; byS = null; }
+  /* büyüteç: parmağın altında kalan yer köşede 2 kat (en az) büyük gösterilir; parmak sol üstteyse sağ üste geçer */
+  function buyutecCiz(){ byR = 0; if (!byS || !K || !K.W){ buy.style.display = 'none'; return; }
+    buy.classList.toggle('sag', byS.fx < 170 && byS.fy < 190); buy.style.display = 'block';
+    var p = resimNokta(byS.cx, byS.cy), B = buy.width, z = Math.max(V.s * 2, B / Math.max(48, boyPx() * 3.2)), yar = B / z / 2;
+    bx.clearRect(0, 0, B, B); bx.imageSmoothingEnabled = z < 4; bx.drawImage(cv, p.x - yar, p.y - yar, yar * 2, yar * 2, 0, 0, B, B);
+    var rr = boyPx() * z; bx.lineWidth = 3; bx.strokeStyle = 'rgba(0,0,0,.55)'; bx.beginPath(); bx.arc(B / 2, B / 2, rr, 0, 7); bx.stroke(); bx.lineWidth = 2; bx.strokeStyle = akilliMi() ? '#ffb067' : '#fff'; bx.beginPath(); bx.arc(B / 2, B / 2, rr, 0, 7); bx.stroke();
+    bx.fillStyle = '#fff'; bx.fillRect(B / 2 - 1, B / 2 - 7, 2, 14); bx.fillRect(B / 2 - 7, B / 2 - 1, 14, 2); }
+  /* 2.12: akıllı fırça bittiğinde kenar rötuşu — darbenin değiştirdiği yerde kalan sert alfa basamakları 3×3 ortalamayla yumuşatılır (tırtık kalmaz) */
+  function rotus(){ if (!K || !K.deg || !F || F.x1 < F.x0) return; var W = K.W, H = K.H, a = K.alfa, dg = K.deg, x0 = Math.max(1, F.x0), y0 = Math.max(1, F.y0), x1 = Math.min(W - 2, F.x1), y1 = Math.min(H - 2, F.y1), b = new Uint8ClampedArray(a), x, y, i;
+    for (y = y0; y <= y1; y++) for (x = x0; x <= x1; x++){ i = y * W + x; if (!dg[i]) continue;
+      var mn = 255, mx = 0, t = 0; for (var oy = -W; oy <= W; oy += W) for (var ox = -1; ox <= 1; ox++){ var v = b[i + oy + ox]; t += v; if (v < mn) mn = v; if (v > mx) mx = v; }
+      if (mx - mn > 150) a[i] = (b[i] * 2 + t) / 11; }
+    for (y = F.y0; y <= F.y1; y++) dg.fill(0, y * W + F.x0, y * W + F.x1 + 1);
+    yenidenCiz(F.x0, F.y0, F.x1 + 1, F.y1 + 1); }
 
   /* ---------- dokunma: tek parmak araç, iki parmak yakınlaştır / kaydır ---------- */
   var P = {}, iki = null, tek = null;
   sahne.addEventListener('pointerdown', function(e){
     if (!K || !K.alfa || e.target.closest('.is,.sayfa')) return; e.preventDefault(); try { sahne.setPointerCapture(e.pointerId); } catch(_){}
     P[e.pointerId] = {x:e.clientX, y:e.clientY}; var ks = Object.keys(P);
-    if (ks.length === 2){ if (tek && tek.boyadi){ /* fırça yeni başlamıştı: geri al */ if (K.yigin.length){ don(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); } } tek = null; imlec.style.display = 'none';
+    if (ks.length === 2){ if (tek && tek.boyadi){ /* fırça yeni başlamıştı: geri al */ if (K.yigin.length){ don(K.yigin.pop()); yenidenCiz(0, 0, K.W, K.H); dugmeler(); } } tek = null; F = null; if (K.deg) K.deg.fill(0); imlecGizle();
       var a = P[ks[0]], b = P[ks[1]]; iki = {d:Math.hypot(b.x - a.x, b.y - a.y) || 1, mx:(a.x + b.x) / 2, my:(a.y + b.y) / 2, s:V.s, x:V.x, y:V.y}; return; }
     if (ks.length > 2) return;
     tek = {p:resimNokta(e.clientX, e.clientY), cx:e.clientX, cy:e.clientY, t:Date.now(), boyadi:false};
-    if (K.mod !== 'sec'){ kayitAl(); tek.boyadi = true; firca(tek.p); imlecGoster(e.clientX, e.clientY); }
+    if (K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'){
+      if (!K.deg || K.deg.length !== K.W * K.H) K.deg = new Uint8Array(K.W * K.H); F = {x0:1e9, y0:1e9, x1:-1, y1:-1};
+      tek.p = boyaNokta(e.clientX, e.clientY); imlecGoster(e.clientX, e.clientY);
+      /* imleç parmağın üstündeyken ilk dokunuşta boyanmaz: önce imleci görürsün, kaydırınca başlar (kısa dokunuş tek damga basar) */
+      if (A.ofset) tek.bekle = true; else { kayitAl(); tek.boyadi = true; firca(tek.p); }
+    }
   });
+  function boyaNokta(cx, cy){ return resimNokta(cx, cy - (A.ofset ? OFS : 0)); }
   sahne.addEventListener('pointermove', function(e){
     if (!(e.pointerId in P)) return; P[e.pointerId] = {x:e.clientX, y:e.clientY}; var ks = Object.keys(P);
     if (iki && ks.length >= 2){ var a = P[ks[0]], b = P[ks[1]], r = sahne.getBoundingClientRect(), d = Math.hypot(b.x - a.x, b.y - a.y), s = Math.max(0.05, Math.min(30, iki.s * d / iki.d));
       var mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top, ox = iki.mx - r.left, oy = iki.my - r.top;
       V.s = s; V.x = mx - (ox - iki.x) * s / iki.s; V.y = my - (oy - iki.y) * s / iki.s; uygula(); return; }
-    if (tek && K.mod !== 'sec'){ var p = resimNokta(e.clientX, e.clientY); cizgi(tek.p, p); tek.p = p; imlecGoster(e.clientX, e.clientY); }
+    if (tek && F && K.mod !== 'sec' && K.mod !== 'kenar'){ var p = boyaNokta(e.clientX, e.clientY);
+      if (tek.bekle){ if (Math.hypot(e.clientX - tek.cx, e.clientY - tek.cy) < 6){ imlecGoster(e.clientX, e.clientY); return; } tek.bekle = false; kayitAl(); tek.boyadi = true; tek.p = p; firca(p); }
+      /* titreme süzgeci: fırça parmağı hafif gecikmeyle izler, kenar boyunca düzgün iz bırakır */
+      var s = {x:tek.p.x + (p.x - tek.p.x) * 0.55, y:tek.p.y + (p.y - tek.p.y) * 0.55}; tek.son = p; cizgi(tek.p, s); tek.p = s; imlecGoster(e.clientX, e.clientY); }
   });
   function birak(e){ if (!(e.pointerId in P)) return; delete P[e.pointerId];
     if (iki){ if (Object.keys(P).length < 2) iki = null; tek = null; return; }
     if (tek && K && K.mod === 'sec' && Math.hypot(e.clientX - tek.cx, e.clientY - tek.cy) < 12 && Date.now() - tek.t < 600) sec(tek.p);
-    tek = null; imlec.style.display = 'none'; }
+    if (tek && K && F){ if (tek.bekle && e.type === 'pointerup' && Date.now() - tek.t < 700){ kayitAl(); tek.boyadi = true; firca(tek.p); }
+      else if (tek.boyadi && tek.son) cizgi(tek.p, tek.son);
+      if (tek.boyadi) rotus(); F = null; }
+    tek = null; imlecGizle(); }
   sahne.addEventListener('pointerup', birak); sahne.addEventListener('pointercancel', birak);
 
   /* ---------- kenar: daralt / genişlet / yumuşat (ortak motor: stYZ.incelt) ---------- */
@@ -11074,16 +11148,19 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     gb.addEventListener('contextmenu', function(e){ e.preventDefault(); }); })();
   /* ---------- düğmeler ---------- */
   function not(m){ $('stKesNot').textContent = m; }
-  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'); $('stKesKn').hidden = !K || K.mod !== 'kenar'; $('stKesOto').hidden = !K || K.mod !== 'camf'; var oa = kok.querySelector('[data-g=otoac]'); if (oa){ oa.textContent = 'Kesince otomatik: ' + (otoAcik() ? 'açık' : 'kapalı'); oa.classList.toggle('on', otoAcik()); }
+  function arayuz(){ kok.querySelectorAll('[data-m]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.m === K.mod); }); $('stKesFr').hidden = !K || !(K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'); $('stKesKn').hidden = !K || K.mod !== 'kenar'; $('stKesOto').hidden = !K || K.mod !== 'camf'; akilliArayuz(); var oa = kok.querySelector('[data-g=otoac]'); if (oa){ oa.textContent = 'Kesince otomatik: ' + (otoAcik() ? 'açık' : 'kapalı'); oa.classList.toggle('on', otoAcik()); }
     kok.querySelectorAll('[data-z]').forEach(function(b){ b.classList.toggle('on', K && b.dataset.z === K.zemin); }); sahne.className = 'sahne' + (K && K.zemin !== 'dama' ? ' z-' + K.zemin : '');
     var mk = kok.querySelector('[data-g=maske]'), kn = kok.querySelector('[data-g=kenar]'); if (mk) mk.classList.toggle('on', !!(K && K.maske)); if (kn) kn.classList.toggle('on', !!(K && K.yumusak)); var tz = kok.querySelector('[data-g=temiz]'); if (tz) tz.classList.toggle('on', !!(K && K.temiz !== false)); var cm = kok.querySelector('[data-g=cam]'); if (cm) cm.classList.toggle('on', !!(K && K.cam)); $('stKesCamR').hidden = !(K && K.cam); dugmeler(); }
   kok.addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b || !K) return;
-    if (b.dataset.m){ K.mod = b.dataset.m; if (K.mod === 'kenar') kenarBasla(); else K.kb = null; arayuz(); not(K.mod === 'camf' ? 'Camın, arkasından manzara görünen kısmının üstünden geç: manzara silinir, parlamalar ve kenar çizgileri kalır. Fazla gittiysen Koru ile geri getir.' : K.mod === 'kenar' ? 'Kenarı daralt (arka plan kalıntısı) ya da genişlet; yumuşaklığı ayarla. Karşılaştırmak için üstteki göze basılı tut.' : K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir. İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç. İnce iş için iki parmakla yakınlaştır.'); return; }
+    if (b.dataset.m){ K.mod = b.dataset.m; if (K.mod === 'kenar') kenarBasla(); else K.kb = null; arayuz(); not(K.mod === 'camf' ? 'Camın, arkasından manzara görünen kısmının üstünden geç: manzara silinir, parlamalar ve kenar çizgileri kalır. Fazla gittiysen Koru ile geri getir.' : K.mod === 'kenar' ? 'Kenarı daralt (arka plan kalıntısı) ya da genişlet; yumuşaklığı ayarla. Karşılaştırmak için üstteki göze basılı tut.' : K.mod === 'sec' ? 'Tutmak istediğin nesneye dokun; diğerleri silinir.' : K.mod === 'koru' ? 'Silinen yerin üstünden geç: geri gelir.' + (A.akilli ? ' Akıllı kenar: fırçanın ortasını nesnenin üstünde tut, kenarda durur.' : '') + ' İnce iş için iki parmakla yakınlaştır.' : 'Kalmasını istemediğin yerin üstünden geç.' + (A.akilli ? ' Akıllı kenar: fırçanın ortasını arka planda tut, nesnenin kenarında durur.' : '') + ' İnce iş için iki parmakla yakınlaştır.'); return; }
     if (b.dataset.z){ K.zemin = b.dataset.z; arayuz(); return; }
     if (b.dataset.g === 'maske'){ K.maske = !K.maske; arayuz(); yenidenCiz(0, 0, K.W, K.H); return; }
     if (b.dataset.g === 'kenar'){ K.yumusak = !K.yumusak; arayuz(); return; }
     if (b.dataset.g === 'cam'){ camAyarla(!K.cam); return; }
+    if (b.dataset.g === 'akilli'){ A.akilli = !A.akilli; ayarYaz('akilli', A.akilli ? 1 : 0); akilliArayuz(); not(A.akilli ? 'Akıllı kenar açık: fırça dokunduğun yerin rengini izler, nesnenin kenar çizgisinde durur. Az etkiliyse Hassasiyet\'i artır, kenarı aşıyorsa azalt.' : 'Akıllı kenar kapalı: fırça dairenin içindeki her yeri etkiler (eski davranış).'); return; }
+    if (b.dataset.g === 'ofset'){ A.ofset = !A.ofset; ayarYaz('ofset', A.ofset ? 1 : 0); akilliArayuz(); not(A.ofset ? 'Fırça parmağının biraz üstünde çalışır; parmak gördüğün yeri kapatmaz. Dokun, imleci gör, sonra kaydır.' : 'Fırça tam parmağının altında çalışır.'); return; }
+    if (b.dataset.g === 'buyutec'){ A.buyutec = !A.buyutec; ayarYaz('buyutec', A.buyutec ? 1 : 0); akilliArayuz(); return; }
     if (b.dataset.g === 'otoac'){ try { localStorage.setItem('st.otoCam', otoAcik() ? '0' : '1'); } catch(_){} arayuz(); not(otoAcik() ? 'Kestiğin her nesnede cam bölgesi otomatik fırçalanacak.' : 'Otomatik cam kapalı; istersen "Camı otomatik bul"a dokun.'); return; }
     if (b.dataset.g === 'otocam'){ if (!K.alfa) return; var ro = otoCam(true); if (!ro) not('Bu nesnede cam bölgesi bulunamadı. Camın arkası görünen yerin üstünden Cam fırçasıyla geç.'); return; }
     if (b.dataset.g === 'temiz'){ K.temiz = K.temiz === false; K.nesS = -1; arayuz(); not(K.temiz !== false ? 'Kenar rengi temizlenecek: eski arka planın rengi kenarda hale bırakmaz (kaydederken uygulanır).' : 'Kenar rengi olduğu gibi kalacak.'); return; }
@@ -11097,6 +11174,11 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     if ((a === 'geri' || a === 'ileri' || a === 'sifir') && K.mod === 'kenar') kenarBasla(true);
     else if (a === 'bitti') sayfaAc();
   });
+  function akilliArayuz(){ var fr = !!K && (K.mod === 'koru' || K.mod === 'sil' || K.mod === 'camf'), ak = !!K && (K.mod === 'koru' || K.mod === 'sil');
+    $('stKesAk').hidden = !fr; $('stKesHsR').hidden = !ak || !A.akilli; var hb = kok.querySelector('[data-g=akilli]'); if (hb){ hb.hidden = !ak; hb.classList.toggle('on', A.akilli); }
+    var ob = kok.querySelector('[data-g=ofset]'); if (ob) ob.classList.toggle('on', A.ofset); var bb = kok.querySelector('[data-g=buyutec]'); if (bb) bb.classList.toggle('on', A.buyutec); }
+  $('stKesHs').value = A.hs; $('stKesHsO').textContent = A.hs;
+  $('stKesHs').addEventListener('input', function(){ A.hs = +this.value; $('stKesHsO').textContent = this.value; ayarYaz('hs', A.hs); });
   $('stKesBoy').addEventListener('input', function(){ if (!K) return; K.boy = +this.value; $('stKesBoyO').textContent = this.value + '%'; });
 
   /* ---------- çıktı ---------- */

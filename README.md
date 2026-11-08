@@ -2,7 +2,23 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.11 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.12 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.12 (08.11.2026): Kes › Sil ve Koru kenara sadık (akıllı kenar)
+- **Akıllı kenar** (varsayılan açık, Sil ve Koru'da): fırçanın ortasındaki renk örneklenir. Dairenin içinde yalnız bu renge benzeyen ve keskin renk sıçraması (kenar çizgisi) aşılmadan ulaşılabilen yerler etkilenir. Sil arka planı alır, nesneye girmez; Koru nesneyi geri getirir, arka plana taşmaz. Benzerlik azaldıkça etki yumuşak azalır, kenar tırtıklı kalmaz.
+  - Yapay zekânın emin olduğu sınır da duvar sayılır: arka plandan başlayan Sil, yapay zekânın kesin nesne dediği yere girmez (Koru tersi).
+  - Kullanım: fırçanın **ortasını** silinecek/korunacak renkte tut; dairenin kenarı nesneye değse de o kısım etkilenmez. Akıllı kenar açıkken imleç turuncudur.
+  - **Hassasiyet** (0–100, varsayılan 45): az siliyorsa artır, kenarı aşıyorsa azalt.
+  - Sınır: arka planla aynı renkteki ya da çok bulanık kenarda (beyaz tabak + açık zemin gibi) ayıracak bir şey yoktur; orada yakınlaştırıp küçük fırça ya da Akıllı kenar kapalı kullan.
+  - Çok renkli nesnede Koru o anki renge göre çalışır: desenin (kırmızı benek gibi) üstünden de geç.
+- **Akıllı kenar kapalı** = eski davranış (dairenin içindeki her yer), seçenek olarak duruyor.
+- **İmleç parmağın üstünde** (varsayılan açık): fırça parmağın biraz yukarısında çalışır, parmak gördüğün yeri kapatmaz. Parmağın yeri küçük beyaz noktayla gösterilir. İlk dokunuşta boyamaz: imleci görürsün, kaydırınca başlar; kısa dokunuş tek damga basar.
+- **Büyüteç** (varsayılan açık): fırçalarken köşede fırçanın altındaki yer büyütülmüş görünür (parmak sol üstteyse sağ üste geçer).
+- **Titreme süzgeci:** fırça parmağı hafif gecikmeyle izler, kenar boyunca düzgün iz bırakır.
+- **Kenar rötuşu:** akıllı darbe bitince değişen yerdeki sert alfa basamakları 1 piksel yumuşatılır.
+- Ayarlar (akıllı kenar, hassasiyet, imleç, büyüteç) hatırlanır. Cam fırçası ve Kenar aracı değişmedi.
+- Kod: `kaynak/foto-nesne.js` (`akilliHarita`, `firca`, `rotus`, `buyutecCiz`), `foto/index.html` içindeki kopyası. Kayıt biçimi değişmedi.
+- Test (sunucuda): yeşil zemin önünde bulanık kenarlı beyaz tabak, içinde kırmızı desen. Kenar boyunca Sil: nesneden 0 piksel gitti, arka plan kenara kadar temizlendi (kenar geçişi 1 piksel). Koru: kenar dışına 0 piksel taştı. En büyük fırçada damga başına ~22 ms (bilgisayarda). Telefonda denenmedi.
 
 ## 2.11 (08.11.2026): galeriden "Paylaş → Stüdyo"
 - Telefonun galerisinde (ya da dosya yöneticisinde) fotoğraf/video seçip **Paylaş** deyince listede **Stüdyo** çıkar.

@@ -1,5 +1,5 @@
 /* Stüdyo çevrimdışı önbelleği. Yalnız kendi önbelleğini (st-) siler; aynı adresteki diğer uygulamalara dokunmaz. */
-const P='st-',V=P+'2.11';
+const P='st-',V=P+'2.12';
 const SHELL=['./','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable.png','foto/','foto/icon-192.png','video/','video/icon-192.png?v=2'];
 const anahtar=u=>{const x=new URL(u);let p=x.pathname;if(p.endsWith('/'))p+='index.html';return x.origin+p;};
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(SHELL.map(s=>fetch(s,{cache:'no-cache'}).then(r=>{if(r.ok)return c.put(anahtar(new URL(s,self.registration.scope).href),r)}).catch(()=>{})))).then(()=>self.skipWaiting()))});

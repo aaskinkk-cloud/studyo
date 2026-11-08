@@ -1,3 +1,4 @@
 <resources>
     <string name="asset_statements">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://aaskinkk-cloud.github.io\"}}]</string>
+    <string name="share_target" translatable="false">{\"action\": \"https://aaskinkk-cloud.github.io/studyo/paylas\", \"method\": \"POST\", \"enctype\": \"multipart/form-data\", \"params\": {\"title\": \"baslik\", \"text\": \"metin\", \"files\": [{\"name\": \"dosya\", \"accept\": [\"image/*\", \"video/*\"]}]}}</string>
 </resources>

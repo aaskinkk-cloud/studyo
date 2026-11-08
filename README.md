@@ -2,7 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.10 (APK 2.0) · 07.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.11 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.11 (08.11.2026): galeriden "Paylaş → Stüdyo"
+- Telefonun galerisinde (ya da dosya yöneticisinde) fotoğraf/video seçip **Paylaş** deyince listede **Stüdyo** çıkar.
+  - Yalnız fotoğraf: Karanlık Oda editöründe açılır (birden çok fotoğraf → toplu düzenleme).
+  - İçinde video varsa: video editöründe açılır (fotoğraflar da klip olarak eklenir).
+- **APK'yı yeniden kurmak gerekir:** Paylaş menüsündeki kayıt APK'nın içindedir. İndirme: https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+- Güncellemeden sonra Stüdyo'yu **bir kez normal aç** (yeni önbellek yüklensin), sonra paylaş.
+- "Birlikte aç" menüsü eklenmedi: Chrome, Android'de web uygulamasına dosya ilişkilendirmeyi desteklemiyor.
+- Nasıl çalışır: APK dosyayı `/studyo/paylas` adresine gönderir (Web Share Target). `sw.js` bunu yakalar, dosyaları ayrı bir önbelleğe (`studyo-paylas`) yazar, ana sayfayı `?paylas=1` ile açar. Ana sayfa dosyaları alır, önbelleği siler ve ilgili editörün kendi dosya seçicisine verir. Dosyalar telefondan çıkmaz.
+- Kod: `android/…/AndroidManifest.xml` (SEND/SEND_MULTIPLE, `METADATA_SHARE_TARGET`), `strings.xml` (`share_target`), `kaynak/sw.js`, `kaynak/kabuk.html` (`paylasimAl`), `kaynak/esitle.py` (web manifestine `share_target`).
+- Test (sunucuda): galeri paylaşımı gibi bir fotoğraf POST edildi → fotoğraf editörü açıldı, ara önbellek silindi, hata yok. Telefonda denenmedi.
 
 ## 2.10 (07.11.2026): menüler başlığın arkasında kalmıyor · videodan kişi kesme 2 kat hızlı
 - **Hata:** Görünüm · Efekt (ve diğer bölümlerde) alt sekme sırası panel başlığının üstüne çıkıp arkasında yarım kalıyordu. Neden: telefon döndürülünce, tam ekrana girip çıkınca ya da pencere boyu değişince panel kabuğu yeniden kuruluyor, başlık en sona ekleniyordu. Başlık artık hep en üste eklenir (`esitle.py` kancası). Test: geniş ekrana geçip dönünce sıra başlık › sekmeler.

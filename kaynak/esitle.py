@@ -95,6 +95,8 @@ yaz(os.path.join(OUT, 'manifest.webmanifest'), json.dumps({
   "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
             {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
             {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
-            {"src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, ensure_ascii=False, indent=1))
+            {"src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
+  "share_target": {"action": "paylas", "method": "POST", "enctype": "multipart/form-data",
+                   "params": {"title": "baslik", "text": "metin", "files": [{"name": "dosya", "accept": ["image/*", "video/*"]}]}}}, ensure_ascii=False, indent=1))
 yaz(os.path.join(OUT, 'sw.js'), oku(os.path.join(BURA, 'sw.js')).replace('%SURUM%', SURUM))
 print(f'Stüdyo {SURUM}: Karanlık Oda {ko_s} + Kareden Videoya {kv_s}')

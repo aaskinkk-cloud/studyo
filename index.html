@@ -33,7 +33,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#121a21">
-<meta name="surum" content="2.10" data-ad="Stüdyo" data-tarih="07.11.2026">
+<meta name="surum" content="2.11" data-ad="Stüdyo" data-tarih="08.11.2026">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -349,6 +349,23 @@ temaKur(tema());
 { const m = document.querySelector('meta[name=surum]'); $('#surumNot').textContent = `Stüdyo ${m.content} · ${m.dataset.tarih} · içinde Karanlık Oda 6.67 ve Kareden Videoya 9.15`; }
 projeYukle();
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !ACIK) projeYukle(); });
+/* paylaş menüsü (Android: galeri › Paylaş › Stüdyo): fotoğraflar Karanlık Oda'da, video varsa video editöründe açılır */
+async function paylasimAl(){
+  if (!new URLSearchParams(location.search).has('paylas')) return;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  let d = [];
+  try { const c = await caches.open('studyo-paylas'); const ks = await c.keys();
+    ks.sort((a, b) => a.url.localeCompare(b.url, undefined, {numeric: true}));
+    for (const k of ks){ const r = await c.match(k); if (!r) continue; const b = await r.blob();
+      d.push(new File([b], decodeURIComponent(r.headers.get('X-Ad') || 'paylasilan'), {type: b.type || r.headers.get('Content-Type') || '', lastModified: Date.now()})); }
+    await caches.delete('studyo-paylas');
+  } catch(e){}
+  d = d.filter(f => /^(image|video)\//.test(f.type));
+  if (!d.length){ tost('Paylaşılan dosya alınamadı'); return; }
+  if (d.some(f => f.type.startsWith('video/'))) modulAc('video/', {dosyalar: d}, 'Video hazırlanıyor…');
+  else modulAc('foto/', {dosyalar: d}, d.length > 1 ? 'Toplu düzenleme açılıyor…' : 'Fotoğraf açılıyor…');
+}
+paylasimAl();
 /* çevrimdışı önbellek */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) navigator.serviceWorker.register('sw.js').catch(() => {});
 window.__studyo = {projeYukle, PROJ: () => PROJ, modulAc, modulKapat, sekme};

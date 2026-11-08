@@ -4,8 +4,20 @@ const SHELL=['./','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png
 const anahtar=u=>{const x=new URL(u);let p=x.pathname;if(p.endsWith('/'))p+='index.html';return x.origin+p;};
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(SHELL.map(s=>fetch(s,{cache:'no-cache'}).then(r=>{if(r.ok)return c.put(anahtar(new URL(s,self.registration.scope).href),r)}).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.indexOf(P)===0&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+/* Paylaş menüsünden gelen dosyalar (POST …/paylas): ayrı önbelleğe yazılır, ana sayfa ?paylas=1 ile açılıp alır */
+const PAY='studyo-paylas';
+async function paylasAl(r){
+  try{
+    const fd=await r.formData(),fs=fd.getAll('dosya').filter(f=>f&&typeof f!=='string'&&f.size);
+    await caches.delete(PAY);const c=await caches.open(PAY);
+    await Promise.all(fs.map((f,i)=>c.put(new URL('__paylas/'+i,self.registration.scope).href,new Response(f,{headers:{'Content-Type':f.type||'application/octet-stream','X-Ad':encodeURIComponent(f.name||('dosya'+i))}}))));
+  }catch(x){}
+  return Response.redirect(new URL('./?paylas=1',self.registration.scope).href,303);
+}
 self.addEventListener('fetch',e=>{
-  const r=e.request;if(r.method!=='GET')return;
+  const r=e.request;
+  if(r.method==='POST'&&new URL(r.url).pathname.endsWith('/paylas')){e.respondWith(paylasAl(r));return;}
+  if(r.method!=='GET')return;
   const u=new URL(r.url);if(u.origin!==location.origin)return;   /* yazı tipleri vb. dış adresler: tarayıcı kendi önbelleği */
   if(u.pathname.indexOf('/yz/')>=0)return;   /* yapay zekâ modeli ve motoru: sayfa kendi önbelleğinde (yz-) tutar, burada kopyalanmaz */
   if(r.mode==='navigate'||/\.html$/.test(u.pathname)){

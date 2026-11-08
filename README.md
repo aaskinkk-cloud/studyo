@@ -2,7 +2,27 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.15 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.16 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.16 (08.11.2026): video editöründe yeni düzen (tasarım paketi, 8 ekran)
+- Plan: "Stüdyo Video — Ayrıntılı Sayfa Planı" belgesi (eskizdeki 8 ekran, Stüdyo'nun gerçek düğmelerine eşlenmiş). Kapsam yalnız video bölümü; fotoğraf bölümü değişmedi.
+- **Alt çubuk 5 bölüm:** Düzenle · Görünüm · Ses · Metin · Yayın. Seçili bölümün alt başlıkları hemen üstte hap düğmeler olarak hep görünür (gizli menü yok):
+  - Düzenle › Çizelge (panel kapalı, zaman çizelgesi) · Klipler · Tuval · Nesne
+  - Görünüm › Şablon · Efekt ve geçiş
+  - Ses › Müzik · Seslendirme
+  - Metin › Yazı · Altyazı
+  - Yayın › Logo · Kapak · Bilgiler · Dışa aktar
+  - Açık bölümün simgesine yine dokununca panel kapanır. Her bölüm en son açılan hapı hatırlar (`localStorage['studyo.vGrup']`).
+  - Haplar Kareden Videoya'nın kendi düğmelerine basar; eski 14 düğme gizli ama yerinde. Eski "Doldur" kısayolu klip araçlarındaki Doldur ile aynı işlev.
+- **Üst çubuk:** **Kaydet** (turkuaz; projeyi hemen cihaza kaydeder, otomatik kayıt da sürer) + **Dışa Aktar** (turuncu).
+- **Oynatıcı satırı:** ⏮ önceki klip · ▶ · ⏭ sonraki klip; zaman çizelgesi de o ana kayar. Tek satır.
+- **Paneller:** turuncu dolgu başlıklar yerine sakin koyu kartlar; açık bölüm başlığı turuncu yazı + sol çizgi. Ana eylem düğmeleri turuncu.
+- **Dışa aktarma:** çözünürlük 4 büyük kart; Çözünürlük, Kalite ve Video oluştur kartları ilk girişte açık; "Videoyu oluştur" tam genişlik; "Başka cihaza taşı" en altta. Motor ve seçenekler aynı.
+- **Video ana sayfası:** "Son çalışmalarım" şeridi (kapak, süre, ad, klip sayısı, tarih). Karta dokun = aç; ⋯ › Aç · Çoğalt · Sil (iki adımlı onay). Çoğalt aynı dosyaları kullanan yeni bir taslak kaydı yazar, yer kaplamaz.
+- **Önceki düzen silinmedi:** ⋯ menüsü › **Önceki düzene geç** (geri: **Yeni düzene geç**; `localStorage['studyo.vYeni']`).
+- Eskizde olup eklenmeyenler (Stüdyo'da karşılığı yok, süs düğme konmadı): taç/premium, şablon galerisi ve arama, ses efektleri, yinele, YouTube'a doğrudan yükleme, su işareti, proje adı değiştirme.
+- Kod: `kaynak/video-yeni.js` (yeni), `video/index.html` içindeki kopyası; `esitle.py` bu dosyayı ekler ve `__kv.taslakYenile` kancasını açar. Kareden Videoya'nın işlevleri ve kayıt biçimi değişmedi.
+- Test (sunucuda, 412×915 ve 1280×800): her hap doğru paneli/aracı açıyor; Kaydet; ⏮/⏭ ve çizelge kayması; klip araçları; son çalışmalarda aç/çoğalt/sil; önceki düzene geçiş ve dönüş; gündüz teması; geniş ekranda eski görünüm etkilenmiyor. Hata yok. Telefonda (APK) denenmedi.
 
 ## 2.15 (08.11.2026): video editöründe üç düzeltme
 - **Takip eden yazı:** önizlemede noktaya dokununca ekranın altında **yazı kutusu kendiliğinden açılır**, klavye gelir (Yazı + Alt satır). Takip arkada sürer, ilerlemesi kutuda görünür. **Tamam** ile kapanır; **Yazı stili, renk…** Klip bölümündeki takip ayarlarını açar. Eskiden yazı alanı Klip bölümünün altında, kapalı bir akordeonun içinde kalıyordu ve bulunamıyordu. "Yazıyı sonra bölümde gir" diyen yanıltıcı ipucu düzeltildi.

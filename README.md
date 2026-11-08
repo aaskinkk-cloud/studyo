@@ -2,7 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.14 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.15 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.15 (08.11.2026): video editöründe üç düzeltme
+- **Takip eden yazı:** önizlemede noktaya dokununca ekranın altında **yazı kutusu kendiliğinden açılır**, klavye gelir (Yazı + Alt satır). Takip arkada sürer, ilerlemesi kutuda görünür. **Tamam** ile kapanır; **Yazı stili, renk…** Klip bölümündeki takip ayarlarını açar. Eskiden yazı alanı Klip bölümünün altında, kapalı bir akordeonun içinde kalıyordu ve bulunamıyordu. "Yazıyı sonra bölümde gir" diyen yanıltıcı ipucu düzeltildi.
+- **Önizleme boyu:** oynatıcı satırının (▶) altındaki **tutamacı sürükle**: aşağı = büyüt, yukarı = küçült; **çift dokun** = varsayılan boy. Seçim hatırlanır (`localStorage['studyo.pvk']`). Not: yatay video dik telefonda zaten tam genişlikteyse daha fazla büyüyemez; küçültme her zaman çalışır.
+- **Alt menüler:** araç çubuğu (Tuval…Doldur) ve klip araçları (Düzenle…Tamam) yana kayan, yarım kesik tek sıra yerine **iki düzgün sıra**; boş hücre yok.
+- Kod: `kaynak/video-arayuz.js` (sonundaki 2.15 bloğu), `video/index.html` içindeki kopyası. Kareden Videoya'nın işlevleri ve kayıt biçimi değişmedi.
 
 ## 2.14 (08.11.2026): video editöründe sade düzen (menü arkasında menü yok)
 - **Neden:** video ekranında üç katman üst üste çalışıyordu: alttaki bölüm (Klip, Şablon…) → bölüm içi sekmeler (Hızlı yol / Sıra ve klip / Yeni klipler / Tümü) → ara başlık sırası → sayfa sırası ve tek tek kaydırıcı. Bir ayara 3-4 adımda ulaşılıyordu; bir yerde yazı da alttaki şeridin arkasında yarım kalıyordu.

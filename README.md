@@ -2,7 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.12 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** 2.13 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+
+## 2.13 (08.11.2026): APK'da tam ekran uyarısı yok · gizli önizleme tek dokunuşla geri
+- **"Tam ekrandan çıkmak için yukarıdan sürükleyip…" uyarısı:** Stüdyo APK'sı bir Trusted Web Activity'dir; sayfayı telefondaki Chrome'un kendisi açar (WebView değil). Uyarı, sayfa tam ekran isteği gönderince Chrome'un kendisinden çıkıyordu (önizleme gizliyken ⛶ düğmesi sayfa tam ekranı istiyordu). APK'da (ve kurulu uygulamada) sayfa zaten tam ekran olduğu için artık hiçbir tam ekran isteği gönderilmez → uyarı çıkmaz. Önizleme tam ekranı CSS ile aynen çalışır. Chrome sekmesinde eski davranış aynı.
+  - Tanıma: açılışta `document.referrer` = `android-app://…` (oturum boyunca `sessionStorage['studyo.apk']`), ya da `display-mode` fullscreen/standalone. Kod: `kaynak/kopru.js` (sonundaki blok), foto ve video sayfalarındaki kopyası.
+- **Gizlenen önizleme:** önizleme gizliyken oynatıcı satırındaki ⛶ düğmesi **turuncu göz** olur; dokununca önizleme geri gelir, düğme yine ⛶ olur. Eskiden "Önizlemeyi göster" yalnız Katman bölümünün üstünde ince yazıydı; Şablon vb. bölümdeyken bulunamıyordu. Kod: `kaynak/video-arayuz.js` (sonundaki blok), `video/index.html` içindeki kopyası.
+- APK yeniden kurulmaz; sayfa güncellemesi yeter (Stüdyo'yu kapatıp aç).
+- Test (sunucuda, 412×915): önizleme gizle → düğme "Önizlemeyi göster" (göz) → dokun → önizleme geri, düğme "Tam ekran". APK işaretiyle sayfa tam ekran isteği gönderilmedi. Hata yok. Telefonda denenmedi.
 
 ## 2.12 (08.11.2026): Kes › Sil ve Koru kenara sadık (akıllı kenar)
 - **Akıllı kenar** (varsayılan açık, Sil ve Koru'da): fırçanın ortasındaki renk örneklenir. Dairenin içinde yalnız bu renge benzeyen ve keskin renk sıçraması (kenar çizgisi) aşılmadan ulaşılabilen yerler etkilenir. Sil arka planı alır, nesneye girmez; Koru nesneyi geri getirir, arka plana taşmaz. Benzerlik azaldıkça etki yumuşak azalır, kenar tırtıklı kalmaz.

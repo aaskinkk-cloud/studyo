@@ -10603,6 +10603,24 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
   }
   if (document.readyState === 'complete') basla(); else addEventListener('load', basla);
 })();
+/* 2.13: APK (Trusted Web Activity) ya da kurulu uygulama: sayfa zaten tam ekran. Burada hiçbir tam ekran isteği (sayfa ya da öğe)
+   Chrome'a gönderilmez → "Tam ekrandan çıkmak için yukarıdan sürükleyip…" uyarısı hiç çıkmaz. Önizleme tam ekranı CSS ile (pvfs) çalışmaya devam eder.
+   Chrome sekmesinde (kurulu değilken) eski davranış aynen kalır. */
+(function(){
+  if (window.__stApk) return; window.__stApk = 1;
+  function apk(){
+    try { var w = window.top;
+      if (/^android-app:\/\//.test(w.document.referrer || '')) { try { w.sessionStorage.setItem('studyo.apk', '1'); } catch(e){} return true; }
+      try { if (w.sessionStorage.getItem('studyo.apk') === '1') return true; } catch(e){}
+      return ['fullscreen', 'standalone', 'minimal-ui'].some(function(m){ return w.matchMedia('(display-mode: ' + m + ')').matches; });
+    } catch(e){ return false; }
+  }
+  window.studyoApk = apk;
+  ['requestFullscreen', 'webkitRequestFullscreen'].forEach(function(k){
+    var o = Element.prototype[k]; if (!o) return;
+    Element.prototype[k] = function(){ if (apk()) return Promise.resolve(); return o.apply(this, arguments); };
+  });
+})();
 
 </script>
 <script>

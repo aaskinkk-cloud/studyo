@@ -110,3 +110,28 @@
     sonra(true);
   })(0);
 })();
+/* 2.13: önizleme gizliyken oynatıcı satırındaki ⛶ düğmesi turuncu "göz" olur → dokununca önizleme geri gelir.
+   (Eskiden "Önizlemeyi göster" yalnız Katman bölümünün üstünde ince yazıydı; başka bölümdeyken bulunamıyordu.)
+   Önizleme açıkken düğme eskisi gibi tam ekrandır. */
+(function(){
+  if (!window.STUDYO) return;
+  var css = document.createElement('style'); css.id = 'st-pvgoster-css';
+  css.textContent = '#isTam.st-goz{color:var(--accent,#e07b2e)!important;background:color-mix(in srgb,var(--accent,#e07b2e) 16%,transparent)!important;border-radius:12px}';
+  (document.head || document.documentElement).appendChild(css);
+  var TAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  var GOZ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  (function kur(n){
+    var b = document.getElementById('isTam'), stg = document.getElementById('viewer') && document.getElementById('viewer').closest('.stage');
+    if (!b || !stg){ if (n < 100) setTimeout(function(){ kur(n + 1); }, 300); return; }
+    var gizli = function(){ return stg.classList.contains('pvhide'); };
+    var yaz = function(){ var g = gizli(); if (b.classList.contains('st-goz') === g) return;
+      b.classList.toggle('st-goz', g); b.innerHTML = g ? GOZ : TAM; var t = g ? 'Önizlemeyi göster' : 'Tam ekran'; b.title = t; b.setAttribute('aria-label', t); };
+    b.addEventListener('click', function(e){
+      if (gizli()){ e.stopImmediatePropagation(); e.preventDefault();
+        if (window.pvShow) window.pvShow(); else { var p = document.getElementById('pvHide'); if (p) p.click(); }
+        setTimeout(function(){ yaz(); window.dispatchEvent(new Event('resize')); }, 30); }
+    }, true);
+    new MutationObserver(yaz).observe(stg, {attributes: true, attributeFilter: ['class']});
+    yaz();
+  })(0);
+})();

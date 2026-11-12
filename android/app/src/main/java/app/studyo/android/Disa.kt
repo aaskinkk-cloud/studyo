@@ -272,15 +272,17 @@ class DisaServisi : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "basla" -> {
-                onPlana("Hazırlanıyor…")
+                val onde = onPlana("Hazırlanıyor…")
                 val pid = intent.getStringExtra("p")
-                if (pid == null) hata("Proje bulunamadı.", "") else basla(pid, intent.getIntExtra("k", 1080), intent.getFloatExtra("q", 1f), false, Disa.HDR_COZUCU)
+                if (!onde) hata("Arka planda çalışma izni alınamadı; dışa aktarma başlatılmadı.", "Ön plan hizmeti reddedildi (hata kaydında ayrıntı var). Bozuk dosya oluşmaması için işlem başlatılmadı.")
+                else if (pid == null) hata("Proje bulunamadı.", "") else basla(pid, intent.getIntExtra("k", 1080), intent.getFloatExtra("q", 1f), false, Disa.HDR_COZUCU)
             }
             "devam" -> {
-                onPlana("Devam ediliyor…")
+                val onde = onPlana("Devam ediliyor…")
                 val sp = prefs()
                 val pid = sp.getString("proje", null)
-                if (pid == null) hata("Devam edilecek dışa aktarma bulunamadı.", "") else basla(pid, sp.getInt("kisa", 1080), sp.getFloat("kalite", 1f), true, sp.getInt("hdrKip", Disa.HDR_COZUCU))
+                if (!onde) hata("Arka planda çalışma izni alınamadı; dışa aktarma başlatılmadı.", "Ön plan hizmeti reddedildi (hata kaydında ayrıntı var).")
+                else if (pid == null) hata("Devam edilecek dışa aktarma bulunamadı.", "") else basla(pid, sp.getInt("kisa", 1080), sp.getFloat("kalite", 1f), true, sp.getInt("hdrKip", Disa.HDR_COZUCU))
             }
             "duraklat" -> duraklat()
             "iptal" -> iptal()
@@ -289,16 +291,27 @@ class DisaServisi : Service() {
         return START_NOT_STICKY
     }
 
-    private fun onPlana(metin: String) {
-        val tur = when {
-            Build.VERSION.SDK_INT >= 35 -> ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING
-            Build.VERSION.SDK_INT >= 29 -> ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            else -> 0
-        }
-        try {
-            ServiceCompat.startForeground(this, NO, bildirim(metin, 0, false), tur)
+    /** Ön plana geçer. ServiceCompat KULLANILMAZ: androidx.core, Android 15'in "mediaProcessing" türünü tanımadığı için
+     *  türü siler ("type none") ve Android 15+ bunu reddeder → hizmet ön planda olmaz, ekran kapanınca uygulama dondurulur.
+     *  @return ön plana geçebildiyse true */
+    private fun onPlana(metin: String): Boolean {
+        val n = bildirim(metin, 0, false)
+        return try {
+            when {
+                Build.VERSION.SDK_INT >= 35 -> startForeground(NO, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING)
+                Build.VERSION.SDK_INT >= 29 -> startForeground(NO, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                else -> startForeground(NO, n)
+            }
+            true
         } catch (e: Exception) {
-            Kayit.hata("ön plan", e)
+            Kayit.hata("ön plan (mediaProcessing)", e)
+            // Yedek: dataSync türü (Android 15'te de geçerli)
+            try {
+                if (Build.VERSION.SDK_INT >= 29) startForeground(NO, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC) else startForeground(NO, n)
+                true
+            } catch (e2: Exception) {
+                Kayit.hata("ön plan (dataSync)", e2); false
+            }
         }
     }
 
@@ -369,7 +382,11 @@ class DisaServisi : Service() {
                 .setEnableFallback(true).build()
             val tr = Transformer.Builder(this)
                 .setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC)
-                .setEncoderFactory(enc).addListener(dinleyici).build()
+                .setEncoderFactory(enc).addListener(dinleyici)
+                // Varsayılan 10 sn: büyük/4K klip geçişlerinde çözücü açılırken haksız yere "MUXING_TIMEOUT" verebiliyor.
+                // 60 sn: gerçek takılmayı yine yakalar, sonsuz beklemez.
+                .setMaxDelayBetweenMuxerSamplesMs(60_000)
+                .build()
             transformer = tr; t0 = SystemClock.elapsedRealtime()
             if (eski != null && tek) tr.resume(comp, cikti.path, eski.path)
             else { eski?.delete(); eskiYol = null; tr.start(comp, cikti.path) }

@@ -1,13 +1,19 @@
-plugins { id("com.android.application") }
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
+}
+
 android {
     namespace = "app.studyo.android"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
-        applicationId = "app.studyo.android"
+        applicationId = "app.studyo.android"   // 2.x (TWA) ile aynı: üstüne güncelleme olarak kurulur
         minSdk = 26
-        targetSdk = 34
-        versionCode = 100 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "2." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        targetSdk = 35
+        versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+        versionName = "3.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
     signingConfigs {
         create("okur") {
@@ -18,6 +24,29 @@ android {
         getByName("release") { isMinifyEnabled = false; signingConfig = signingConfigs.getByName("okur") }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
+    lint { checkReleaseBuilds = false; abortOnError = false }
+    packaging { resources { excludes += setOf("META-INF/*.kotlin_module", "META-INF/AL2.0", "META-INF/LGPL2.1") } }
 }
-/* 2.x: Trusted Web Activity — sayfa telefondaki Chrome'un kendisiyle açılır (WebView değil) */
-dependencies { implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0") }
+
+/* 3.x: yerel (native) uygulama. Video: Kotlin + Compose + Media3 (ExoPlayer önizleme, Transformer dışa aktarma).
+   Fotoğraf ve önceki Stüdyo: aynı uygulamanın içinden Trusted Web Activity ile (Chrome) açılır. */
+dependencies {
+    val media3 = "1.8.1"
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("androidx.media3:media3-common:$media3")
+    implementation("androidx.media3:media3-exoplayer:$media3")
+    implementation("androidx.media3:media3-transformer:$media3")
+    implementation("androidx.media3:media3-effect:$media3")
+    implementation("androidx.media3:media3-ui:$media3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
+}

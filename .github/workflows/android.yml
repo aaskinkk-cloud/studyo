@@ -1,5 +1,7 @@
-# Stüdyo Android uygulamasını (APK) derler ve "android" sürümüne yükler.
-# İndirme: https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+# Stüdyo Android uygulamasını (APK) derler.
+#  - main dalı      → "android" sürümü: https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+#  - yerel-android  → "yerel" deneme sürümü: https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk
+# Derleme hatası olursa özet, çalışmanın "annotations" bölümüne yazılır.
 name: Stüdyo Android APK
 on:
   workflow_dispatch:
@@ -15,16 +17,45 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.9' }
+        with: { gradle-version: '8.11.1' }
       - name: Derle
         working-directory: android
-        run: gradle --no-daemon assembleRelease
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon assembleRelease 2>&1 | tee ../derleme.log
+      - name: Hata özeti
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'E'
+          import re
+          s = open('derleme.log', encoding='utf-8', errors='replace').read()
+          satir = [l for l in s.splitlines() if re.match(r'^(e: |w: .*error)|.*error:|^\* What went wrong|^> |^  > |Could not|FAILURE', l)]
+          ozet = '\n'.join(satir[:80]) or s[-6000:]
+          ozet = ozet.replace('%', '%25').replace('\r', '').replace('\n', '%0A')[:60000]
+          print('::error title=Derleme hatasi::' + ozet)
+          E
       - name: APK adını düzelt
-        run: cp android/app/build/outputs/apk/release/app-release.apk studyo.apk
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then cp android/app/build/outputs/apk/release/app-release.apk studyo.apk; else cp android/app/build/outputs/apk/release/app-release.apk studyo-yerel.apk; fi
+          ls -la *.apk
       - uses: softprops/action-gh-release@v2
+        if: github.ref_name == 'main'
         with:
           tag_name: android
           name: Stüdyo Android
-          body: "Stüdyo Android uygulaması — fotoğraf ve video düzenleyici, kalıcı tam ekran. Telefona indir ve aç (bilinmeyen kaynak izni ister)."
+          body: "Stüdyo Android uygulaması. Telefona indir ve aç (bilinmeyen kaynak izni ister)."
           files: studyo.apk
           make_latest: true
+      - uses: softprops/action-gh-release@v2
+        if: github.ref_name != 'main'
+        with:
+          tag_name: yerel
+          target_commitish: ${{ github.sha }}
+          name: Stüdyo 3 (yerel uygulama, deneme)
+          body: "Stüdyo 3.0 deneme sürümü: yerel video editörü (Kotlin + Compose + Media3). Mevcut Stüdyo'nun üstüne kurulur; fotoğraf editörü ve web projeleri içinde durur."
+          files: studyo-yerel.apk
+          prerelease: true
+          make_latest: false

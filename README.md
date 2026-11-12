@@ -4,6 +4,41 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Güncel sürüm:** 2.16 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
 
+## 3.0 (13.11.2026, deneme · `yerel-android` dalı): yerel Android uygulaması — büyük videolar
+**İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — mevcut Stüdyo'nun üstüne kurulur (aynı paket ve imza), kaldırmak gerekmez.
+
+- **Kök neden (web sürümü):** dışa aktarma `Mp4Muxer.ArrayBufferTarget` + `fastStart: 'in-memory'` ile çıkan videonun TAMAMINI tarayıcı belleğinde biriktiriyor, sesi de tek parça `AudioBuffer` olarak karıştırıyordu; sonra Blob indirmesi yapılıyordu. Bu yüzden ~200 MB üstünde bellek/indirme sınırına takılıp siyah ekran, donma ya da kaydedilmeyen dosya oluşuyordu. Yama ile çözülmez; 3.0'da video yolu tarayıcıdan tamamen çıkarıldı.
+- **Yeni mimari:** Kotlin + Jetpack Compose + Media3 1.8.1.
+  - İçe aktarma: Storage Access Framework (kalıcı okuma izni). Videolar **kopyalanmaz, belleğe alınmaz**; yerinden akışla okunur. Boyut sınırı yok. Paylaşımla gelen ve kalıcı izni olmayan dosya, yer kontrolüyle parça parça uygulamaya kopyalanır.
+  - Her videonun kodeki eklerken denetlenir (MediaExtractor + MediaCodecList); telefonun çözemediği biçim eklenmez, nedeni yazılır. HDR klipler dışa aktarmada SDR'ye çevrilir.
+  - Fotoğraflar en fazla 3840 px'e örneklenerek açılır (200 MP fotoğraf bile belleği taşırmaz), yönü EXIF'ten düzeltilir.
+  - Önizleme: ExoPlayer (klip sırası, kırpma, klip sesi, müzik, seslendirme eşzamanlı). Yazı ve logo önizlemede de dışa aktarmadaki bitmapin aynısıyla çizilir.
+  - Dışa aktarma: Media3 Transformer, **ön plan hizmeti** (ekran kapansa da sürer, bildirimde % ve kalan süre, Duraklat). Çıktı doğrudan diske akar. H.264 + AAC MP4; 720p / 1080p / 2K / 4K (telefonun kodlayıcısı desteklemiyorsa kart kapalı ve yazılı).
+  - **Kayıt güvenliği:** başlamadan önce boş alan denetlenir (video boyutunun iki katı + 300 MB). Bittikten sonra dosya **doğrulanır** (boyut > 0, görüntü izi var, süre beklenenin ≥ %95'i, ortadan kare okunuyor), galeriye (Movies/Stüdyo) kopyalanır, **kopya tekrar doğrulanır**; ancak o zaman "Kaydedildi" denir. Hatalı/eksik dosya galeride bırakılmaz.
+  - **Yarıda kalma:** Duraklat ya da Android'in süre sınırı → dosya düzgün kapatılır; müzik/seslendirme yoksa **kaldığı yerden devam** (Transformer.resume), varsa baştan. Uygulama sistem tarafından öldürülürse yarım dosya silinir ve açılışta söylenir.
+  - Dışa aktarma sırasında önizleme oynatıcısı donanım çözücüleri bırakır (büyük 4K/HEVC dosyalarda çakışma olmasın diye).
+  - Hata kaydı: Ana sayfa ⋯ › Hata kaydını paylaş (her ekleme ve dışa aktarmanın dosya boyutu, kodek, çözünürlük, hata kodu).
+- **Video editörü (yerel):** üstte Kaydet (turkuaz) + Dışa Aktar (turuncu); ⏮ ▶ ⏭ + zaman çubuğu; büyük klip resimleri şeridi; altta 5 bölüm (Düzenle · Görünüm · Ses · Metin · Yayın) ve hap düğmeler:
+  - Düzenle › Klip (kırp, fotoğraf süresi, sola/sağa, çoğalt, sil – iki adım) · Ekle · Biçim (16:9 / 9:16 / 1:1)
+  - Görünüm › Kadraj (Sığdır/Doldur, tümüne uygula) · Hareket (fotoğrafta yavaş yakınlaşma)
+  - Ses › Klip sesi (sessiz, %0–150) · Müzik (ses, tekrar) · Seslendirme (o andan kayıt, kayıt listesi, ses, sil)
+  - Metin › Yazı (klip başına; üst/orta/alt, boyut, renk, arka kutu, tümüne kopyala)
+  - Yayın › Logo (4 köşe, boyut, opaklık, yuvarlak) · Dışa aktar
+  - Ana sayfa: Yeni video · **Fotoğraf + önceki Stüdyo (web)** · Son çalışmalarım (aç, çoğalt, adını değiştir, sil – onaylı).
+- **Korunanlar:** fotoğraf editörü (Karanlık Oda), önceki web video editörü ve web'deki tüm projeler olduğu gibi duruyor; "Fotoğraf + önceki Stüdyo" düğmesi bunları 2.x'teki gibi Chrome ile açar (web projeleri Chrome'un deposunda, APK güncellemesinden etkilenmez). Paylaş menüsünden gelen dosya için "Yeni video projesi" ya da "Fotoğraf editörü (web)" seçilir.
+- **Yerel editörde (henüz) olmayanlar:** web video editöründeki şablonlar, geçiş efektleri, altyazı, kapak, nesne kesme (yapay zekâ), takip eden yazı, gündüz teması. Bunlar web editöründe duruyor.
+- Kod: `android/app/src/main/java/app/studyo/android/` — `Disa.kt` (kompozisyon, ön plan hizmeti, doğrulama, galeriye kayıt), `EditorDurum.kt` (proje + önizleme), `Medya.kt` (inceleme, küçük resim, fotoğraf hazırlama), `Kaplama.kt` (yazı/logo), `Editor.kt`, `DisaEkrani.kt`, `Ana.kt`, `Tema.kt`, `Depo.kt`, `Model.kt`. APK'yı GitHub Actions derler (`.github/workflows/android.yml`).
+- **Test durumu:** derleme GitHub Actions'ta. Gerçek cihaz testleri (50 MB · 200 MB · 500 MB · 1 GB · 2 GB; her birinde içe aktar → düzenle → kaydet → yeniden oynat) **henüz yapılmadı** — aşağıdaki listeyle telefonda yapılacak. Testler geçmeden `main`'e alınmayacak.
+
+### 3.0 cihaz test listesi
+Her boyut için (50 MB, 200 MB, 500 MB, 1 GB, 2 GB):
+1. **İçe aktar:** Ekle › dosyayı seç. Klip şeritte görünmeli; Klip panelinde boyut/kodek doğru yazmalı.
+2. **Düzenle:** kırp (başı ve sonu), yazı ekle, logo ekle, 5 sn seslendirme kaydet, müzik ekle. Önizleme takılmadan oynamalı.
+3. **Kaydet:** Dışa aktar › 1080p › Videoyu oluştur. Ekranı kapat, 1 dk sonra aç: işlem sürmeli. Sonunda "✓ Kaydedildi ve doğrulandı".
+4. **Yeniden oynat:** ▶ Oynat; Galeri › Movies/Stüdyo'da dosya oynamalı, süre ve ses doğru olmalı.
+5. Ayrıca bir kez: müziksiz projede Duraklat → Kaldığı yerden devam.
+Sorun çıkarsa: Ana sayfa ⋯ › **Hata kaydını paylaş** ve kaydı gönder.
+
 ## 2.16 (08.11.2026): video editöründe yeni düzen (tasarım paketi, 8 ekran)
 - Plan: "Stüdyo Video — Ayrıntılı Sayfa Planı" belgesi (eskizdeki 8 ekran, Stüdyo'nun gerçek düğmelerine eşlenmiş). Kapsam yalnız video bölümü; fotoğraf bölümü değişmedi.
 - **Alt çubuk 5 bölüm:** Düzenle · Görünüm · Ses · Metin · Yayın. Seçili bölümün alt başlıkları hemen üstte hap düğmeler olarak hep görünür (gizli menü yok):

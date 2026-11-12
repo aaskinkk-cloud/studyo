@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stüdyo 2.x: Trusted Web Activity. Sayfa (https://aaskinkk-cloud.github.io/studyo/) telefondaki Chrome ile tam ekran açılır.
-     Doğrulama: https://aaskinkk-cloud.github.io/.well-known/assetlinks.json (bu imzanın SHA-256 parmak izi). -->
+<!-- Stüdyo 3.x: yerel Android uygulaması.
+     - Video editörü yereldir (Compose + Media3); Chrome'a bağlı değildir.
+     - "Fotoğraf + önceki Stüdyo" düğmesi web sürümünü Trusted Web Activity ile açar (LauncherActivity).
+       Doğrulama: https://aaskinkk-cloud.github.io/.well-known/assetlinks.json (okur.jks imzası, değişmedi). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <queries>
         <intent><action android:name="android.support.customtabs.action.CustomTabsService" /></intent>
     </queries>
@@ -10,8 +19,30 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Stüdyo"
+        android:largeHeap="true"
         android:theme="@style/Okur">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode|density|navigation"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- Web Stüdyo (fotoğraf editörü, önceki video editörü ve web projeleri) — 2.x ile aynı ayarlar -->
         <activity
             android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
             android:exported="true"
@@ -22,25 +53,18 @@
             <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/zemin" />
             <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE" android:value="sticky-immersive" />
             <meta-data android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY" android:value="customtabs" />
-            <!-- Paylaş menüsü: galeriden fotoğraf/video "Paylaş → Stüdyo" ile gelir, sayfaya /studyo/paylas adresine POST edilir (service worker yakalar) -->
             <meta-data android:name="android.support.customtabs.trusted.METADATA_SHARE_TARGET" android:resource="@string/share_target" />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="aaskinkk-cloud.github.io" android:pathPrefix="/studyo/" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
         </activity>
+
+        <service
+            android:name=".DisaServisi"
+            android:exported="false"
+            android:foregroundServiceType="mediaProcessing|dataSync" />
     </application>
 </manifest>

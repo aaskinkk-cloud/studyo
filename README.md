@@ -2,10 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** 2.16 · 08.11.2026. İçinde Karanlık Oda 6.67 ve Kareden Videoya 9.15 var.
+**Güncel sürüm:** Android uygulaması 3.0 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
-## 3.0 (13.11.2026, deneme · `yerel-android` dalı): yerel Android uygulaması — büyük videolar
-**İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — mevcut Stüdyo'nun üstüne kurulur (aynı paket ve imza), kaldırmak gerekmez.
+**Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.0 (13.11.2026): yerel Android uygulaması — büyük videolar
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — mevcut Stüdyo'nun üstüne kurulur (aynı paket ve imza), kaldırmak gerekmez.
 
 - **Kök neden (web sürümü):** dışa aktarma `Mp4Muxer.ArrayBufferTarget` + `fastStart: 'in-memory'` ile çıkan videonun TAMAMINI tarayıcı belleğinde biriktiriyor, sesi de tek parça `AudioBuffer` olarak karıştırıyordu; sonra Blob indirmesi yapılıyordu. Bu yüzden ~200 MB üstünde bellek/indirme sınırına takılıp siyah ekran, donma ya da kaydedilmeyen dosya oluşuyordu. Yama ile çözülmez; 3.0'da video yolu tarayıcıdan tamamen çıkarıldı.
 - **Yeni mimari:** Kotlin + Jetpack Compose + Media3 1.8.1.
@@ -30,7 +32,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Korunanlar:** fotoğraf editörü (Karanlık Oda), önceki web video editörü ve web'deki tüm projeler olduğu gibi duruyor; "Fotoğraf + önceki Stüdyo" düğmesi bunları 2.x'teki gibi Chrome ile açar (web projeleri Chrome'un deposunda, APK güncellemesinden etkilenmez). Paylaş menüsünden gelen dosya için "Yeni video projesi" ya da "Fotoğraf editörü (web)" seçilir.
 - **Yerel editörde (henüz) olmayanlar:** web video editöründeki şablonlar, geçiş efektleri, altyazı, kapak, nesne kesme (yapay zekâ), takip eden yazı, gündüz teması. Bunlar web editöründe duruyor.
 - Kod: `android/app/src/main/java/app/studyo/android/` — `Disa.kt` (kompozisyon, ön plan hizmeti, doğrulama, galeriye kayıt), `EditorDurum.kt` (proje + önizleme), `Medya.kt` (inceleme, küçük resim, fotoğraf hazırlama), `Kaplama.kt` (yazı/logo), `Editor.kt`, `DisaEkrani.kt`, `Ana.kt`, `Tema.kt`, `Depo.kt`, `Model.kt`. APK'yı GitHub Actions derler (`.github/workflows/android.yml`).
-- **Test durumu:** derleme GitHub Actions'ta. Gerçek cihaz testleri (50 MB · 200 MB · 500 MB · 1 GB · 2 GB; her birinde içe aktar → düzenle → kaydet → yeniden oynat) **henüz yapılmadı** — aşağıdaki listeyle telefonda yapılacak. Testler geçmeden `main`'e alınmayacak.
+- **Test durumu (13.11.2026, Galaxy S25 Ultra, Ahmet):** geçti.
+  - 11 klip (çoğu HDR HEVC + 224 MB H.264), 6:31, 2K → 939 MB, 46 sn.
+  - 31 klip (24 HDR HEVC + 412/344/224/184 MB H.264), 26:03, 2K → 3,94 GB, 3 dk 27 sn; galeride oynadı.
+  - Aynı 31 klip, 4K Yüksek (64 Mbit/sn) → 11,62 GiB (~12,5 GB), 25:56, 7 dk 15 sn; doğrulandı.
+  - Oynatma, renk/ses, ekran kapalı çalışma, müzik/seslendirme, Duraklat → kaldığı yerden devam: başarılı.
+  - Düzeltilenler: 3.0.1 HDR (karışık SDR/HDR projede çözücü hatası), 3.0.2 ön plan hizmeti türü + takılma bekçisi.
 
 ### 3.0 cihaz test listesi
 Her boyut için (50 MB, 200 MB, 500 MB, 1 GB, 2 GB):

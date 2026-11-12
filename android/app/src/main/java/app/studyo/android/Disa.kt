@@ -87,7 +87,14 @@ object Disa {
         putChannelMixingMatrix(ChannelMixingMatrix.createForConstantGain(2, 2).scaleBy(kat))
     }
 
-    fun kompozisyon(p: Proje, W: Int, H: Int): Composition {
+    /** HDR yöntemi. Media3 görüntü hattının renk ayarını İLK klibe göre kurar; OpenGL ton eşlemesi yalnız ilk klip HDR ise
+     *  devreye girer. Fotoğraf/SDR + HDR karışık projede sonraki HDR klip SDR hattına 10 bit girer ve çözücü hatası verir.
+     *  Bu yüzden: 1) her HDR klip kendi çözücüsünde SDR'ye çevrilir (tüm girişler aynı renk düzeninde),
+     *  2) telefon bunu desteklemezse HDR, SDR gibi okunur (her yerde çalışır; renkler biraz soluk olabilir). */
+    const val HDR_COZUCU = Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_MEDIACODEC
+    const val HDR_SDR_GIBI = Composition.HDR_MODE_EXPERIMENTAL_FORCE_INTERPRET_HDR_AS_SDR
+
+    fun kompozisyon(p: Proje, W: Int, H: Int, hdrKip: Int = HDR_COZUCU): Composition {
         val logo = p.logo?.let { Kaplama.logo(it, W, H) }
         val ogeler = p.klipler.map { oge(it, W, H, logo) }
         val diziler = ArrayList<EditedMediaItemSequence>()
@@ -119,9 +126,7 @@ object Disa {
             }
             if (adet > 0) diziler += b.build()
         }
-        val hdr = if (Build.VERSION.SDK_INT >= 29) Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL
-        else Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_MEDIACODEC
-        return Composition.Builder(diziler).setHdrMode(hdr).build()
+        return Composition.Builder(diziler).setHdrMode(hdrKip).build()
     }
 
     private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?): EditedMediaItem {
@@ -195,7 +200,7 @@ sealed class DisaDurum {
     data class Calisiyor(val yuzde: Int, val kalanSn: Long, val asama: String) : DisaDurum()
     data class Duraklatildi(val mesaj: String, val devamEdebilir: Boolean) : DisaDurum()
     data class Dogrulaniyor(val asama: String) : DisaDurum()
-    data class Tamam(val uri: String, val ad: String, val boyut: Long, val sureMs: Long, val sn: Long) : DisaDurum()
+    data class Tamam(val uri: String, val ad: String, val boyut: Long, val sureMs: Long, val sn: Long, val not: String = "") : DisaDurum()
     data class Hata(val mesaj: String, val ayrinti: String) : DisaDurum()
 }
 
@@ -269,13 +274,13 @@ class DisaServisi : Service() {
             "basla" -> {
                 onPlana("Hazırlanıyor…")
                 val pid = intent.getStringExtra("p")
-                if (pid == null) hata("Proje bulunamadı.", "") else basla(pid, intent.getIntExtra("k", 1080), intent.getFloatExtra("q", 1f), false)
+                if (pid == null) hata("Proje bulunamadı.", "") else basla(pid, intent.getIntExtra("k", 1080), intent.getFloatExtra("q", 1f), false, Disa.HDR_COZUCU)
             }
             "devam" -> {
                 onPlana("Devam ediliyor…")
                 val sp = prefs()
                 val pid = sp.getString("proje", null)
-                if (pid == null) hata("Devam edilecek dışa aktarma bulunamadı.", "") else basla(pid, sp.getInt("kisa", 1080), sp.getFloat("kalite", 1f), true)
+                if (pid == null) hata("Devam edilecek dışa aktarma bulunamadı.", "") else basla(pid, sp.getInt("kisa", 1080), sp.getFloat("kalite", 1f), true, sp.getInt("hdrKip", Disa.HDR_COZUCU))
             }
             "duraklat" -> duraklat()
             "iptal" -> iptal()
@@ -321,7 +326,12 @@ class DisaServisi : Service() {
         false
     }
 
-    private fun basla(pid: String, kisa: Int, kalite: Float, devam: Boolean) {
+    private var kisa = 1080
+    private var kalite = 1f
+    private var hdrKip = Disa.HDR_COZUCU
+
+    private fun basla(pid: String, kisa: Int, kalite: Float, devam: Boolean, hdrKip: Int) {
+        this.kisa = kisa; this.kalite = kalite; this.hdrKip = hdrKip
         if (transformer != null) return
         val p = Depo.yukle(pid)
         if (p == null) { hata("Proje bulunamadı.", ""); return }
@@ -344,7 +354,7 @@ class DisaServisi : Service() {
         val cikti = File(dizin, "studyo_${System.currentTimeMillis()}.mp4")
         yol = cikti; eskiYol = eski
         sp.edit().putString("proje", pid).putInt("kisa", kisa).putFloat("kalite", kalite).putString("yol", cikti.path)
-            .putBoolean("tek", tek).putBoolean("calisiyor", true).apply()
+            .putBoolean("tek", tek).putBoolean("calisiyor", true).putInt("hdrKip", hdrKip).apply()
         kilit = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "studyo:disa").apply {
             setReferenceCounted(false); acquire(6 * 3600_000L)
         }
@@ -352,7 +362,8 @@ class DisaServisi : Service() {
             "${Disa.bitHizi(kisa, kalite) / 1000} kbps, müzik=${p.muzik != null}, seslendirme=${p.sesler.size}, boş=${Medya.mb(bos)}, tahmin=${Medya.mb(tahmin)}")
         p.klipler.forEach { Kayit.yaz("  ${it.tur} ${it.ad} ${Medya.mb(it.boyutBayt)} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ${it.basMs}-${it.sonMs}") }
         try {
-            val comp = Disa.kompozisyon(p, W, H)
+            Kayit.yaz("  HDR yöntemi: " + if (hdrKip == Disa.HDR_SDR_GIBI) "SDR gibi oku (yedek)" else "çözücüde SDR'ye çevir")
+            val comp = Disa.kompozisyon(p, W, H, hdrKip)
             val enc = DefaultEncoderFactory.Builder(this)
                 .setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(Disa.bitHizi(kisa, kalite)).build())
                 .setEnableFallback(true).build()
@@ -403,7 +414,20 @@ class DisaServisi : Service() {
             val ad = ExportException.getErrorCodeName(exportException.errorCode)
             Kayit.hata("Dışa aktarma hatası $ad", exportException)
             yol?.delete()
-            hata(hataMetni(ad), "$ad: ${exportException.message ?: ""}" + (exportException.cause?.let { " · ${it.message}" } ?: ""))
+            val ayrinti = "$ad: ${exportException.message ?: ""}" + (exportException.cause?.let { " · ${it.javaClass.simpleName}: ${it.message}" } ?: "")
+            val p = proje
+            val hdrVar = p?.klipler?.any { it.hdr } == true
+            if (p != null && hdrVar && hdrKip == Disa.HDR_COZUCU && (ad.contains("DECOD") || ad.contains("VIDEO_FRAME_PROCESSING"))) {
+                // Aynı yöntemi tekrar denemek yerine yedek HDR yöntemine geç (bir kez)
+                Kayit.yaz("HDR klipte çözücü hatası → yedek yöntemle (HDR'yi SDR gibi oku) otomatik yeniden deneniyor")
+                try { kilit?.let { if (it.isHeld) it.release() } } catch (_: Exception) {}
+                kilit = null
+                prefs().edit().clear().apply()
+                durum.value = DisaDurum.Calisiyor(0, -1, "HDR uyumlu yöntemle yeniden deneniyor")
+                h.post { basla(p.id, kisa, kalite, false, Disa.HDR_SDR_GIBI) }
+                return
+            }
+            hata(hataMetni(ad), ayrinti)
         }
     }
 
@@ -467,7 +491,8 @@ class DisaServisi : Service() {
             try { contentResolver.delete(uri, null, null) } catch (_: Exception) {}
             throw e
         }
-        return DisaDurum.Tamam(uri.toString(), "Movies/Stüdyo/$ad", f.length(), r.durationMs, 0)
+        return DisaDurum.Tamam(uri.toString(), "Movies/Stüdyo/$ad", f.length(), r.durationMs, 0,
+            if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else "")
     }
 
     private fun duraklat() {

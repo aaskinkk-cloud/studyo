@@ -100,6 +100,7 @@ fun DisaEkrani(vm: EditorDurum, kapat: () -> Unit) {
                     Etiketli("Boyut", Medya.mb(s.boyut))
                     Etiketli("Süre", sureYaz(s.sureMs))
                     Etiketli("İşlem süresi", sureYaz(s.sn * 1000))
+                    if (s.not.isNotEmpty()) Text(s.not, color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
                     Spacer(Modifier.height(8.dp))
                     DugmeSirasi(
                         "▶ Oynat" to {

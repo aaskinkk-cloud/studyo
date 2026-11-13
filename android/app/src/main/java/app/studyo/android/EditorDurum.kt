@@ -104,7 +104,7 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     // ---------- zaman çizelgesi ----------
     fun baslangic(i: Int): Long { val p = proje.value; return (0 until i.coerceIn(0, p.klipler.size)).sumOf { p.zKlip(it).sureMs } }
-    fun anlik(): Long = if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
+    fun anlik(): Long = komp?.currentPosition?.coerceAtLeast(0) ?: if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
 
     private fun ogeler(p: Proje): List<MediaItem> {
         val l = p.klipler.indices.map { p.zKlip(it) }.map { k ->
@@ -135,7 +135,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Dışa aktarma sırasında donanım çözücüleri boşaltılır (büyük videolarda çakışmayı önler). */
-    fun onizlemeBirak() { player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
+    fun onizlemeBirak() { kompBitir(); player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
     fun onizlemeGeri() { listeKur(sira.value, 0); muzikKur() }
 
     private fun sesUygula() {
@@ -144,6 +144,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun git(ms: Long) {
+        if (komp != null) { kompBitir(ms.coerceAtLeast(0)); return }
         val p = proje.value
         if (p.klipler.isEmpty()) return
         var t = ms.coerceIn(0, (p.toplamMs - 1).coerceAtLeast(0))
@@ -177,9 +178,82 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun oynatDurdur() {
+        if (komp != null || kompHazirlaniyor) { kompBitir(); return }
         if (player.isPlaying) { player.pause(); return }
-        if (player.playbackState == Player.STATE_ENDED) git(0)
+        if (player.playbackState == Player.STATE_ENDED || konum.value >= proje.value.toplamMs - 60) git(0)
+        if (kompBaslat()) return
         player.play()
+    }
+
+    // ---------- akıcı önizleme ----------
+    // KÖK NEDEN: oynatırken önizleme iki ayrı oynatıcı (ana klip + giden klibin kuyruğu) ve üstünde Compose çizimleriyle
+    // birleştiriliyordu; bunlar kare kare eşlenemez → geçişte sıçrama/takılma. Web Kareden Videoya her kareyi TEK tuvalde çizer.
+    // Çözüm: oynatırken dışa aktarmadaki kompozisyonun AYNISI tek boru hattında oynatılır (Media3 CompositionPlayer):
+    // geçiş, erime, yazılar, katmanlar, müzik — hepsi tek saatle. Durdurunca düzenleme önizlemesine dönülür.
+    private var komp: androidx.media3.transformer.CompositionPlayer? = null
+    val kompAktif = MutableStateFlow(false)
+    private var kompYuzey: android.view.SurfaceView? = null
+    private var kompHazirlaniyor = false
+    private var kompTikIs: Job? = null
+    /** Bu oturumda akıcı önizleme hata verdiyse standart önizleme kullanılır (aynı yol tekrar denenmez). */
+    private var akiciKapali = false
+
+    fun kompYuzeyBagla(sv: android.view.SurfaceView?) {
+        kompYuzey = sv
+        if (sv != null) try { komp?.setVideoSurfaceView(sv) } catch (e: Exception) { Kayit.hata("akıcı önizleme yüzey", e) }
+    }
+
+    private fun kompBaslat(): Boolean {
+        if (akiciKapali || kompHazirlaniyor) return false
+        val p = proje.value
+        if (p.klipler.isEmpty()) return false
+        kompHazirlaniyor = true
+        val bas = konum.value
+        kapsam.launch {
+            val (w, h) = Disa.boyut(p.bicim, 720)
+            val comp = withContext(Dispatchers.Default) {
+                runCatching { Disa.kompozisyon(ctx, p, w, h, Disa.HDR_COZUCU, onizleme = true) }.onFailure { Kayit.hata("akıcı önizleme kur", it) }.getOrNull()
+            }
+            if (!kompHazirlaniyor) return@launch            // bu arada durdurulduysa
+            if (comp == null) { kompHazirlaniyor = false; akiciKapali = true; player.play(); return@launch }
+            try {
+                val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx)
+                    .setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()).build()
+                cp.addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp) oynuyor.value = isPlaying }
+                    override fun onPlaybackStateChanged(playbackState: Int) { if (playbackState == Player.STATE_ENDED && komp === cp) kompBitir(proje.value.toplamMs - 1) }
+                    override fun onPlayerError(error: PlaybackException) {
+                        Kayit.hata("akıcı önizleme", error)
+                        akiciKapali = true
+                        mesaj.value = "Akıcı önizleme açılamadı; standart önizleme kullanılıyor."
+                        if (komp === cp) kompBitir()
+                    }
+                })
+                cp.setComposition(comp)
+                komp = cp; kompAktif.value = true
+                kompYuzey?.let { cp.setVideoSurfaceView(it) }
+                cp.seekTo(bas.coerceAtLeast(0))
+                cp.prepare(); cp.play()
+                Kayit.yaz("Akıcı önizleme: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${bas} ms'den")
+                kompTikIs?.cancel()
+                kompTikIs = kapsam.launch { while (isActive && komp === cp) { konum.value = cp.currentPosition.coerceAtLeast(0); delay(40) } }
+            } catch (e: Throwable) {
+                Kayit.hata("akıcı önizleme başlat", e)
+                akiciKapali = true; komp = null; kompAktif.value = false
+                player.play()
+            } finally { kompHazirlaniyor = false }
+        }
+        return true
+    }
+
+    /** Akıcı önizlemeyi bitirir; düzenleme önizlemesi kaldığı yere gelir. */
+    private fun kompBitir(konumaGit: Long = -1L) {
+        kompHazirlaniyor = false
+        val cp = komp ?: return
+        val pos = if (konumaGit >= 0) konumaGit else cp.currentPosition.coerceAtLeast(0)
+        komp = null; kompTikIs?.cancel(); kompAktif.value = false; oynuyor.value = false
+        try { cp.release() } catch (_: Exception) {}
+        git(pos)
     }
 
     fun sec(i: Int) {
@@ -241,6 +315,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun guncelle(yapi: Boolean = false, f: (Proje) -> Proje) {
+        if (komp != null || kompHazirlaniyor) kompBitir()
         val i = player.currentMediaItemIndex; val ms = player.currentPosition
         val once = proje.value; val simdi = System.currentTimeMillis()
         if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
@@ -1057,6 +1132,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun kapat() {
+        komp?.let { try { it.release() } catch (_: Exception) {} }; komp = null
         if (kaydediyor.value) kayitDurdur()
         kaydetSimdi(false)
         kapsam.cancel()

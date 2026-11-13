@@ -327,7 +327,7 @@ object Reels {
 
 /** Reels şeridi bindirmesi (klibin efektlerinde). */
 class ReelsBindirme(private val s: Serit, private val hareket: String, private val klipBasMs: Long, private val a: Long, private val b: Long) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     override fun getBitmap(presentationTimeUs: Long): Bitmap = s.bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = klipBasMs + saat.yerelMs(presentationTimeUs)
@@ -370,7 +370,7 @@ object Boncuk {
 
 /** Boncuk bindirmesi: yarım çözünürlükte çizilip 2 kat büyütülür (hafif). */
 class BoncukBindirme(private val klipBasMs: Long, private val a: Long, private val b: Long, W: Int, H: Int) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     private val w = (W / 2).coerceAtLeast(2); private val h = (H / 2).coerceAtLeast(2)
     private val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
     private val bos = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)

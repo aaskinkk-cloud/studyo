@@ -87,11 +87,12 @@ object Erime {
 }
 
 /** Dışa aktarma: giden klibin kuyruğuna uygulanan erime maskesi (çıkış alfası; birleştirici alfaya göre karıştırır). */
-class EriyenMaske(private val sureMs: Long) : GlEffect {
-    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = EriyenProgram(useHdr, sureMs)
+/** basMs ≥ 0: önizleme (damgalar kompozisyon zamanı, kuyruğun başlangıcı basMs). −1: dışa aktarma (ilk kare = başlangıç). */
+class EriyenMaske(private val sureMs: Long, private val basMs: Long = -1L) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = EriyenProgram(useHdr, sureMs, basMs)
 }
 
-private class EriyenProgram(useHdr: Boolean, private val sureMs: Long) : BaseGlShaderProgram(useHdr, 1) {
+private class EriyenProgram(useHdr: Boolean, private val sureMs: Long, private val basMs: Long) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(VS, FS)
     private val doku: Int = Erime.dokuYukle()
     private var t0 = -1L
@@ -103,8 +104,8 @@ private class EriyenProgram(useHdr: Boolean, private val sureMs: Long) : BaseGlS
     override fun configure(inputWidth: Int, inputHeight: Int): Size = Size(inputWidth, inputHeight)
 
     override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
-        if (t0 < 0) t0 = presentationTimeUs
-        val k = ((presentationTimeUs - t0) / 1000f / sureMs.coerceAtLeast(1)).coerceIn(0f, 1f)
+        val yerelMs = if (basMs >= 0) presentationTimeUs / 1000f - basMs else { if (t0 < 0) t0 = presentationTimeUs; (presentationTimeUs - t0) / 1000f }
+        val k = (yerelMs / sureMs.coerceAtLeast(1)).coerceIn(0f, 1f)
         program.use()
         program.setSamplerTexIdUniform("uTexSampler", inputTexId, 0)
         program.setSamplerTexIdUniform("uGurultu", doku, 1)

@@ -148,7 +148,7 @@ object KatmanCizim {
 
 /** Dışa aktarma: bir klibe düşen katman bindirmesi (klip içi saatle zaman çizelgesi ms'sine çevrilir). */
 class KatmanBindirme(private val o: KatmanOge, private val bmp: Bitmap, private val klipBasMs: Long) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = klipBasMs + saat.yerelMs(presentationTimeUs)

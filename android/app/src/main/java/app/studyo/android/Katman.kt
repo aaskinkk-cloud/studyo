@@ -187,8 +187,8 @@ object Katman {
 }
 
 /** Takip eden yazı bindirmesi (klibin kendi efektlerinde). */
-class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Katman.TakipGorsel, private val W: Int, private val H: Int, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
-    private val saat = Saat()
+class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Katman.TakipGorsel, private val W: Int, private val H: Int, private val klipBasMs: Long, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
+    private val saat = Saat(klipBasMs)
     private fun yer(us: Long): Yerlesim? {
         val yerel = saat.yerelMs(us)
         val p = Katman.takipKonum(t, k.basMs + yerel) ?: return null
@@ -218,7 +218,7 @@ class GecisBirlestirici(private val tur: String, private val pencereler: List<Lo
 
 /** Videodan kesilmiş hareketli nesne: o anki kareyi (PNG) yükler; son kareden sonra son karede durur. */
 class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, private val W: Int, private val H: Int) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
     private var sonIdx = -1
     private var bmp: Bitmap? = null

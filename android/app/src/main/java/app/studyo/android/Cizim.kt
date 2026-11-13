@@ -478,11 +478,30 @@ object Zaman {
 }
 
 /** Kare zamanını klibin kendi zamanına çevirir (ilk karenin damgası sıfır kabul edilir). */
-class Saat { private var t0 = -1L; fun yerelMs(t: Long): Long { if (t0 < 0) t0 = t; return (t - t0) / 1000 } }
+class Saat(private val basMs: Long = 0L) {
+    // Dışa aktarma: ilk karenin damgası sıfır kabul edilir (3.x'te cihazda doğrulanmış yol, değişmedi).
+    // Akıcı önizleme (CompositionPlayer): damgalar kompozisyon zamanıdır; ileri sarınca ilk kare klibin başı değildir,
+    // bu yüzden yerel zaman = damga − klibin kompozisyondaki başlangıcı.
+    private val mutlak = ZamanKipi.onizleme
+    private var t0 = -1L
+    fun yerelMs(t: Long): Long {
+        if (mutlak) return (t / 1000 - basMs).coerceAtLeast(0)
+        if (t0 < 0) t0 = t; return (t - t0) / 1000
+    }
+}
+
+/** Kompozisyon kurulurken hangi zaman kipinin kullanılacağı (Saat nesneleri kurulurken okunur). */
+object ZamanKipi {
+    // İş parçacığına özel: önizleme kompozisyonu arka planda kurulurken aynı anda dışa aktarma kurulsa da karışmaz.
+    private val yerel = ThreadLocal<Boolean>()
+    var onizleme: Boolean
+        get() = yerel.get() == true
+        set(v) { yerel.set(v) }
+}
 
 /** Zaman çizelgesinde belli aralıkta görünen bindirme (her klibe ayrı örnek). */
 class ZamanliBindirme(private val y: Yerlesim, private val klipBasMs: Long, private val a: Long, private val b: Long) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     override fun getBitmap(presentationTimeUs: Long): Bitmap = y.bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = klipBasMs + saat.yerelMs(presentationTimeUs)
@@ -493,7 +512,7 @@ class ZamanliBindirme(private val y: Yerlesim, private val klipBasMs: Long, priv
 
 /** Altyazı: o andaki satırın bitmapini verir; satır yoksa görünmez. */
 class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Altyazi>, private val st: AltyaziStil, private val W: Int, private val H: Int) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
     private val onbellek = HashMap<String, Yerlesim?>()
     private var simdiki: Yerlesim? = null
@@ -577,9 +596,9 @@ object Gecisler {
         return YOK
     }
 
-    fun etkiler(g: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean): List<Effect> {
+    fun etkiler(g: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L): List<Effect> {
         if (g.tur == "yok" && !siyahtan) return emptyList()
-        val saat = Saat()
+        val saat = Saat(basMs)
         val e = ArrayList<Effect>()
         e += RgbMatrix { t, _ ->
             val a = hesapla(g, saat.yerelMs(t), sure, giris, cikis, siyahtan)
@@ -630,7 +649,7 @@ object HatAnim {
 /** Dışa aktarma: canlı "Abone ol" kartı (kart + dokunma noktası iki ayrı bindirme). */
 class HatirlaticiBindirme(private val kart: Cizim.HatKart, private val klipBasMs: Long, private val a: Long, private val sure: Long,
                           private val W: Int, private val H: Int, private val nokta: Boolean) : BitmapOverlay() {
-    private val saat = Saat()
+    private val saat = Saat(klipBasMs)
     private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
     private fun an(t: Long): HatAnim.An? = HatAnim.an(klipBasMs + saat.yerelMs(t) - a, sure, kart.normal.width.toFloat() / W)
     override fun getBitmap(presentationTimeUs: Long): Bitmap {

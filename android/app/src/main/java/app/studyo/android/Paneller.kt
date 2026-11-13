@@ -125,6 +125,13 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             return@Box
         }
         BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black).border(1.dp, Color(0x99FFFFFF))) {
+            // Akıcı önizleme (oynarken): dışa aktarmanın aynısı tek boru hattında; düzenleme çizimleri gerekmez
+            val kompA by vm.kompAktif.collectAsState()
+            if (kompA) {
+                AndroidView(factory = { c -> android.view.SurfaceView(c).also { vm.kompYuzeyBagla(it) } },
+                    onRelease = { vm.kompYuzeyBagla(null) }, modifier = Modifier.fillMaxSize())
+                return@BoxWithConstraints
+            }
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
             val RW = ref.first; val RH = ref.second
             val olcek = constraints.maxWidth.toFloat() / RW

@@ -6,6 +6,16 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.13 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme — geçişteki sıçramanın asıl kökü
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.12'nin üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
+
+- **Asıl kök neden:** oynatırken önizleme; ana klip oynatıcısı + giden klibin kuyruğu için **ikinci oynatıcı** + üstte Compose çizimleri (yazı, katman, kart, erime maskesi) ile **ayrı ayrı** kuruluyordu. Bunlar ayrı saatlerle çalışır, kare kare eşlenemez → geçişte sıçrama/takılma. 3.5–3.12'deki eşleme düzeltmeleri bunu kökten çözemezdi. Web Kareden Videoya her kareyi **tek tuvalde** çizdiği için akıcıdır.
+- **Çözüm:** ▶ basınca önizleme, dışa aktarmadaki **kompozisyonun aynısını tek boru hattında** oynatır (Media3 CompositionPlayer, 720p): klipler, erime/üst üste geçişler, hareket, yazılar, katmanlar, "Abone ol" kartı, müzik, seslendirme — hepsi tek saatle. Önizlemede gördüğün = videoda çıkacak olan.
+- Duraklatınca (ya da sarınca, bir şeyi değiştirince) düzenleme önizlemesine dönülür (dokunarak taşıma, seçme vb. orada); çizgi kaldığı yerde durur.
+- Bu yol hata verirse o oturumda kendiliğinden standart önizlemeye geçilir ve "Akıcı önizleme açılamadı" yazılır (hata kaydına ayrıntı düşer); aynı yol tekrar denenmez.
+- Zaman damgaları: dışa aktarmada eski (cihazda doğrulanmış) yol aynen korundu; önizlemede kompozisyon zamanı kullanılır (`Saat`, `ZamanKipi`, iş parçacığına özel).
+- Kod: `EditorDurum.kt` (`kompBaslat`, `kompBitir`), `Disa.kt` (`kompozisyon(onizleme)`, öğe süreleri), `Cizim.kt` (`Saat`, `ZamanKipi`), `Erime.kt`, `Paneller.kt` (SurfaceView).
+
 ## 3.12 (14.11.2026, deneme · `yerel-android` dalı): web'deki "Erime" geçişi + canlı "Abone ol" kartı (Ahmet'in örnek videosuna göre)
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.11'in üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
 

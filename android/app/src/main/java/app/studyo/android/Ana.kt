@@ -11,8 +11,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -133,6 +138,7 @@ fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) 
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
     val ctx = LocalContext.current
@@ -141,6 +147,16 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
     var adDegis by remember { mutableStateOf<Proje?>(null) }
     var menu by remember { mutableStateOf(false) }
     val disa by DisaServisi.durum.collectAsState()
+    var secim by remember { mutableStateOf<Set<String>?>(null) }      // null: seçim kipi kapalı
+    var arsivde by remember { mutableStateOf(false) }
+    var topluSilOnay by remember { mutableStateOf(false) }
+    val gorunen = projeler.filter { it.arsiv == arsivde }
+    val arsivSayisi = projeler.count { it.arsiv }
+    val seciliProjeler = secim?.let { s -> gorunen.filter { it.id in s } } ?: emptyList()
+    // Dışa aktarılmakta olan proje silinemez
+    val disadaki = if (disa is DisaDurum.Calisiyor || disa is DisaDurum.Dogrulaniyor) DisaServisi.sonProje else null
+    BackHandler(enabled = secim != null || arsivde) { if (secim != null) secim = null else arsivde = false }
+    LaunchedEffect(arsivde) { secim = null }
 
     Column(Modifier.fillMaxSize().background(Renk.zemin)) {
         Row(
@@ -186,20 +202,68 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                 }
             }
             if (disa != DisaDurum.Bos) item { DisaSerit(disa) { DisaServisi.sonProje?.let { id -> if (Depo.yukle(id) != null) ac(id) } } }
-            item { Text("Son çalışmalarım", color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.padding(top = 6.dp)) }
-            if (projeler.isEmpty()) item {
-                Text("Henüz video projesi yok. “Yeni video” ile başla. Web Stüdyo'daki eski projeler “Fotoğraf + önceki Stüdyo” içinde duruyor.",
+            stickyHeader {
+                val s = secim
+                Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(top = 6.dp, bottom = 4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            when { s != null -> "${s.size} seçili"; arsivde -> "Arşiv"; else -> "Son çalışmalarım" },
+                            color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f),
+                        )
+                        if (s == null) {
+                            if (arsivde || arsivSayisi > 0) InceDugme(if (arsivde) "← Çalışmalarım" else "🗄 Arşiv · $arsivSayisi") { arsivde = !arsivde }
+                            if (gorunen.isNotEmpty()) { Spacer(Modifier.width(8.dp)); InceDugme("☑ Seç") { secim = emptySet() } }
+                        }
+                    }
+                    if (s != null) Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        IkonDugme("☑", "Tümünü seç", Modifier.weight(1f), etkin = s.size < gorunen.size) { secim = gorunen.map { it.id }.toSet() }
+                        IkonDugme("☐", "Seçimi kaldır", Modifier.weight(1f), etkin = s.isNotEmpty()) { secim = emptySet() }
+                        IkonDugme(if (arsivde) "↩" else "🗄", if (arsivde) "Arşivden çıkar" else "Arşivle", Modifier.weight(1f), renk = Renk.turkuaz, etkin = s.isNotEmpty()) {
+                            Depo.arsivle(seciliProjeler, !arsivde); projeler = Depo.listele(); secim = null
+                        }
+                        IkonDugme("🗑", "Sil", Modifier.weight(1f), renk = Renk.kirmizi, etkin = s.isNotEmpty()) { topluSilOnay = true }
+                        IkonDugme("✕", "Bitti", Modifier.weight(1f)) { secim = null }
+                    }
+                }
+            }
+            if (gorunen.isEmpty()) item {
+                Text(
+                    if (arsivde) "Arşiv boş."
+                    else "Henüz video projesi yok. “Yeni video” ile başla. Web Stüdyo'daki eski projeler “Fotoğraf + önceki Stüdyo” içinde duruyor.",
                     color = Renk.soluk, fontSize = 13.sp)
             }
-            items(projeler, key = { it.id }) { p ->
-                ProjeKarti(p, ac = { ac(p.id) },
+            items(gorunen, key = { it.id }) { p ->
+                val s = secim
+                ProjeKarti(p,
+                    ac = { if (s != null) secim = if (p.id in s) s - p.id else s + p.id else ac(p.id) },
                     cogalt = { Depo.cogalt(p); projeler = Depo.listele() },
                     adDegistir = { adDegis = p },
-                    sil = { silinecek = p })
+                    sil = { silinecek = p },
+                    arsivle = { Depo.arsivle(listOf(p), !p.arsiv); projeler = Depo.listele() },
+                    secimde = s != null, secili = s?.contains(p.id) == true,
+                    uzunBas = { secim = (s ?: emptySet()) + p.id })
             }
         }
     }
 
+    if (topluSilOnay) {
+        val silinecekler = seciliProjeler.filter { it.id != disadaki }
+        val atlanan = seciliProjeler.size - silinecekler.size
+        AlertDialog(
+            onDismissRequest = { topluSilOnay = false },
+            title = { Text("${silinecekler.size} proje silinsin mi?") },
+            text = {
+                Text("Telefondaki videoların kendisi silinmez. Projelerin seslendirme kayıtları ve uygulama içi kopyaları silinir. Bu işlem geri alınamaz." +
+                    if (atlanan > 0) "\n\nŞu anda dışa aktarılan proje silinmeyecek." else "")
+            },
+            confirmButton = {
+                TextButton(enabled = silinecekler.isNotEmpty(), onClick = {
+                    Depo.topluSil(silinecekler); projeler = Depo.listele(); secim = null; topluSilOnay = false
+                }) { Text("Sil", color = Renk.kirmizi) }
+            },
+            dismissButton = { TextButton(onClick = { topluSilOnay = false }) { Text("Vazgeç") } },
+        )
+    }
     silinecek?.let { p ->
         AlertDialog(
             onDismissRequest = { silinecek = null },
@@ -242,13 +306,28 @@ fun DisaSerit(d: DisaDurum, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProjeKarti(p: Proje, ac: () -> Unit, cogalt: () -> Unit, adDegistir: () -> Unit, sil: () -> Unit) {
+fun ProjeKarti(
+    p: Proje, ac: () -> Unit, cogalt: () -> Unit, adDegistir: () -> Unit, sil: () -> Unit, arsivle: () -> Unit,
+    secimde: Boolean, secili: Boolean, uzunBas: () -> Unit,
+) {
     var menu by remember { mutableStateOf(false) }
+    val sekil = RoundedCornerShape(14.dp)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Renk.kart).clickable(onClick = ac).padding(10.dp),
+        Modifier.fillMaxWidth().clip(sekil).background(if (secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart)
+            .border(if (secili) 1.5.dp else 0.dp, if (secili) Renk.turuncu else Color.Transparent, sekil)
+            .combinedClickable(onClick = ac, onLongClick = uzunBas).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (secimde) {
+            Box(
+                Modifier.padding(end = 10.dp).size(24.dp).clip(CircleShape)
+                    .background(if (secili) Renk.turuncu else Color.Transparent)
+                    .border(1.5.dp, if (secili) Renk.turuncu else Renk.soluk, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { if (secili) Text("✓", color = Renk.turuncuM, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        }
         KlipResmi(p.klipler.firstOrNull(), Modifier.width(118.dp).height(68.dp).clip(RoundedCornerShape(10.dp)))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -256,16 +335,27 @@ fun ProjeKarti(p: Proje, ac: () -> Unit, cogalt: () -> Unit, adDegistir: () -> U
             Text("${p.klipler.size} klip · ${sureYaz(p.toplamMs)} · ${p.bicim}", color = Renk.soluk, fontSize = 12.5.sp)
             Text(SimpleDateFormat("d MMM yyyy HH:mm", TR).format(Date(p.guncelleme)), color = Renk.soluk, fontSize = 12.sp)
         }
-        Box {
+        if (!secimde) Box {
             TextButton(onClick = { menu = true }) { Text("⋯", color = Renk.yazi, fontSize = 22.sp) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text("Aç") }, onClick = { menu = false; ac() })
                 DropdownMenuItem(text = { Text("Çoğalt") }, onClick = { menu = false; cogalt() })
                 DropdownMenuItem(text = { Text("Adını değiştir") }, onClick = { menu = false; adDegistir() })
+                DropdownMenuItem(text = { Text(if (p.arsiv) "Arşivden çıkar" else "Arşivle") }, onClick = { menu = false; arsivle() })
+                DropdownMenuItem(text = { Text("Seç") }, onClick = { menu = false; uzunBas() })
                 DropdownMenuItem(text = { Text("Sil", color = Renk.kirmizi) }, onClick = { menu = false; sil() })
             }
         }
     }
+}
+
+/** Başlık yanındaki ince çizgili küçük düğme. */
+@Composable
+fun InceDugme(metin: String, onClick: () -> Unit) {
+    val sekil = RoundedCornerShape(16.dp)
+    Text(metin, color = Renk.turkuaz, fontSize = 12.5.sp, fontWeight = FontWeight.Light,
+        modifier = Modifier.clip(sekil).border(0.8.dp, Renk.turkuaz.copy(alpha = 0.5f), sekil).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 5.dp))
 }
 
 fun pilAyari(ctx: Context) {

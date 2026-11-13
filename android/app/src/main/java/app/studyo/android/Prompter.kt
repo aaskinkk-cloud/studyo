@@ -84,13 +84,13 @@ fun Prompter(vm: EditorDurum, kapat: () -> Unit) {
                 Column(Modifier.fillMaxWidth().background(Color(0xFF151515)).padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Hız", color = Color(0xFFAAAAAA), fontSize = 12.sp, modifier = Modifier.width(56.dp))
-                        Slider(value = hiz, onValueChange = { hiz = it }, valueRange = 10f..120f, modifier = Modifier.weight(1f),
+                        InceSlider(value = hiz, onValueChange = { hiz = it }, valueRange = 10f..120f, modifier = Modifier.weight(1f),
                             onValueChangeFinished = { val h = hiz; vm.okumaDegis { it.copy(okumaHiz = h) } },
                             colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Yazı", color = Color(0xFFAAAAAA), fontSize = 12.sp, modifier = Modifier.width(56.dp))
-                        Slider(value = boy, onValueChange = { boy = it }, valueRange = 20f..60f, modifier = Modifier.weight(1f),
+                        InceSlider(value = boy, onValueChange = { boy = it }, valueRange = 20f..60f, modifier = Modifier.weight(1f),
                             onValueChangeFinished = { val b = boy; vm.okumaDegis { it.copy(okumaBoy = b) } },
                             colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu))
                     }

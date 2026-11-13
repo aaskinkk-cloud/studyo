@@ -245,12 +245,41 @@ fun Etiketli(etiket: String, deger: String) {
     }
 }
 
+/** Küçük açma-kapama: 32×18, açıkken ton renginde. */
 @Composable
 fun AnahtarSatiri(metin: String, deger: Boolean, degis: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { degis(!deger) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(metin, color = Renk.yazi, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        Switch(checked = deger, onCheckedChange = degis, colors = SwitchDefaults.colors(checkedTrackColor = Renk.turuncu, checkedThumbColor = Renk.turuncuM))
+    Row(Modifier.fillMaxWidth().clickable { degis(!deger) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(metin, color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        if (Duzen.yaziliMenu) { Switch(checked = deger, onCheckedChange = degis, colors = SwitchDefaults.colors(checkedTrackColor = Renk.turuncu, checkedThumbColor = Renk.turuncuM)); return@Row }
+        val ton = tonRenk(-1, metin)
+        Box(Modifier.size(32.dp, 18.dp).clip(CircleShape).background(if (deger) ton else Renk.cizgi), contentAlignment = if (deger) Alignment.CenterEnd else Alignment.CenterStart) {
+            Box(Modifier.padding(2.dp).size(14.dp).clip(CircleShape).background(if (deger) Color.White else Renk.soluk))
+        }
     }
+}
+
+/** İnce kaydırıcı: 3 dp çizgi + 14 dp yuvarlak tutamaç (dokunma alanı Material ile aynı). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InceSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier, valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+               steps: Int = 0, onValueChangeFinished: (() -> Unit)? = null, colors: SliderColors? = null, renk: Color = Renk.turuncu) {
+    if (Duzen.yaziliMenu) {
+        Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps,
+            onValueChangeFinished = onValueChangeFinished, colors = colors ?: SliderDefaults.colors(thumbColor = renk, activeTrackColor = renk))
+        return
+    }
+    Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
+        thumb = { Box(Modifier.size(14.dp).clip(CircleShape).background(renk)) },
+        track = { st ->
+            val span = (st.valueRange.endInclusive - st.valueRange.start).takeIf { it > 0f } ?: 1f
+            val f = ((st.value - st.valueRange.start) / span).coerceIn(0f, 1f)
+            val pasif = Renk.cizgi
+            androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(3.dp)) {
+                val y = size.height / 2
+                drawLine(pasif, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), size.height, androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(renk, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width * f, y), size.height, androidx.compose.ui.graphics.StrokeCap.Round)
+            }
+        })
 }
 
 @Composable

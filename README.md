@@ -11,6 +11,9 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Oynatıcı:** önceki/sonraki kare düğmeleri yarı boyuta indi, "başa dön" eklendi, zaman çubuğu inceldi.
 - **Menüler:** alt başlıklar üstte çizim ikon, altta küçük ince yazı (InShot tarzı); bölüm çubuğu ikon + küçük yazı. Eski yazılı haplar ⋯ menüsünden "Alt başlıklar: yazılı (önceki)" ile geri gelir.
 - **Sade düğmeler ve seçimler:** panellerdeki tüm kutu düğmeler (Sola/Sağa/Çoğalt/Sil, Değiştir/Kaldır, SRT…) ve seçim kutuları (16:9 / 9:16 / 1:1, Sığdır/Doldur, paketler, kalite) arka plansız; üstte ikon, altta küçük ince yazı, alt menüyle aynı renk ailesinden farklı tonlar. Seçili olan tam renk + kalın + altında nokta; oranlar kendi şeklini çizer. Turuncu ana eylemler dolgulu kalır. Eski kutulu görünüm ⋯ › "Alt başlıklar: yazılı (önceki)" ile geri gelir.
+- **Varsayılan ayarları uygula (Şablon bölümü):** tek dokunuşla standart başlangıç — yatay videoda dikey fotoğraflar ekranı doldurur (ortadan), her fotoğraf 5 sn yavaş yaklaşır; hareketli giriş başlığı, videonun %80'inde "Takip et" hatırlatıcı, sonda "Takip et · Beğen" kapanışı.
+- **Geri al / Yinele:** üst çubukta ↶ ↷ (40 adım; ardışık yazma/sürükleme tek adım).
+- **Görünüm inceltme:** renk paletleri yarı yükseklikte, kaydırıcılar 3 dp çizgi + küçük tutamaç, açma-kapama düğmeleri küçük ve ton renginde, seçenek kutuları arka plansız renkli yazı (seçili kalın + nokta), önizleme köşeleri kare, klip küçük resimlerinin kenarı ince. Hepsi ⋯ › "yazılı (önceki)" ile eski görünüme döner.
 - **Prompter (Ses › Seslendirme):** metni yaz, "Tam ekran oku ve kaydet". Metin kendiliğinden kayar (hız ve yazı boyutu ayarlı, ekran açık kalır); kırmızı düğme kaydı ve kaydırmayı başlatır, ses videonun o anki konumundan itibaren seslendirme olarak eklenir. Metin ve ayarlar projede saklanır.
 
 ## 3.4 (13.11.2026, deneme · `yerel-android` dalı): düzeltmeler + cam fırçası

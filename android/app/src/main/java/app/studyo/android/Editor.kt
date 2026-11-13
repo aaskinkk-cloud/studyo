@@ -154,13 +154,18 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         confirmButton = { TextButton(onClick = { vm.adDegistir(ad); adDuzen = false }) { Text("Tamam") } },
                         dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
                 }
+                val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                    Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                    Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
                 InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
                 Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
                 InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
             val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
-            OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(horizontal = 10.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(18.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(18.dp)))
+            OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(vertical = 4.dp)
+                .clipToBounds())
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
             val yog = LocalDensity.current
@@ -393,10 +398,10 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
-            val sekil = RoundedCornerShape(14.dp)
+            val sekil = RoundedCornerShape(6.dp)
             Box(
                 Modifier.width(kw).fillMaxHeight().clip(sekil)
-                    .border(if (i == sec) 3.dp else 1.5.dp, if (i == sec) Renk.turuncu else Renk.turkuaz.copy(alpha = 0.7f), sekil)
+                    .border(if (i == sec) 2.dp else 0.5.dp, if (i == sec) Color(TON[0]) else Renk.cizgi, sekil)
                     .clickable { vm.sec(i) },
             ) {
                 KlipResmi(k, Modifier.fillMaxSize())
@@ -481,6 +486,19 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                 valueRange = 0f..k.kaynakSureMs.coerceAtLeast(1).toFloat(),
                 onValueChangeFinished = { vm.kirp(aralik.start.toLong(), aralik.endInclusive.toLong()) },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
+                startThumb = { Box(Modifier.size(14.dp).clip(CircleShape).background(Renk.turuncu)) },
+                endThumb = { Box(Modifier.size(14.dp).clip(CircleShape).background(Renk.turuncu)) },
+                track = { st ->
+                    val span = (st.valueRange.endInclusive - st.valueRange.start).takeIf { it > 0f } ?: 1f
+                    val a = ((st.activeRangeStart - st.valueRange.start) / span).coerceIn(0f, 1f)
+                    val b = ((st.activeRangeEnd - st.valueRange.start) / span).coerceIn(0f, 1f)
+                    val pasif = Renk.cizgi; val aktif = Renk.turuncu
+                    androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(3.dp)) {
+                        val y = size.height / 2
+                        drawLine(pasif, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), size.height)
+                        drawLine(aktif, androidx.compose.ui.geometry.Offset(size.width * a, y), androidx.compose.ui.geometry.Offset(size.width * b, y), size.height)
+                    }
+                },
             )
             Etiketli("Başlangıç · Bitiş", "${sureOndalik(aralik.start.toLong())} · ${sureOndalik(aralik.endInclusive.toLong())}")
             Etiketli("Süre", sureOndalik((aralik.endInclusive - aralik.start).toLong()))
@@ -488,7 +506,7 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             var sn by remember(k.id, k.fotoSureMs) { mutableFloatStateOf(k.fotoSureMs / 1000f) }
             Spacer(Modifier.height(8.dp))
             Etiketli("Fotoğraf süresi", String.format(TR, "%.1f sn", sn))
-            Slider(
+            InceSlider(
                 value = sn, onValueChange = { sn = it }, valueRange = 1f..15f,
                 onValueChangeFinished = { vm.klipGuncelle(true) { it.copy(fotoSureMs = (sn * 1000).toLong()) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
@@ -560,7 +578,7 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
             AnahtarSatiri("Sessiz", k.sessiz) { v -> vm.klipGuncelle { it.copy(sessiz = v) } }
             var s by remember(k.id, k.ses) { mutableFloatStateOf(k.ses) }
             Etiketli("Ses düzeyi", "%${(s * 100).roundToInt()}")
-            Slider(
+            InceSlider(
                 value = s, onValueChange = { s = it }, valueRange = 0f..1.5f, enabled = !k.sessiz,
                 onValueChangeFinished = { vm.klipGuncelle { it.copy(ses = s) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
@@ -584,7 +602,7 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje) {
             if (m.sureMs > 0) Text("Süre ${sureYaz(m.sureMs)}", color = Renk.soluk, fontSize = 12.sp)
             var s by remember(m.uri, m.ses) { mutableFloatStateOf(m.ses) }
             Etiketli("Müzik sesi", "%${(s * 100).roundToInt()}")
-            Slider(value = s, onValueChange = { s = it }, valueRange = 0f..1f,
+            InceSlider(value = s, onValueChange = { s = it }, valueRange = 0f..1f,
                 onValueChangeFinished = { vm.muzikDegis { it.copy(ses = s) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
             AnahtarSatiri("Video boyunca tekrarla", m.dongu) { v -> vm.muzikDegis { it.copy(dongu = v) } }
@@ -628,7 +646,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
                 Text("${sureYaz(s.basMs)} → ${sureYaz(s.basMs + s.sureMs)}  (${sureYaz(s.sureMs)})", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
                 var v by remember(s.id, s.ses) { mutableFloatStateOf(s.ses) }
                 Etiketli("Ses", "%${(v * 100).roundToInt()}")
-                Slider(value = v, onValueChange = { v = it }, valueRange = 0f..1.5f,
+                InceSlider(value = v, onValueChange = { v = it }, valueRange = 0f..1.5f,
                     onValueChangeFinished = { vm.sesDegis(s.id) { it.copy(ses = v) } },
                     colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
                 var silOnay by remember(s.id) { mutableStateOf(false) }
@@ -663,14 +681,14 @@ private fun PanelYazi(vm: EditorDurum, k: Klip) {
         }
         var b by remember(k.id, y.boyut) { mutableFloatStateOf(y.boyut) }
         Etiketli("Boyut", "%${(b * 100).roundToInt()}")
-        Slider(value = b, onValueChange = { b = it }, valueRange = 0.03f..0.16f,
+        InceSlider(value = b, onValueChange = { b = it }, valueRange = 0.03f..0.16f,
             onValueChangeFinished = { vm.klipGuncelle { it.copy(yazi = (it.yazi ?: Yazi()).copy(boyut = b)) } },
             colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             RENKLER.forEach { (r, _) ->
                 Box(
-                    Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(Color(r))
-                        .border(if (y.renk == r) 3.dp else 1.dp, if (y.renk == r) Renk.turuncu else Renk.cizgi, RoundedCornerShape(10.dp))
+                    Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
+                        .border(if (y.renk == r) 2.dp else 0.5.dp, if (y.renk == r) Color.White else Renk.cizgi, RoundedCornerShape(9.dp))
                         .clickable { vm.klipGuncelle { it.copy(yazi = (it.yazi ?: Yazi()).copy(renk = r)) } },
                 )
             }
@@ -699,12 +717,12 @@ private fun PanelLogo(vm: EditorDurum, p: Proje) {
             }
             var b by remember(l.yol, l.boyut) { mutableFloatStateOf(l.boyut) }
             Etiketli("Boyut", "%${(b * 100).roundToInt()}")
-            Slider(value = b, onValueChange = { b = it }, valueRange = 0.06f..0.35f,
+            InceSlider(value = b, onValueChange = { b = it }, valueRange = 0.06f..0.35f,
                 onValueChangeFinished = { vm.logoDegis { it.copy(boyut = b) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
             var o by remember(l.yol, l.opaklik) { mutableFloatStateOf(l.opaklik) }
             Etiketli("Opaklık", "%${(o * 100).roundToInt()}")
-            Slider(value = o, onValueChange = { o = it }, valueRange = 0.2f..1f,
+            InceSlider(value = o, onValueChange = { o = it }, valueRange = 0.2f..1f,
                 onValueChangeFinished = { vm.logoDegis { it.copy(opaklik = o) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
             AnahtarSatiri("Yuvarlak", l.yuvarlak) { v -> vm.logoDegis { it.copy(yuvarlak = v) } }

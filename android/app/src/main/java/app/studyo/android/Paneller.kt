@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,12 +55,21 @@ fun Secenekler(liste: List<Pair<String, String>>, secili: String, sutun: Int = 3
         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sira.forEach { (k, ad) ->
                 val on = k == secili
-                val sekil = RoundedCornerShape(10.dp)
-                Box(
-                    Modifier.weight(1f).height(40.dp).clip(sekil).background(if (on) Renk.turuncu.copy(alpha = 0.18f) else Renk.kart2)
-                        .border(1.5.dp, if (on) Renk.turuncu else Color.Transparent, sekil).clickable { sec(k) },
-                    contentAlignment = Alignment.Center,
-                ) { Text(ad, color = if (on) Renk.turuncu else Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
+                if (Duzen.yaziliMenu) {
+                    val sekil = RoundedCornerShape(10.dp)
+                    Box(
+                        Modifier.weight(1f).height(40.dp).clip(sekil).background(if (on) Renk.turuncu.copy(alpha = 0.18f) else Renk.kart2)
+                            .border(1.5.dp, if (on) Renk.turuncu else Color.Transparent, sekil).clickable { sec(k) },
+                        contentAlignment = Alignment.Center,
+                    ) { Text(ad, color = if (on) Renk.turuncu else Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
+                } else {
+                    val ton = tonRenk(liste.indexOfFirst { it.first == k }, ad)
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable { sec(k) }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(ad, color = if (on) ton else ton.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (on) ton else Color.Transparent))
+                    }
+                }
             }
         }
     }
@@ -69,7 +79,7 @@ fun Secenekler(liste: List<Pair<String, String>>, secili: String, sutun: Int = 3
 private fun Kaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPointRange<Float>, yazi: (Float) -> String, bitti: (Float) -> Unit) {
     var v by remember(deger) { mutableFloatStateOf(deger) }
     Etiketli(etiket, yazi(v))
-    Slider(value = v, onValueChange = { v = it }, valueRange = aralik, onValueChangeFinished = { bitti(v) }, colors = kaydiriciRenk)
+    InceSlider(value = v, onValueChange = { v = it }, valueRange = aralik, onValueChangeFinished = { bitti(v) }, colors = kaydiriciRenk)
 }
 
 @Composable
@@ -234,6 +244,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
 
 @Composable
 fun PanelSablon(vm: EditorDurum, p: Proje) {
+    Kart("Varsayılan ayarlar") {
+        GenisDugme("Varsayılan ayarları uygula", "sihir", vurgulu = true) { vm.varsayilanUygula() }
+        Not("Dikey fotoğraflar yatay videoda ekranı doldurur, her fotoğraf 5 sn yaklaşır; hareketli giriş başlığı, sona doğru \"Takip et\", en sonda \"Takip et · Beğen\" kapanışı. Klipler, müzik ve yazılar değişmez; her şey sonra tek tek değiştirilebilir.")
+    }
     Kart("Hazır paketler") {
         Not("Giriş başlığı, geçiş, abone hatırlatıcı ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
         Spacer(Modifier.height(6.dp))
@@ -368,8 +382,8 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
         Secenekler(listOf("kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı", "kisa" to "Kelime vurgulu"), st.stil, sutun = 2) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
         if (st.stil == "kisa") Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(0xFFFFD400, 0xFF35E06B, 0xFF27D3FF, 0xFFFF5FA2, 0xFFFFFFFF).forEach { r ->
-                Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(10.dp)).background(Color(r))
-                    .border(if (st.vurgu == r) 3.dp else 1.dp, if (st.vurgu == r) Renk.turuncu else Renk.cizgi, RoundedCornerShape(10.dp))
+                Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
+                    .border(if (st.vurgu == r) 2.dp else 0.5.dp, if (st.vurgu == r) Color.White else Renk.cizgi, RoundedCornerShape(9.dp))
                     .clickable { vm.altyaziStilDegis { it.copy(vurgu = r) } })
             }
         }
@@ -424,8 +438,8 @@ fun PanelKapak(vm: EditorDurum, p: Proje) {
         Secenekler(listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta"), kp.konum) { s -> vm.kapakDegis { it.copy(konum = s) } }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             VURGULAR.forEach { (r, _) ->
-                Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(r))
-                    .border(if (kp.vurgu == r) 3.dp else 0.dp, if (kp.vurgu == r) Color.White else Color.Transparent, RoundedCornerShape(10.dp))
+                Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
+                    .border(if (kp.vurgu == r) 2.dp else 0.dp, if (kp.vurgu == r) Color.White else Color.Transparent, RoundedCornerShape(9.dp))
                     .clickable { vm.kapakDegis { it.copy(vurgu = r) } })
             }
         }
@@ -474,8 +488,8 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
                 Kaydirici("Boyut", t.boyut, 0.03f..0.1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.takipDegis { it.copy(boyut = v) } }
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     YAZI_RENK.forEach { r ->
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(r))
-                            .border(if (t.renk == r) 3.dp else 1.dp, if (t.renk == r) Renk.turuncu else Renk.cizgi, RoundedCornerShape(10.dp))
+                        Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
+                            .border(if (t.renk == r) 2.dp else 0.5.dp, if (t.renk == r) Color.White else Renk.cizgi, RoundedCornerShape(9.dp))
                             .clickable { vm.takipDegis { it.copy(renk = r) } })
                     }
                 }
@@ -507,7 +521,7 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
         } else {
             var sn by remember { mutableFloatStateOf(5f) }
             Etiketli("Süre", String.format(TR, "%.0f sn", sn))
-            Slider(value = sn, onValueChange = { sn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
+            InceSlider(value = sn, onValueChange = { sn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
             Dugme("✂ Bu andan itibaren kes", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
             Not("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
         }

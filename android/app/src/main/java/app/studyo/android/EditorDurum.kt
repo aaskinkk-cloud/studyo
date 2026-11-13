@@ -199,9 +199,25 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     // ---------- düzenleme ----------
+    // geri al / yinele: 40 adım; 800 ms içindeki ardışık değişiklikler (yazı yazma, sürükleme) tek adım sayılır
+    private val geriYigin = ArrayDeque<Proje>(); private val ileriYigin = ArrayDeque<Proje>(); private var sonAdim = 0L
+    val geriVar = MutableStateFlow(false); val ileriVar = MutableStateFlow(false)
+    private fun yiginBildir() { geriVar.value = geriYigin.isNotEmpty(); ileriVar.value = ileriYigin.isNotEmpty() }
+    fun geriAl() { val o = geriYigin.removeLastOrNull() ?: return; ileriYigin.addLast(proje.value); geriYukle(o); mesaj.value = "Geri alındı" }
+    fun yinele() { val o = ileriYigin.removeLastOrNull() ?: return; geriYigin.addLast(proje.value); geriYukle(o); mesaj.value = "Yinelendi" }
+    private fun geriYukle(o: Proje) {
+        val i = player.currentMediaItemIndex; val ms = player.currentPosition
+        proje.value = o.copy(guncelleme = System.currentTimeMillis()); sonAdim = 0L
+        secili.value = secili.value.coerceIn(0, (o.klipler.size - 1).coerceAtLeast(0))
+        listeKur(i.coerceAtMost((o.klipler.size - 1).coerceAtLeast(0)), ms); kaydetPlanla(); yiginBildir()
+    }
+
     fun guncelle(yapi: Boolean = false, f: (Proje) -> Proje) {
         val i = player.currentMediaItemIndex; val ms = player.currentPosition
-        proje.value = f(proje.value).copy(guncelleme = System.currentTimeMillis())
+        val once = proje.value; val simdi = System.currentTimeMillis()
+        if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
+        sonAdim = simdi; ileriYigin.clear(); yiginBildir()
+        proje.value = f(once).copy(guncelleme = simdi)
         if (yapi) listeKur(i, ms) else sesUygula()
         kaydetPlanla()
     }
@@ -414,6 +430,22 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Hazır paket: giriş başlığı, geçiş, hatırlatıcı ve kapanışı birlikte ayarlar. Klipler, müzik ve yazılar değişmez. */
+    /** Standart başlangıç: dikey fotoğraflar yatay videoda ekranı doldurur (ortadan), her fotoğraf 5 sn yavaş yaklaşır;
+     *  hareketli giriş başlığı, sona doğru "Takip et" hatırlatıcı, en sonda "Takip et · Beğen" kapanışı. Klip sırası, müzik, yazılar değişmez. */
+    fun varsayilanUygula() {
+        guncelle(true) { p ->
+            val yatay = p.bicim == "16:9"
+            p.copy(
+                klipler = p.klipler.map { k -> if (!k.foto) k else k.copy(kenBurns = true, fotoSureMs = 5000, doldur = k.doldur || (yatay && k.yuk > k.gen)) },
+                giris = p.giris.copy(acik = true, stil = if (p.giris.acik) p.giris.stil else "r_strip", hareket = "trend", sureMs = maxOf(p.giris.sureMs, 3500),
+                    baslik = p.giris.baslik.ifBlank { p.ad.ifBlank { "Şefin Doğası" } }, alt = p.giris.alt.ifBlank { "Şefin Doğası" }),
+                hatirlatici = p.hatirlatici.copy(acik = true, anOran = 0.8f, yazi = "Takip et", kucuk = "Yeni videolar için"),
+                kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000, yazi = "Takip et · Beğen"),
+            )
+        }
+        mesaj.value = "Varsayılan ayarlar uygulandı"
+    }
+
     fun paketUygula(ad: String) {
         guncelle(true) { p ->
             val g = p.giris.copy(acik = true, baslik = p.giris.baslik.ifBlank { "Ahmet Aşkın" }, alt = p.giris.alt.ifBlank { "Şefin Doğası" })

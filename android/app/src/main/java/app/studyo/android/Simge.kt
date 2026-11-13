@@ -46,6 +46,8 @@ object Simgeler {
         "tuval" to "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 9h8v6H8z",
         "prompter" to "M4 4h16v12H4zM8 20h8M12 16v4M7 8h10M7 11h7",
         "sag" to "M5 12h14M12 5l7 7-7 7",
+        "gerial" to "M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3",
+        "yinele" to "M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3",
         "cogalt" to "M9 9h11v11H9zM5 15H4V4h11v1",
         "sil" to "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14",
         "kapat" to "M18 6L6 18M6 6l12 12",

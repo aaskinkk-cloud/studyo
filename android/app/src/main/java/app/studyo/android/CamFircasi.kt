@@ -150,7 +150,7 @@ fun CamFircasi(vm: EditorDurum, n: Nesne, kapat: () -> Unit) {
             Column(Modifier.fillMaxWidth().background(Renk.kart).padding(12.dp)) {
                 Secenekler(listOf("0" to "Cam (bardak)", "1" to "Geri getir", "2" to "Sil"), kip.toString()) { kip = it.toInt() }
                 Etiketli("Fırça boyutu", "%${(cap * 100).roundToInt()}")
-                Slider(value = cap, onValueChange = { cap = it }, valueRange = 0.01f..0.2f, colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
+                InceSlider(value = cap, onValueChange = { cap = it }, valueRange = 0.01f..0.2f, colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
                 Text("Bardağın cam kısmını boya: parlak yansımalar kalır, gerisi yarı saydam olur; arkadaki video camın içinden görünür. Kesimde kaybolan cam kenarlarını “Geri getir”, fazlalıkları “Sil” ile düzelt.",
                     color = Renk.soluk, fontSize = 12.sp)
             }

@@ -9,6 +9,8 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 ## 3.7 (13.11.2026, deneme · `yerel-android` dalı): şeffaf oynatıcı, zarif takip yazısı
 - **Oynatıcı videonun üstünde:** kontroller (oynat · başa · kare geri/ileri · ince çubuk · süre) videonun altında, şeffaf koyu geçişli şeritte; ayrı satır kalktı, bir satır yer kazanıldı. Eski satır ⋯ › "yazılı (önceki)" ile döner.
 - **Açılışta tam oturma:** önizleme açılışta videonun oranına göre boyutlanır (üstte/altta boşluk yok); tutamaç durur, çift dokunuş yine tam oturur.
+- **Önizlemede yarım ekran / siyah bant (kök neden):** önizlemede oynatıcı görünümü önce kareye kırpılıyor, hareket (yukarı-aşağı kayma, yaklaşma) SONRA bu kırpılmış görünüme uygulanıyordu; taşan kısım hiç görünmediği için yerine siyah bant çıkıyordu. Artık görünüm görüntünün kendi tam boyutunda ortalanır, hareket tam görüntüye uygulanır, kare dışı kesilir — dışa aktarmadaki hesapla birebir. Geçişteki video kuyruğu da aynı yöntemle.
+- **Fotoğraf geçişinde karanlık kare:** oynatıcı yeni fotoğrafı çözerken birkaç yüz ms siyah gösteriyordu; geçiş süresince gelen fotoğraf da (aynı hareketle) alta çizilir, giden fotoğraf üstünde hareketine devam ederek solar.
 - **Takip eden yazı stilleri (yan yana, çizgi simgeli):** Zarif (halka + eğik + yatay çizgi, yazı çizginin üstünde), Köşe (dik açılı çizgi), İğne (dikey çizgi), Kutulu (önceki). Çizgi rengi ayrı seçilir; nokta sağ kenara yakınsa çizgi sola açılır. Önizleme ve dışa aktarma aynı bitmapi kullanır. Yeni takiplerde varsayılan: Zarif.
 
 ## 3.6 (13.11.2026, deneme · `yerel-android` dalı): varsayılan ayarlar yenilendi, yüze yaklaşma, üst boşluk

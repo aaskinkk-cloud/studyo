@@ -124,17 +124,24 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val kG = k?.let { kk -> surKay?.let { kk.copy(kayX = it.x, kayY = it.y) } ?: kk }
             val kbAn = kG?.let { Yuz.an(it, RW, RH, kbF, sira) }
             val an = Gecisler.onizleme(p, konum)
-            AndroidView(
-                factory = { c ->
-                    (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player }
-                },
-                update = { v -> v.kadraj(k?.doldur == true) },
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    val kb = kbAn?.s ?: 1f
-                    scaleX = kb * an.olcek; scaleY = kb * an.olcek
-                    translationX = kbAn?.onizlemeX(size.width) ?: 0f; translationY = kbAn?.onizlemeY(size.height) ?: 0f
-                },
-            )
+            // KÖK DÜZELTME (3.7): oynatıcı görünümü görüntünün KENDİ boyutunda (s=1'deki dw×dh) ortalanır ve Sığdır modunda tamamını çizer;
+            // kaydırma/yaklaşma bu tam görüntüye uygulanır, kare (dış kutu) keser. Eskiden görünüm kareye kırpılıp SONRA kaydırılıyordu:
+            // dikey fotoğraf yukarı/aşağı kayarken taşan kısım hiç görünmüyor, yerine siyah bant çıkıyordu (yarım ekran). Dışa aktarma zaten doğruydu.
+            fun gorunumGen(a: Yuz.An?) = with(yog) { (constraints.maxWidth / (a?.vx ?: 1f)).toDp() }
+            fun gorunumYuk(a: Yuz.An?) = with(yog) { (constraints.maxHeight / (a?.vy ?: 1f)).toDp() }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                AndroidView(
+                    factory = { c ->
+                        (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player }
+                    },
+                    update = { v -> v.kadraj(false) },
+                    modifier = Modifier.requiredSize(gorunumGen(kbAn), gorunumYuk(kbAn)).graphicsLayer {
+                        val kb = kbAn?.s ?: 1f
+                        scaleX = kb * an.olcek; scaleY = kb * an.olcek
+                        translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
+                    },
+                )
+            }
             if (an.renk > 0f) Box(Modifier.fillMaxSize().background((if (an.beyaz) Color.White else Color.Black).copy(alpha = an.renk.coerceIn(0f, 1f))))
 
             // üst üste binen geçiş: giden klibin son karesi üstte solar/kayar (çıktıda giden klibin devamı oynar)
@@ -152,27 +159,48 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     LaunchedEffect(kk.id, kk.sonMs, yakin.third, kk.ses, kk.sessiz) { vm.kuyrukHazirla(kk, yakin.third) }
                     SideEffect { if (icinde) vm.kuyrukEsle(konum - yakin.second, oynuyor) else vm.kuyrukBekle() }
                 } else SideEffect { vm.kuyrukBekle() }
-                val dolduran = yakin?.let { p.klipler.getOrNull(it.first)?.doldur } == true
                 val gen = constraints.maxWidth.toFloat()
-                AndroidView(
-                    factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
-                    update = { v -> v.kadraj(dolduran) },
-                    modifier = Modifier.fillMaxSize().graphicsLayer {
-                        val ka = yakin?.let { Yuz.an(p.klipler[it.first], RW, RH, 1f, it.first) }
-                        alpha = u?.alfa ?: 0f; scaleX = (u?.olcek ?: 1f) * (ka?.s ?: 1f); scaleY = (u?.olcek ?: 1f) * (ka?.s ?: 1f)
-                        translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f + (ka?.onizlemeX(size.width) ?: 0f)
-                        translationY = ka?.onizlemeY(size.height) ?: 0f
-                    },
-                )
+                val ka = yakin?.let { y -> val kx = p.klipler[y.first]
+                    Yuz.an(kx, RW, RH, ((p.zKlip(y.first).sureMs + (konum - y.second).coerceAtLeast(0)).toFloat() / kx.sureMs.coerceAtLeast(1)), y.first) }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    AndroidView(
+                        factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
+                        update = { v -> v.kadraj(false) },
+                        modifier = Modifier.requiredSize(gorunumGen(ka), gorunumYuk(ka)).graphicsLayer {
+                            alpha = u?.alfa ?: 0f; scaleX = (u?.olcek ?: 1f) * (ka?.s ?: 1f); scaleY = (u?.olcek ?: 1f) * (ka?.s ?: 1f)
+                            translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f + (ka?.tx ?: 0f) * size.width / 2f
+                            translationY = -(ka?.ty ?: 0f) * size.height / 2f
+                        },
+                    )
+                }
             }
-            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third && p.klipler.getOrNull(it.first)?.foto == true }?.let { (i, b0, T) ->
-                val kk = p.zKlip(i)
-                sonKareler[vm.sonKareAnahtar(kk)]?.let { bm ->
-                    val u = Gecisler.ustKatman(p.gecis.tur, ((konum - b0).toFloat() / T).coerceIn(0f, 1f))
-                    val gen = constraints.maxWidth.toFloat()
-                    Image(bm.asImageBitmap(), null, Modifier.fillMaxSize().background(Color.Black).graphicsLayer {
-                        alpha = u.alfa; scaleX = u.olcek; scaleY = u.olcek; translationX = (u.zx - u.kx) * gen / 2f
-                    }, contentScale = if (kk.doldur) ContentScale.Crop else ContentScale.Fit)
+            // Fotoğraf geçişi: gelen fotoğraf (alta, opak) ve giden fotoğraf (üstte, solar) aynı hareket hesabıyla çizilir.
+            // Gelen fotoğraf, oynatıcı yeni fotoğrafı çözerken gösterdiği siyah kareyi örter (eski "karanlık geçiş").
+            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) p.klipler.getOrNull(i + 1)?.let { if (it.foto) vm.sonKareIste(it) } }
+            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, T) ->
+                val gen = constraints.maxWidth.toFloat()
+                val yerel = (konum - b0).coerceAtLeast(0)
+                p.klipler.getOrNull(i + 1)?.takeIf { it.foto }?.let { kg ->
+                    sonKareler[vm.sonKareAnahtar(kg)]?.let { bm ->
+                        val a = Yuz.an(kg, RW, RH, yerel.toFloat() / kg.sureMs.coerceAtLeast(1), i + 1)
+                        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                            Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
+                                scaleX = a.s; scaleY = a.s; translationX = a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
+                            }, contentScale = ContentScale.FillBounds)
+                        }
+                    }
+                }
+                p.klipler.getOrNull(i)?.takeIf { it.foto }?.let { kc ->
+                    sonKareler[vm.sonKareAnahtar(p.zKlip(i))]?.let { bm ->
+                        val u = Gecisler.ustKatman(p.gecis.tur, (yerel.toFloat() / T).coerceIn(0f, 1f))
+                        val a = Yuz.an(kc, RW, RH, (p.zKlip(i).sureMs + yerel).toFloat() / kc.sureMs.coerceAtLeast(1), i)
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
+                                alpha = u.alfa; scaleX = u.olcek * a.s; scaleY = u.olcek * a.s
+                                translationX = (u.zx - u.kx) * gen / 2f + a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
+                            }, contentScale = ContentScale.FillBounds)
+                        }
+                    }
                 }
             }
 

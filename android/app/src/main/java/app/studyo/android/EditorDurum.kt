@@ -729,7 +729,14 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }
 
     // ---------- görünüm: geçiş ve şablon ----------
-    fun gecisDegis(f: (Gecis) -> Gecis) = guncelle { it.copy(gecis = f(it.gecis)) }
+    fun gecisDegis(f: (Gecis) -> Gecis) = guncelle(true) { it.copy(gecis = f(it.gecis)) }
+
+    /** Klipler arasındaki geçiş simgesinden: i ile i+1 arası. null = projenin geçişi. */
+    fun klipGecis(i: Int, tur: String?) = guncelle(true) { p ->
+        if (i !in p.klipler.indices) p else p.copy(klipler = p.klipler.toMutableList().also { it[i] = it[i].copy(gecis = tur) })
+    }
+    /** Seçilen geçişi bütün klip aralarına uygular (klip başına seçimler temizlenir). */
+    fun gecisHepsine(tur: String) = guncelle(true) { p -> p.copy(gecis = p.gecis.copy(tur = tur), klipler = p.klipler.map { it.copy(gecis = null) }) }
     fun girisDegis(f: (Giris) -> Giris) = guncelle { it.copy(giris = f(it.giris)) }
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
     private var yapiIs: Job? = null

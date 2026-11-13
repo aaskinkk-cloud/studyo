@@ -125,6 +125,19 @@ object Disa {
         try { return kompozisyonKur(ctx, p, W, H, hdrKip, onizleme) } finally { ZamanKipi.onizleme = false }
     }
 
+    /** Üst dizideki boşluk. Dışa aktarmada eskisi gibi "gap". Akıcı önizlemede gap kare üretmez; çok girişli birleştirici
+     *  bütün girişlerden kare beklediği için ilk karede kalıyordu (3.13) → önizlemede boşluk, saydam bir resimle doldurulur
+     *  (birleştirici pencere dışında zaten görünmez yapar). */
+    private fun dolgu(ctx: Context, b: EditedMediaItemSequence.Builder, ms: Long, onizleme: Boolean, fps: Int, W: Int, H: Int) {
+        if (ms <= 0) return
+        if (!onizleme) { b.addGap(ms * 1000); return }
+        val f = File(ctx.cacheDir, "saydam16.png")
+        if (!f.exists()) f.outputStream().use { android.graphics.Bitmap.createBitmap(16, 16, android.graphics.Bitmap.Config.ARGB_8888).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_PNG).setImageDurationMs(ms).build()
+        b.addItem(EditedMediaItem.Builder(mi).setFrameRate(fps)
+            .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_STRETCH_TO_FIT)))).build())
+    }
+
     private val sureOnbellek = HashMap<String, Long>()
     /** Önizlemede her öğenin kaynak süresi gerekir (CompositionPlayer). */
     private fun kaynakSureUs(ctx: Context, uri: String, bilinen: Long): Long {
@@ -182,7 +195,7 @@ object Disa {
         var bas = 0L
         for (i in p.klipler.indices) {
             val k = p.zKlip(i)
-            val gec = Gecisler.etkiler(p.gecis, k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc, bas)
+            val gec = Gecisler.etkiler(p.gecisAt(i - 1), p.gecisAt(i), k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc, bas)
             baslar += bas
             ogeler += oge(ctx, onizleme, k, W, H, logo, gec, katmanlar(bas, k.sureMs), i, p.klipler[i].sureMs, fps, bas)
             bas += k.sureMs
@@ -193,7 +206,7 @@ object Disa {
             val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
             val v = ArrayList<Effect>()
             v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
-            v += Gecisler.etkiler(p.gecis, p.kapanisMs, n > 1, false, false, bas)
+            v += Gecisler.etkiler(p.gecisAt(p.klipler.lastIndex), p.gecis, p.kapanisMs, n > 1, false, false, bas)
             val kk = katmanlar(bas, p.kapanisMs)
             if (kk.isNotEmpty()) v += OverlayEffect(kk)
             ogeler += EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
@@ -203,19 +216,21 @@ object Disa {
 
         // ---- üst üste binen geçiş: giden klibin devamı (ya da son karesi) üst katmanda solar/kayar ----
         val pencereler = ArrayList<LongArray>()   // [başlangıç, süre]
-        if (p.gecis.cakisma && n >= 2) {
+        val pencereTur = ArrayList<String>()
+        if (n >= 2) {
             val ust = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceVideoTrack(true).experimentalSetForceAudioTrack(true)
             var imlec = 0L
             for ((i, b0, T) in Gecisler.pencereler(p)) {
                 val k = p.klipler.getOrNull(i) ?: continue
-                val kuyruk = kuyrukOge(ctx, onizleme, k, T, W, H, logo, katmanlar(b0, T), i, fps, p.gecis.tur == "erime", b0) ?: continue
-                if (b0 > imlec) ust.addGap((b0 - imlec) * 1000)
+                val tur = p.gecisAt(i).tur
+                val kuyruk = kuyrukOge(ctx, onizleme, k, T, W, H, logo, katmanlar(b0, T), i, fps, tur == "erime", b0) ?: continue
+                if (b0 > imlec) dolgu(ctx, ust, b0 - imlec, onizleme, fps, W, H)
                 ust.addItem(kuyruk)
-                pencereler += longArrayOf(b0, T)
+                pencereler += longArrayOf(b0, T); pencereTur += tur
                 imlec = b0 + T
             }
             if (pencereler.isNotEmpty()) {
-                if (toplam > imlec) ust.addGap((toplam - imlec) * 1000)
+                if (toplam > imlec) dolgu(ctx, ust, toplam - imlec, onizleme, fps, W, H)
                 diziler += ust.build()   // ilk dizi = birincil = en üstte çizilir
             }
         }
@@ -285,7 +300,7 @@ object Disa {
             }
         }
         val cb = Composition.Builder(diziler).setHdrMode(hdrKip)
-        if (pencereler.isNotEmpty()) cb.setVideoCompositorSettings(GecisBirlestirici(p.gecis.tur, pencereler, W, H))
+        if (pencereler.isNotEmpty()) cb.setVideoCompositorSettings(GecisBirlestirici(pencereTur, pencereler, W, H))
         return cb.build()
     }
 

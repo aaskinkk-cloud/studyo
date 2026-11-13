@@ -440,6 +440,8 @@ private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
 
 @Composable
 private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false) {
+    var gecisSecim by remember { mutableStateOf<Int?>(null) }
+    gecisSecim?.let { i -> if (i < p.klipler.lastIndex) GecisSecimi(vm, p, i) { gecisSecim = null } }
     val durum = rememberLazyListState()
     LaunchedEffect(sec) { if (sec in p.klipler.indices) durum.animateScrollToItem(sec) }
     val kw = if (kucuk) 92.dp else 136.dp
@@ -451,6 +453,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     ) {
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
             val sekil = RoundedCornerShape(6.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.width(kw).fillMaxHeight().clip(sekil)
                     .border(if (i == sec) 2.dp else 0.5.dp, if (i == sec) Color(TON[0]) else Renk.cizgi, sekil)
@@ -465,6 +468,19 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp))
                 if (!kucuk) Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xCC0E151B)).padding(horizontal = 7.dp, vertical = 2.dp))
+            }
+            // klipler arasındaki geçiş simgesi: dokun = bu aradaki geçişi seç
+            if (i < p.klipler.lastIndex) {
+                val tur = p.gecisAt(i).tur
+                val ozel = k.gecis != null
+                Box(Modifier.padding(start = 8.dp).size(if (kucuk) 24.dp else 30.dp).clip(CircleShape)
+                    .background(if (tur == "yok") Renk.kart2 else Renk.turuncu.copy(alpha = if (ozel) 0.95f else 0.55f))
+                    .border(1.dp, if (ozel) Color.White else Color.Transparent, CircleShape)
+                    .clickable { gecisSecim = i },
+                    contentAlignment = Alignment.Center) {
+                    Simge(if (tur == "yok") "kapat" else "gecis", if (tur == "yok") Renk.soluk else Renk.turuncuM, if (kucuk) 14.dp else 17.dp)
+                }
+            }
             }
         }
         item {
@@ -488,6 +504,43 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     }
     if (ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
+}
+
+/** Klipler arasındaki geçiş seçimi (her video düzenleyicideki gibi): bu ara için tür, ya da tümüne uygula. */
+@Composable
+private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
+    val secenek = listOf(
+        "erime" to "Erime", "capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek",
+        "siyah" to "Siyahtan", "yakin" to "Yakınlaşma", "yok" to "Yok (kesme)",
+    )
+    val simdiki = p.gecisAt(i).tur
+    var sec by remember(i) { mutableStateOf(simdiki) }
+    AlertDialog(
+        onDismissRequest = kapat,
+        title = { Text("Geçiş · klip ${i + 1} → ${i + 2}") },
+        text = {
+            Column {
+                secenek.chunked(4).forEach { satir ->
+                    Row(Modifier.fillMaxWidth()) {
+                        satir.forEachIndexed { j, (k, ad) ->
+                            SecimKarti(ad, "", sec == k, Modifier.weight(1f), sira = j, simge = if (k == "yok") "kapat" else "gecis") { sec = k }
+                        }
+                        repeat(4 - satir.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                Text("Süre: ${String.format(TR, "%.1f", p.gecis.sureMs / 1000f)} sn (Görünüm › Geçiş'ten değişir). " +
+                    "Erime, Yumuşak, Kaydırarak ve Büyüyerek'te iki klip bir an birlikte oynar.", color = Renk.soluk, fontSize = 11.5.sp,
+                    modifier = Modifier.padding(top = 8.dp))
+            }
+        },
+        confirmButton = {
+            Row {
+                TextButton(onClick = { vm.gecisHepsine(sec); kapat() }) { Text("Tümüne uygula") }
+                TextButton(onClick = { vm.klipGecis(i, if (sec == p.gecis.tur) null else sec); kapat() }) { Text("Bu araya") }
+            }
+        },
+        dismissButton = { TextButton(onClick = kapat) { Text("Vazgeç") } },
+    )
 }
 
 @Composable

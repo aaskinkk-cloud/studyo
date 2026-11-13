@@ -195,7 +195,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val yakin = pencereler.firstOrNull { konum >= it.second - 2000 && konum < it.second + it.third && p.klipler.getOrNull(it.first)?.foto == false }
             if (pencereler.any { p.klipler.getOrNull(it.first)?.foto == false }) {
                 val icinde = yakin != null && konum >= yakin.second
-                val u = if (icinde) Gecisler.ustKatman(p.gecis.tur, ((konum - yakin!!.second).toFloat() / yakin.third).coerceIn(0f, 1f)) else null
+                val yTur = yakin?.let { p.gecisAt(it.first).tur } ?: p.gecis.tur
+                val u = if (icinde) Gecisler.ustKatman(yTur, ((konum - yakin!!.second).toFloat() / yakin.third).coerceIn(0f, 1f)) else null
                 if (yakin != null) {
                     val kk = p.zKlip(yakin.first)
                     LaunchedEffect(kk.id, kk.sonMs, yakin.third, kk.ses, kk.sessiz) { vm.kuyrukHazirla(kk, yakin.third) }
@@ -205,7 +206,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val ka = yakin?.let { y -> val kx = p.klipler[y.first]
                     Yuz.an(kx, RW, RH, ((p.zKlip(y.first).sureMs + (konum - y.second).coerceAtLeast(0)).toFloat() / kx.sureMs.coerceAtLeast(1)), y.first) }
                 Box(Modifier.fillMaxSize().clipToBounds()
-                    .erimeMaskesi(p.gecis.tur == "erime" && icinde, ((konum - (yakin?.second ?: 0L)).toFloat() / (yakin?.third ?: 1L)).coerceIn(0f, 1f)),
+                    .erimeMaskesi(yTur == "erime" && icinde, ((konum - (yakin?.second ?: 0L)).toFloat() / (yakin?.third ?: 1L)).coerceIn(0f, 1f)),
                     contentAlignment = Alignment.Center) {
                     AndroidView(
                         factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
@@ -225,9 +226,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val yerel = (konum - b0).coerceAtLeast(0)
                 p.klipler.getOrNull(i)?.takeIf { it.foto }?.let { kc ->
                     sonKareler[vm.sonKareAnahtar(p.zKlip(i))]?.let { bm ->
-                        val u = Gecisler.ustKatman(p.gecis.tur, (yerel.toFloat() / T).coerceIn(0f, 1f))
+                        val gTur = p.gecisAt(i).tur
+                        val u = Gecisler.ustKatman(gTur, (yerel.toFloat() / T).coerceIn(0f, 1f))
                         val a = Yuz.an(kc, RW, RH, (p.zKlip(i).sureMs + yerel).toFloat() / kc.sureMs.coerceAtLeast(1), i)
-                        Box(Modifier.fillMaxSize().clipToBounds().erimeMaskesi(p.gecis.tur == "erime", (yerel.toFloat() / T).coerceIn(0f, 1f)), contentAlignment = Alignment.Center) {
+                        Box(Modifier.fillMaxSize().clipToBounds().erimeMaskesi(gTur == "erime", (yerel.toFloat() / T).coerceIn(0f, 1f)), contentAlignment = Alignment.Center) {
                             Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
                                 alpha = u.alfa; scaleX = u.olcek * a.s; scaleY = u.olcek * a.s
                                 translationX = (u.zx - u.kx) * gen / 2f + a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f

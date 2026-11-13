@@ -6,6 +6,16 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.15 (14.11.2026, deneme · `yerel-android` dalı): web Kareden Videoya yöntemi + klipler arası geçiş simgesi
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — **Test:** derlendi; cihaz testi bekleniyor.
+
+**Referans (web Kareden Videoya, `render(t)`):** her karede `frameState(t)` → geçiş penceresindeyse giden klip (a) ve gelen klip (b) aynı anda, **tek tuvale** çizilir; erimede b, gürültü maskesiyle (destination-in) a'nın üstüne konur; ease = easeInOutQuad. İki klip ayrı oynatıcı/katman değil, tek döngü + tek saat. Stüdyo'nun akıcı önizlemesi (3.13) bu yöntemin yerel karşılığıdır: dışa aktarmadaki kompozisyon tek boru hattında.
+
+- **İlk karede kalma (3.13) kökü giderildi:** üst dizideki boşluklar ("gap") kare üretmiyordu; birleştirici bütün girişlerden kare beklediği için akış duruyordu. Önizlemede boşluklar saydam bir resimle doldurulur (birleştirici pencere dışında zaten görünmez yapar). Dışa aktarma değişmedi. 3.14'teki takılma bekçisi güvenlik olarak duruyor.
+- **Klipler arası geçiş simgesi:** klip şeridinde iki klibin arasında yuvarlak simge (turuncu = geçiş var, beyaz çerçeve = bu araya özel). Dokun → Erime · Yumuşak · Kaydırarak · Büyüyerek · Siyahtan · Yakınlaşma · Yok; **Bu araya** ya da **Tümüne uygula**. Beyaz parlama bu listede yok.
+- Her ara kendi türünü kullanır (önizleme, akıcı önizleme ve dışa aktarma): `Klip.gecis`, `Proje.gecisAt(i)`, `Gecisler.hesapla(giriş, çıkış)`, `GecisBirlestirici(turlar)`.
+- Proje geçişi değişince önizleme listesi yeniden kurulur (süreler değiştiği için).
+
 ## 3.14 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme ilk karede kalıyordu → takılma bekçisi
 - Ahmet'in cihazında (3.13) ▶ sonrası görüntü ilk karede kaldı; hata da vermedi. Olası neden [Muhtemel]: çok girişli birleştirici tüm dizilerden kare bekliyor, boşluklu (gap) dizi kare üretmeyince bekleyip kalıyor (Media3 1.8 sınırı).
 - Çözüm: ▶ sonrası 1,8 sn içinde ilerleme yoksa o oturumda **standart önizlemeye** geçilir ve oynatma oradan kesintisiz sürer; hata kaydına durum yazılır. Oynatma artık hiçbir durumda ilk karede kalmaz.

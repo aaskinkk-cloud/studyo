@@ -541,16 +541,21 @@ object Gecisler {
     /** Doğrusal rampa yerine yumuşak eğri: başta ve sonda hız sıfıra iner, ani kırılma (titreme hissi) olmaz. */
     private fun yumusak(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
-    /** yerel: klip içi ms. giris/cikis: bu klibin başında/sonunda geçiş var mı. siyahtan: videonun ilk klibi siyahtan açılır. */
-    fun hesapla(g: Gecis, yerel: Long, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean): An {
-        val L = (g.sureMs / 2).coerceAtLeast(100)
+    /** yerel: klip içi ms. gG: bu klibin başındaki geçiş, gC: sonundaki geçiş (klip başına seçilebilir).
+     *  Üst üste binen türler (erime/çapraz/kaydırma/büyüme) burada değil, iki dizi ile yapılır. */
+    fun hesapla(gG: Gecis, gC: Gecis, yerel: Long, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean): An {
         if (siyahtan && yerel < 900) return An(yumusak(1f - yerel / 900f), false, 1f)
-        if (g.tur == "yok") return YOK
-        var k = 0f
-        if (giris && yerel < L) k = max(k, 1f - yerel.toFloat() / L)
-        if (cikis && yerel > sure - L) k = max(k, (yerel - (sure - L)).toFloat() / L)
+        var k = 0f; var tur = "yok"
+        if (giris && !gG.cakisma && gG.tur != "yok") {
+            val L = (gG.sureMs / 2).coerceAtLeast(100)
+            if (yerel < L) { val kk = 1f - yerel.toFloat() / L; if (kk > k) { k = kk; tur = gG.tur } }
+        }
+        if (cikis && !gC.cakisma && gC.tur != "yok") {
+            val L = (gC.sureMs / 2).coerceAtLeast(100)
+            if (yerel > sure - L) { val kk = (yerel - (sure - L)).toFloat() / L; if (kk > k) { k = kk; tur = gC.tur } }
+        }
         k = yumusak(k.coerceIn(0f, 1f))
-        return when (g.tur) {
+        return when (tur) {
             "siyah" -> An(k, false, 1f)
             "beyaz" -> An(k, true, 1f)
             "yakin" -> An(k * k * 0.7f, true, 1f + 0.35f * k)
@@ -560,7 +565,6 @@ object Gecisler {
 
     /** Üst üste binen geçiş pencereleri: (giden klip sırası, başlangıç ms, süre ms). Çıktı ve önizleme aynı listeyi kullanır. */
     fun pencereler(p: Proje): List<Triple<Int, Long, Long>> {
-        if (!p.gecis.cakisma) return emptyList()
         val o = ArrayList<Triple<Int, Long, Long>>()
         var t = 0L
         for (i in p.klipler.indices) {
@@ -590,25 +594,29 @@ object Gecisler {
         var t = ms; var i = 0
         while (i < n) {
             val d = if (i < p.klipler.size) p.zKlip(i).sureMs else p.kapanisMs
-            if (t < d || i == n - 1) return hesapla(p.gecis, t, d, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
+            if (t < d || i == n - 1) return hesapla(p.gecisAt(i - 1), p.gecisAt(minOf(i, p.klipler.size - 1)), t, d, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
             t -= d; i++
         }
         return YOK
     }
 
-    fun etkiler(g: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L): List<Effect> {
-        if (g.tur == "yok" && !siyahtan) return emptyList()
+    fun etkiler(gG: Gecis, gC: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L): List<Effect> {
+        val tekG = giris && !gG.cakisma && gG.tur != "yok"; val tekC = cikis && !gC.cakisma && gC.tur != "yok"
+        if (!tekG && !tekC && !siyahtan) return emptyList()
         val saat = Saat(basMs)
         val e = ArrayList<Effect>()
         e += RgbMatrix { t, _ ->
-            val a = hesapla(g, saat.yerelMs(t), sure, giris, cikis, siyahtan)
+            val a = hesapla(gG, gC, saat.yerelMs(t), sure, giris, cikis, siyahtan)
             val s = 1f - a.renk
             val o = if (a.beyaz) a.renk else 0f
             floatArrayOf(s, 0f, 0f, 0f, 0f, s, 0f, 0f, 0f, 0f, s, 0f, o, o, o, 1f)
         }
-        if (g.tur == "yakin") e += MatrixTransformation { t ->
-            val a = hesapla(g, saat.yerelMs(t), sure, giris, cikis, siyahtan)
-            Matrix().apply { setScale(a.olcek, a.olcek) }
+        if ((tekG && gG.tur == "yakin") || (tekC && gC.tur == "yakin")) {
+            val saat2 = Saat(basMs)
+            e += MatrixTransformation { t ->
+                val a = hesapla(gG, gC, saat2.yerelMs(t), sure, giris, cikis, siyahtan)
+                Matrix().apply { setScale(a.olcek, a.olcek) }
+            }
         }
         return e
     }

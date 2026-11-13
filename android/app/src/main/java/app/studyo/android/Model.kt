@@ -61,6 +61,8 @@ data class Klip(
     val tarihMs: Long = 0,
     /** Kaynak videonun kare hızı (0 = bilinmiyor; dışa aktarmada okunur). */
     val kareHizi: Float = 0f,
+    /** Bu klipten sonrakine geçiş (klipler arasındaki geçiş simgesiyle seçilir); null = projenin geçişi. */
+    val gecis: String? = null,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
@@ -203,10 +205,14 @@ data class Proje(
     val klipMs: Long get() = klipler.indices.sumOf { zKlip(it).sureMs }
 
     /** Üst üste binen (yumuşak) geçişte klip i ile sonraki arasındaki örtüşme (ms). Videoyu bu kadar kısaltır. */
+    /** Klip i ile sonraki (ya da kapanış) arasındaki geçiş: klibe seçilmişse o, yoksa projenin geçişi. */
+    fun gecisAt(i: Int): Gecis = klipler.getOrNull(i)?.gecis?.let { gecis.copy(tur = it) } ?: gecis
+
     fun ortusme(i: Int): Long {
-        if (!gecis.cakisma || i !in klipler.indices) return 0
+        val g = gecisAt(i)
+        if (!g.cakisma || i !in klipler.indices) return 0
         val sonraki = if (i + 1 < klipler.size) klipler[i + 1].sureMs else if (kapanis.acik) kapanis.sureMs else return 0
-        val t = minOf(gecis.sureMs, klipler[i].sureMs / 3, sonraki / 3)
+        val t = minOf(g.sureMs, klipler[i].sureMs / 3, sonraki / 3)
         return if (t >= 150) t else 0
     }
 

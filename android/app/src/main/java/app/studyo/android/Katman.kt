@@ -203,14 +203,16 @@ class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Ka
 }
 
 /** Üst üste binen geçiş: birincil (üst) dizide giden klibin kuyruğu var; pencere içinde solar/kayar/büyür, dışında görünmez. */
-class GecisBirlestirici(private val tur: String, private val pencereler: List<LongArray>, private val W: Int, private val H: Int) : androidx.media3.common.VideoCompositorSettings {
+class GecisBirlestirici(private val turlar: List<String>, private val pencereler: List<LongArray>, private val W: Int, private val H: Int) : androidx.media3.common.VideoCompositorSettings {
     override fun getOutputSize(inputSizes: MutableList<androidx.media3.common.util.Size>): androidx.media3.common.util.Size = androidx.media3.common.util.Size(W, H)
     override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings {
         if (inputId != 0) return StaticOverlaySettings.Builder().build()
         val ms = presentationTimeUs / 1000
-        val p = pencereler.firstOrNull { ms >= it[0] && ms < it[0] + it[1] } ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val j = pencereler.indexOfFirst { ms >= it[0] && ms < it[0] + it[1] }
+        if (j < 0) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val p = pencereler[j]
         val f = ((ms - p[0]).toFloat() / p[1]).coerceIn(0f, 1f)
-        return Gecisler.ustKatman(tur, f).let { a ->
+        return Gecisler.ustKatman(turlar[j], f).let { a ->
             StaticOverlaySettings.Builder().setAlphaScale(a.alfa).setBackgroundFrameAnchor(a.zx, 0f).setOverlayFrameAnchor(a.kx, 0f).setScale(a.olcek, a.olcek).build()
         }
     }

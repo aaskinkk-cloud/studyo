@@ -315,15 +315,12 @@ class EditorDurum(private val ctx: Context, id: String) {
             mesgul.value = null
             if ("kadraj" in Varsayilan.secili(ctx)) for (i in yeni.indices) yeni[i] = yeni[i].copy(doldur = true)   // varsayılan: Doldur
             if (yeni.isNotEmpty()) {
-                val bosProje = proje.value.klipler.isEmpty()
-                val dikey = yeni.count { it.yuk > it.gen } * 2 > yeni.size
-                val bicimDegisti = bosProje && dikey && proje.value.bicim == "16:9"
-                if (bicimDegisti) guncelle { it.copy(bicim = "9:16") }
+                // biçim kendiliğinden değişmez: proje YouTube 16:9 açılır, dikey klipler Doldur ile kareyi doldurur
                 val s = if (proje.value.klipler.isEmpty()) 0 else (secili.value + 1).coerceAtMost(proje.value.klipler.size)
                 guncelle(true) { p -> p.copy(klipler = p.klipler.toMutableList().also { it.addAll(s, yeni) }) }
                 kaydetSimdi(false)
                 sec(s)
-                mesaj.value = "${yeni.size} klip eklendi" + if (bicimDegisti) " · klipler dikey olduğu için biçim 9:16 yapıldı" else ""
+                mesaj.value = "${yeni.size} klip eklendi"
             }
             if (sorunlar.isNotEmpty()) uyari.value = "Eklenemeyenler:\n\n" + sorunlar.joinToString("\n\n")
         }
@@ -476,12 +473,11 @@ class EditorDurum(private val ctx: Context, id: String) {
                     ?: p0.klipler.firstOrNull { !it.foto }?.let { Tarih.video(ctx, Uri.parse(it.uri)) }?.takeIf { it > 0 }
                     ?: p0.olusturma
             }
-            // hikâye: kliplerin çoğu dikeyse ve proje yataysa çıktı 9:16 olur (yatay karede dikey klibi doldurmak üstünü/altını keser)
-            val dikeyCok = p0.klipler.count { it.yuk > it.gen } * 2 > p0.klipler.size
-            val bicimDegisti = "kadraj" in sec && dikeyCok && p0.bicim == "16:9"
+            // varsayılan çıktı YouTube yatay 16:9; dikey video ve fotoğraflar bu kareyi doldurur
+            val bicimDegisti = "kadraj" in sec && p0.bicim != "16:9"
             guncelle(true) { p ->
                 p.copy(
-                    bicim = if (bicimDegisti) "9:16" else p.bicim,
+                    bicim = if (bicimDegisti) "16:9" else p.bicim,
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)
@@ -500,7 +496,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             }
             mesgul.value = null
             val yuzSay = proje.value.klipler.count { it.yuzEtkin }
-            mesaj.value = "Varsayılan ayarlar uygulandı" + (if (bicimDegisti) " · biçim 9:16" else "") + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
+            mesaj.value = "Varsayılan ayarlar uygulandı" + (if (bicimDegisti) " · biçim YouTube 16:9" else "") + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
         }
     }
 

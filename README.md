@@ -28,7 +28,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 ### 3.6 düzeltme: Varsayılan → Kadrajı doldur fotoğraflarda çalışmıyordu
 - Kök neden: önizleme oynatıcısında Doldur yalnız video yüzeyine (resizeMode) uygulanıyordu; fotoğraflar PlayerView'in ayrı görüntü katmanında gösterilir ve hep sığdırılıyordu. Artık `setImageDisplayMode(FILL/FIT)` da ayarlanıyor (ana önizleme, katmanlı önizleme, geçiş kuyruğu).
 - Varsayılan seçili iken yeni eklenen klipler doğrudan Doldur ile gelir.
-- Varsayılan uygulanınca kliplerin çoğu dikey ve proje 16:9 ise biçim 9:16 (hikâye) yapılır; yatay karede dikey klip doldurulunca üstü/altı kesiliyordu.
+- Asıl neden: dikey klip eklenince boş proje kendiliğinden 9:16'ya çevriliyordu; kare dikey olunca Doldur hiçbir şey değiştirmiyordu. Bu otomatik çevirme kaldırıldı. Proje YouTube 16:9 açılır; Varsayılan da biçimi 16:9 yapar. Dikey video ve fotoğraflar 16:9 kareyi doldurur (üstü/altı kesilir). 9:16 yalnız Biçim panelinden elle seçilir.
 
 ## 3.5 (13.11.2026, deneme · `yerel-android` dalı): yumuşak geçiş, oynatıcı, menüler, prompter
 - **Çapraz geçişte parlama (kök neden):** geçiş, MediaMetadataRetriever ile alınan donuk son kareyle yapılıyordu; bu kare HDR klipte farklı ton eşlemesiyle çıktığı için geçişte parlama oluyordu. Artık geçişin üst katmanı aynı klibin gerçek son T ms'lik parçası (aynı çözücü, aynı ton eşleme), zaman çizelgesi geçiş başına T kısalır (`Proje.ortusme/zKlip`). Seçenek adları: Yumuşak · Kaydırarak · Büyüyerek.

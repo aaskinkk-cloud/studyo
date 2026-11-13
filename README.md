@@ -2,25 +2,9 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.2 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
-
-## 3.2 (13.11.2026): akıcı geçişler, taslak toplu seçim, logo kütüphanesi
-**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — üstüne kurulur, projeler korunur.
-**Test durumu:** derlendi; cihaz testi bekleniyor.
-
-1. **Geçişlerde titreme/takılma — kök nedenler ve çözüm** (geçiş türleri ve görünüm aynı):
-   - *Önizleme:* geçiş kararması/parlaması/yakınlaşması 40 ms'lik döngüyle (~25 kez/sn) güncelleniyordu; efekt basamak basamak ilerliyor, ekran karesiyle eşleşmiyordu. Artık zaman **her ekran karesinde** oynatıcıdan okunuyor; klip sınırında oynatıcının verdiği birkaç ms'lik geri değer yok sayılıyor (ani sıçrama olmaz). Giriş başlığı, hatırlatıcı, altyazı, nesne ve takip yazısı da aynı akıcı zamanı kullanır.
-   - *Dışa aktarma:* fotoğraflar ve kapanış kartı sabit **30 fps** üretiliyordu; 60 fps videolarla karışınca klip sınırında kare temposu değişiyor, geçiş takılıyor gibi görünüyordu. Artık çıkış kare hızı videoların **en sık kare hızı** (24–60) ve fotoğraf/kapanış da aynı hızda üretiliyor (hata kaydına "Kare hızı: N fps" yazılır).
-   - *Eğri:* kararma/parlama doğrusal rampa yerine yumuşak eğriyle (smoothstep) başlar ve biter; başta ve sonda sert kırılma yok.
-   - *Kalan sınır:* çok farklı kare hızlı videolar aynı projedeyse (ör. 30 ve 60 fps), her video kendi hızında kalır (kare çoğaltma/atma yapılmaz; Media3'te güvenli yol bu).
-2. **Taslaklar (Son çalışmalarım) — toplu seçim:** "☑ Seç" ya da karta uzun bas → seçim kipi. Çubukta: Tümünü seç · Seçimi kaldır · Arşivle · Sil · Bitti. Silme onay ister ("geri alınamaz"); dışa aktarılmakta olan proje silinmez. **Arşiv:** arşivlenen projeler ana listede görünmez, başlıktaki "🗄 Arşiv · N" ile açılır; orada da toplu seçip "Arşivden çıkar" ya da silinebilir. Kart ⋯ menüsünde de Arşivle / Seç var. Geri tuşu seçimi kapatır.
-3. **Logo kütüphanesi** (Yayın › Logo): birden fazla logo yüklenir (çoklu seçim), saklanır, damalı zeminde önizlenir (şeffaf PNG görünür). Dokun → projeye eklenir; uzun bas → adını değiştir / sil (onaylı). Logolar tüm projelerde kullanılır. İlk açılışta önceki projelerde kullanılmış logolar otomatik kütüphaneye alınır. Projedeki logo: 4 köşe ya da **önizlemede parmakla sürükle** (serbest konum, dışa aktarmada aynı yer), boyut %6–40, opaklık %10–100, yuvarlak kırpma, projeden kaldır. Kütüphaneden silinen logo, onu kullanan projelerde bozulmaz (proje kendi kopyasını tutar).
-   - Dosyalar: `filesDir/logolar/` (kütüphane, `liste.json`), proje kopyası `filesDir/logo/kutup_<id>.png`.
-4. **Çok katmanlı düzenleme:** sonraki sürüm (ayrı ve test edilerek).
-
-Kod: `Logolar.kt` (kütüphane), `LogoPanel.kt` (panel), `Ana.kt` (seçim/arşiv), `Paneller.kt` (kare kare önizleme zamanı, logo sürükleme), `Cizim.kt` (yumuşak geçiş eğrisi), `Disa.kt` (tek kare hızı), `Model.kt` (`Proje.arsiv`, `Logo.kutupId/x/y`, `Klip.kareHizi`).
 
 ## 3.1 (13.11.2026): web editördeki özellikler yerel editöre taşındı
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — üstüne kurulur.

@@ -25,6 +25,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Önizleme tutamacı:** yukarı sürükleyerek video ekranın %10'una kadar küçültülebilir (önce %25); ayar alanı o kadar büyür. Aşağı sürüklemeyle en çok %75; çift dokun = %50.
 - Yeni dosyalar: `Yuz.kt` (yüz bulma + yakınlaşma hesabı), `Varsayilan.kt` (madde seçimi, çekim tarihi), `res/font/anton.ttf` (SIL OFL 1.1, lisans `android/OFL-Anton.txt`).
 
+### 3.6 düzeltme: Varsayılan → Kadrajı doldur fotoğraflarda çalışmıyordu
+- Kök neden: önizleme oynatıcısında Doldur yalnız video yüzeyine (resizeMode) uygulanıyordu; fotoğraflar PlayerView'in ayrı görüntü katmanında gösterilir ve hep sığdırılıyordu. Artık `setImageDisplayMode(FILL/FIT)` da ayarlanıyor (ana önizleme, katmanlı önizleme, geçiş kuyruğu).
+- Varsayılan seçili iken yeni eklenen klipler doğrudan Doldur ile gelir.
+- Varsayılan uygulanınca kliplerin çoğu dikey ve proje 16:9 ise biçim 9:16 (hikâye) yapılır; yatay karede dikey klip doldurulunca üstü/altı kesiliyordu.
+
 ## 3.5 (13.11.2026, deneme · `yerel-android` dalı): yumuşak geçiş, oynatıcı, menüler, prompter
 - **Çapraz geçişte parlama (kök neden):** geçiş, MediaMetadataRetriever ile alınan donuk son kareyle yapılıyordu; bu kare HDR klipte farklı ton eşlemesiyle çıktığı için geçişte parlama oluyordu. Artık geçişin üst katmanı aynı klibin gerçek son T ms'lik parçası (aynı çözücü, aynı ton eşleme), zaman çizelgesi geçiş başına T kısalır (`Proje.ortusme/zKlip`). Seçenek adları: Yumuşak · Kaydırarak · Büyüyerek.
 - **Oynatıcı:** önceki/sonraki kare düğmeleri yarı boyuta indi, "başa dön" eklendi, zaman çubuğu inceldi.

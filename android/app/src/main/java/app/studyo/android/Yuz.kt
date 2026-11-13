@@ -73,3 +73,11 @@ object Yuz {
 
     @Suppress("unused") private fun sinir(v: Float, a: Float, b: Float) = min(max(v, a), b)
 }
+
+/** Önizleme oynatıcısında Sığdır/Doldur. resizeMode yalnız video yüzeyine uygulanır; fotoğraflar PlayerView'in ayrı
+ *  görüntü katmanında gösterilir ve onun ölçeği imageDisplayMode ile ayarlanır (3.6'ya kadar bu eksikti: fotoğraf hep sığdırılıyordu). */
+fun androidx.media3.ui.PlayerView.kadraj(doldur: Boolean) {
+    resizeMode = if (doldur) androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM else androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+    try { setImageDisplayMode(if (doldur) androidx.media3.ui.PlayerView.IMAGE_DISPLAY_MODE_FILL else androidx.media3.ui.PlayerView.IMAGE_DISPLAY_MODE_FIT) }
+    catch (e: IllegalStateException) { Kayit.yaz("Oynatıcıda görüntü katmanı yok: ${e.message}") }
+}

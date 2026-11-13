@@ -124,7 +124,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 factory = { c ->
                     (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player }
                 },
-                update = { v -> v.resizeMode = if (k?.doldur == true) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
+                update = { v -> v.kadraj(k?.doldur == true) },
                 modifier = Modifier.fillMaxSize().graphicsLayer {
                     val kb = kbAn?.s ?: 1f
                     scaleX = kb * an.olcek; scaleY = kb * an.olcek
@@ -152,7 +152,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val gen = constraints.maxWidth.toFloat()
                 AndroidView(
                     factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
-                    update = { v -> v.resizeMode = if (dolduran) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
+                    update = { v -> v.kadraj(dolduran) },
                     modifier = Modifier.fillMaxSize().graphicsLayer {
                         alpha = u?.alfa ?: 0f; scaleX = u?.olcek ?: 1f; scaleY = u?.olcek ?: 1f; translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f
                     },

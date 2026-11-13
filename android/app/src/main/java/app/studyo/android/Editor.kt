@@ -309,7 +309,7 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
                     }
                 },
                 update = { v ->
-                    v.resizeMode = if (k?.doldur == true) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    v.kadraj(k?.doldur == true)
                 },
                 modifier = Modifier.fillMaxSize().graphicsLayer {
                     val kb = kbAn?.s ?: 1f

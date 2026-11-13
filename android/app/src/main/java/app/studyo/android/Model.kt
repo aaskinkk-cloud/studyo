@@ -59,6 +59,8 @@ data class Klip(
     val odakX: Float = -1f, val odakY: Float = -1f,
     /** Çekim tarihi (EXIF / video üstverisi); 0 = bilinmiyor. Giriş başlığındaki tarih bandı için. */
     val tarihMs: Long = 0,
+    /** Kaynak videonun kare hızı (0 = bilinmiyor; dışa aktarmada okunur). */
+    val kareHizi: Float = 0f,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
@@ -73,7 +75,11 @@ data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.35f, v
 data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f)
 
 @Serializable
-data class Logo(val yol: String, val konum: String = "sagUst", val boyut: Float = 0.16f, val opaklik: Float = 1f, val yuvarlak: Boolean = true)
+data class Logo(
+    val yol: String, val konum: String = "sagUst", val boyut: Float = 0.16f, val opaklik: Float = 1f, val yuvarlak: Boolean = true,
+    val kutupId: String = "",                 // kütüphanedeki logo (seçili gösterimi için)
+    val x: Float = -1f, val y: Float = -1f,   // serbest konum (merkez, 0…1); -1: köşe (konum) kullanılır
+)
 
 /** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
 @Serializable
@@ -164,6 +170,8 @@ data class Proje(
     val nesneler: List<Nesne> = emptyList(),
     /** Prompter (kayan yazı) metni ve ayarları */
     val okumaMetni: String = "", val okumaHiz: Float = 40f, val okumaBoy: Float = 34f,
+    /** Arşivlenen proje ana listede görünmez (Arşiv bölümünde durur). */
+    val arsiv: Boolean = false,
 ) {
     /** Yalnız kliplerin süresi */
     val klipMs: Long get() = klipler.indices.sumOf { zKlip(it).sureMs }

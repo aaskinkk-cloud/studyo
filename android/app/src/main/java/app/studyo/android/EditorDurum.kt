@@ -359,7 +359,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         Kayit.yaz("Video eklendi: $ad ${Medya.mb(boy)} ${b.gen}x${b.yuk} ${b.kodek} hdr=${b.hdr} ses=${b.sesVar} ${b.sureMs} ms sorun=${b.sorun}")
         if (b.sorun != null) return null to "$ad: ${b.sorun}"
         val vk = Klip(tur = "video", uri = u.toString(), ad = ad, kaynakSureMs = b.sureMs, basMs = 0, sonMs = b.sureMs,
-            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar, tarihMs = Tarih.video(ctx, u))
+            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar, kareHizi = b.kareHizi, tarihMs = Tarih.video(ctx, u))
         return odakla(vk, Yuz.videoBul(ctx, u, b.sureMs * 2 / 5, b.gen, b.yuk)) to null
     }
 
@@ -395,11 +395,34 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun muzikKaldir() { guncelle { it.copy(muzik = null) }; muzikPl.stop(); muzikPl.clearMediaItems() }
 
     // ---------- logo ----------
-    fun logoSec(u: Uri) {
+    /** Telefondan bir ya da birkaç logo: kütüphaneye eklenir (şeffaf PNG korunur), sonuncusu projeye uygulanır. */
+    fun logoSec(u: Uri) = logolarYukle(listOf(u))
+    fun logolarYukle(l: List<Uri>) {
+        if (l.isEmpty()) return
         kapsam.launch {
-            val f = withContext(Dispatchers.IO) { runCatching { Medya.fotoHazirla(ctx, u, 1024, png = true, dizinAd = "logo") }.getOrNull() }
-            if (f == null) { uyari.value = "Logo açılamadı."; return@launch }
-            guncelle { p -> p.copy(logo = (p.logo ?: Logo(yol = "")).copy(yol = f.first.path)) }
+            mesgul.value = "Logo ekleniyor…"
+            var son: LogoKaydi? = null; var hata = 0
+            for (u in l) {
+                val k = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val f = Medya.fotoHazirla(ctx, u, 1024, png = true, dizinAd = "logolar")?.first ?: error("açılamadı")
+                        LogoKutup.ekle(f, Medya.adBoyut(ctx, u).first)
+                    }.onFailure { Kayit.hata("logo ekle", it) }.getOrNull()
+                }
+                if (k == null) hata++ else son = k
+            }
+            mesgul.value = null
+            son?.let { logoUygula(it) }
+            if (hata > 0) uyari.value = "$hata logo açılamadı (desteklenmeyen biçim)."
+        }
+    }
+
+    fun logoUygula(k: LogoKaydi) {
+        kapsam.launch {
+            val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
+            if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
+            guncelle { p -> p.copy(logo = (p.logo ?: Logo(yol = "")).copy(yol = f.path, kutupId = k.id)) }
+            mesaj.value = "Logo: ${k.ad}"
         }
     }
 

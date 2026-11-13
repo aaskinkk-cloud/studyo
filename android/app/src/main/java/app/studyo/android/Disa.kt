@@ -108,7 +108,19 @@ object Disa {
         return f
     }
 
+    /** Projenin çıkış kare hızı: videoların en sık kare hızı (24…60). Fotoğraf, kapanış kartı ve geçiş kuyruğu da bu hızda
+     *  üretilir; eskiden fotoğraflar sabit 30 fps idi, 60 fps videoyla karışınca klip sınırında kare temposu değişiyordu. */
+    fun hedefKareHizi(ctx: Context, p: Proje): Int {
+        val l = p.klipler.filter { !it.foto }.map { k -> if (k.kareHizi > 0f) k.kareHizi else Medya.kareHizi(ctx, Uri.parse(k.uri)) }
+            .filter { it in 10f..240f }.map { Math.round(it).coerceIn(24, 60) }
+        if (l.isEmpty()) return 30
+        return l.groupingBy { it }.eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key }).first().key
+    }
+
     fun kompozisyon(ctx: Context, p: Proje, W: Int, H: Int, hdrKip: Int = HDR_COZUCU): Composition {
+        val fps = hedefKareHizi(ctx, p)
+        Kayit.yaz("  Kare hızı: $fps fps")
         val logo = p.logo?.let { Kaplama.logo(it, W, H) }
         // Zaman çizelgesinde aralıkla görünen öğeler (tüm kliplere ortak bitmapler)
         val zamanli = ArrayList<Triple<Yerlesim, Long, Long>>()
@@ -141,7 +153,7 @@ object Disa {
             val k = p.zKlip(i)
             val gec = Gecisler.etkiler(p.gecis, k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
             baslar += bas
-            ogeler += oge(k, W, H, logo, gec, katmanlar(bas, k.sureMs), i, p.klipler[i].sureMs)
+            ogeler += oge(k, W, H, logo, gec, katmanlar(bas, k.sureMs), i, p.klipler[i].sureMs, fps)
             bas += k.sureMs
         }
         if (kapanisVar) {
@@ -153,7 +165,7 @@ object Disa {
             v += Gecisler.etkiler(p.gecis, p.kapanisMs, n > 1, false, false)
             val kk = katmanlar(bas, p.kapanisMs)
             if (kk.isNotEmpty()) v += OverlayEffect(kk)
-            ogeler += EditedMediaItem.Builder(mi).setFrameRate(30).setEffects(Effects(listOf(), v)).build()
+            ogeler += EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
         }
         val toplam = p.toplamMs
         val diziler = ArrayList<EditedMediaItemSequence>()
@@ -165,7 +177,7 @@ object Disa {
             var imlec = 0L
             for ((i, b0, T) in Gecisler.pencereler(p)) {
                 val k = p.klipler.getOrNull(i) ?: continue
-                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T), i) ?: continue
+                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T), i, fps) ?: continue
                 if (b0 > imlec) ust.addGap((b0 - imlec) * 1000)
                 ust.addItem(kuyruk)
                 pencereler += longArrayOf(b0, T)
@@ -229,7 +241,7 @@ object Disa {
     /** Giden klibin son T ms'si (gerçek görüntü ve sesi; HDR çevirisi tabandakiyle aynı) — gelen klibin üstünde solar.
      *  3.2'de kırpılmış devam yoksa son kare JPEG olarak kullanılıyordu; telefonun kare çıkarıcısı HDR'yi farklı çevirdiği için
      *  geçişte "parlama" oluyordu. Artık görüntü hep aynı çözücüden gelir. */
-    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, i: Int): EditedMediaItem? {
+    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, i: Int, fps: Int): EditedMediaItem? {
         val v = ArrayList<Effect>()
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) {
@@ -247,12 +259,12 @@ object Disa {
         val sesli = !k.foto && k.sesVar && !k.sessiz
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
-        if (k.foto) b.setFrameRate(30)
+        if (k.foto) b.setFrameRate(fps)
         if (!sesli) b.setRemoveAudio(true)
         return b.build()
     }
 
-    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, i: Int, tamMs: Long): EditedMediaItem {
+    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, i: Int, tamMs: Long, fps: Int): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
@@ -270,7 +282,7 @@ object Disa {
         val sesli = !k.foto && k.sesVar && !k.sessiz
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
-        if (k.foto) b.setFrameRate(30)
+        if (k.foto) b.setFrameRate(fps)
         if (!k.foto && !sesli) b.setRemoveAudio(true)
         return b.build()
     }

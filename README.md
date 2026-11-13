@@ -6,6 +6,22 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.8 (13.11.2026, deneme · `yerel-android` dalı): akıcı geçişler, taslak toplu seçim + arşiv, logo kütüphanesi
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.7'nin üstüne kurulur, projeler korunur. **Test:** derlendi; cihaz testi bekleniyor.
+
+1. **Geçişlerde titreme/takılma (kök nedenler):**
+   - *Önizleme:* zaman 40 ms'lik döngüyle (~25 kez/sn) güncelleniyordu; kararma/parlama/yakınlaşma ve üst üste binen geçişin solması basamak basamak ilerliyordu. Artık zaman **her ekran karesinde** oynatıcıdan okunur; klip sınırındaki birkaç ms'lik geri değer yok sayılır (sıçrama yok). Giriş, hatırlatıcı, altyazı, nesne ve takip yazısı da aynı zamanı kullanır.
+   - *Dışa aktarma:* fotoğraf, kapanış kartı ve geçiş kuyruğu sabit 30 fps üretiliyordu; 60 fps videolarla karışınca klip sınırında kare temposu değişiyordu. Artık çıkış kare hızı videoların **en sık kare hızı** (24–60); hepsi bu hızda (hata kaydında "Kare hızı: N fps").
+   - *Eğri:* tek dizi geçişleri (siyah/beyaz/yakınlaşma, siyahtan açılış) doğrusal yerine yumuşak eğriyle. Geçiş türleri ve görünüm aynı.
+   - *Sınır:* aynı projede 30 ve 60 fps videolar varsa her video kendi hızında kalır (kare atma/çoğaltma yapılmaz).
+2. **Taslaklar (Son çalışmalarım):** "Seç" ya da karta uzun bas → Tümünü seç · Seçimi kaldır · Arşivle · Sil · Bitti. Silme onaylı ("geri alınamaz"); dışa aktarılan proje silinmez. Arşivlenenler ana listede görünmez, başlıktaki "Arşiv · N" ile açılır (orada Arşivden çıkar / Sil). Kart ⋯ menüsünde Arşivle ve Seç. Geri tuşu seçimi kapatır.
+3. **Logo kütüphanesi** (Yayın › Logo): çoklu yükleme, damalı zeminde önizleme (şeffaf PNG), dokun = projeye ekle, uzun bas = adını değiştir / sil (onaylı). İlk açılışta önceki projelerin logoları kütüphaneye alınır. Projedeki logo: 4 köşe ya da **önizlemede parmakla sürükle** (serbest konum, dışa aktarmada aynı yer), boyut %6–40, opaklık %10–100, yuvarlak kırpma, projeden kaldır. Kütüphaneden silinen logo projelerde bozulmaz (proje kendi kopyasını tutar). Dosyalar: `filesDir/logolar/` (+ `liste.json`), proje kopyası `filesDir/logo/kutup_<id>.png`.
+4. **Çok katmanlı düzenleme:** sonraki sürüm.
+
+Kod: `Logolar.kt`, `LogoPanel.kt`, `Ana.kt`, `Paneller.kt`, `Cizim.kt`, `Disa.kt`, `Medya.kt`, `Model.kt` (`Proje.arsiv`, `Logo.kutupId/x/y`, `Klip.kareHizi`), `Tema.kt` (`SimgeDugme`).
+
+> Not (13.11.2026): main dalından yanlışlıkla yapılan 3.2.30 derlemesi geri alındı; güncel kod bu daldadır.
+
 ## 3.7 (13.11.2026, deneme · `yerel-android` dalı): şeffaf oynatıcı, zarif takip yazısı
 - **Oynatıcı videonun üstünde:** kontroller (oynat · başa · kare geri/ileri · ince çubuk · süre) videonun altında, şeffaf koyu geçişli şeritte; ayrı satır kalktı, bir satır yer kazanıldı. Eski satır ⋯ › "yazılı (önceki)" ile döner.
 - **Açılışta tam oturma:** önizleme açılışta videonun oranına göre boyutlanır (üstte/altta boşluk yok); tutamaç durur, çift dokunuş yine tam oturur.

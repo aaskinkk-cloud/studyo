@@ -172,7 +172,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
-                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize())
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo")
                 if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
@@ -493,7 +493,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "bicim" -> PanelBicim(vm, p)
         "muzik" -> PanelMuzik(vm, p)
         "seslendirme" -> PanelSeslendirme(vm, p)
-        "logo" -> PanelLogo(vm, p)
+        "logo" -> PanelLogoKutup(vm, p)
         "sablon" -> PanelSablon(vm, p)
         "gecis" -> PanelGecis(vm, p)
         "altyazi" -> PanelAltyazi(vm, p)
@@ -760,32 +760,3 @@ private fun PanelYazi(vm: EditorDurum, k: Klip) {
     }
 }
 
-@Composable
-private fun PanelLogo(vm: EditorDurum, p: Proje) {
-    val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.logoSec(it) } }
-    Kart("Logo (tüm videoda)") {
-        val l = p.logo
-        if (l == null || l.yol.isEmpty()) {
-            Dugme("◎ Logo seç", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { sec.launch(arrayOf("image/*")) }
-            Text("PNG (saydam) ya da fotoğraf. Yuvarlak kırpma açık gelir.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
-        } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("solUst" to "Sol üst", "sagUst" to "Sağ üst", "solAlt" to "Sol alt", "sagAlt" to "Sağ alt").forEach { (kk, ad) ->
-                    SecimKarti(ad, "", l.konum == kk, Modifier.weight(1f)) { vm.logoDegis { it.copy(konum = kk) } }
-                }
-            }
-            var b by remember(l.yol, l.boyut) { mutableFloatStateOf(l.boyut) }
-            Etiketli("Boyut", "%${(b * 100).roundToInt()}")
-            InceSlider(value = b, onValueChange = { b = it }, valueRange = 0.06f..0.35f,
-                onValueChangeFinished = { vm.logoDegis { it.copy(boyut = b) } },
-                colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
-            var o by remember(l.yol, l.opaklik) { mutableFloatStateOf(l.opaklik) }
-            Etiketli("Opaklık", "%${(o * 100).roundToInt()}")
-            InceSlider(value = o, onValueChange = { o = it }, valueRange = 0.2f..1f,
-                onValueChangeFinished = { vm.logoDegis { it.copy(opaklik = o) } },
-                colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
-            AnahtarSatiri("Yuvarlak", l.yuvarlak) { v -> vm.logoDegis { it.copy(yuvarlak = v) } }
-            DugmeSirasi("Değiştir" to { sec.launch(arrayOf("image/*")) }, "Kaldır" to { vm.logoKaldir() })
-        }
-    }
-}

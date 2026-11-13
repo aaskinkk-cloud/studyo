@@ -200,6 +200,17 @@ fun Dugme(metin: String, modifier: Modifier = Modifier, renk: Color = Renk.kart2
     }
 }
 
+/** Sade düğme, simgesi açıkça verilir (Dugme gibi: arka plan yok, simge + küçük ince yazı). */
+@Composable
+fun SimgeDugme(simge: String, metin: String, modifier: Modifier = Modifier, renk: Color = Renk.yazi, etkin: Boolean = true, onClick: () -> Unit) {
+    val r = if (etkin) renk else Renk.soluk.copy(alpha = 0.35f)
+    Column(modifier.clip(RoundedCornerShape(10.dp)).clickable(enabled = etkin, onClick = onClick).padding(horizontal = 2.dp, vertical = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Simge(simge, r, 20.dp)
+        Text(metin, color = r, fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
+    }
+}
+
 /** Eşit genişlikte düğme sırası (boş hücre bırakmaz), her düğme ayrı ton. */
 @Composable
 fun DugmeSirasi(vararg d: Pair<String, () -> Unit>) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -101,6 +102,15 @@ fun Hap(metin: String, secili: Boolean, simge: String? = null, modifier: Modifie
 /** Geniş hap düğme (ör. "Tüm kliplere uygula ›"). */
 @Composable
 fun GenisDugme(metin: String, simge: String? = null, modifier: Modifier = Modifier, vurgulu: Boolean = false, onClick: () -> Unit) {
+    if (!vurgulu && !Duzen.yaziliMenu) {
+        val r = tonRenk(-1, metin)
+        Row(modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Simge(simge ?: otoSimge(metin), r, 18.dp); Spacer(Modifier.width(6.dp))
+            Text(metin, color = r, fontSize = 12.sp)
+        }
+        return
+    }
     val sekil = RoundedCornerShape(26.dp)
     Row(
         modifier.fillMaxWidth().height(50.dp).clip(sekil).background(if (vurgulu) Renk.turuncu else Renk.kart2)
@@ -133,8 +143,46 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, icerik: @Composable Colu
     }
 }
 
+/** Ortak renk tonları (alt menüyle aynı aile). */
+val TON = longArrayOf(0xFFD9CF5A, 0xFF86C06E, 0xFF3FBFAE, 0xFFE8A06A, 0xFFDB7F93)
+fun tonRenk(sira: Int, metin: String): Color = Color(TON[(if (sira >= 0) sira else (metin.hashCode() and 0x7fffffff)) % TON.size])
+
+/** Başındaki ◀ ▶ ✂ ♪ gibi işaretleri atar. */
+fun temizYazi(m: String): String = m.trimStart { !it.isLetterOrDigit() && it != '(' }.trimEnd { it == '▶' || it == ' ' || it == '›' }
+
+/** Yazıdan uygun simge. */
+fun otoSimge(m: String): String {
+    val t = m.lowercase(java.util.Locale("tr"))
+    fun h(vararg k: String) = k.any { t.contains(it) }
+    return when {
+        h("sola") -> "geri"; h("sağa") -> "sag"; h("çoğalt") -> "cogalt"
+        t == "sil" || h("kaldır", "emin misin") -> "sil"
+        h("iptal", "vazgeç", "kapat") -> "kapat"; h("değiştir") -> "degistir"
+        h("yükle") -> "yukle"; h("kaydet") -> "kaydet"
+        h("duraklat", "durdur") -> "durdur"; h("dinle", "oynat") -> "oynat"
+        h("kayıt", "kaydı") -> "mikrofon"; h("müzik") -> "nota"; h("nesne", "cam", "öneri") -> "sihir"
+        h("kes") -> "makas"; h("takip", "nokta") -> "takip"; h("logo") -> "logo"; h("kapak", "kare") -> "kapak"
+        h("altyazı", "satır", "srt") -> "altyazi"; h("oku") -> "prompter"; h("pil") -> "pil"
+        h("başı") -> "basa"; h("sonu") -> "sonraki"; h("uygula") -> "uygula"
+        h("oluştur", "dışa", "paylaş") -> "disa"; h("geri") -> "geri"; h("ekle", "seç") -> "ekle"
+        h("sığdır") -> "tuval"; h("doldur") -> "kadraj"; h("youtube") -> "oynat"; h("reels") -> "katman"; h("sinema") -> "klip"
+        h("yüksek") -> "yildiz"; h("normal") -> "uygula"
+        else -> "ileri"
+    }
+}
+
+/** Sade düğme: üstte simge, altta küçük ince yazı, arka plan yok (renk = ton). Dolgulu renk verilirse eski vurgulu kutu. */
 @Composable
-fun Dugme(metin: String, modifier: Modifier = Modifier, renk: Color = Renk.kart2, yaziRenk: Color = Renk.yazi, etkin: Boolean = true, onClick: () -> Unit) {
+fun Dugme(metin: String, modifier: Modifier = Modifier, renk: Color = Renk.kart2, yaziRenk: Color = Renk.yazi, etkin: Boolean = true, sira: Int = -1, onClick: () -> Unit) {
+    if (renk == Renk.kart2 && !Duzen.yaziliMenu) {
+        val r = tonRenk(sira, metin).let { if (etkin) it else it.copy(alpha = 0.3f) }
+        Column(modifier.clip(RoundedCornerShape(10.dp)).clickable(enabled = etkin, onClick = onClick).padding(horizontal = 4.dp, vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Simge(otoSimge(metin), r, 20.dp)
+            Text(temizYazi(metin), color = r, fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2, lineHeight = 13.sp, modifier = Modifier.padding(top = 3.dp))
+        }
+        return
+    }
     Box(
         modifier.heightIn(min = 46.dp).clip(RoundedCornerShape(12.dp))
             .background(if (etkin) renk else renk.copy(alpha = 0.35f))
@@ -145,16 +193,38 @@ fun Dugme(metin: String, modifier: Modifier = Modifier, renk: Color = Renk.kart2
     }
 }
 
-/** Eşit genişlikte düğme sırası (boş hücre bırakmaz). */
+/** Eşit genişlikte düğme sırası (boş hücre bırakmaz), her düğme ayrı ton. */
 @Composable
 fun DugmeSirasi(vararg d: Pair<String, () -> Unit>) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        d.forEach { (m, f) -> Dugme(m, Modifier.weight(1f), onClick = f) }
+        d.forEachIndexed { i, (m, f) -> Dugme(m, Modifier.weight(1f), sira = i, onClick = f) }
+    }
+}
+
+/** Seçim: simge + küçük ad + çok küçük açıklama, arka plan yok; seçili olan tam renk, kalın ve altı noktalı. "16:9" gibi oranlar kendi şeklini çizer. */
+@Composable
+fun SecimKarti(baslik: String, alt: String, secili: Boolean, modifier: Modifier = Modifier, etkin: Boolean = true, sira: Int = -1, onClick: () -> Unit) {
+    if (Duzen.yaziliMenu) { SecimKartiEski(baslik, alt, secili, modifier, etkin, onClick); return }
+    val ton = tonRenk(sira, baslik)
+    val r = if (!etkin) Renk.soluk.copy(alpha = 0.4f) else if (secili) ton else ton.copy(alpha = 0.55f)
+    Column(modifier.clip(RoundedCornerShape(10.dp)).clickable(enabled = etkin, onClick = onClick).padding(vertical = 5.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        val oran = Regex("""^(\d+):(\d+)$""").find(baslik)
+        if (oran != null) {
+            val (a, b) = oran.destructured; val w = a.toFloat(); val h = b.toFloat(); val k = 20f / maxOf(w, h)
+            Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size((w * k).dp, (h * k).dp).border(1.8.dp, r, RoundedCornerShape(2.dp)))
+            }
+        } else Simge(otoSimge(baslik), r, 20.dp)
+        Text(baslik, color = r, fontSize = 11.5.sp, fontWeight = if (secili) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(top = 3.dp))
+        val a = alt.trim().replace("\n", " ")
+        if (a.isNotEmpty()) Text(a, color = Renk.soluk, fontSize = 9.5.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 2)
+        Box(Modifier.padding(top = 3.dp).size(4.dp).clip(CircleShape).background(if (secili) ton else Color.Transparent))
     }
 }
 
 @Composable
-fun SecimKarti(baslik: String, alt: String, secili: Boolean, modifier: Modifier = Modifier, etkin: Boolean = true, onClick: () -> Unit) {
+private fun SecimKartiEski(baslik: String, alt: String, secili: Boolean, modifier: Modifier, etkin: Boolean, onClick: () -> Unit) {
     val sekil = RoundedCornerShape(12.dp)
     Column(
         modifier.clip(sekil).background(if (secili) Renk.turuncu.copy(alpha = 0.16f) else Renk.kart2)

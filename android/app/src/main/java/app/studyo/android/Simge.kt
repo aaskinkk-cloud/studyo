@@ -45,6 +45,13 @@ object Simgeler {
         "basa" to "M5 5v14",
         "tuval" to "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 9h8v6H8z",
         "prompter" to "M4 4h16v12H4zM8 20h8M12 16v4M7 8h10M7 11h7",
+        "sag" to "M5 12h14M12 5l7 7-7 7",
+        "cogalt" to "M9 9h11v11H9zM5 15H4V4h11v1",
+        "sil" to "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14",
+        "kapat" to "M18 6L6 18M6 6l12 12",
+        "degistir" to "M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M3 21v-5h5",
+        "yukle" to "M12 3v12M7 10l5 5 5-5M5 21h14",
+        "pil" to "M3 8h16v8H3zM21 11v2M6 11v2",
     )
     private val dolu = mapOf(
         "oynat" to "M8 5v14l11-7z",

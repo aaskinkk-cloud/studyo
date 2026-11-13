@@ -497,10 +497,10 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         var silOnay by remember(k.id) { mutableStateOf(false) }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Dugme("◀ Sola", Modifier.weight(1f), etkin = sec > 0) { vm.tasi(-1) }
-            Dugme("Sağa ▶", Modifier.weight(1f), etkin = sec < p.klipler.lastIndex) { vm.tasi(1) }
-            Dugme("Çoğalt", Modifier.weight(1f)) { vm.klipCogalt() }
-            Dugme(if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = if (silOnay) Renk.kirmizi else Renk.kart2) {
+            Dugme("◀ Sola", Modifier.weight(1f), etkin = sec > 0, sira = 0) { vm.tasi(-1) }
+            Dugme("Sağa ▶", Modifier.weight(1f), etkin = sec < p.klipler.lastIndex, sira = 1) { vm.tasi(1) }
+            Dugme("Çoğalt", Modifier.weight(1f), sira = 2) { vm.klipCogalt() }
+            Dugme(if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = if (silOnay) Renk.kirmizi else Renk.kart2, sira = 4) {
                 if (silOnay) { silOnay = false; vm.klipSil() } else silOnay = true
             }
         }
@@ -520,9 +520,9 @@ private fun PanelEkle(ekle: () -> Unit) {
 private fun PanelBicim(vm: EditorDurum, p: Proje) {
     Kart("Video biçimi") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecimKarti("16:9", "YouTube\nyatay", p.bicim == "16:9", Modifier.weight(1f)) { vm.bicim("16:9") }
-            SecimKarti("9:16", "Shorts\ndikey", p.bicim == "9:16", Modifier.weight(1f)) { vm.bicim("9:16") }
-            SecimKarti("1:1", "Kare\n", p.bicim == "1:1", Modifier.weight(1f)) { vm.bicim("1:1") }
+            SecimKarti("16:9", "YouTube\nyatay", p.bicim == "16:9", Modifier.weight(1f), sira = 0) { vm.bicim("16:9") }
+            SecimKarti("9:16", "Shorts\ndikey", p.bicim == "9:16", Modifier.weight(1f), sira = 2) { vm.bicim("9:16") }
+            SecimKarti("1:1", "Kare\n", p.bicim == "1:1", Modifier.weight(1f), sira = 3) { vm.bicim("1:1") }
         }
     }
 }

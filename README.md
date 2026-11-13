@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.5 (13.11.2026, deneme · `yerel-android` dalı): yumuşak geçiş, oynatıcı, menüler, prompter
+- **Çapraz geçişte parlama (kök neden):** geçiş, MediaMetadataRetriever ile alınan donuk son kareyle yapılıyordu; bu kare HDR klipte farklı ton eşlemesiyle çıktığı için geçişte parlama oluyordu. Artık geçişin üst katmanı aynı klibin gerçek son T ms'lik parçası (aynı çözücü, aynı ton eşleme), zaman çizelgesi geçiş başına T kısalır (`Proje.ortusme/zKlip`). Seçenek adları: Yumuşak · Kaydırarak · Büyüyerek.
+- **Oynatıcı:** önceki/sonraki kare düğmeleri yarı boyuta indi, "başa dön" eklendi, zaman çubuğu inceldi.
+- **Menüler:** alt başlıklar üstte çizim ikon, altta küçük ince yazı (InShot tarzı); bölüm çubuğu ikon + küçük yazı. Eski yazılı haplar ⋯ menüsünden "Alt başlıklar: yazılı (önceki)" ile geri gelir.
+- **Prompter (Ses › Seslendirme):** metni yaz, "Tam ekran oku ve kaydet". Metin kendiliğinden kayar (hız ve yazı boyutu ayarlı, ekran açık kalır); kırmızı düğme kaydı ve kaydırmayı başlatır, ses videonun o anki konumundan itibaren seslendirme olarak eklenir. Metin ve ayarlar projede saklanır.
+
 ## 3.4 (13.11.2026, deneme · `yerel-android` dalı): düzeltmeler + cam fırçası
 - **Önizleme küçüktü, tutamaç yoktu:** "önceki düzen" seçiliyken önizleme panelin altında eziliyordu ve tutamaç o düzende yoktu. Artık önizleme her zaman büyük (varsayılan ekranın %50'si) ve altında turuncu **tutamaç** var (sürükle: %25–75, çift dokun: %50). Ayrıca 16:9 projede dikey klipler kenarlarda siyahla küçük görünüyordu: boş projeye çoğunlukla dikey klip eklenince biçim kendiliğinden **9:16** olur (Düzenle › Biçim'den değişir).
 - **Üst çubuk:** ince küçük yazılar — ← Geri · proje adı ▾ · Kaydet | Dışa Aktar.

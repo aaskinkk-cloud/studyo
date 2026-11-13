@@ -76,11 +76,11 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     // ---------- zaman çizelgesi ----------
-    fun baslangic(i: Int): Long = proje.value.klipler.take(i.coerceAtLeast(0)).sumOf { it.sureMs }
+    fun baslangic(i: Int): Long { val p = proje.value; return (0 until i.coerceIn(0, p.klipler.size)).sumOf { p.zKlip(it).sureMs } }
     fun anlik(): Long = if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
 
     private fun ogeler(p: Proje): List<MediaItem> {
-        val l = p.klipler.map { k ->
+        val l = p.klipler.indices.map { p.zKlip(it) }.map { k ->
             val b = MediaItem.Builder().setUri(Uri.parse(k.uri)).setMediaId(k.id)
             if (k.foto) b.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
             else b.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
@@ -100,7 +100,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (p.klipler.isEmpty()) { player.clearMediaItems(); konum.value = 0; return }
         val liste = ogeler(p)
         val ii = i.coerceIn(0, liste.lastIndex)
-        val sure = if (ii < p.klipler.size) p.klipler[ii].sureMs else p.kapanisMs
+        val sure = if (ii < p.klipler.size) p.zKlip(ii).sureMs else p.kapanisMs
         player.setMediaItems(liste, ii, ms.coerceIn(0, (sure - 1).coerceAtLeast(0)))
         player.prepare()
         sira.value = ii
@@ -121,13 +121,14 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (p.klipler.isEmpty()) return
         var t = ms.coerceIn(0, (p.toplamMs - 1).coerceAtLeast(0))
         var bulundu = false
-        for ((i, k) in p.klipler.withIndex()) {
-            if (t < k.sureMs) { player.seekTo(i, t); bulundu = true; break }
-            t -= k.sureMs
+        for (i in p.klipler.indices) {
+            val d = p.zKlip(i).sureMs
+            if (t < d) { player.seekTo(i, t); bulundu = true; break }
+            t -= d
         }
         if (!bulundu) {
             if (p.kapanisMs > 0 && player.mediaItemCount > p.klipler.size) player.seekTo(p.klipler.size, t.coerceIn(0, p.kapanisMs - 1))
-            else { val k = p.klipler.last(); player.seekTo(p.klipler.lastIndex, (k.sureMs - 1).coerceAtLeast(0)) }
+            else player.seekTo(p.klipler.lastIndex, (p.zKlip(p.klipler.lastIndex).sureMs - 1).coerceAtLeast(0))
         }
         konum.value = ms
         muzikHizala()
@@ -397,6 +398,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         mesaj.value = "Seslendirme eklendi (${sureYaz(sure)})"
     }
 
+    fun okumaDegis(f: (Proje) -> Proje) = guncelle(false, f)
     fun sesDegis(id: String, f: (SesKaydi) -> SesKaydi) = guncelle { p -> p.copy(sesler = p.sesler.map { if (it.id == id) f(it) else it }) }
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }
 
@@ -441,7 +443,8 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun altyaziHerKlibe() {
         var bas = 0L
-        val yeni = proje.value.klipler.map { k -> Altyazi(basMs = bas, sonMs = bas + k.sureMs, metin = k.yazi?.metin ?: "").also { bas += k.sureMs } }
+        val pp = proje.value
+        val yeni = pp.klipler.indices.map { i -> val d = pp.zKlip(i).sureMs; Altyazi(basMs = bas, sonMs = bas + d, metin = pp.klipler[i].yazi?.metin ?: "").also { bas += d } }
         guncelle { it.copy(altyazilar = (it.altyazilar + yeni).sortedBy { s -> s.basMs }) }
         mesaj.value = "${yeni.size} satır eklendi"
     }

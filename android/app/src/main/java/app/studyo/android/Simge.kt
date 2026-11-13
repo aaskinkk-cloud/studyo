@@ -42,6 +42,9 @@ object Simgeler {
         "ileri" to "M9 6l6 6-6 6",
         "gorunum" to "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 2v20",
         "menu" to "M12 6h.01M12 12h.01M12 18h.01",
+        "basa" to "M5 5v14",
+        "tuval" to "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 9h8v6H8z",
+        "prompter" to "M4 4h16v12H4zM8 20h8M12 16v4M7 8h10M7 11h7",
     )
     private val dolu = mapOf(
         "oynat" to "M8 5v14l11-7z",
@@ -49,6 +52,7 @@ object Simgeler {
         "onceki" to "M6 6h2v12H6zM9.5 12L18 18V6z",
         "sonraki" to "M16 6h2v12h-2zM6 18l8.5-6L6 6z",
         "yarim" to "M12 2a10 10 0 0 0 0 20z",
+        "basa" to "M19 6l-10 6 10 6z",
     )
     private val onbellek = HashMap<String, ImageVector>()
 

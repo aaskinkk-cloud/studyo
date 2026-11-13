@@ -462,21 +462,12 @@ object Gecisler {
     /** Üst üste binen geçiş pencereleri: (giden klip sırası, başlangıç ms, süre ms). Çıktı ve önizleme aynı listeyi kullanır. */
     fun pencereler(p: Proje): List<Triple<Int, Long, Long>> {
         if (!p.gecis.cakisma) return emptyList()
-        val sureler = p.klipler.map { it.sureMs } + if (p.kapanisMs > 0) listOf(p.kapanisMs) else emptyList()
-        val n = sureler.size
-        if (n < 2) return emptyList()
-        val baslar = LongArray(n); var t = 0L
-        for (i in 0 until n) { baslar[i] = t; t += sureler[i] }
-        val toplam = t
         val o = ArrayList<Triple<Int, Long, Long>>()
-        var imlec = 0L
-        for (i in 0 until minOf(n - 1, p.klipler.size)) {
-            val b0 = baslar[i + 1]
-            val sonraki = if (i + 2 < n) baslar[i + 2] else toplam
-            val T = minOf(p.gecis.sureMs, sureler[i + 1] - 100, sonraki - b0 - 100)
-            if (T < 150 || b0 < imlec + 1) continue
-            o += Triple(i, b0, T)
-            imlec = b0 + T
+        var t = 0L
+        for (i in p.klipler.indices) {
+            t += p.zKlip(i).sureMs          // sonraki klibin (ya da kapanışın) başladığı an
+            val T = p.ortusme(i)
+            if (T > 0) o += Triple(i, t, T)
         }
         return o
     }
@@ -498,7 +489,7 @@ object Gecisler {
         if (n == 0) return YOK
         var t = ms; var i = 0
         while (i < n) {
-            val d = if (i < p.klipler.size) p.klipler[i].sureMs else p.kapanisMs
+            val d = if (i < p.klipler.size) p.zKlip(i).sureMs else p.kapanisMs
             if (t < d || i == n - 1) return hesapla(p.gecis, t, d, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
             t -= d; i++
         }

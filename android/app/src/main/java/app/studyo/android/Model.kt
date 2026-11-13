@@ -146,9 +146,25 @@ data class Proje(
     val altyaziStil: AltyaziStil = AltyaziStil(),
     val kapak: Kapak = Kapak(),
     val nesneler: List<Nesne> = emptyList(),
+    /** Prompter (kayan yazı) metni ve ayarları */
+    val okumaMetni: String = "", val okumaHiz: Float = 40f, val okumaBoy: Float = 34f,
 ) {
     /** Yalnız kliplerin süresi */
-    val klipMs: Long get() = klipler.sumOf { it.sureMs }
+    val klipMs: Long get() = klipler.indices.sumOf { zKlip(it).sureMs }
+
+    /** Üst üste binen (yumuşak) geçişte klip i ile sonraki arasındaki örtüşme (ms). Videoyu bu kadar kısaltır. */
+    fun ortusme(i: Int): Long {
+        if (!gecis.cakisma || i !in klipler.indices) return 0
+        val sonraki = if (i + 1 < klipler.size) klipler[i + 1].sureMs else if (kapanis.acik) kapanis.sureMs else return 0
+        val t = minOf(gecis.sureMs, klipler[i].sureMs / 3, sonraki / 3)
+        return if (t >= 150) t else 0
+    }
+
+    /** Zaman çizelgesindeki hâli: sonu örtüşme kadar kısa (son kısmı üst katmanda gelen klibin üstünde solar). */
+    fun zKlip(i: Int): Klip {
+        val k = klipler[i]; val t = ortusme(i)
+        return if (t == 0L) k else if (k.foto) k.copy(fotoSureMs = k.fotoSureMs - t) else k.copy(sonMs = k.sonMs - t)
+    }
     /** Kapanış kartı varsa onunla birlikte videonun tamamı */
     val kapanisMs: Long get() = if (kapanis.acik && klipler.isNotEmpty()) kapanis.sureMs else 0L
     val toplamMs: Long get() = klipMs + kapanisMs

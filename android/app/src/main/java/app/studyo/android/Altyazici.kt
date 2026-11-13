@@ -208,7 +208,7 @@ object Altyazici {
                 for (s in p.sesler) isler += Triple(Uri.fromFile(File(s.yol)), longArrayOf(0, s.sureMs), s.basMs)
             } else {
                 var bas = 0L
-                for (k in p.klipler) {
+                for (k in p.klipler.indices.map { p.zKlip(it) }) {
                     if (!k.foto && k.sesVar && !k.sessiz) isler += Triple(Uri.parse(k.uri), longArrayOf(k.basMs, k.sonMs), bas)   // tanıyıcı zamanı kırpma başından sayar
                     bas += k.sureMs
                 }

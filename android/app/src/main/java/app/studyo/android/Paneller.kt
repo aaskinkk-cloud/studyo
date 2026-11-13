@@ -118,10 +118,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
 
             // üst üste binen geçiş: giden klibin son karesi üstte solar/kayar (çıktıda giden klibin devamı oynar)
             val pencereler = remember(p.klipler, p.gecis, p.kapanis) { Gecisler.pencereler(p) }
-            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) p.klipler.getOrNull(i)?.let { vm.sonKareIste(it) } }
+            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) if (i in p.klipler.indices) vm.sonKareIste(p.zKlip(i)) }
             val sonKareler by vm.sonKareler.collectAsState()
             pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, T) ->
-                val kk = p.klipler[i]
+                val kk = p.zKlip(i)
                 sonKareler[vm.sonKareAnahtar(kk)]?.let { bm ->
                     val u = Gecisler.ustKatman(p.gecis.tur, ((konum - b0).toFloat() / T).coerceIn(0f, 1f))
                     val gen = constraints.maxWidth.toFloat()
@@ -305,12 +305,12 @@ fun PanelGecis(vm: EditorDurum, p: Proje) {
     val g = p.gecis
     Kart("Klip geçişi") {
         Text("Klip üstüne binen", color = Renk.soluk, fontSize = 12.5.sp)
-        Secenekler(listOf("capraz" to "Çapraz", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur) { s -> vm.gecisDegis { it.copy(tur = s) } }
+        Secenekler(listOf("capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur) { s -> vm.gecisDegis { it.copy(tur = s) } }
         Text("Klip sınırında", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
         Secenekler(listOf("yok" to "Yok", "siyah" to "Siyahtan", "beyaz" to "Parlama", "yakin" to "Yakınlaşma"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
         if (g.tur != "yok") Kaydirici("Geçiş süresi", g.sureMs / 1000f, 0.3f..2f, { String.format(TR, "%.1f sn", it) }) { v -> vm.gecisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
         AnahtarSatiri("Videoyu siyahtan açarak başlat", g.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
-        Not(if (g.cakisma) "Giden klip, gelen klibin üstünde solarak/kayarak çekilir. Video süresi değişmez (seslendirme kaymaz): giden klibin kırpılan devamı varsa o oynar, yoksa son karesi kullanılır. Önizlemede son kare ile gösterilir."
+        Not(if (g.cakisma) "Giden klibin son kısmı gelen klibin üstünde yumuşakça solar (iki görüntü bir an birlikte görünür). Her geçiş videoyu geçiş süresi kadar kısaltır; seslendirme ve altyazıları buna göre kontrol et. Önizlemede yaklaşık gösterilir, dışa aktarmada tam olur."
             else "Geçiş her klip sınırında uygulanır; videonun sonu hiçbir zaman karartılmaz. Önizlemede de görünür.")
     }
 }

@@ -137,7 +137,8 @@ object Disa {
         val ogeler = ArrayList<EditedMediaItem>()
         val baslar = ArrayList<Long>()
         var bas = 0L
-        for ((i, k) in p.klipler.withIndex()) {
+        for (i in p.klipler.indices) {
+            val k = p.zKlip(i)
             val gec = Gecisler.etkiler(p.gecis, k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
             baslar += bas
             ogeler += oge(k, W, H, logo, gec, katmanlar(bas, k.sureMs))
@@ -160,11 +161,11 @@ object Disa {
         // ---- üst üste binen geçiş: giden klibin devamı (ya da son karesi) üst katmanda solar/kayar ----
         val pencereler = ArrayList<LongArray>()   // [başlangıç, süre]
         if (p.gecis.cakisma && n >= 2) {
-            val ust = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceVideoTrack(true)
+            val ust = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceVideoTrack(true).experimentalSetForceAudioTrack(true)
             var imlec = 0L
             for ((i, b0, T) in Gecisler.pencereler(p)) {
                 val k = p.klipler.getOrNull(i) ?: continue
-                val kuyruk = kuyrukOge(ctx, k, T, W, H, logo, katmanlar(b0, T)) ?: continue
+                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T)) ?: continue
                 if (b0 > imlec) ust.addGap((b0 - imlec) * 1000)
                 ust.addItem(kuyruk)
                 pencereler += longArrayOf(b0, T)
@@ -225,24 +226,17 @@ object Disa {
         return cb.build()
     }
 
-    /** Giden klibin kırpma sonrasındaki devamı (yetmezse son karesi) — sessiz, aynı kadraj ve yazılarla. */
-    private fun kuyrukOge(ctx: Context, k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>): EditedMediaItem? {
+    /** Giden klibin son T ms'si (gerçek görüntü ve sesi; HDR çevirisi tabandakiyle aynı) — gelen klibin üstünde solar.
+     *  3.2'de kırpılmış devam yoksa son kare JPEG olarak kullanılıyordu; telefonun kare çıkarıcısı HDR'yi farklı çevirdiği için
+     *  geçişte "parlama" oluyordu. Artık görüntü hep aynı çözücüden gelir. */
+    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>): EditedMediaItem? {
         val v = ArrayList<Effect>()
-        val mi: MediaItem
-        if (!k.foto && k.kaynakSureMs - k.sonMs >= T + 50) {
-            mi = MediaItem.Builder().setUri(Uri.parse(k.uri))
-                .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.sonMs).setEndPositionMs(k.sonMs + T).build()).build()
+        val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
+        if (k.foto) {
+            mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T)
+            if (k.kenBurns) v += MatrixTransformation { android.graphics.Matrix().apply { setScale(1.08f, 1.08f) } }
         } else {
-            val dosya: File = if (k.foto) File(Uri.parse(k.uri).path ?: return null) else {
-                val f = File(ctx.cacheDir, "kuyruk_${k.id}_${k.sonMs}.jpg")
-                if (!f.exists()) {
-                    val b = Medya.kareTam(ctx, Uri.parse(k.uri), (k.sonMs - 40).coerceAtLeast(k.basMs), 3840) ?: return null
-                    f.outputStream().use { b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 94, it) }
-                }
-                f
-            }
-            mi = MediaItem.Builder().setUri(Uri.fromFile(dosya)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T).build()
-            if (k.foto && k.kenBurns) v += MatrixTransformation { android.graphics.Matrix().apply { setScale(1.08f, 1.08f) } }
+            mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build())
         }
         v += Presentation.createForWidthAndHeight(W, H, if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         val kap = ArrayList<TextureOverlay>()
@@ -250,8 +244,11 @@ object Disa {
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
-        val b = EditedMediaItem.Builder(mi).setRemoveAudio(true).setEffects(Effects(listOf(), v))
-        if (mi.localConfiguration?.mimeType == MimeTypes.IMAGE_JPEG) b.setFrameRate(30)
+        val sesli = !k.foto && k.sesVar && !k.sessiz
+        val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
+        val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
+        if (k.foto) b.setFrameRate(30)
+        if (!sesli) b.setRemoveAudio(true)
         return b.build()
     }
 

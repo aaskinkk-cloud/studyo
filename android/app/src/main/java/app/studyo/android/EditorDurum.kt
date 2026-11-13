@@ -237,6 +237,18 @@ class EditorDurum(private val ctx: Context, id: String) {
                 Kayit.yaz("Akıcı önizleme: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${bas} ms'den")
                 kompTikIs?.cancel()
                 kompTikIs = kapsam.launch { while (isActive && komp === cp) { konum.value = cp.currentPosition.coerceAtLeast(0); delay(40) } }
+                // Takılma bekçisi: 1,8 sn içinde ilerlemezse (ilk karede kalırsa) bu oturumda standart önizlemeye geçilir
+                // ve oynatma kesintisiz oradan sürer. Aynı yol tekrar denenmez.
+                kapsam.launch {
+                    delay(1800)
+                    if (komp === cp && cp.currentPosition <= bas + 150) {
+                        Kayit.yaz("Akıcı önizleme ilerlemedi: durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${comp.sequences.size}")
+                        akiciKapali = true
+                        kompBitir(bas)
+                        mesaj.value = "Akıcı önizleme bu telefonda takıldı; standart önizlemeyle oynatılıyor."
+                        player.play()
+                    }
+                }
             } catch (e: Throwable) {
                 Kayit.hata("akıcı önizleme başlat", e)
                 akiciKapali = true; komp = null; kompAktif.value = false

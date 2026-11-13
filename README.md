@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.14 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme ilk karede kalıyordu → takılma bekçisi
+- Ahmet'in cihazında (3.13) ▶ sonrası görüntü ilk karede kaldı; hata da vermedi. Olası neden [Muhtemel]: çok girişli birleştirici tüm dizilerden kare bekliyor, boşluklu (gap) dizi kare üretmeyince bekleyip kalıyor (Media3 1.8 sınırı).
+- Çözüm: ▶ sonrası 1,8 sn içinde ilerleme yoksa o oturumda **standart önizlemeye** geçilir ve oynatma oradan kesintisiz sürer; hata kaydına durum yazılır. Oynatma artık hiçbir durumda ilk karede kalmaz.
+
 ## 3.13 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme — geçişteki sıçramanın asıl kökü
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.12'nin üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
 

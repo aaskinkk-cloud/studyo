@@ -668,13 +668,21 @@ class HatirlaticiBindirme(private val kart: Cizim.HatKart, private val klipBasMs
         val x = an(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
         val solX = (HatAnim.SOL + x.dx) * W                     // kartın sol kenarı (px)
         val zy = 1f - 2f * HatAnim.ORTA_Y
-        if (!nokta) return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(solX / W * 2f - 1f, zy).setOverlayFrameAnchor(-1f, 0f)
-            .setAlphaScale(x.alfa).build()
+        if (!nokta) {
+            // Media3 çapaları −1…1 aralığında olmalı (3.12–3.17: kart kayarak girerken çapa −1'in altına düşüyor,
+            // dışa aktarma IllegalArgumentException ile duruyordu). Kart soldan taşarken karenin sol kenarı sabit çapa olur,
+            // kaydırma kartın kendi çapasıyla yapılır.
+            val cw = kart.normal.width.toFloat()
+            val (zx, kx) = if (solX >= 0f) (solX / W * 2f - 1f).coerceIn(-1f, 1f) to -1f
+                           else -1f to (-1f - 2f * solX / cw).coerceIn(-1f, 1f)
+            return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(zx, zy).setOverlayFrameAnchor(kx, 0f)
+                .setAlphaScale(x.alfa.coerceIn(0f, 1f)).build()
+        }
         if (x.nokta <= 0.001f) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
         val nx = solX + kart.dx * kart.normal.width
         // kartın dikey merkezi ORTA_Y; düğme merkezi kartın içinde dy (aşağı = NDC'de eksi)
         val ny = zy - (kart.dy - 0.5f) * kart.normal.height / H * 2f
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(nx / W * 2f - 1f, ny).setOverlayFrameAnchor(0f, 0f)
-            .setScale(x.bas, x.bas).setAlphaScale(x.nokta).build()
+        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((nx / W * 2f - 1f).coerceIn(-1f, 1f), ny.coerceIn(-1f, 1f)).setOverlayFrameAnchor(0f, 0f)
+            .setScale(x.bas, x.bas).setAlphaScale(x.nokta.coerceIn(0f, 1f)).build()
     }
 }

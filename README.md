@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.18 (14.11.2026, deneme · `yerel-android` dalı): dışa aktarma hatası düzeltildi
+- **Hata (Ahmet, 02:19):** "Görüntü işlenemedi · ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED · IllegalArgumentException".
+- **Kök neden [Kesin]:** 3.12'deki canlı "Abone ol" kartı soldan kayarak girerken bindirme çapası −1'in altına iniyordu; Media3 `StaticOverlaySettings` çapanın −1…1 aralığında olmasını şart koşar (`checkArgument`) → kartın göründüğü ilk karede dışa aktarma duruyordu. Önizleme Compose ile çizildiği için etkilenmiyordu.
+- **Çözüm:** kart taşarken karenin sol kenarı sabit çapa olur, kayma kartın kendi çapasıyla yapılır (görünüş aynı); dokunma noktası çapası ve saydamlık da aralığa sabitlendi. Diğer bindirmelerin çapaları gözden geçirildi (hepsi aralıkta).
+
 ## 3.17 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme kalıcı ve kesintisiz
 Ahmet: "bir kere hatasız döner gibi oluyor, sonra tekrar aynı hata". Kök nedenler [Muhtemel] ve çözüm:
 - **Her ▶'da sıfırdan kurulum:** her oynatmada kompozisyon + çözücüler baştan kuruluyordu; büyük HDR projelerde hazırlık uzun sürüyor, bekçi bunu takılma sayıp oturum boyunca titreyen eski önizlemeye geçiriyordu. Artık akıcı oynatıcı **duraklatınca kapatılmaz**; bir sonraki ▶ anında aynı yerden başlar. Yalnız proje değişince (her düzenlemede) yeniden kurulur.

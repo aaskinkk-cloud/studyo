@@ -72,7 +72,6 @@ object Kaplama {
             Canvas(o).drawCircle(d / 2f, d / 2f, d / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = sh2 })
             b = o
         }
-        if (l.x >= 0f && l.y >= 0f) return Yerlesim(b, l.x.coerceIn(0f, 1f) * 2f - 1f, 1f - 2f * l.y.coerceIn(0f, 1f), 0f, 0f, l.opaklik)
         val mx = 0.035f * min(W, H) / W * 2f
         val my = 0.035f * min(W, H) / H * 2f
         return when (l.konum) {

@@ -105,21 +105,6 @@ fun Dugme(metin: String, modifier: Modifier = Modifier, renk: Color = Renk.kart2
     }
 }
 
-/** Standart: arka plansız ikon + küçük ince yazı, renk tonlu ince çizgi. Yan yana dizilir. */
-@Composable
-fun IkonDugme(ikon: String, yazi: String, modifier: Modifier = Modifier, renk: Color = Renk.yazi, etkin: Boolean = true, onClick: () -> Unit) {
-    val r = if (etkin) renk else Renk.soluk.copy(alpha = 0.45f)
-    val sekil = RoundedCornerShape(10.dp)
-    Column(
-        modifier.clip(sekil).border(0.8.dp, r.copy(alpha = 0.35f), sekil).clickable(enabled = etkin, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(ikon, color = r, fontSize = 17.sp)
-        Text(yazi, color = r, fontSize = 11.sp, fontWeight = FontWeight.Light, maxLines = 1)
-    }
-}
-
 /** Eşit genişlikte düğme sırası (boş hücre bırakmaz). */
 @Composable
 fun DugmeSirasi(vararg d: Pair<String, () -> Unit>) {

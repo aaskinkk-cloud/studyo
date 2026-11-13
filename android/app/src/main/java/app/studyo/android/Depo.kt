@@ -77,12 +77,6 @@ object Depo {
 
     fun sil(p: Proje) { dosya(p.id).delete(); temizle() }
 
-    /** Toplu silme: önce tüm proje dosyaları, sonra bir kez temizlik. */
-    fun topluSil(l: Collection<Proje>) { l.forEach { dosya(it.id).delete() }; temizle() }
-
-    /** Arşivle / arşivden çıkar (sıralama bozulmasın diye güncelleme zamanı değişmez). */
-    fun arsivle(l: Collection<Proje>, arsiv: Boolean) { l.forEach { kaydet(it.copy(arsiv = arsiv)) } }
-
     /** Hiçbir projenin kullanmadığı uygulama içi dosyaları ve kalıcı dosya izinlerini bırakır. */
     fun temizle() {
         try {

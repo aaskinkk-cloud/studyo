@@ -103,19 +103,7 @@ object Disa {
         return f
     }
 
-    /** Projenin çıkış kare hızı: videoların en sık kare hızı (24…60). Fotoğraf ve kapanış kartı da bu hızda üretilir;
-     *  böylece video→fotoğraf geçişlerinde kare aralığı değişmez (eskiden fotoğraflar sabit 30 fps idi; 60 fps videoyla
-     *  karışınca klip sınırında kare temposu değişiyor, geçiş takılıyor gibi görünüyordu). */
-    fun hedefKareHizi(ctx: Context, p: Proje): Int {
-        val l = p.klipler.filter { !it.foto }.map { k -> (if (k.kareHizi > 0f) k.kareHizi else Medya.kareHizi(ctx, Uri.parse(k.uri))) }
-            .filter { it in 10f..240f }.map { Math.round(it).coerceIn(24, 60) }
-        if (l.isEmpty()) return 30
-        return l.groupingBy { it }.eachCount().entries.sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenByDescending { it.key }).first().key
-    }
-
     fun kompozisyon(ctx: Context, p: Proje, W: Int, H: Int, hdrKip: Int = HDR_COZUCU): Composition {
-        val fps = hedefKareHizi(ctx, p)
-        Kayit.yaz("  Kare hızı: $fps fps")
         val logo = p.logo?.let { Kaplama.logo(it, W, H) }
         // Zaman çizelgesinde aralıkla görünen öğeler (tüm kliplere ortak bitmapler)
         val zamanli = ArrayList<Triple<Yerlesim, Long, Long>>()
@@ -133,7 +121,7 @@ object Disa {
             for ((y, a, b) in zamanli) if (a < bas + k.sureMs && b > bas) ek += ZamanliBindirme(y, bas, a, b)
             val satir = altyazilar.filter { it.basMs < bas + k.sureMs && it.sonMs > bas }
             if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
-            ogeler += oge(k, W, H, logo, gec, ek, fps)
+            ogeler += oge(k, W, H, logo, gec, ek)
             bas += k.sureMs
         }
         if (kapanisVar) {
@@ -142,7 +130,7 @@ object Disa {
             val v = ArrayList<Effect>()
             v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
             v += Gecisler.etkiler(p.gecis, p.kapanisMs, n > 1, false, false)
-            ogeler += EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
+            ogeler += EditedMediaItem.Builder(mi).setFrameRate(30).setEffects(Effects(listOf(), v)).build()
         }
         val diziler = ArrayList<EditedMediaItemSequence>()
         diziler += EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build()
@@ -176,7 +164,7 @@ object Disa {
         return Composition.Builder(diziler).setHdrMode(hdrKip).build()
     }
 
-    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, fps: Int): EditedMediaItem {
+    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
@@ -194,7 +182,7 @@ object Disa {
         val sesli = !k.foto && k.sesVar && !k.sessiz
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
-        if (k.foto) b.setFrameRate(fps)
+        if (k.foto) b.setFrameRate(30)
         if (!k.foto && !sesli) b.setRemoveAudio(true)
         return b.build()
     }

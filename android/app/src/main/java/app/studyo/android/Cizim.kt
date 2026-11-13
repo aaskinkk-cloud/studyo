@@ -311,18 +311,16 @@ class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Al
 object Gecisler {
     class An(val renk: Float, val beyaz: Boolean, val olcek: Float)
     private val YOK = An(0f, false, 1f)
-    /** Doğrusal rampa yerine yumuşak eğri: başlangıç ve bitişte hız sıfıra iner, ani kırılma (titreme hissi) olmaz. */
-    private fun yumusak(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
     /** yerel: klip içi ms. giris/cikis: bu klibin başında/sonunda geçiş var mı. siyahtan: videonun ilk klibi siyahtan açılır. */
     fun hesapla(g: Gecis, yerel: Long, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean): An {
         val L = (g.sureMs / 2).coerceAtLeast(100)
-        if (siyahtan && yerel < 900) return An(yumusak(1f - yerel / 900f), false, 1f)
+        if (siyahtan && yerel < 900) return An(1f - yerel / 900f, false, 1f)
         if (g.tur == "yok") return YOK
         var k = 0f
         if (giris && yerel < L) k = max(k, 1f - yerel.toFloat() / L)
         if (cikis && yerel > sure - L) k = max(k, (yerel - (sure - L)).toFloat() / L)
-        k = yumusak(k.coerceIn(0f, 1f))
+        k = k.coerceIn(0f, 1f)
         return when (g.tur) {
             "siyah" -> An(k, false, 1f)
             "beyaz" -> An(k, true, 1f)

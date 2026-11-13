@@ -21,7 +21,7 @@ import java.io.File
 
 data class MedyaBilgi(
     val sureMs: Long, val gen: Int, val yuk: Int, val kodek: String,
-    val hdr: Boolean, val sesVar: Boolean, val sorun: String?, val kareHizi: Float = 0f,
+    val hdr: Boolean, val sesVar: Boolean, val sorun: String?,
 )
 
 object Medya {
@@ -62,35 +62,12 @@ object Medya {
     }
 
     /** Videoyu belleğe almadan inceler: süre, boyut, kodek, HDR ve bu telefonda çözülüp çözülemeyeceği. */
-    private fun kareHiziOku(f: MediaFormat): Float {
-        if (!f.containsKey(MediaFormat.KEY_FRAME_RATE)) return 0f
-        return try { f.getInteger(MediaFormat.KEY_FRAME_RATE).toFloat() } catch (_: Exception) {
-            try { f.getFloat(MediaFormat.KEY_FRAME_RATE) } catch (_: Exception) { 0f }
-        }
-    }
-
-    /** Videonun kare hızı (fps); okunamazsa 0. */
-    fun kareHizi(ctx: Context, uri: Uri): Float {
-        val ex = MediaExtractor()
-        try {
-            ex.setDataSource(ctx, uri, null)
-            for (i in 0 until ex.trackCount) {
-                val f = ex.getTrackFormat(i)
-                if (f.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true) return kareHiziOku(f)
-            }
-        } catch (_: Exception) {
-        } finally {
-            ex.release()
-        }
-        return 0f
-    }
-
     fun incele(ctx: Context, uri: Uri): MedyaBilgi {
         val ex = MediaExtractor()
         try {
             ex.setDataSource(ctx, uri, null)
             var sure = 0L; var g = 0; var y = 0; var kod = ""; var hdr = false; var ses = false
-            var sorun: String? = null; var videoVar = false; var fps = 0f
+            var sorun: String? = null; var videoVar = false
             val liste = MediaCodecList(MediaCodecList.REGULAR_CODECS)
             for (i in 0 until ex.trackCount) {
                 val f = ex.getTrackFormat(i)
@@ -104,7 +81,6 @@ object Medya {
                         if (r == 90 || r == 270) { val t = g; g = y; y = t }
                     }
                     kod = kodekAdi(mime)
-                    fps = kareHiziOku(f)
                     if (f.containsKey(MediaFormat.KEY_COLOR_TRANSFER)) {
                         val tr = f.getInteger(MediaFormat.KEY_COLOR_TRANSFER)
                         hdr = tr == MediaFormat.COLOR_TRANSFER_ST2084 || tr == MediaFormat.COLOR_TRANSFER_HLG
@@ -125,7 +101,7 @@ object Medya {
             if (!videoVar && sorun == null) sorun = "Dosyada görüntü yok ya da biçim tanınmadı."
             if (sure <= 0) sure = retrieverSure(ctx, uri)
             if (sure <= 0 && sorun == null) sorun = "Videonun süresi okunamadı (dosya bozuk olabilir)."
-            return MedyaBilgi(sure, g, y, kod, hdr, ses, sorun, fps)
+            return MedyaBilgi(sure, g, y, kod, hdr, ses, sorun)
         } catch (e: Exception) {
             Kayit.hata("incele $uri", e)
             return MedyaBilgi(0, 0, 0, "", false, false, "Dosya açılamadı: ${e.message ?: e.javaClass.simpleName}")

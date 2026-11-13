@@ -76,26 +76,10 @@ private fun Not(m: String) = Text(m, color = Renk.soluk, fontSize = 12.5.sp, mod
 
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
-fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false) {
+fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
-    val konumAkis by vm.konum.collectAsState()
-    val oynuyor by vm.oynuyor.collectAsState()
-    // Oynarken zaman HER EKRAN KARESİNDE oynatıcıdan okunur (eskiden 40 ms'lik döngüyle ~25 kez/sn güncelleniyordu:
-    // geçişteki kararma/parlama/yakınlaşma basamak basamak ilerliyor, titreme ve sıçrama gibi görünüyordu).
-    // Klip sınırında oynatıcının kısa süreli geri değer vermesi (birkaç ms) yok sayılır; gerçek atlama (>250 ms) kabul edilir.
-    var kareMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(oynuyor) {
-        if (!oynuyor) return@LaunchedEffect
-        var son = vm.anlik()
-        while (true) {
-            withFrameNanos { }
-            val t = vm.anlik()
-            if (t >= son || son - t > 250) son = t
-            kareMs = son
-        }
-    }
-    val konum = if (oynuyor) kareMs else konumAkis
+    val konum by vm.konum.collectAsState()
     val takipSecim by vm.takipSecimde.collectAsState()
     val seciliNesne by vm.seciliNesne.collectAsState()
     val k = p.klipler.getOrNull(sira)
@@ -171,13 +155,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val ay = remember(satir?.metin, p.altyaziStil, ref) { satir?.let { Cizim.altyazi(it.metin, p.altyaziStil, RW, RH) } }
                 ay?.let { Ciz(it, 1f) }
             }
-            // logo: sürüklenirken yeni bitmap çizilmez, aynı bitmap parmağı izler; bırakınca kaydedilir
-            var logoSurukle by remember { mutableStateOf<Pair<Float, Float>?>(null) }
-            logoY?.let { ly ->
-                val s = logoSurukle
-                if (sira < p.klipler.size || s != null)
-                    Ciz(if (s == null) ly else Yerlesim(ly.bmp, s.first * 2f - 1f, 1f - 2f * s.second, 0f, 0f, ly.alfa), 1f)
-            }
+            logoY?.let { if (sira < p.klipler.size) Ciz(it, 1f) }
 
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
             if (takipSecim && k != null) {
@@ -187,26 +165,6 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Text("Takip edilecek yere dokun", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.TopCenter).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 4.dp))
                 }
-            } else if (logoPaneli && logoY != null) {
-                val ly = logoY
-                Box(Modifier.fillMaxSize().pointerInput(ly, olcek) {
-                    detectDragGestures(
-                        onDragStart = {
-                            val (x0, y0) = ly.solUst(RW, RH)
-                            logoSurukle = (x0 + ly.bmp.width / 2f) / RW to (y0 + ly.bmp.height / 2f) / RH
-                        },
-                        onDragEnd = {
-                            logoSurukle?.let { (x, y) -> vm.logoDegis { it.copy(x = x, y = y) } }
-                            logoSurukle = null
-                        },
-                        onDragCancel = { logoSurukle = null },
-                    ) { ch, d ->
-                        ch.consume()
-                        val (x, y) = logoSurukle ?: return@detectDragGestures
-                        val yx = ly.bmp.width / 2f / RW; val yy = ly.bmp.height / 2f / RH
-                        logoSurukle = (x + d.x / (olcek * RW)).coerceIn(yx, 1f - yx) to (y + d.y / (olcek * RH)).coerceIn(yy, 1f - yy)
-                    }
-                })
             } else if (nesnePaneli && seciliNesne != null) {
                 val id = seciliNesne!!
                 Box(Modifier.fillMaxSize().pointerInput(id, olcek) {

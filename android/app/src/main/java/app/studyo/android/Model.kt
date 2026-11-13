@@ -49,7 +49,6 @@ data class Klip(
     val hdr: Boolean = false,
     val sesVar: Boolean = true,
     val takip: Takip? = null,
-    val kareHizi: Float = 0f,       // kaynak videonun kare hızı (0 = bilinmiyor; dışa aktarmada okunur)
 ) {
     val foto: Boolean get() = tur == "foto"
     val sureMs: Long get() = if (foto) fotoSureMs else (sonMs - basMs).coerceAtLeast(100)
@@ -62,11 +61,7 @@ data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.35f, v
 data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f)
 
 @Serializable
-data class Logo(
-    val yol: String, val konum: String = "sagUst", val boyut: Float = 0.16f, val opaklik: Float = 1f, val yuvarlak: Boolean = true,
-    val kutupId: String = "",       // kütüphanedeki logo (seçili gösterimi için)
-    val x: Float = -1f, val y: Float = -1f,   // serbest konum (merkez, 0…1); -1: köşe (konum) kullanılır
-)
+data class Logo(val yol: String, val konum: String = "sagUst", val boyut: Float = 0.16f, val opaklik: Float = 1f, val yuvarlak: Boolean = true)
 
 /** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
 @Serializable
@@ -130,7 +125,6 @@ data class Proje(
     val altyaziStil: AltyaziStil = AltyaziStil(),
     val kapak: Kapak = Kapak(),
     val nesneler: List<Nesne> = emptyList(),
-    val arsiv: Boolean = false,     // arşivlenen proje ana listede görünmez (Arşiv bölümünde durur)
 ) {
     /** Yalnız kliplerin süresi */
     val klipMs: Long get() = klipler.sumOf { it.sureMs }

@@ -48,16 +48,17 @@ object Renk {
 
 /** Editör düzeni: sade (önizleme hep büyük, InShot gibi) varsayılan; önceki düzen ⋯ menüsünden seçilebilir. */
 object Duzen {
-    var onceki by mutableStateOf(false)
+    /** Alt menü: false = önceki yazılı haplar (varsayılan), true = simgeli yeni menü. */
+    var simgeliMenu by mutableStateOf(false)
     /** Önizlemenin ekran yüksekliğine oranı (tutamaçla 0,25–0,70; çift dokunuş = 0,42). */
-    var onizlemeOran by mutableFloatStateOf(0.42f)
-    fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran", onizlemeOran).apply() }
+    var onizlemeOran by mutableFloatStateOf(0.5f)
+    fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran2", onizlemeOran).apply() }
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
-        onceki = sp.getBoolean("oncekiDuzen", false)
-        onizlemeOran = sp.getFloat("onizlemeOran", 0.42f).coerceIn(0.25f, 0.7f)
+        simgeliMenu = sp.getBoolean("simgeliMenu", false)
+        onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(0.25f, 0.75f)
     }
-    fun degistir(ctx: Context) { onceki = !onceki; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oncekiDuzen", onceki).apply() }
+    fun degistir(ctx: Context) { simgeliMenu = !simgeliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("simgeliMenu", simgeliMenu).apply() }
 }
 
 @Composable

@@ -277,11 +277,15 @@ class EditorDurum(private val ctx: Context, id: String) {
             }
             mesgul.value = null
             if (yeni.isNotEmpty()) {
+                val bosProje = proje.value.klipler.isEmpty()
+                val dikey = yeni.count { it.yuk > it.gen } * 2 > yeni.size
+                val bicimDegisti = bosProje && dikey && proje.value.bicim == "16:9"
+                if (bicimDegisti) guncelle { it.copy(bicim = "9:16") }
                 val s = if (proje.value.klipler.isEmpty()) 0 else (secili.value + 1).coerceAtMost(proje.value.klipler.size)
                 guncelle(true) { p -> p.copy(klipler = p.klipler.toMutableList().also { it.addAll(s, yeni) }) }
                 kaydetSimdi(false)
                 sec(s)
-                mesaj.value = "${yeni.size} klip eklendi"
+                mesaj.value = "${yeni.size} klip eklendi" + if (bicimDegisti) " · klipler dikey olduğu için biçim 9:16 yapıldı" else ""
             }
             if (sorunlar.isNotEmpty()) uyari.value = "Eklenemeyenler:\n\n" + sorunlar.joinToString("\n\n")
         }
@@ -631,7 +635,8 @@ class EditorDurum(private val ctx: Context, id: String) {
             if (f == null) { uyari.value = hata ?: "Nesne kesilemedi."; return@launch }
             val p = proje.value
             val a = anlik().coerceIn(0, (p.toplamMs - 500).coerceAtLeast(0))
-            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(p.toplamMs.coerceAtLeast(a + 500)))
+            val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
+            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(p.toplamMs.coerceAtLeast(a + 500)), orjYol = if (orj.exists()) orj.path else "")
             guncelle { it.copy(nesneler = it.nesneler + n) }
             kaydetSimdi(false)
             seciliNesne.value = n.id

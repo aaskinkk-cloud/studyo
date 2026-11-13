@@ -25,7 +25,13 @@ object Altyazici {
     private const val ADRES = "https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip"
 
     fun modelDizini(ctx: Context) = File(ctx.filesDir, "vosk-tr")
-    fun modelHazir(ctx: Context) = File(modelDizini(ctx), "conf").isDirectory || File(modelDizini(ctx), "am").isDirectory
+    /** Model kökü: içinde am/final.mdl (ya da final.mdl) bulunan klasör. */
+    private fun modelKoku(d: File): File? {
+        if (File(d, "am/final.mdl").isFile || File(d, "final.mdl").isFile) return d
+        return d.listFiles()?.filter { it.isDirectory }?.firstNotNullOfOrNull { modelKoku(it) }
+    }
+    fun modelHazir(ctx: Context) = modelDizini(ctx).isDirectory && modelKoku(modelDizini(ctx)) != null
+    fun modelYolu(ctx: Context): String = (modelKoku(modelDizini(ctx)) ?: modelDizini(ctx)).path
 
     suspend fun modelIndir(ctx: Context, ilerleme: (Float) -> Unit) = withContext(Dispatchers.IO) {
         val zip = File(ctx.cacheDir, "vosk-tr.zip")
@@ -45,26 +51,30 @@ object Altyazici {
                 }
             }
         } finally { c.disconnect() }
-        val gecici = File(ctx.filesDir, "vosk-tr-gecici")
-        gecici.deleteRecursively(); gecici.mkdirs()
-        val kok = gecici.canonicalPath
+        // Kök neden (3.2): arşivin ilk klasörü atılıyordu; arşiv yapısı farklıysa am/ ve conf/ yanlış yere açılıyordu.
+        // Şimdi tam yolla açılır, model kökü (am/final.mdl olan klasör) aranarak bulunur.
+        if (zip.length() < 5_000_000L) { val b = zip.length(); zip.delete(); throw IllegalStateException("Model dosyası eksik indi ($b bayt). İnternet bağlantısını kontrol edip tekrar dene.") }
+        val hedef = modelDizini(ctx)
+        hedef.deleteRecursively(); hedef.mkdirs()
+        val kok = hedef.canonicalPath
+        var adet = 0
         ZipInputStream(zip.inputStream().buffered()).use { z ->
             var e = z.nextEntry
             while (e != null) {
-                val ad = e.name.substringAfter('/', "")
-                if (ad.isNotEmpty()) {
-                    val f = File(gecici, ad)
-                    if (!f.canonicalPath.startsWith(kok)) throw IllegalStateException("Model arşivi hatalı")
-                    if (e.isDirectory) f.mkdirs() else { f.parentFile?.mkdirs(); f.outputStream().use { z.copyTo(it) } }
-                }
+                val f = File(hedef, e.name)
+                if (!f.canonicalPath.startsWith(kok)) throw IllegalStateException("Model arşivi hatalı")
+                if (e.isDirectory) f.mkdirs() else { f.parentFile?.mkdirs(); f.outputStream().use { z.copyTo(it) }; adet++ }
                 e = z.nextEntry
             }
         }
         zip.delete()
-        val hedef = modelDizini(ctx)
-        hedef.deleteRecursively()
-        if (!gecici.renameTo(hedef)) throw IllegalStateException("Model yerleştirilemedi")
-        if (!modelHazir(ctx)) throw IllegalStateException("Model eksik indi; tekrar dene")
+        if (!modelHazir(ctx)) {
+            val ornek = hedef.walkTopDown().take(15).joinToString(", ") { it.relativeTo(hedef).path }
+            Kayit.yaz("Vosk modeli açıldı ama kök bulunamadı: $adet dosya; ilkler: $ornek")
+            hedef.deleteRecursively()
+            throw IllegalStateException("Model arşivi beklenen yapıda değil ($adet dosya). Hata kaydını paylaş.")
+        }
+        Kayit.yaz("Vosk modeli hazır: ${modelYolu(ctx)} ($adet dosya)")
         ilerleme(1f)
     }
 
@@ -191,7 +201,7 @@ object Altyazici {
 
     /** kaynak: "klip" (videoların kendi sesi) ya da "ses" (seslendirme kayıtları). */
     suspend fun olustur(ctx: Context, p: Proje, kaynak: String, ilerleme: (Float) -> Unit): List<Altyazi> = withContext(Dispatchers.Default) {
-        val model = Model(modelDizini(ctx).path)
+        val model = Model(modelYolu(ctx))
         try {
             val isler = ArrayList<Triple<Uri, LongArray, Long>>()   // dosya, [bas, son], zaman çizelgesi ofseti
             if (kaynak == "ses") {

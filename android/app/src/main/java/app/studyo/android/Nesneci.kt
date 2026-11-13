@@ -27,8 +27,10 @@ object Nesneci {
         addOnFailureListener { c.resumeWithException(it) }
     }
 
-    /** Saydam kenarları kırpar (nesnenin çevresinde %3 pay bırakır). */
-    private fun saydamKirp(b: Bitmap): Bitmap? {
+    /** Saydam kenarları kırpar (nesnenin çevresinde %3 pay bırakır); kırpma dikdörtgeniyle döner. */
+    private fun saydamKirp(b: Bitmap): Bitmap? = saydamKirpAlan(b)?.let { (x, y, w, h) -> Bitmap.createBitmap(b, x, y, w, h) }
+
+    private fun saydamKirpAlan(b: Bitmap): IntArray? {
         val w = b.width; val h = b.height
         val px = IntArray(w * h); b.getPixels(px, 0, w, 0, 0, w, h)
         var x0 = w; var y0 = h; var x1 = -1; var y1 = -1
@@ -39,8 +41,9 @@ object Nesneci {
         val pay = (maxOf(x1 - x0, y1 - y0) * 0.03f).toInt()
         x0 = (x0 - pay).coerceAtLeast(0); y0 = (y0 - pay).coerceAtLeast(0)
         x1 = (x1 + pay).coerceAtMost(w - 1); y1 = (y1 + pay).coerceAtMost(h - 1)
-        return Bitmap.createBitmap(b, x0, y0, x1 - x0 + 1, y1 - y0 + 1)
+        return intArrayOf(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
     }
+
 
     /** @return kesilmiş nesnenin PNG dosyası ya da hata metni */
     suspend fun kes(ctx: Context, uri: Uri): Pair<File?, String?> {
@@ -58,9 +61,18 @@ object Nesneci {
                 else "Nesne kesilemedi: $m"
             }
             val on = sonuc.foregroundBitmap ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
-            val kirp = withContext(Dispatchers.Default) { saydamKirp(on) } ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
-            val f = File(Depo.dizin("nesne"), yeniId() + ".png")
-            withContext(Dispatchers.IO) { f.outputStream().use { kirp.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+            val alan = withContext(Dispatchers.Default) { saydamKirpAlan(on) } ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
+            val kirp = Bitmap.createBitmap(on, alan[0], alan[1], alan[2], alan[3])
+            val ad = yeniId()
+            val f = File(Depo.dizin("nesne"), "$ad.png")
+            withContext(Dispatchers.IO) {
+                f.outputStream().use { kirp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                // cam fırçası için özgün görüntü (aynı kırpım); ön plan bitmapi ile aynı boyutta olduğu varsayılır
+                if (b.width == on.width && b.height == on.height) {
+                    val o = Bitmap.createBitmap(b, alan[0], alan[1], alan[2], alan[3])
+                    File(Depo.dizin("nesne"), "${ad}_orj.jpg").outputStream().use { o.compress(Bitmap.CompressFormat.JPEG, 94, it) }
+                }
+            }
             Kayit.yaz("Nesne kesildi: ${kirp.width}x${kirp.height}")
             return f to null
         } finally {

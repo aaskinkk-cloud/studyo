@@ -121,6 +121,8 @@ data class Nesne(
     val basMs: Long = 0, val sonMs: Long = 5000, val golge: Boolean = true,
     /** Videodan kesilen hareketli nesne: kare dizini (PNG), kare aralığı, kare sayısı. Boşsa tek fotoğraf. */
     val kareDizin: String = "", val kareMs: Long = 0, val kareSayi: Int = 0,
+    /** Kesimden önceki özgün görüntü (aynı kırpımla) — cam fırçası "geri getir/cam" için. */
+    val orjYol: String = "",
 ) {
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
 }

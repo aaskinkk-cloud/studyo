@@ -529,7 +529,12 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
                 }
                 if (on) {
                     Kaydirici("Boyut", n.olcek, 0.1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
-                    if (!n.hareketli) AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
+                    if (!n.hareketli) {
+                        AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
+                        var firca by remember(n.id) { mutableStateOf(false) }
+                        GenisDugme("Cam fırçası (bardak, şişe…)", "takip", Modifier.padding(vertical = 4.dp)) { firca = true }
+                        if (firca) CamFircasi(vm, n) { firca = false }
+                    }
                     var silOnay by remember(n.id) { mutableStateOf(false) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Dugme("Başı = şu an", Modifier.weight(1f), renk = Renk.kart) { val t = vm.anlik(); vm.nesneDegis(n.id) { it.copy(basMs = t, sonMs = maxOf(it.sonMs, t + 500)) } }

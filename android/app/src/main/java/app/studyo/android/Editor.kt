@@ -54,6 +54,27 @@ import kotlin.math.roundToInt
 
 private data class Bolum(val anahtar: String, val ad: String, val simge: String, val haplar: List<Pair<String, String>>)
 
+private val ESKI_SIMGE = mapOf("duzenle" to "✂", "gorunum" to "◐", "ses" to "♪", "metin" to "T", "yayin" to "⇪")
+
+/** Önceki (3.2) yazılı hap. */
+@Composable
+private fun HapEski(metin: String, secili: Boolean, onClick: () -> Unit) {
+    val sekil = RoundedCornerShape(17.dp)
+    Box(
+        Modifier.height(34.dp).clip(sekil).background(if (secili) Renk.turuncu else Color.Transparent)
+            .border(1.5.dp, if (secili) Renk.turuncu else Renk.cizgi, sekil).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(metin, color = if (secili) Renk.turuncuM else Renk.yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
+}
+
+/** Üst çubuk için ince yazılı düğme. */
+@Composable
+private fun InceDugme(metin: String, renk: Color, etkin: Boolean = true, onClick: () -> Unit) {
+    Box(Modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = etkin, onClick = onClick).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+        Text(metin, color = if (etkin) renk else renk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.Normal, maxLines = 1)
+    }
+}
+
 private val HAP_SIMGE = mapOf(
     "klip" to "klip", "ekle" to "ekle", "nesne" to "katman", "bicim" to "bicim",
     "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket",
@@ -101,7 +122,6 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
         // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
-        val sade = !Duzen.onceki
         val ekranYuk = maxHeight
         val onizlemeYuk = (ekranYuk * Duzen.onizlemeOran).coerceAtLeast(180.dp)
         Column(Modifier.fillMaxSize().imePadding()) {
@@ -109,16 +129,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Row(
                 Modifier.fillMaxWidth().background(Renk.kart)
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 24.dp) }
+                InceDugme("← Geri", Renk.yazi, onClick = cik)
                 var adMenu by remember { mutableStateOf(false) }
                 var adDuzen by remember { mutableStateOf(false) }
                 Box(Modifier.weight(1f)) {
                     Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { adMenu = true }.padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(p.ad, color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                        Simge("asagi", Renk.soluk, 18.dp)
+                        Text(p.ad, color = Renk.soluk, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Simge("asagi", Renk.soluk, 14.dp)
                     }
                     DropdownMenu(expanded = adMenu, onDismissRequest = { adMenu = false }) {
                         DropdownMenuItem(text = { Text("Adını değiştir") }, onClick = { adMenu = false; adDuzen = true })
@@ -132,59 +152,73 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         confirmButton = { TextButton(onClick = { vm.adDegistir(ad); adDuzen = false }) { Text("Tamam") } },
                         dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
                 }
-                UstDugme("Kaydet", "kaydet", Renk.turkuaz, Color(0xFF04191B), Modifier.padding(end = 6.dp)) { vm.kaydetSimdi() }
-                UstDugme("Dışa Aktar", "disa", Renk.turuncu, Renk.turuncuM, Modifier.padding(end = 2.dp), etkin = p.klipler.isNotEmpty()) { disaAcik = true }
+                InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
+                Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
+                InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
             val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
-            if (sade) {
-                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(horizontal = 10.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(18.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(18.dp)))
-                // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
-                val ctxT = LocalContext.current
-                val yog = LocalDensity.current
-                Box(Modifier.fillMaxWidth().height(18.dp)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(onDragEnd = { Duzen.oranKaydet(ctxT) }) { ch, d ->
-                            ch.consume()
-                            val yukPx = with(yog) { ekranYuk.toPx() }
-                            Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(0.25f, 0.7f)
+            OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(horizontal = 10.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(18.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(18.dp)))
+            // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
+            val ctxT = LocalContext.current
+            val yog = LocalDensity.current
+            Box(Modifier.fillMaxWidth().height(26.dp)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(onDragEnd = { Duzen.oranKaydet(ctxT) }) { ch, d ->
+                        ch.consume()
+                        val yukPx = with(yog) { ekranYuk.toPx() }
+                        Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(0.25f, 0.75f)
+                    }
+                }
+                .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = 0.5f; Duzen.oranKaydet(ctxT) }) },
+                contentAlignment = Alignment.Center) {
+                Box(Modifier.width(64.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
+            }
+            OynaticiSatiri(vm, p)
+            Column(Modifier.fillMaxWidth().weight(1f)) {
+                if (!panelAcik) {
+                    Spacer(Modifier.weight(1f))
+                    KlipSeridi(vm, p, sec, ekle)
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
+                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip")
+                    if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
+                    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
+                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
+
+            // ---- haplar + 5 bölüm ----
+            val b = BOLUMLER.first { it.anahtar == bolum }
+            if (!Duzen.simgeliMenu) {
+                Row(
+                    Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    b.haplar.forEach { (k, ad) ->
+                        HapEski(ad, panelAcik && haplar[bolum] == k) {
+                            if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
                         }
                     }
-                    .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = 0.42f; Duzen.oranKaydet(ctxT) }) },
-                    contentAlignment = Alignment.Center) {
-                    Box(Modifier.width(44.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Renk.soluk.copy(alpha = 0.6f)))
                 }
-                OynaticiSatiri(vm, p)
-                Column(Modifier.fillMaxWidth().weight(1f)) {
-                    if (!panelAcik) {
-                        Spacer(Modifier.weight(1f))
-                        KlipSeridi(vm, p, sec, ekle)
-                        Spacer(Modifier.weight(1f))
-                    } else {
-                        // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
-                        val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip")
-                        if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
-                        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-                            Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
-                            Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth().background(Renk.kart).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 4.dp)) {
+                    BOLUMLER.forEach { bb ->
+                        val on = bb.anahtar == bolum && panelAcik
+                        Column(
+                            Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(12.dp)).clickable {
+                                if (bb.anahtar == bolum && panelAcik) panelAcik = false else { bolum = bb.anahtar; panelAcik = true }
+                            },
+                            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(ESKI_SIMGE[bb.anahtar] ?: "", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 20.sp)
+                            Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium)
                         }
                     }
                 }
             } else {
-                // önceki düzen (Ana sayfa ⋯ menüsünden geri seçilebilir)
-                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().weight(1f))
-                OynaticiSatiri(vm, p)
-                KlipSeridi(vm, p, sec, ekle)
-                if (panelAcik) {
-                    Column(
-                        Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
-                    ) {
-                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
-                    }
-                }
-            }
-            // ---- haplar + 5 bölüm ----
-            val b = BOLUMLER.first { it.anahtar == bolum }
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 10.dp).padding(top = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -216,6 +250,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         Text(bb.ad, color = if (on) Renk.turuncu else Renk.yazi, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium)
                     }
                 }
+            }
             }
         }
         mesgul?.let { m ->

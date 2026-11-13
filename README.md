@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.4 (13.11.2026, deneme · `yerel-android` dalı): düzeltmeler + cam fırçası
+- **Önizleme küçüktü, tutamaç yoktu:** "önceki düzen" seçiliyken önizleme panelin altında eziliyordu ve tutamaç o düzende yoktu. Artık önizleme her zaman büyük (varsayılan ekranın %50'si) ve altında turuncu **tutamaç** var (sürükle: %25–75, çift dokun: %50). Ayrıca 16:9 projede dikey klipler kenarlarda siyahla küçük görünüyordu: boş projeye çoğunlukla dikey klip eklenince biçim kendiliğinden **9:16** olur (Düzenle › Biçim'den değişir).
+- **Üst çubuk:** ince küçük yazılar — ← Geri · proje adı ▾ · Kaydet | Dışa Aktar.
+- **Alt menüler önceki (yazılı) düzene döndü;** simgeli yeni menü ⋯ › "Alt menü: simgeli (yeni)" ile seçilebilir.
+- **Otomatik altyazı "Model eksik indi":** kök neden — model arşivinin ilk klasörü atılıyordu; arşiv yapısı farklı olunca dosyalar yanlış yere açılıyordu. Artık tam yolla açılır, model kökü (`am/final.mdl`) aranıp bulunur; eksik indirme (5 MB altı) ve yapı sorunu açıkça yazılır, hata kaydına dosya listesi düşer.
+- **Cam fırçası** (Düzenle › Nesne › katman seçili › Cam fırçası): kesilmiş nesnede cam bölgeleri boya → özgün görüntü parlaklığa göre yarı saydam olur (yansımalar kalır, arkadaki video camdan görünür). "Geri getir" (kesimde kaybolan cam kenarı), "Sil", fırça boyutu, Geri al (8 adım). Yeni kesilen nesnelerde özgün görüntü aynı kırpımla saklanır.
+
 ## 3.3 (13.11.2026, deneme · `yerel-android` dalı): yeni görünüm (Ahmet'in tasarım görseline göre)
 - **Üst çubuk:** simgeli geri; proje adı + ▾ (Adını değiştir · Projelere dön); simgeli **Kaydet** (turkuaz) ve **Dışa Aktar** (turuncu) yuvarlak düğmeler. Amaçsız logo konmadı.
 - **Önizleme:** köşeleri yuvarlatılmış kart. Altında **tutamaç**: aşağı sürükle = büyüt, yukarı = küçült (ekranın %25–70'i; ayar alanı o kadar genişler), çift dokun = varsayılan (%42). Seçim hatırlanır.

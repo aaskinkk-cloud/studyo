@@ -82,7 +82,7 @@ private val HAP_SIMGE = mapOf(
     "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket",
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
-    "logo" to "logo", "kapak" to "kapak", "disa" to "disa",
+    "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman",
 )
 
 private val BOLUMLER = listOf(
@@ -90,6 +90,7 @@ private val BOLUMLER = listOf(
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
+    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),
     Bolum("yayin", "Yayın", "yildiz", listOf("logo" to "Logo", "kapak" to "Kapak", "disa" to "Dışa aktar")),
 )
 
@@ -107,7 +108,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     val mesgul by vm.mesgul.collectAsState()
     var bolum by rememberSaveable { mutableStateOf("duzenle") }
     var panelAcik by rememberSaveable { mutableStateOf(true) }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "ses" to "muzik", "metin" to "yazi", "yayin" to "logo") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
 
     val ekleSecici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.ekle(it) }
@@ -172,7 +173,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
-                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo")
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
+                    katmanPaneli = panelAcik && bolum == "katman")
                 if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
@@ -480,6 +482,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         p.muzik?.let { add("♪ ${it.ad}") }
         if (p.sesler.isNotEmpty()) add("🎙 ${p.sesler.size} seslendirme")
         if (p.logo != null) add("◎ logo")
+        if (p.katmanlar.isNotEmpty()) add("▣ ${p.katmanlar.size} katman")
     }
     if (ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
@@ -499,6 +502,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "altyazi" -> PanelAltyazi(vm, p)
         "kapak" -> PanelKapak(vm, p)
         "nesne" -> PanelNesne(vm, p)
+        "katmanlar" -> PanelKatmanlar(vm, p)
         else -> if (k == null) {
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))
         } else when (hap) {

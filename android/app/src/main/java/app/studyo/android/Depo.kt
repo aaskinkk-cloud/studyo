@@ -92,9 +92,10 @@ object Depo {
                 p.muzik?.let { uriler += it.uri }
                 p.sesler.forEach { yollar += it.yol }
                 p.logo?.let { yollar += it.yol }
+                p.katmanlar.forEach { if (it.yol.isNotEmpty()) { if (it.tur == "ses") uriler += it.yol else yollar += it.yol } }
                 p.nesneler.forEach { yollar += it.yol; if (it.kareDizin.isNotEmpty()) yollar += it.kareDizin; if (it.orjYol.isNotEmpty()) yollar += it.orjYol }
             }
-            for (d in listOf("foto", "ses", "logo", "medya", "nesne")) dizin(d).listFiles()?.forEach { if (it.path !in yollar) { if (it.isDirectory) it.deleteRecursively() else it.delete() } }
+            for (d in listOf("foto", "ses", "logo", "medya", "nesne", "katman")) dizin(d).listFiles()?.forEach { if (it.path !in yollar) { if (it.isDirectory) it.deleteRecursively() else it.delete() } }
             val cr = app.contentResolver
             for (izin in cr.persistedUriPermissions) if (izin.uri.toString() !in uriler) {
                 try { cr.releasePersistableUriPermission(izin.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}

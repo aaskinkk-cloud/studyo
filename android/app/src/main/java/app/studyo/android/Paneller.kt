@@ -13,6 +13,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -91,7 +93,7 @@ private fun Not(m: String) = Text(m, color = Renk.soluk, fontSize = 12.5.sp, mod
 
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
-fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false) {
+fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
     val konumAkis by vm.konum.collectAsState()
@@ -291,6 +293,43 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
             hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
+            // serbest katmanlar: dışa aktarmadaki bitmap ve animasyonun aynısı; seçili katman panel açıkken çerçeveli
+            val seciliK by vm.seciliKatman.collectAsState()
+            var katGecici by remember { mutableStateOf<KatmanGecici?>(null) }
+            val katBoyut = remember { HashMap<String, Pair<Int, Int>>() }
+            for (o in p.katmanlar) {
+                if (!o.gorsel) continue
+                key(o.id) {
+                    val bm = remember(KatmanCizim.anahtar(o), ref) { KatmanCizim.bitmap(o, RW, RH) }
+                    if (bm != null) {
+                        katBoyut[o.id] = bm.width to bm.height
+                        val g = katGecici?.takeIf { it.id == o.id }
+                        val a = KatmanCizim.an(o, konum)
+                        val secili = katmanPaneli && seciliK == o.id
+                        if (a.alfa > 0.01f || (secili && !o.gizli)) {
+                            val x = g?.x ?: o.x; val y = (g?.y ?: o.y) + a.dy
+                            val sk = a.olcek * (g?.carpan ?: 1f); val aci = o.aci + (g?.aci ?: 0f)
+                            val w = bm.width * olcek; val h = bm.height * olcek
+                            val alfa = if (a.alfa > 0.01f) a.alfa.coerceIn(0f, 1f) else 0.35f
+                            Image(bm.asImageBitmap(), null,
+                                Modifier.offset { IntOffset((x * RW * olcek - w / 2f).roundToInt(), (y * RH * olcek - h / 2f).roundToInt()) }
+                                    .size(with(yog) { w.toDp() }, with(yog) { h.toDp() })
+                                    .graphicsLayer { scaleX = sk; scaleY = sk; rotationZ = aci; this.alpha = alfa }
+                                    .then(if (secili) Modifier.border(1.dp, if (o.kilitli) Renk.soluk else Renk.turuncu) else Modifier))
+                        }
+                    }
+                }
+            }
+            LaunchedEffect(katGecici) {
+                val g = katGecici ?: return@LaunchedEffect
+                delay(400)
+                vm.katmanDegis(g.id) { o ->
+                    val (mn, mx) = if (o.tur == "metin") 0.02f to 0.3f else 0.03f to 1.5f
+                    var aci = (o.aci + g.aci) % 360f; if (aci > 180f) aci -= 360f; if (aci < -180f) aci += 360f
+                    o.copy(x = g.x, y = g.y, olcek = (o.olcek * g.carpan).coerceIn(mn, mx), aci = aci)
+                }
+                katGecici = null
+            }
             if (p.altyaziStil.acik) {
                 val sa = Cizim.altyaziAn(p.altyazilar, konum)
                 val ay = remember(sa?.first?.id, sa?.first?.metin, sa?.second, p.altyaziStil, ref) { sa?.let { Cizim.altyaziCiz(it.first, it.second, p.altyaziStil, RW, RH) } }
@@ -312,6 +351,33 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Text("Takip edilecek yere dokun", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.TopCenter).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 4.dp))
                 }
+            } else if (katmanPaneli) {
+                val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
+                val kSec = p.katmanlar.firstOrNull { it.id == seciliK }
+                val kSecG by rememberUpdatedState(kSec)
+                Box(Modifier.fillMaxSize()
+                    .pointerInput(olcek) {
+                        detectTapGestures { t ->
+                            val px = t.x / olcek; val py = t.y / olcek
+                            val bul = KatmanCizim.gorunenler(pG, konumG).firstOrNull { o ->
+                                val (bw, bh) = katBoyut[o.id] ?: return@firstOrNull false
+                                val s = KatmanCizim.an(o, konumG).olcek
+                                katmanIsabet(o, (bw * s).toInt(), (bh * s).toInt(), px, py, RW, RH)
+                            }
+                            vm.seciliKatman.value = bul?.id
+                        }
+                    }
+                    .pointerInput(kSec?.id, kSec?.kilitli, olcek) {
+                        if (kSec == null || kSec.kilitli) return@pointerInput
+                        detectTransformGestures { _, pan, zoom, rot ->
+                            val o = kSecG ?: return@detectTransformGestures
+                            val g = katGecici?.takeIf { it.id == o.id } ?: KatmanGecici(o.id, o.x, o.y, 1f, 0f)
+                            katGecici = g.copy(
+                                x = (g.x + pan.x / (olcek * RW)).coerceIn(0f, 1f), y = (g.y + pan.y / (olcek * RH)).coerceIn(0f, 1f),
+                                carpan = (g.carpan * zoom).coerceIn(0.1f, 8f), aci = g.aci + rot,
+                            )
+                        }
+                    })
             } else if (logoPaneli && logoY != null) {
                 val ly = logoY
                 Box(Modifier.fillMaxSize().pointerInput(ly, olcek) {

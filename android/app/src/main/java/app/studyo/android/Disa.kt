@@ -129,6 +129,8 @@ object Disa {
         if (!p.giris.reels) Cizim.giris(p.giris, W, H)?.let { zamanli += Triple(it, gA, gB) }
         Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { val (a, b) = Zaman.hatirlaticiAralik(p); zamanli += Triple(it, a, b) }
         for (ns in p.nesneler) if (!ns.hareketli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
+        // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
+        val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
 
         /** [bas, bas+sure) aralığındaki klibe eklenecek zamanlı bindirmeler (klip içi saatle). */
@@ -139,6 +141,7 @@ object Disa {
             if (seritler.isNotEmpty() && gA < son && gB > bas) for (sr in seritler) ek += ReelsBindirme(sr, p.giris.hareket, bas, gA, gB)
             if (p.giris.acik && p.giris.boncuk && gA < son && gB > bas) ek += BoncukBindirme(bas, gA, gB, W, H)
             for (ns in p.nesneler) if (ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)
+            for ((o, bm) in katmanBmp) if (o.basMs < son && o.sonMs > bas) ek += KatmanBindirme(o, bm, bas)
             val satir = altyazilar.filter { it.basMs < son && it.sonMs > bas }
             if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
             return ek
@@ -214,6 +217,24 @@ object Disa {
                 imlec = son; adet++
             }
             if (adet > 0) diziler += b.build()
+        }
+        // ---- ses katmanları: her biri ayrı dizi (baştaki boşluk + kırpılmış ses; hız ve seviye) ----
+        for (o in p.katmanlar) {
+            if (o.tur != "ses" || o.gizli || o.yol.isEmpty()) continue
+            val bas = o.basMs.coerceIn(0, toplam); val son = o.sonMs.coerceAtMost(toplam)
+            if (son - bas < 100) continue
+            val hiz = o.hiz.coerceIn(0.25f, 4f)
+            val kaynakSon = o.kaynakBasMs + ((son - bas) * hiz).toLong()
+            val mi = MediaItem.Builder().setUri(Uri.parse(o.yol))
+                .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(o.kaynakBasMs).setEndPositionMs(kaynakSon).build()).build()
+            val ap = ArrayList<AudioProcessor>()
+            if (hiz != 1f) ap += androidx.media3.common.audio.SpeedChangingAudioProcessor(SabitHiz(hiz))
+            ap += sesIsleyici(o.ses)
+            val b = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
+            if (bas > 0) b.addGap(bas * 1000)
+            b.addItem(EditedMediaItem.Builder(mi).setEffects(Effects(ap, listOf<Effect>())).build())
+            diziler += b.build()
+            Kayit.yaz("  Ses katmanı: ${o.ad} ${bas}-${son} ms, hız=$hiz, ses=${o.ses}")
         }
         // ---- reels başlık efekt sesleri ----
         if (seritler.isNotEmpty()) {

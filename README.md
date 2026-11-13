@@ -6,6 +6,20 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.9 (14.11.2026, deneme · `yerel-android` dalı): çok katmanlı düzenleme (1. aşama)
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.8'in üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
+
+Yeni ana bölüm **Katman** (alt çubukta). Klip dizisinin üstünde serbest, sınırsız sayıda katman:
+- **Ekle:** Metin · Görsel (telefondan, çoklu; PNG/WebP saydamlığı korunur) · Logo (kütüphaneden) · Çıkartma (40 hazır) · Ses (müzik, efekt, seslendirme dosyası). Yeni katman oynatıcının olduğu andan başlar.
+- **Önizlemede:** katmana dokun = seç (çerçeve) · sürükle = taşı · iki parmak = büyüt/küçült + döndür (bırakınca kaydedilir). Kilitli katman hareket etmez.
+- **Zaman çizelgesi:** her katman bir satır (üstteki satır = en üstteki katman). ≡ tutup sürükle = sıra · çubuğun ucunu sürükle = başı/sonu · ortasını sürükle = kaydır · dokun = oraya git. Turuncu çizgi = oynatıcının yeri.
+- **Ayarlar (seçili katman):** Başı/Sonu = şimdi, Başına git, Tüm video · Boyut, Döndür (±180°), Opaklık, Ortala, Düz, Boyut sıfırla · Giriş/çıkış: Yok, Solma, Kayma, Büyüme, Zıplama · Filtre (görsel/çıkartma): S/B, Sepya, Canlı, Soğuk, Sıcak · Kırp (görsel; 4 kenar) · Metin: yazı, 8 renk, arka kutu · Ses: seviye %0–150, hız 0,5–2×, sesin başladığı yer · Öne al, Arkaya al, Çoğalt, Gizle/Göster, Kilitle, Sil (iki adım).
+- **Dışa aktarma:** görsel katmanlar her klibe bindirme olarak (önizlemeyle aynı bitmap, konum, açı, animasyon), ses katmanları ayrı ses dizisi (hız: SpeedChangingAudioProcessor). Altyazı katmanların üstünde kalır.
+- **Henüz yok (2. aşama):** video katmanı (resim içinde resim) ve video katmanında hız — iki videoyu aynı anda çözmek telefonun çözücü sınırına bağlı; ayrı sürümde.
+- **Test edilmesi gerekenler:** döndürülmüş katmanın dışa aktarmada aynı yöne döndüğü; hızı 1× olmayan ses katmanının dışa aktarması.
+
+Kod: `Katmanlar.kt` (çizim, animasyon, filtre, dışa aktarma bindirmesi), `KatmanPanel.kt` (panel + zaman çizelgesi), `Paneller.kt` (önizleme çizimi ve dokunma), `EditorDurum.kt` (katman işlemleri, ses önizleme oynatıcıları), `Disa.kt`, `Model.kt` (`KatmanOge`, `Proje.katmanlar`), `Depo.kt` (`katman` klasörü temizliği).
+
 ## 3.8 (13.11.2026, deneme · `yerel-android` dalı): akıcı geçişler, taslak toplu seçim + arşiv, logo kütüphanesi
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.7'nin üstüne kurulur, projeler korunur. **Test:** derlendi; cihaz testi bekleniyor.
 

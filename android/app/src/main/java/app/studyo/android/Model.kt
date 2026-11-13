@@ -149,6 +149,30 @@ data class Nesne(
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
 }
 
+/** Çok katmanlı düzenleme: serbest katman (metin | gorsel | cikartma | ses). Listedeki sıra = alttan üste.
+ *  Zamanlar zaman çizelgesi ms'si. Konum kare içinde 0…1 (merkez). */
+@Serializable
+data class KatmanOge(
+    val id: String = yeniId(),
+    val tur: String = "metin",
+    val ad: String = "",
+    val basMs: Long = 0, val sonMs: Long = 4000,
+    val yol: String = "",                 // gorsel: uygulama içi dosya · ses: içerik adresi (uri)
+    val metin: String = "",               // metin ya da çıkartma (emoji)
+    val renk: Long = 0xFFFFFFFF, val kutu: Boolean = false,
+    val x: Float = 0.5f, val y: Float = 0.5f,
+    val olcek: Float = 0.35f,             // gorsel/çıkartma: karenin genişliğine oran · metin: yazı boyu (kısa kenara oran)
+    val aci: Float = 0f,                  // saat yönünde derece
+    val opaklik: Float = 1f,
+    val gizli: Boolean = false, val kilitli: Boolean = false,
+    val anim: String = "solma",           // yok | solma | kay | buyu | zipla  (giriş ve çıkış)
+    val filtre: String = "yok",           // yok | sb | sepya | canli | soguk | sicak
+    val kirpL: Float = 0f, val kirpT: Float = 0f, val kirpR: Float = 0f, val kirpB: Float = 0f,
+    val ses: Float = 1f, val hiz: Float = 1f, val kaynakBasMs: Long = 0, val kaynakSureMs: Long = 0,
+) {
+    val gorsel: Boolean get() = tur != "ses"
+}
+
 @Serializable
 data class Proje(
     val id: String = yeniId(),
@@ -172,6 +196,8 @@ data class Proje(
     val okumaMetni: String = "", val okumaHiz: Float = 40f, val okumaBoy: Float = 34f,
     /** Arşivlenen proje ana listede görünmez (Arşiv bölümünde durur). */
     val arsiv: Boolean = false,
+    /** Serbest katmanlar (çok katmanlı düzenleme) — sıra alttan üste. */
+    val katmanlar: List<KatmanOge> = emptyList(),
 ) {
     /** Yalnız kliplerin süresi */
     val klipMs: Long get() = klipler.indices.sumOf { zKlip(it).sureMs }

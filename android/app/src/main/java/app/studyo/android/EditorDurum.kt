@@ -76,13 +76,13 @@ class EditorDurum(private val ctx: Context, id: String) {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 oynuyor.value = isPlaying
-                if (isPlaying) tikBasla() else { muzikPl.pause(); sesPl.pause(); sesAktif = null; konum.value = anlik() }
+                if (isPlaying) tikBasla() else { muzikPl.pause(); sesPl.pause(); sesAktif = null; katmanSesDurdur(); konum.value = anlik() }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED) {
                     if (kaydediyor.value) kayitDurdur()
-                    muzikPl.pause(); sesPl.pause()
+                    muzikPl.pause(); sesPl.pause(); katmanSesDurdur()
                 }
             }
 
@@ -128,7 +128,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Dışa aktarma sırasında donanım çözücüleri boşaltılır (büyük videolarda çakışmayı önler). */
-    fun onizlemeBirak() { player.pause(); player.stop(); muzikPl.stop(); sesPl.stop() }
+    fun onizlemeBirak() { player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
     fun onizlemeGeri() { listeKur(sira.value, 0); muzikKur() }
 
     private fun sesUygula() {
@@ -163,6 +163,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 konum.value = anlik()
                 sfxTik(konum.value)
                 sesTakip()
+                katmanSesTik(konum.value)
                 delay(40)
             }
         }
@@ -428,6 +429,131 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun logoDegis(f: (Logo) -> Logo) = guncelle { p -> p.copy(logo = p.logo?.let(f)) }
     fun logoKaldir() = guncelle { it.copy(logo = null) }
+
+    // ---------- çok katmanlı düzenleme ----------
+    val seciliKatman = MutableStateFlow<String?>(null)
+    private val katmanPl = HashMap<String, ExoPlayer>()
+
+    fun katmanDegis(id: String, f: (KatmanOge) -> KatmanOge) =
+        guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.id == id) f(it) else it }) }
+
+    private fun katmanEkleOge(o: KatmanOge) {
+        guncelle(yapi = false) { p -> p.copy(katmanlar = p.katmanlar + o) }
+        seciliKatman.value = o.id
+    }
+
+    /** Yeni katmanın aralığı: oynatıcının olduğu andan itibaren (videonun içinde kalır). */
+    private fun yeniAralik(sure: Long): Pair<Long, Long> {
+        val T = proje.value.toplamMs.coerceAtLeast(1000)
+        val a = konum.value.coerceIn(0, (T - 500).coerceAtLeast(0))
+        return a to minOf(T, a + sure).coerceAtLeast(a + 500)
+    }
+
+    fun katmanMetinEkle() {
+        val (a, b) = yeniAralik(4000)
+        katmanEkleOge(KatmanOge(tur = "metin", ad = "Metin", metin = "Yazınız", olcek = 0.08f, kutu = true, basMs = a, sonMs = b))
+    }
+
+    fun katmanCikartmaEkle(e: String) {
+        val (a, b) = yeniAralik(3000)
+        katmanEkleOge(KatmanOge(tur = "cikartma", ad = "Çıkartma $e", metin = e, olcek = 0.16f, anim = "zipla", basMs = a, sonMs = b))
+    }
+
+    fun katmanGorselEkle(l: List<Uri>) {
+        if (l.isEmpty()) return
+        kapsam.launch {
+            mesgul.value = "Görsel ekleniyor…"
+            var hata = 0
+            for ((i, u) in l.withIndex()) {
+                val r = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val tip = ctx.contentResolver.getType(u) ?: ""
+                        val saydam = tip.contains("png") || tip.contains("webp") || tip.contains("gif")
+                        val f = Medya.fotoHazirla(ctx, u, 2048, png = saydam, dizinAd = "katman") ?: error("açılamadı")
+                        Triple(f.first, Medya.adBoyut(ctx, u).first, f.second.toFloat() / f.third.coerceAtLeast(1))
+                    }.onFailure { Kayit.hata("katman görsel", it) }.getOrNull()
+                }
+                if (r == null) { hata++; continue }
+                val (a, b) = yeniAralik(4000)
+                val oran = proje.value.let { val (w, h) = Disa.boyut(it.bicim, 1080); w.toFloat() / h }
+                // görsel karenin yüksekliğini taşmasın
+                val olc = minOf(0.4f, 0.6f * r.third / oran).coerceAtLeast(0.08f)
+                katmanEkleOge(KatmanOge(tur = "gorsel", ad = r.second.substringBeforeLast('.').take(30), yol = r.first.path, olcek = olc,
+                    x = 0.5f + 0.04f * i, y = 0.5f + 0.04f * i, basMs = a, sonMs = b))
+            }
+            mesgul.value = null
+            if (hata > 0) uyari.value = "$hata görsel açılamadı."
+        }
+    }
+
+    fun katmanLogoEkle(k: LogoKaydi) {
+        kapsam.launch {
+            val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
+            if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
+            val (a, b) = yeniAralik(5000)
+            katmanEkleOge(KatmanOge(tur = "gorsel", ad = "Logo · ${k.ad}", yol = f.path, olcek = 0.16f, x = 0.85f, y = 0.18f, basMs = a, sonMs = b))
+        }
+    }
+
+    fun katmanSesEkle(u: Uri) {
+        kapsam.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    try { ctx.contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+                    Medya.adBoyut(ctx, u).first to Medya.retrieverSure(ctx, u)
+                }.getOrNull()
+            }
+            if (r == null || r.second <= 0) { uyari.value = "Ses dosyası açılamadı."; return@launch }
+            val (a, b) = yeniAralik(r.second)
+            katmanEkleOge(KatmanOge(tur = "ses", ad = r.first.substringBeforeLast('.').take(30), yol = u.toString(), anim = "yok",
+                basMs = a, sonMs = b, kaynakSureMs = r.second))
+        }
+    }
+
+    fun katmanSil(id: String) {
+        guncelle { p -> p.copy(katmanlar = p.katmanlar.filter { it.id != id }) }
+        if (seciliKatman.value == id) seciliKatman.value = null
+        katmanPl.remove(id)?.release()
+    }
+
+    fun katmanCogalt(id: String) {
+        val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return
+        val y = o.copy(id = yeniId(), ad = o.ad + " (kopya)", x = (o.x + 0.04f).coerceAtMost(1f), y = (o.y + 0.04f).coerceAtMost(1f), kilitli = false)
+        guncelle { p -> val i = p.katmanlar.indexOfFirst { it.id == id }; p.copy(katmanlar = p.katmanlar.toMutableList().apply { add(i + 1, y) }) }
+        seciliKatman.value = y.id
+    }
+
+    /** Sırayı değiştirir (liste alttan üste). */
+    fun katmanTasi(nereden: Int, nereye: Int) {
+        guncelle { p ->
+            val l = p.katmanlar.toMutableList()
+            if (nereden !in l.indices || nereye !in l.indices || nereden == nereye) return@guncelle p
+            l.add(nereye, l.removeAt(nereden)); p.copy(katmanlar = l)
+        }
+    }
+
+    /** Önizleme: o anda çalması gereken ses katmanlarını oynatıcılarla eşler (en çok 4 aynı anda). */
+    private fun katmanSesTik(t: Long) {
+        val p = proje.value
+        val idler = p.katmanlar.map { it.id }.toSet()
+        katmanPl.keys.filter { it !in idler }.forEach { katmanPl.remove(it)?.release() }
+        val aktif = p.katmanlar.filter { it.tur == "ses" && !it.gizli && it.yol.isNotEmpty() && t >= it.basMs && t < it.sonMs }.take(4)
+        val aktifId = aktif.map { it.id }.toSet()
+        for ((id, pl) in katmanPl) if (id !in aktifId && pl.playWhenReady) pl.pause()
+        for (o in aktif) {
+            val pl = katmanPl.getOrPut(o.id) { ExoPlayer.Builder(ctx).build() }
+            if (pl.currentMediaItem?.localConfiguration?.uri?.toString() != o.yol) { pl.setMediaItem(MediaItem.fromUri(o.yol)); pl.prepare() }
+            pl.volume = o.ses.coerceIn(0f, 1f)
+            val hiz = o.hiz.coerceIn(0.25f, 4f)
+            if (pl.playbackParameters.speed != hiz) pl.setPlaybackSpeed(hiz)
+            if (kaydediyor.value) { pl.pause(); continue }
+            val hedef = o.kaynakBasMs + ((t - o.basMs) * hiz).toLong()
+            if (!pl.playWhenReady) { pl.seekTo(hedef); pl.play() }
+            else if (pl.playbackState == Player.STATE_READY && kotlin.math.abs(pl.currentPosition - hedef) > 300) pl.seekTo(hedef)
+        }
+    }
+
+    private fun katmanSesDurdur() { katmanPl.values.forEach { it.pause() } }
 
     // ---------- seslendirme ----------
     @Suppress("DEPRECATION")
@@ -897,6 +1023,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         kaydetSimdi(false)
         kapsam.cancel()
         player.release(); muzikPl.release(); sesPl.release(); kuyrukPl.release()
+        katmanPl.values.forEach { try { it.release() } catch (_: Exception) {} }; katmanPl.clear()
         try { sesHavuzu?.release() } catch (_: Exception) {}
     }
 }

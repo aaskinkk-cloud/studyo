@@ -262,14 +262,15 @@ fun AnahtarSatiri(metin: String, deger: Boolean, degis: (Boolean) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InceSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier, valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-               steps: Int = 0, onValueChangeFinished: (() -> Unit)? = null, colors: SliderColors? = null, renk: Color = Renk.turuncu) {
+               steps: Int = 0, onValueChangeFinished: (() -> Unit)? = null, colors: SliderColors? = null, renk: Color = Renk.turuncu, enabled: Boolean = true) {
     if (Duzen.yaziliMenu) {
-        Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps,
+        Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps, enabled = enabled,
             onValueChangeFinished = onValueChangeFinished, colors = colors ?: SliderDefaults.colors(thumbColor = renk, activeTrackColor = renk))
         return
     }
-    Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
-        thumb = { Box(Modifier.size(14.dp).clip(CircleShape).background(renk)) },
+    val rk = if (enabled) renk else Renk.soluk.copy(alpha = 0.4f)
+    Slider(value = value, onValueChange = onValueChange, modifier = modifier, valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished, enabled = enabled,
+        thumb = { Box(Modifier.size(14.dp).clip(CircleShape).background(rk)) },
         track = { st ->
             val span = (st.valueRange.endInclusive - st.valueRange.start).takeIf { it > 0f } ?: 1f
             val f = ((st.value - st.valueRange.start) / span).coerceIn(0f, 1f)
@@ -277,7 +278,7 @@ fun InceSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier 
             androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(3.dp)) {
                 val y = size.height / 2
                 drawLine(pasif, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), size.height, androidx.compose.ui.graphics.StrokeCap.Round)
-                drawLine(renk, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width * f, y), size.height, androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(rk, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width * f, y), size.height, androidx.compose.ui.graphics.StrokeCap.Round)
             }
         })
 }

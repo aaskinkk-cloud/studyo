@@ -111,19 +111,18 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val olcek = constraints.maxWidth.toFloat() / RW
             val yog = LocalDensity.current
             var kbF by remember { mutableFloatStateOf(0f) }   // fotoğraf klibinde ilerleme 0…1 (yavaş yakınlaşma / yüze yaklaşma)
-            LaunchedEffect(k?.id, k?.kenBurns, k?.fotoSureMs) {
-                if (k != null && k.foto && k.kenBurns) {
+            LaunchedEffect(k?.id, k?.kenBurns, k?.sureMs) {
+                if (k != null && k.kenBurns) {      // fotoğraf ve video: otomatik hareket (Kareden Videoya)
                     while (true) {
                         withFrameNanos { }
-                        kbF = (vm.player.currentPosition.toFloat() / k.fotoSureMs).coerceIn(0f, 1f)
+                        kbF = (vm.player.currentPosition.toFloat() / k.sureMs.coerceAtLeast(1)).coerceIn(0f, 1f)
                     }
                 } else kbF = 0f
             }
             // elle kaydırma: sürüklerken yerel değer, bırakınca klibe yazılır
             var surKay by remember(k?.id) { mutableStateOf<Offset?>(null) }
             val kG = k?.let { kk -> surKay?.let { kk.copy(kayX = it.x, kayY = it.y) } ?: kk }
-            val yon = remember(p.klipler, sira) { Yuz.yon(p, sira) }
-            val kbAn = kG?.let { Yuz.an(it, RW, RH, if (it.foto && it.kenBurns) kbF else 0f, yon.first, yon.second) }
+            val kbAn = kG?.let { Yuz.an(it, RW, RH, kbF, sira) }
             val an = Gecisler.onizleme(p, konum)
             AndroidView(
                 factory = { c ->
@@ -159,8 +158,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
                     update = { v -> v.kadraj(dolduran) },
                     modifier = Modifier.fillMaxSize().graphicsLayer {
-                        val ka = yakin?.let { Yuz.an(p.zKlip(it.first), RW, RH, 0f) }
-                        alpha = u?.alfa ?: 0f; scaleX = u?.olcek ?: 1f; scaleY = u?.olcek ?: 1f
+                        val ka = yakin?.let { Yuz.an(p.klipler[it.first], RW, RH, 1f, it.first) }
+                        alpha = u?.alfa ?: 0f; scaleX = (u?.olcek ?: 1f) * (ka?.s ?: 1f); scaleY = (u?.olcek ?: 1f) * (ka?.s ?: 1f)
                         translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f + (ka?.onizlemeX(size.width) ?: 0f)
                         translationY = ka?.onizlemeY(size.height) ?: 0f
                     },
@@ -214,7 +213,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val src = k.basMs + (konum - vm.baslangic(sira)).coerceAtLeast(0)
                 val nk = Katman.takipKonum(t, src)
                 if (tb != null && nk != null) {
-                    val (px, py) = Geometri.ciktiya(k, nk.first, nk.second, RW, RH)
+                    val (px, py) = Geometri.ciktiya(k, nk.first, nk.second, RW, RH, kbAn ?: Yuz.an(k, RW, RH, 0f))
                     Ciz(Katman.takipYerlesim(tb, px, py, RW, RH), 1f)
                 }
             }
@@ -258,7 +257,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
             if (takipSecim && k != null) {
                 Box(Modifier.fillMaxSize().background(Color(0x332EC5D3)).pointerInput(k.id) {
-                    detectTapGestures { o -> Geometri.kaynaga(k, o.x / olcek, o.y / olcek, RW, RH)?.let { vm.takipNoktaSec(sira, it.first, it.second) } }
+                    detectTapGestures { o -> Geometri.kaynaga(k, o.x / olcek, o.y / olcek, RW, RH, kbAn ?: Yuz.an(k, RW, RH, 0f))?.let { vm.takipNoktaSec(sira, it.first, it.second) } }
                 }) {
                     Text("Takip edilecek yere dokun", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.TopCenter).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 4.dp))
@@ -283,7 +282,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
                             onDragCancel = { surKay = null },
                         ) { ch, d ->
-                            val ks = kSon; val a = Yuz.an(ks, RW, RH, if (ks.foto && ks.kenBurns) kbF else 0f, yon.first, yon.second)
+                            val ks = kSon; val a = Yuz.an(ks, RW, RH, kbF, sira)
                             if (!Yuz.kayabilir(a)) return@detectDragGestures
                             ch.consume()
                             val pxX = (a.s - a.vx) / a.vx * gw / 2f; val pxY = (a.s - a.vy) / a.vy * gh / 2f

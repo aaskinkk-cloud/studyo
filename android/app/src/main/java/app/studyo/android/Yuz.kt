@@ -6,13 +6,13 @@ import android.media.FaceDetector
 import android.net.Uri
 import java.io.File
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Akıllı kadraj + yaklaş/uzaklaş (Kareden Videoya'daki mantık).
  * Odak: önce yüz (android.media.FaceDetector, cihaz içi, ücretsiz), yoksa ana nesne (renk farkı + kenar yoğunluğu, ortaya ağırlıklı).
  * Doldur'da kare odağa göre kaydırılır: yüz ekranın üstten ~%36–40'ında (baş kesilmez, omuzlar görünür), nesne tam ortada.
- * Hareket: fotoğraflar sırayla bir yaklaşır, bir uzaklaşır. Uzaklaşan fotoğraf, öncekinin vardığı orandan başlar; hareket
- * doğrusal ve geçiş boyunca sürer (geçişte durup geri sıçrama yok). Yakınlaşma odak noktasında sabit kalır.
+ * Hareket: Kareden Videoya'nın "otomatik" modu (an() açıklamasına bak); geçiş boyunca sürer, geri sıçrama yok.
  * Dışa aktarmada (MatrixTransformation, giriş karesinin NDC'si) ve önizlemede (graphicsLayer) AYNI hesap kullanılır.
  */
 object Yuz {
@@ -75,28 +75,54 @@ object Yuz {
         return Odak(yuz, nx, ny)
     }
 
-    /** Ana nesnenin ortası: ortalama renkten uzaklık + kenar yoğunluğu, kenarlara doğru azalan ağırlık (Kareden Videoya salientPoint). */
+    /** Ana nesnenin ortası — Kareden Videoya anaObje(): netlik (Laplace, yerel ortalama) + renk farkı + doygunluk,
+     *  gökyüzü bastırılır, ortaya ağırlık; en güçlü noktadan büyüyen bölgenin (eşik %62) ağırlık merkezi. */
     private fun nesne(src: Bitmap): Pair<Float, Float> {
-        val sc = 96f / max(src.width, src.height)
-        val w = (src.width * sc).toInt().coerceAtLeast(8); val h = (src.height * sc).toInt().coerceAtLeast(8)
+        val sc = min(1f, 128f / max(src.width, src.height))
+        val w = (src.width * sc).toInt().coerceAtLeast(16); val h = (src.height * sc).toInt().coerceAtLeast(16); val n = w * h
         val t = Bitmap.createScaledBitmap(src, w, h, true)
-        val px = IntArray(w * h); t.getPixels(px, 0, w, 0, 0, w, h); if (t !== src) t.recycle()
-        var mr = 0f; var mg = 0f; var mb = 0f
-        for (c in px) { mr += (c shr 16 and 255); mg += (c shr 8 and 255); mb += (c and 255) }
-        val nn = px.size.toFloat(); mr /= nn; mg /= nn; mb /= nn
-        val L = FloatArray(px.size) { val c = px[it]; 0.299f * (c shr 16 and 255) + 0.587f * (c shr 8 and 255) + 0.114f * (c and 255) }
-        val sal = FloatArray(px.size); var mx = 0f
-        for (y in 1 until h - 1) for (x in 1 until w - 1) {
+        val px = IntArray(n); t.getPixels(px, 0, w, 0, 0, w, h); if (t !== src) t.recycle()
+        val L = FloatArray(n); val Sa = FloatArray(n); var mr = 0f; var mg = 0f; var mb = 0f
+        for (i in 0 until n) { val c = px[i]; val r = (c shr 16 and 255).toFloat(); val gg = (c shr 8 and 255).toFloat(); val b = (c and 255).toFloat()
+            L[i] = 0.299f * r + 0.587f * gg + 0.114f * b; val mx = max(r, max(gg, b)); val mn = min(r, min(gg, b)); Sa[i] = if (mx > 0f) (mx - mn) / mx else 0f
+            mr += r; mg += gg; mb += b }
+        mr /= n; mg /= n; mb /= n
+        val ed = FloatArray(n)
+        for (y in 1 until h - 1) for (x in 1 until w - 1) { val i = y * w + x; ed[i] = kotlin.math.abs(4 * L[i] - L[i - 1] - L[i + 1] - L[i - w] - L[i + w]) }
+        fun kutu(A: FloatArray, r: Int): FloatArray {
+            val B = FloatArray(n); val T = FloatArray(n)
+            for (y in 0 until h) { var s = 0f; for (x in -r..r) s += A[y * w + x.coerceIn(0, w - 1)]
+                for (x in 0 until w) { T[y * w + x] = s / (2 * r + 1); s += A[y * w + (x + r + 1).coerceIn(0, w - 1)] - A[y * w + (x - r).coerceIn(0, w - 1)] } }
+            for (x in 0 until w) { var s = 0f; for (y in -r..r) s += T[y.coerceIn(0, h - 1) * w + x]
+                for (y in 0 until h) { B[y * w + x] = s / (2 * r + 1); s += T[(y + r + 1).coerceIn(0, h - 1) * w + x] - T[(y - r).coerceIn(0, h - 1) * w + x] } }
+            return B
+        }
+        val net = kutu(ed, max(2, Math.round(min(w, h) * 0.04f)))
+        var netMx = 0f; for (v in net) if (v > netMx) netMx = v
+        val sal = FloatArray(n)
+        for (y in 0 until h) for (x in 0 until w) {
             val i = y * w + x; val c = px[i]
             val dr = (c shr 16 and 255) - mr; val dg = (c shr 8 and 255) - mg; val db = (c and 255) - mb
-            val cd = kotlin.math.sqrt(dr * dr + dg * dg + db * db)
-            val ed = kotlin.math.abs(L[i + 1] - L[i - 1]) + kotlin.math.abs(L[i + w] - L[i - w])
-            val ux = x.toFloat() / w - 0.5f; val uy = y.toFloat() / h - 0.5f
-            val v = (cd * 0.65f + ed * 0.8f) * (1f - 0.35f * kotlin.math.sqrt(ux * ux + uy * uy))
-            sal[i] = v; if (v > mx) mx = v
+            val cd = kotlin.math.sqrt(dr * dr + dg * dg + db * db) / 255f
+            val nt = if (netMx > 0f) net[i] / netMx else 0f
+            val gok = if (y < h * 0.55f && L[i] > 150f && Sa[i] < 0.28f && nt < 0.25f) 0.25f else 1f
+            val ux = (x.toFloat() / w - 0.5f) * 1.1f; val uy = y.toFloat() / h - 0.5f
+            val merkez = 1f - 0.45f * min(1f, kotlin.math.sqrt(ux * ux + uy * uy))
+            sal[i] = (nt + cd * 0.7f + Sa[i] * 0.45f) * gok * merkez
         }
-        val esik = mx * 0.45f; var sx = 0f; var sy = 0f; var sw = 0f
-        for (y in 1 until h - 1) for (x in 1 until w - 1) { val v = sal[y * w + x]; if (v > esik) { val wt = v - esik; sx += wt * x; sy += wt * y; sw += wt } }
+        val S3 = kutu(sal, max(3, Math.round(min(w, h) * 0.08f)))
+        var pk = 0f; var pi = 0; for (i in 0 until n) if (S3[i] > pk) { pk = S3[i]; pi = i }
+        if (pk <= 0f) return 0.5f to 0.5f
+        val esik = pk * 0.62f; val gor = BooleanArray(n); val yig = ArrayDeque<Int>(); yig.addLast(pi); gor[pi] = true
+        var sx = 0f; var sy = 0f; var sw = 0f
+        while (yig.isNotEmpty()) {
+            val i = yig.removeLast(); val x = i % w; val y = i / w; val v = S3[i] - esik; sx += v * x; sy += v * y; sw += v
+            for (k in intArrayOf(i - 1, i + 1, i - w, i + w)) {
+                if (k < 0 || k >= n || gor[k]) continue
+                if ((k == i - 1 && x == 0) || (k == i + 1 && x == w - 1)) continue
+                if (S3[k] >= esik) { gor[k] = true; yig.addLast(k) }
+            }
+        }
         return if (sw > 0f) (sx / sw / w) to (sy / sw / h) else 0.5f to 0.5f
     }
 
@@ -107,35 +133,85 @@ object Yuz {
         fun onizlemeY(yuk: Float) = -ty / vy * yuk / 2f
     }
 
-    /** Yaklaşma oranı (fotoğrafın sonunda): yüz varsa biraz daha fazla. */
-    fun zMax(k: Klip) = if (k.yuzOdak && k.yuzB > 0f) 1.28f else 1.16f
+    private fun sinirla(v: Float, a: Float, b: Float) = min(b, max(a, v))          // JS clamp ile aynı (a > b ise b)
+    private fun yum(p: Float) = p * p * (3f - 2f * p)
+    private const val HIZ = 3f              // Kareden Videoya varsayılanı: kb.rate = 3
+    private const val YUZ_GUC = 0.30f       // kb.face = 30
+    private const val TAVAN = 0.6f          // KBCAP
+    private const val YUZ_DUR = 0.7f        // FACE_STOP: hareket sürenin %70'inde yüze varır
 
-    /** Klip i'nin hareketi: (uzaklaşıyor mu, oran). Hareketli fotoğraflar sırayla yaklaşır/uzaklaşır; uzaklaşan, öncekinin oranından başlar. */
-    fun yon(p: Proje, i: Int): Pair<Boolean, Float> {
-        val k = p.klipler.getOrNull(i) ?: return false to 1.16f
-        var n = 0; var onceki: Klip? = null
-        for (j in 0 until i) { val kj = p.klipler[j]; if (kj.foto && kj.kenBurns) { n++; onceki = kj } }
-        val ters = n % 2 == 1
-        return ters to (if (ters && onceki != null) zMax(onceki) else zMax(k))
-    }
-
-    /** f: 0…1, klibin TAM süresi içindeki ilerleme (geçiş örtüşmesi dahil). W/H: çıkış boyutu. ters/Z: yon(). */
-    fun an(k: Klip, W: Int, H: Int, f: Float, ters: Boolean = false, Z: Float = zMax(k)): An {
-        val e = f.coerceIn(0f, 1f)
-        var vx = 1f; var vy = 1f
-        if (k.doldur && k.gen > 0 && k.yuk > 0) { val a = k.gen.toFloat() / k.yuk; val A = W.toFloat() / H; if (a < A) vy = a / A else vx = A / a }
-        val s = if (k.foto && k.kenBurns) (if (ters) Z - (Z - 1f) * e else 1f + (Z - 1f) * e) else 1f
-        // odak noktası ve ekrandaki hedefi (üstten oran)
+    /**
+     * Kareden Videoya "otomatik" hareketinin birebir karşılığı (drawClip / kbScale / panMode / panOy / faceZoom).
+     * f: 0…1, klibin ekrandaki TAM süresi içinde (gelen geçiş dahil) ilerleme; i: klibin sırası; D: o tam süre (sn).
+     *  - dikey (kareden taşan) fotoğraf + yüz: yüze doğru kayar, %70'te yüzde durur, kalan sürede başın biraz üstü sabit hafifçe yaklaşır
+     *  - dikey fotoğraf, yüz yok: sırayla bir yukarı bir aşağı kayar (+%4 yaklaşma)
+     *  - yatay fotoğraf + yüz: yüze doğru yaklaşır, yüz ekranın %42 yüksekliğine gelir
+     *  - yatay fotoğraf: saniyede %3 yaklaşır (en çok %60) · video: saniyede %1,5
+     * Kadraj (hareketsiz hâli) akıllı doldurma: yüz üstten %36–50'de (baş kesilmez), yoksa ana nesne ortada; üstüne elle kaydırma.
+     */
+    fun an(k: Klip, W: Int, H: Int, f: Float, i: Int = 0, D: Float = k.sureMs / 1000f): An {
+        val p = f.coerceIn(0f, 1f)
+        val g = (if (k.gen > 0) k.gen else W).toFloat(); val h = (if (k.yuk > 0) k.yuk else H).toFloat()
+        val sc0 = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
+        val dw = g * sc0; val dh = h * sc0                       // s = 1'de ekrandaki boyut (Presentation)
         val yuzVar = k.yuzOdak && k.yuzB > 0f && k.yuzX >= 0f
         val fx = if (yuzVar) k.yuzX else if (k.odakX >= 0f) k.odakX else 0.5f
         val fy = if (yuzVar) k.yuzY else if (k.odakY >= 0f) k.odakY else 0.5f
-        val hedef = if (yuzVar) { val ekranBoy = k.yuzB * s / vy; max(if (vy < 0.8f) 0.36f else 0.4f, ekranBoy * 0.85f + 0.05f).coerceIn(0.3f, 0.5f) } else 0.5f
-        val tx0 = -s * (2f * fx - 1f)
-        val ty0 = (1f - 2f * hedef) * vy - s * (1f - 2f * fy)
-        val mx = (s - vx).coerceAtLeast(0f); val my = (s - vy).coerceAtLeast(0f)
-        val tx = (tx0 + k.kayX * mx).coerceIn(-mx, mx)
-        val ty = (ty0 - k.kayY * my).coerceIn(-my, my)
-        return An(s, tx, ty, vx, vy)
+        // akıllı kadraj (smartFill): ox/oy = görüntü merkezinin ekran ortasından kayması (W/H oranı, y aşağı)
+        val mxX0 = max(0f, (dw - W) / 2f / W); val mxY0 = max(0f, (dh - H) / 2f / H)
+        var hedef = 0.5f
+        if (yuzVar) { hedef = if (dh > H * 1.25f) 0.36f else 0.4f; hedef = sinirla(max(hedef, k.yuzB * dh / H * 0.85f + 0.05f), 0.3f, 0.5f) }
+        val ox = sinirla(sinirla((0.5f - fx) * dw / W, -mxX0, mxX0) + k.kayX * mxX0, -mxX0, mxX0)
+        val oy = sinirla(sinirla((H * hedef - H / 2f - (fy - 0.5f) * dh) / H, -mxY0, mxY0) + k.kayY * mxY0, -mxY0, mxY0)
+
+        var fw = dw; var fh = dh; var cx = W / 2f + ox * W; var cy = H / 2f + oy * H
+        if (k.kenBurns) {
+            val uzun = dh > H * 1.15f                                     // isTall
+            val yuzKay = k.foto && yuzVar && uzun                         // tallFace
+            val yuzYak = k.foto && yuzVar && !yuzKay                      // faceZoomOn
+            val pm = when { yuzYak -> null; yuzKay -> "yuz"; k.foto && uzun -> if (i % 2 == 1) "asagi" else "yukari"; else -> null }
+            val zf = sinirla(0.62f * H / max(1f, k.yuzB * dh), 1.05f, 4f)
+            val yuzEn = 1f + (zf - 1f) * YUZ_GUC                          // faceZoomMax
+            val tut = sinirla((yuzEn - 1f) * 0.35f, 0.04f, 0.14f)          // faceHold
+            fun panOy(mxY: Float): Float {
+                val tr = min(2f * mxY, 0.06f * HIZ * D); val f0 = sinirla(oy, -mxY, mxY)
+                if (pm == "yuz") {
+                    val d = max(tr, 0.12f)
+                    val a = if (f0 + mxY >= mxY - f0) max(-mxY, f0 - d) else min(mxY, f0 + d)
+                    val q = (p / YUZ_DUR).coerceIn(0f, 1f); val e = 1f - (1f - q) * (1f - q) * (1f - q)
+                    return a + (f0 - a) * e
+                }
+                val a = if (pm == "yukari") max(-mxY, f0 - tr) else min(mxY, f0 + tr)
+                return a + (f0 - a) * yum(p)
+            }
+            val el = p * D
+            val s = when {
+                yuzYak -> 1f
+                pm == "yuz" -> 1f + tut * yum(((p - YUZ_DUR) / (1f - YUZ_DUR)).coerceIn(0f, 1f))
+                pm != null -> 1f + 0.04f * p
+                !k.foto -> 1f + min(TAVAN, HIZ / 200f * el)
+                else -> 1f + min(TAVAN, HIZ / 100f * el)
+            }
+            fw = dw * s; fh = dh * s
+            if (pm != null) cy = H / 2f + panOy(max(0f, (fh - H) / 2f / H)) * H
+            if (pm == "yuz" && s > 1.0005f) {                             // yüze varınca: başın biraz üstü sabit kalarak yaklaş
+                val fw0 = fw / s; val fh0 = fh / s; val ay = (fy - 0.6f * k.yuzB).coerceIn(0f, 1f)
+                val cy0 = H / 2f + panOy(max(0f, (fh0 - H) / 2f / H)) * H
+                val px = cx + (fx - 0.5f) * fw0; val py = cy0 + (ay - 0.5f) * fh0
+                cx = px - (fx - 0.5f) * fw; cy = py - (ay - 0.5f) * fh
+                if (fw >= W) cx = sinirla(cx, W - fw / 2f, fw / 2f); if (fh >= H) cy = sinirla(cy, H - fh / 2f, fh / 2f)
+            }
+            if (yuzYak) {                                                 // yüze doğru yaklaş, yüz ekranın %42'sine gelir
+                val e = yum(p); val sc = 1f + (yuzEn - 1f) * e
+                val fw1 = fw; val fh1 = fh; fw = fw1 * sc; fh = fh1 * sc
+                val px0 = cx + (fx - 0.5f) * fw1; val py0 = cy + (fy - 0.5f) * fh1
+                val m = if (yuzEn > 1.001f) (sc - 1f) / (yuzEn - 1f) * min(1f, (yuzEn - 1f) / 1.2f) else 0f
+                val hx = px0 + (W / 2f - px0) * m; val hy = py0 + (H * 0.42f - py0) * m
+                cx = sinirla(hx - (fx - 0.5f) * fw, W - fw / 2f, fw / 2f); cy = sinirla(hy - (fy - 0.5f) * fh, H - fh / 2f, fh / 2f)
+            }
+        }
+        // ekran → giriş karesinin NDC'si (MatrixTransformation, Presentation'dan önce)
+        return An(fw / dw, (cx - W / 2f) / (dw / 2f), -(cy - H / 2f) / (dh / 2f), W / dw, H / dh)
     }
 
     /** Kaydırılabilir mi (önizlemede sürükleme için): taşan kısım var mı. */

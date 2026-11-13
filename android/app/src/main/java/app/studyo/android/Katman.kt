@@ -15,27 +15,24 @@ import kotlin.math.roundToInt
 /** Kaynak karedeki (0…1) bir noktanın çıktı karesindeki (piksel) yeri. Presentation'ın sığdır/doldur hesabıyla aynı;
  *  önizlemedeki PlayerView (FIT/ZOOM) de aynı geometriyi kullanır. */
 object Geometri {
-    fun ciktiya(k: Klip, x: Float, y: Float, W: Int, H: Int): Pair<Float, Float> {
-        val g = (if (k.gen > 0) k.gen else W).toFloat()
-        val h = (if (k.yuk > 0) k.yuk else H).toFloat()
-        val s = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
-        val dw = g * s; val dh = h * s
-        val (ox, oy) = kayma(k, W, H)
-        return ((W - dw) / 2f + x * dw + ox) to ((H - dh) / 2f + y * dh + oy)
+    /** a: o andaki kadraj/hareket (Yuz.an); verilmezse hareketsiz akıllı kadraj. */
+    fun ciktiya(k: Klip, x: Float, y: Float, W: Int, H: Int, a: Yuz.An = Yuz.an(k, W, H, 0f)): Pair<Float, Float> {
+        val (dw, dh) = boyut(k, W, H)
+        return (W / 2f + a.tx * dw / 2f + (x - 0.5f) * dw * a.s) to (H / 2f - a.ty * dh / 2f + (y - 0.5f) * dh * a.s)
     }
 
-    /** Videoda elle kaydırmanın çıktıdaki piksel karşılığı (fotoğrafın yakınlaşması burada hesaba katılmaz). */
-    private fun kayma(k: Klip, W: Int, H: Int): Pair<Float, Float> =
-        if (k.foto) 0f to 0f else Yuz.an(k, W, H, 0f).let { it.onizlemeX(W.toFloat()) to it.onizlemeY(H.toFloat()) }
-
-    /** Çıktı karesindeki (piksel) noktayı kaynak kareye (0…1) çevirir; kaynak dışındaysa null. */
-    fun kaynaga(k: Klip, px: Float, py: Float, W: Int, H: Int): Pair<Float, Float>? {
+    private fun boyut(k: Klip, W: Int, H: Int): Pair<Float, Float> {
         val g = (if (k.gen > 0) k.gen else W).toFloat()
         val h = (if (k.yuk > 0) k.yuk else H).toFloat()
         val s = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
-        val dw = g * s; val dh = h * s
-        val (ox, oy) = kayma(k, W, H)
-        val x = (px - ox - (W - dw) / 2f) / dw; val y = (py - oy - (H - dh) / 2f) / dh
+        return g * s to h * s
+    }
+
+    /** Çıktı karesindeki (piksel) noktayı kaynak kareye (0…1) çevirir; kaynak dışındaysa null. */
+    fun kaynaga(k: Klip, px: Float, py: Float, W: Int, H: Int, a: Yuz.An = Yuz.an(k, W, H, 0f)): Pair<Float, Float>? {
+        val (dw, dh) = boyut(k, W, H)
+        val x = (px - W / 2f - a.tx * dw / 2f) / (dw * a.s) + 0.5f
+        val y = (py - H / 2f + a.ty * dh / 2f) / (dh * a.s) + 0.5f
         return if (x in 0f..1f && y in 0f..1f) x to y else null
     }
 }
@@ -103,13 +100,13 @@ object Katman {
 }
 
 /** Takip eden yazı bindirmesi (klibin kendi efektlerinde). */
-class TakipBindirme(private val k: Klip, private val t: Takip, private val bmp: Bitmap, private val W: Int, private val H: Int) : BitmapOverlay() {
+class TakipBindirme(private val k: Klip, private val t: Takip, private val bmp: Bitmap, private val W: Int, private val H: Int, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
     private val saat = Saat()
     override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-        val ms = k.basMs + saat.yerelMs(presentationTimeUs)
-        val p = Katman.takipKonum(t, ms) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        val (px, py) = Geometri.ciktiya(k, p.first, p.second, W, H)
+        val yerel = saat.yerelMs(presentationTimeUs)
+        val p = Katman.takipKonum(t, k.basMs + yerel) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val (px, py) = Geometri.ciktiya(k, p.first, p.second, W, H, an(yerel))
         val y = Katman.takipYerlesim(bmp, px, py, W, H)
         return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx.coerceIn(-1f, 1f), y.zy.coerceIn(-1f, 1f)).setOverlayFrameAnchor(y.kx, y.ky).build()
     }

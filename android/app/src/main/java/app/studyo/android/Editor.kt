@@ -298,7 +298,7 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
                     kbF = 0f
                 }
             }
-            val kbAn = if (k != null && k.foto && k.kenBurns) Yuz.an(k, ref.first, ref.second, kbF) else null
+            val kbAn = k?.let { Yuz.an(it, ref.first, ref.second, kbF) }
             AndroidView(
                 factory = { c ->
                     PlayerView(c).apply {

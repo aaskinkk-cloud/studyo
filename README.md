@@ -30,10 +30,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Varsayılan seçili iken yeni eklenen klipler doğrudan Doldur ile gelir.
 - Asıl neden: dikey klip eklenince boş proje kendiliğinden 9:16'ya çevriliyordu; kare dikey olunca Doldur hiçbir şey değiştirmiyordu. Bu otomatik çevirme kaldırıldı. Proje YouTube 16:9 açılır; Varsayılan da biçimi 16:9 yapar. Dikey video ve fotoğraflar 16:9 kareyi doldurur (üstü/altı kesilir). 9:16 yalnız Biçim panelinden elle seçilir.
 
-### 3.6 ek 2: akıllı kadraj, bir yaklaş bir uzaklaş, otomatik yumuşak geçiş (Kareden Videoya mantığı)
-- Kadraj artık körlemesine ortadan kesilmiyor: her fotoğraf ve videoda odak bulunur (önce yüz, yoksa ana nesne — renk farkı + kenar yoğunluğu). Doldur'da kare odağa göre kayar: yüz ekranın üstten ~%36–40'ında (baş kesilmez, omuzlar görünür), nesne tam ortada. Dikey videoda da aynı (klibin %40'ındaki kareden).
-- Fotoğraflar sırayla bir yaklaşır, bir uzaklaşır. Uzaklaşan fotoğraf öncekinin vardığı orandan başlar (yüzlü 1,28×, diğer 1,16×). Hareket doğrusal ve geçiş boyunca sürer; yaklaştıktan sonra geri sıçrama kalktı.
-- Varsayılan/ilk seçim: fotoğraf 5 sn, yumuşak (üst üste binen) geçiş 0,8 sn; kısa klipte geçiş kendiliğinden kısalır.
+### 3.6 ek 3: varsayılan hareket = Kareden Videoya "otomatik" modu (birebir)
+- Dikey (kareden taşan) fotoğraf + yüz: yüze doğru kayar, sürenin %70'inde yüze varır, kalan sürede başın biraz üstü sabit kalarak hafifçe yaklaşır.
+- Dikey fotoğraf, yüz yok: sırayla bir yukarı bir aşağı kayar (+%4). Yatay fotoğraf + yüz: yüze yaklaşır, yüz ekranın %42 yüksekliğine gelir. Yatay fotoğraf: saniyede %3 yaklaşır (en çok %60). Video: saniyede %1,5.
+- Hareket gelen geçişle başlar, geçiş boyunca sürer (durma/geri sıçrama yok). Önizleme, dışa aktarma ve takip eden yazı aynı hesabı kullanır.
+- Akıllı kadraj Kareden Videoya smartFill: yüz üstten %36–50 (baş kesilmez, omuzlar görünür), yüz yoksa ana nesne (anaObje: netlik + renk + doygunluk, gökyüzü bastırılır) ortada.
+- Giriş (renkli kutular), abone ol (koyu kart), kapanış (cam kartlar), YouTube 16:9, fotoğraf 5 sn, 0,8 sn yumuşak geçiş: bugünkü istekler gibi kaldı.
 
 ### 3.6 ek: kadraj sınırı, parmakla kaydırma, otomatik varsayılan
 - Önizlemede kare sınırı görünür (dışı koyu gri, ince açık çizgi).

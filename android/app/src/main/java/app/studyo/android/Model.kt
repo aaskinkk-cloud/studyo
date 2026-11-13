@@ -55,12 +55,14 @@ data class Klip(
     val yuzOdak: Boolean = true,
     /** Kadraj kaydırma (Doldur'da taşan kısım içinde): -1…1, 0 = orta. x+ sağa, y+ aşağı. Önizlemede parmakla sürüklenir. */
     val kayX: Float = 0f, val kayY: Float = 0f,
+    /** Ana nesne odağı (yüz yoksa kadraj buna göre ortalanır): 0…1, -1 = bakılmadı */
+    val odakX: Float = -1f, val odakY: Float = -1f,
     /** Çekim tarihi (EXIF / video üstverisi); 0 = bilinmiyor. Giriş başlığındaki tarih bandı için. */
     val tarihMs: Long = 0,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
-    val yuzEtkin: Boolean get() = foto && kenBurns && yuzOdak && yuzB > 0f && yuk > gen
+    val yuzEtkin: Boolean get() = foto && kenBurns && yuzOdak && yuzB > 0f
     val sureMs: Long get() = if (foto) fotoSureMs else (sonMs - basMs).coerceAtLeast(100)
 }
 

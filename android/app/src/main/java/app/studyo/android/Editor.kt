@@ -577,7 +577,7 @@ private fun PanelHareket(vm: EditorDurum, k: Klip) {
             AnahtarSatiri("Yavaş yakınlaşma", k.kenBurns) { v -> vm.klipGuncelle { it.copy(kenBurns = v) } }
             if (k.kenBurns && k.yuk > k.gen) {
                 if (k.yuzB > 0f) AnahtarSatiri("Yüze odaklan ve yaklaş", k.yuzOdak) { v -> vm.klipGuncelle { it.copy(yuzOdak = v) } }
-                else Text(if (k.yuzBakildi) "Bu fotoğrafta yüz bulunamadı; ortaya doğru yaklaşır." else "Yüz araması: Şablon › Varsayılan ayarlar › Yüze yaklaş.",
+                else Text(if (k.yuzBakildi) "Bu fotoğrafta yüz bulunamadı; kadraj ana nesneye göre ayarlandı." else "Yüz araması: Şablon › Varsayılan ayarlar › Yüze yaklaş.",
                     color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             }
         }

@@ -344,10 +344,9 @@ class EditorDurum(private val ctx: Context, id: String) {
             val r = Medya.fotoHazirla(ctx, u0) ?: return null to "$ad: fotoğraf açılamadı (desteklenmeyen biçim)."
             Kayit.yaz("Fotoğraf eklendi: $ad ${Medya.mb(boy)} → ${r.second}x${r.third}")
             val fu = Uri.fromFile(r.first).toString()
-            val yz = if (r.third > r.second) Yuz.bul(fu) else null   // dikey fotoğrafta yüz (yüze yaklaşma için)
-            if (yz != null) Kayit.yaz("Yüz bulundu: $ad (${"%.2f".format(yz.first)}, ${"%.2f".format(yz.second)}) boy ${"%.2f".format(yz.third)}")
-            return Klip(tur = "foto", uri = fu, ad = ad, gen = r.second, yuk = r.third, boyutBayt = boy,
-                yuzX = yz?.first ?: -1f, yuzY = yz?.second ?: -1f, yuzB = yz?.third ?: 0f, yuzBakildi = true, tarihMs = Tarih.foto(ctx, u0)) to null
+            val od = Yuz.bul(fu)   // akıllı kadraj: yüz ya da ana nesne
+            Kayit.yaz("Odak: $ad yüz=${od?.yuz} nesne=(${od?.nx}, ${od?.ny})")
+            return odakla(Klip(tur = "foto", uri = fu, ad = ad, gen = r.second, yuk = r.third, boyutBayt = boy, tarihMs = Tarih.foto(ctx, u0)), od) to null
         }
         var u = u0
         val kalici = try { cr.takePersistableUriPermission(u0, Intent.FLAG_GRANT_READ_URI_PERMISSION); true } catch (e: Exception) { false }
@@ -359,9 +358,16 @@ class EditorDurum(private val ctx: Context, id: String) {
         val b = Medya.incele(ctx, u)
         Kayit.yaz("Video eklendi: $ad ${Medya.mb(boy)} ${b.gen}x${b.yuk} ${b.kodek} hdr=${b.hdr} ses=${b.sesVar} ${b.sureMs} ms sorun=${b.sorun}")
         if (b.sorun != null) return null to "$ad: ${b.sorun}"
-        return Klip(tur = "video", uri = u.toString(), ad = ad, kaynakSureMs = b.sureMs, basMs = 0, sonMs = b.sureMs,
-            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar, tarihMs = Tarih.video(ctx, u)) to null
+        val vk = Klip(tur = "video", uri = u.toString(), ad = ad, kaynakSureMs = b.sureMs, basMs = 0, sonMs = b.sureMs,
+            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar, tarihMs = Tarih.video(ctx, u))
+        return odakla(vk, Yuz.videoBul(ctx, u, b.sureMs * 2 / 5, b.gen, b.yuk)) to null
     }
+
+    private fun odakla(k: Klip, od: Yuz.Odak?): Klip = k.copy(yuzX = od?.yuz?.first ?: -1f, yuzY = od?.yuz?.second ?: -1f, yuzB = od?.yuz?.third ?: 0f,
+        odakX = od?.nx ?: -1f, odakY = od?.ny ?: -1f, yuzBakildi = true)
+
+    private fun odakBul(k: Klip): Yuz.Odak? = if (k.foto) Yuz.bul(k.uri)
+        else Yuz.videoBul(ctx, Uri.parse(k.uri), k.basMs + (k.sonMs - k.basMs) * 2 / 5, k.gen, k.yuk)
 
     // ---------- müzik ----------
     fun muzikSec(u: Uri) {
@@ -473,10 +479,10 @@ class EditorDurum(private val ctx: Context, id: String) {
             mesgul.value = "Varsayılan ayarlar uygulanıyor…"
             val p0 = proje.value
             // yüz bulunmamış dikey fotoğraflar (eski projeler) ve çekim tarihi: arka planda
-            val yuzler = HashMap<String, Triple<Float, Float, Float>?>()
+            val yuzler = HashMap<String, Yuz.Odak?>()
             var tarih = 0L
             withContext(Dispatchers.IO) {
-                if ("yuz" in sec) for (k in p0.klipler) if (k.foto && !k.yuzBakildi && k.yuk > k.gen) yuzler[k.id] = Yuz.bul(k.uri)
+                for (k in p0.klipler) if (!k.yuzBakildi || k.odakX < 0f) yuzler[k.id] = odakBul(k)   // eski kliplerde odak yoksa bulunur
                 tarih = p0.klipler.firstNotNullOfOrNull { it.tarihMs.takeIf { t -> t > 0 } }
                     ?: p0.klipler.firstOrNull { !it.foto }?.let { Tarih.video(ctx, Uri.parse(it.uri)) }?.takeIf { it > 0 }
                     ?: p0.olusturma
@@ -486,11 +492,13 @@ class EditorDurum(private val ctx: Context, id: String) {
             guncelle(true) { p ->
                 p.copy(
                     bicim = if (bicimDegisti) "16:9" else p.bicim,
+                    gecis = Gecis("capraz", 800, p.gecis.siyahtanAc),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)
                         if (k.foto) k = k.copy(kenBurns = true, fotoSureMs = 5000)
-                        if (k.id in yuzler) { val y = yuzler[k.id]; k = k.copy(yuzX = y?.first ?: -1f, yuzY = y?.second ?: -1f, yuzB = y?.third ?: 0f, yuzBakildi = true) }
+                        if (k.id in yuzler) k = odakla(k, yuzler[k.id])
+                        k = k.copy(kayX = 0f, kayY = 0f)   // akıllı kadraj baştan
                         if ("yuz" in sec && k.foto) k = k.copy(yuzOdak = true)
                         k
                     },

@@ -141,7 +141,7 @@ object Disa {
             val k = p.zKlip(i)
             val gec = Gecisler.etkiler(p.gecis, k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
             baslar += bas
-            ogeler += oge(k, W, H, logo, gec, katmanlar(bas, k.sureMs))
+            ogeler += oge(k, W, H, logo, gec, katmanlar(bas, k.sureMs), Yuz.yon(p, i), p.klipler[i].sureMs)
             bas += k.sureMs
         }
         if (kapanisVar) {
@@ -165,7 +165,7 @@ object Disa {
             var imlec = 0L
             for ((i, b0, T) in Gecisler.pencereler(p)) {
                 val k = p.klipler.getOrNull(i) ?: continue
-                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T)) ?: continue
+                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T), Yuz.yon(p, i)) ?: continue
                 if (b0 > imlec) ust.addGap((b0 - imlec) * 1000)
                 ust.addItem(kuyruk)
                 pencereler += longArrayOf(b0, T)
@@ -229,16 +229,16 @@ object Disa {
     /** Giden klibin son T ms'si (gerçek görüntü ve sesi; HDR çevirisi tabandakiyle aynı) — gelen klibin üstünde solar.
      *  3.2'de kırpılmış devam yoksa son kare JPEG olarak kullanılıyordu; telefonun kare çıkarıcısı HDR'yi farklı çevirdiği için
      *  geçişte "parlama" oluyordu. Artık görüntü hep aynı çözücüden gelir. */
-    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>): EditedMediaItem? {
+    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, yon: Pair<Boolean, Float>): EditedMediaItem? {
         val v = ArrayList<Effect>()
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) {
             mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T)
-            if (k.kenBurns) { val son = Yuz.matris(Yuz.an(k, W, H, 1f)); v += MatrixTransformation { son } }   // yakınlaşmanın son hâli (yüz varsa yüzde)
+            if (k.kenBurns) v += kenBurns(k, W, H, yon, k.sureMs, k.sureMs - T)   // hareket geçiş boyunca sürer (durmaz, geri sıçramaz)
         } else {
             mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build())
         }
-        if (!(k.foto && k.kenBurns) && (k.kayX != 0f || k.kayY != 0f)) { val m = Yuz.matris(Yuz.an(k, W, H, 0f)); v += MatrixTransformation { m } }
+        if (!(k.foto && k.kenBurns)) { val a = Yuz.an(k, W, H, 0f); if (!Yuz.sabitMi(a)) { val m = Yuz.matris(a); v += MatrixTransformation { m } } }
         v += Presentation.createForWidthAndHeight(W, H, if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         val kap = ArrayList<TextureOverlay>()
         kap += zamanli
@@ -253,13 +253,13 @@ object Disa {
         return b.build()
     }
 
-    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>): EditedMediaItem {
+    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, yon: Pair<Boolean, Float>, tamMs: Long): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
         val v = ArrayList<Effect>()
-        if (k.foto && k.kenBurns) v += kenBurns(k, W, H)
-        else if (k.kayX != 0f || k.kayY != 0f) { val m = Yuz.matris(Yuz.an(k, W, H, 0f)); v += MatrixTransformation { m } }   // elle kaydırılmış kadraj
+        if (k.foto && k.kenBurns) v += kenBurns(k, W, H, yon, tamMs, 0L)
+        else { val a = Yuz.an(k, W, H, 0f); if (!Yuz.sabitMi(a)) { val m = Yuz.matris(a); v += MatrixTransformation { m } } }   // akıllı/elle kaydırılmış kadraj
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         v += gecis
@@ -283,12 +283,13 @@ object Disa {
     )
 
     /** Fotoğrafta yavaş yakınlaşma (%8; dikey kişi fotoğrafında yüze doğru, bkz. Yuz). Zaman damgası klibin ilk karesinden ölçülür. */
-    private fun kenBurns(k: Klip, W: Int, H: Int): MatrixTransformation {
+    /** tamMs: klibin tam süresi (geçiş örtüşmesi dahil), basMs: bu parçanın klip içindeki başlangıcı (kuyrukta tam − T). */
+    private fun kenBurns(k: Klip, W: Int, H: Int, yon: Pair<Boolean, Float>, tamMs: Long, basMs: Long): MatrixTransformation {
         var t0 = -1L
         return MatrixTransformation { t ->
             if (t0 < 0) t0 = t
-            val f = ((t - t0) / 1000f / k.fotoSureMs).coerceIn(0f, 1f)
-            Yuz.matris(Yuz.an(k, W, H, f))
+            val f = ((basMs + (t - t0) / 1000f) / tamMs.coerceAtLeast(1)).coerceIn(0f, 1f)
+            Yuz.matris(Yuz.an(k, W, H, f, yon.first, yon.second))
         }
     }
 }

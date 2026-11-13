@@ -30,6 +30,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Varsayılan seçili iken yeni eklenen klipler doğrudan Doldur ile gelir.
 - Asıl neden: dikey klip eklenince boş proje kendiliğinden 9:16'ya çevriliyordu; kare dikey olunca Doldur hiçbir şey değiştirmiyordu. Bu otomatik çevirme kaldırıldı. Proje YouTube 16:9 açılır; Varsayılan da biçimi 16:9 yapar. Dikey video ve fotoğraflar 16:9 kareyi doldurur (üstü/altı kesilir). 9:16 yalnız Biçim panelinden elle seçilir.
 
+### 3.6 ek 2: akıllı kadraj, bir yaklaş bir uzaklaş, otomatik yumuşak geçiş (Kareden Videoya mantığı)
+- Kadraj artık körlemesine ortadan kesilmiyor: her fotoğraf ve videoda odak bulunur (önce yüz, yoksa ana nesne — renk farkı + kenar yoğunluğu). Doldur'da kare odağa göre kayar: yüz ekranın üstten ~%36–40'ında (baş kesilmez, omuzlar görünür), nesne tam ortada. Dikey videoda da aynı (klibin %40'ındaki kareden).
+- Fotoğraflar sırayla bir yaklaşır, bir uzaklaşır. Uzaklaşan fotoğraf öncekinin vardığı orandan başlar (yüzlü 1,28×, diğer 1,16×). Hareket doğrusal ve geçiş boyunca sürer; yaklaştıktan sonra geri sıçrama kalktı.
+- Varsayılan/ilk seçim: fotoğraf 5 sn, yumuşak (üst üste binen) geçiş 0,8 sn; kısa klipte geçiş kendiliğinden kısalır.
+
 ### 3.6 ek: kadraj sınırı, parmakla kaydırma, otomatik varsayılan
 - Önizlemede kare sınırı görünür (dışı koyu gri, ince açık çizgi).
 - İzlerken de fotoğraf/videoyu parmakla yukarı-aşağı-sağa-sola kaydır (Doldur'da taşan kısım kadar, kenar boş kalmaz); çift dokun = ortala. Kaydırma klipte saklanır, dışa aktarmaya, geçişe ve takip eden yazıya aynen yansır. Kadraj kartında "Ortala".

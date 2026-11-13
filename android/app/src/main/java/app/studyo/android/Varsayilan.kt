@@ -12,8 +12,8 @@ import java.util.TimeZone
 object Varsayilan {
     /** anahtar, ad, simge, açıklama */
     val MADDELER = listOf(
-        listOf("kadraj", "Kadrajı doldur", "kadraj", "YouTube 16:9 · dikey klipler kareyi doldurur"),
-        listOf("yuz", "Yüze yaklaş", "kisi", "Dikey kişi fotoğrafında yüze odaklanır"),
+        listOf("kadraj", "Kadrajı doldur", "kadraj", "Kare dolar · yüz/nesne kesilmez"),
+        listOf("yuz", "Yüze yaklaş", "kisi", "Fotoğraf ve videoda yüz kadrajda kalır"),
         listOf("giris", "Giriş başlığı", "baslik", "Renkli kutular · tarih · konum"),
         listOf("abone", "Abone ol", "zil", "Kanalıma abone ol · zili aç"),
         listOf("kapanis", "Kapanış", "kalp", "Cam kartlar · teşekkür"),

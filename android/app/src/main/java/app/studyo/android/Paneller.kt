@@ -122,7 +122,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // elle kaydırma: sürüklerken yerel değer, bırakınca klibe yazılır
             var surKay by remember(k?.id) { mutableStateOf<Offset?>(null) }
             val kG = k?.let { kk -> surKay?.let { kk.copy(kayX = it.x, kayY = it.y) } ?: kk }
-            val kbAn = kG?.let { Yuz.an(it, RW, RH, if (it.foto && it.kenBurns) kbF else 0f) }
+            val yon = remember(p.klipler, sira) { Yuz.yon(p, sira) }
+            val kbAn = kG?.let { Yuz.an(it, RW, RH, if (it.foto && it.kenBurns) kbF else 0f, yon.first, yon.second) }
             val an = Gecisler.onizleme(p, konum)
             AndroidView(
                 factory = { c ->
@@ -282,7 +283,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
                             onDragCancel = { surKay = null },
                         ) { ch, d ->
-                            val ks = kSon; val a = Yuz.an(ks, RW, RH, if (ks.foto && ks.kenBurns) kbF else 0f)
+                            val ks = kSon; val a = Yuz.an(ks, RW, RH, if (ks.foto && ks.kenBurns) kbF else 0f, yon.first, yon.second)
                             if (!Yuz.kayabilir(a)) return@detectDragGestures
                             ch.consume()
                             val pxX = (a.s - a.vx) / a.vx * gw / 2f; val pxY = (a.s - a.vy) / a.vy * gh / 2f
@@ -328,7 +329,7 @@ private fun VarsayilanSayfa(vm: EditorDurum) {
         Simge("sihir", if (etkin) Renk.turuncu else Renk.soluk, 18.dp); Spacer(Modifier.width(6.dp))
         Text(if (sec.isEmpty()) "Uygulanacak madde seç" else "Seçili ${sec.size} ayarı uygula", color = if (etkin) Renk.turuncu else Renk.soluk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
-    Not("Klipler, müzik ve yazılar değişmez; her şey sonra tek tek değiştirilebilir. Seçtiğin maddeler hatırlanır.")
+    Not("Her zaman: YouTube 16:9, fotoğraf 5 sn, bir yaklaş bir uzaklaş, 0,8 sn yumuşak geçiş, kadraj yüze/ana nesneye göre. Fotoğraf ve video seçince kendiliğinden uygulanır. Seçtiğin maddeler hatırlanır.")
 }
 
 @Composable

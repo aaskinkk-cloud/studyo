@@ -126,11 +126,14 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
         }
         BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black).border(1.dp, Color(0x99FFFFFF))) {
             // Akıcı önizleme (oynarken): dışa aktarmanın aynısı tek boru hattında; düzenleme çizimleri gerekmez
+            // Yüzey en altta durur; ilk kare çizilene kadar düzenleme önizlemesi üstte kalır (siyah ekran görünmez),
+            // ilk kare gelince yalnız yüzey kalır.
             val kompA by vm.kompAktif.collectAsState()
+            val kompG by vm.kompGorunur.collectAsState()
             if (kompA) {
                 AndroidView(factory = { c -> android.view.SurfaceView(c).also { vm.kompYuzeyBagla(it) } },
                     onRelease = { vm.kompYuzeyBagla(null) }, modifier = Modifier.fillMaxSize())
-                return@BoxWithConstraints
+                if (kompG) return@BoxWithConstraints
             }
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
             val RW = ref.first; val RH = ref.second

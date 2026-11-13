@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.17 (14.11.2026, deneme · `yerel-android` dalı): akıcı önizleme kalıcı ve kesintisiz
+Ahmet: "bir kere hatasız döner gibi oluyor, sonra tekrar aynı hata". Kök nedenler [Muhtemel] ve çözüm:
+- **Her ▶'da sıfırdan kurulum:** her oynatmada kompozisyon + çözücüler baştan kuruluyordu; büyük HDR projelerde hazırlık uzun sürüyor, bekçi bunu takılma sayıp oturum boyunca titreyen eski önizlemeye geçiriyordu. Artık akıcı oynatıcı **duraklatınca kapatılmaz**; bir sonraki ▶ anında aynı yerden başlar. Yalnız proje değişince (her düzenlemede) yeniden kurulur.
+- **Bekçi:** hazır olmayı en çok 12 sn bekler, sonra ilerleme arar. Tek bir başarısızlık oturumu kapatmaz; ancak **üst üste iki** başarısızlıkta standart önizlemeye geçilir. Her durum hata kaydına yazılır (kuruluş süresi, hazırlık süresi, neden).
+- **Siyah ekran yok:** akıcı yüzey en altta açılır; ilk kare çizilene kadar düzenleme önizlemesi üstte kalır, ilk kare gelince geçilir.
+- Hazırlanırken ▶ düğmesi duraklat simgesine döner (iki kez basıp iptal etmemek için).
+
 ## 3.16 (14.11.2026, deneme · `yerel-android` dalı): hata kaydı paylaşımı + bekçi hazırlığı bekler
 - Hata kaydı paylaşımı: alan uygulama metni ~20 KB'de kesiyordu, en yeni satırlar (akıcı önizleme kayıtları) gitmiyordu → yalnız son 16 KB paylaşılır.
 - Akıcı önizleme bekçisi önce hazırlanmayı bekler (en çok 10 sn), hazır olduktan sonra 1,5 sn ilerleme yoksa standart önizlemeye geçer. Kayda "Akıcı önizleme hazır: N ms" yazılır. (3.15'te ilk açılışta büyük HDR klipler 2 sn'yi geçince yanlışlıkla "takıldı" sayılıp eski, titreyen önizlemeye dönülüyor olabilirdi [Muhtemel].)

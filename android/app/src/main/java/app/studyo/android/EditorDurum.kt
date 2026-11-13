@@ -104,7 +104,7 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     // ---------- zaman çizelgesi ----------
     fun baslangic(i: Int): Long { val p = proje.value; return (0 until i.coerceIn(0, p.klipler.size)).sumOf { p.zKlip(it).sureMs } }
-    fun anlik(): Long = komp?.currentPosition?.coerceAtLeast(0) ?: if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
+    fun anlik(): Long = (if (kompAktif.value) komp?.currentPosition?.coerceAtLeast(0) else null) ?: if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
 
     private fun ogeler(p: Proje): List<MediaItem> {
         val l = p.klipler.indices.map { p.zKlip(it) }.map { k ->
@@ -135,7 +135,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Dışa aktarma sırasında donanım çözücüleri boşaltılır (büyük videolarda çakışmayı önler). */
-    fun onizlemeBirak() { kompBitir(); player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
+    fun onizlemeBirak() { kompSil(); player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
     fun onizlemeGeri() { listeKur(sira.value, 0); muzikKur() }
 
     private fun sesUygula() {
@@ -144,7 +144,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun git(ms: Long) {
-        if (komp != null) { kompBitir(ms.coerceAtLeast(0)); return }
+        if (kompAktif.value) { kompDuraklat(ms.coerceAtLeast(0)); return }
         val p = proje.value
         if (p.klipler.isEmpty()) return
         var t = ms.coerceIn(0, (p.toplamMs - 1).coerceAtLeast(0))
@@ -178,7 +178,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun oynatDurdur() {
-        if (komp != null || kompHazirlaniyor) { kompBitir(); return }
+        if (kompHazirlaniyor) { kompSil(); git(konum.value); return }
+        if (kompAktif.value) { kompDuraklat(); return }
         if (player.isPlaying) { player.pause(); return }
         if (player.playbackState == Player.STATE_ENDED || konum.value >= proje.value.toplamMs - 60) git(0)
         if (kompBaslat()) return
@@ -191,87 +192,137 @@ class EditorDurum(private val ctx: Context, id: String) {
     // Çözüm: oynatırken dışa aktarmadaki kompozisyonun AYNISI tek boru hattında oynatılır (Media3 CompositionPlayer):
     // geçiş, erime, yazılar, katmanlar, müzik — hepsi tek saatle. Durdurunca düzenleme önizlemesine dönülür.
     private var komp: androidx.media3.transformer.CompositionPlayer? = null
+    /** Akıcı önizleme oynatılıyor/hazırlanıyor (yüzey ekranda, en altta). */
     val kompAktif = MutableStateFlow(false)
+    /** İlk kare çizildi: düzenleme önizlemesi gizlenir (o ana kadar eski görüntü üstte kalır → siyah ekran görünmez). */
+    val kompGorunur = MutableStateFlow(false)
     private var kompYuzey: android.view.SurfaceView? = null
     private var kompHazirlaniyor = false
     private var kompTikIs: Job? = null
-    /** Bu oturumda akıcı önizleme hata verdiyse standart önizleme kullanılır (aynı yol tekrar denenmez). */
+    private var kompBekciIs: Job? = null
+    private var kompHata = 0
+    /** Üst üste iki kez açılamazsa bu oturumda standart önizleme kullanılır. */
     private var akiciKapali = false
 
     fun kompYuzeyBagla(sv: android.view.SurfaceView?) {
+        val eski = kompYuzey
         kompYuzey = sv
-        if (sv != null) try { komp?.setVideoSurfaceView(sv) } catch (e: Exception) { Kayit.hata("akıcı önizleme yüzey", e) }
+        try {
+            if (sv != null) komp?.setVideoSurfaceView(sv)
+            else if (eski != null) komp?.clearVideoSurfaceView(eski)
+        } catch (e: Exception) { Kayit.hata("akıcı önizleme yüzey", e) }
     }
 
     private fun kompBaslat(): Boolean {
-        if (akiciKapali || kompHazirlaniyor) return false
+        if (akiciKapali) return false
+        if (kompHazirlaniyor) return true
         val p = proje.value
         if (p.klipler.isEmpty()) return false
+        val bas = konum.value.coerceAtLeast(0)
+        val hazir = komp
+        if (hazir != null) {          // proje değişmedi (her düzenleme kompozisyonu siler): anında devam
+            kompOynat(hazir, bas, -1L)
+            return true
+        }
         kompHazirlaniyor = true
-        val bas = konum.value
+        kompAktif.value = true; kompGorunur.value = false; oynuyor.value = true
         kapsam.launch {
+            val t0 = System.currentTimeMillis()
             val (w, h) = Disa.boyut(p.bicim, 720)
             val comp = withContext(Dispatchers.Default) {
                 runCatching { Disa.kompozisyon(ctx, p, w, h, Disa.HDR_COZUCU, onizleme = true) }.onFailure { Kayit.hata("akıcı önizleme kur", it) }.getOrNull()
             }
-            if (!kompHazirlaniyor) return@launch            // bu arada durdurulduysa
-            if (comp == null) { kompHazirlaniyor = false; akiciKapali = true; player.play(); return@launch }
+            if (!kompHazirlaniyor) { kompAktif.value = false; return@launch }      // bu arada durduruldu/değiştirildi
+            kompHazirlaniyor = false
+            if (comp == null) { kompBasarisiz(bas, "kompozisyon kurulamadı"); return@launch }
             try {
                 val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx)
                     .setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()).build()
                 cp.addListener(object : Player.Listener {
-                    override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp) oynuyor.value = isPlaying }
-                    override fun onPlaybackStateChanged(playbackState: Int) { if (playbackState == Player.STATE_ENDED && komp === cp) kompBitir(proje.value.toplamMs - 1) }
+                    override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp && kompAktif.value) oynuyor.value = isPlaying }
+                    override fun onRenderedFirstFrame() { if (komp === cp) kompGorunur.value = true }
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_ENDED && komp === cp && kompAktif.value) kompDuraklat(proje.value.toplamMs - 1)
+                    }
                     override fun onPlayerError(error: PlaybackException) {
                         Kayit.hata("akıcı önizleme", error)
-                        akiciKapali = true
-                        mesaj.value = "Akıcı önizleme açılamadı; standart önizleme kullanılıyor."
-                        if (komp === cp) kompBitir()
+                        if (komp === cp) kompBasarisiz(cp.currentPosition.coerceAtLeast(0), "oynatıcı hatası ${error.errorCodeName}")
                     }
                 })
                 cp.setComposition(comp)
-                komp = cp; kompAktif.value = true
-                kompYuzey?.let { cp.setVideoSurfaceView(it) }
-                cp.seekTo(bas.coerceAtLeast(0))
-                cp.prepare(); cp.play()
-                Kayit.yaz("Akıcı önizleme: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${bas} ms'den")
-                kompTikIs?.cancel()
-                kompTikIs = kapsam.launch { while (isActive && komp === cp) { konum.value = cp.currentPosition.coerceAtLeast(0); delay(40) } }
-                // Takılma bekçisi: önce hazırlanmasını bekler (büyük HDR videolarda çözücü açılışı 2 sn'yi geçebiliyor;
-                // 3.14-3.15'te bu "takıldı" sanılıyordu), HAZIR olduktan sonra 1,5 sn ilerlemezse standart önizlemeye geçilir.
-                kapsam.launch {
-                    val t0 = System.currentTimeMillis()
-                    while (komp === cp && cp.playbackState != Player.STATE_READY && System.currentTimeMillis() - t0 < 10_000) delay(100)
-                    if (komp !== cp) return@launch
-                    val hazir = System.currentTimeMillis() - t0
-                    Kayit.yaz("Akıcı önizleme hazır: ${hazir} ms (durum=${cp.playbackState})")
-                    val p0 = cp.currentPosition
-                    delay(1500)
-                    if (komp === cp && cp.currentPosition <= p0 + 150) {
-                        Kayit.yaz("Akıcı önizleme ilerlemedi: hazırlık=${hazir} ms, durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${comp.sequences.size}")
-                        akiciKapali = true
-                        kompBitir(bas)
-                        mesaj.value = "Akıcı önizleme bu telefonda takıldı; standart önizlemeyle oynatılıyor."
-                        player.play()
-                    }
-                }
+                komp = cp
+                Kayit.yaz("Akıcı önizleme kuruldu: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${System.currentTimeMillis() - t0} ms")
+                kompOynat(cp, bas, t0)
             } catch (e: Throwable) {
                 Kayit.hata("akıcı önizleme başlat", e)
-                akiciKapali = true; komp = null; kompAktif.value = false
-                player.play()
-            } finally { kompHazirlaniyor = false }
+                kompBasarisiz(bas, "başlatılamadı")
+            }
         }
         return true
     }
 
-    /** Akıcı önizlemeyi bitirir; düzenleme önizlemesi kaldığı yere gelir. */
-    private fun kompBitir(konumaGit: Long = -1L) {
-        kompHazirlaniyor = false
-        val cp = komp ?: return
-        val pos = if (konumaGit >= 0) konumaGit else cp.currentPosition.coerceAtLeast(0)
-        komp = null; kompTikIs?.cancel(); kompAktif.value = false; oynuyor.value = false
-        try { cp.release() } catch (_: Exception) {}
+    private fun kompOynat(cp: androidx.media3.transformer.CompositionPlayer, bas: Long, t0: Long) {
+        kompAktif.value = true
+        kompYuzey?.let { try { cp.setVideoSurfaceView(it) } catch (_: Exception) {} }
+        cp.seekTo(bas)
+        if (cp.playbackState == Player.STATE_IDLE) cp.prepare()
+        cp.play()
+        kompTikIs?.cancel()
+        kompTikIs = kapsam.launch {
+            while (isActive && komp === cp && kompAktif.value) {
+                val pos = cp.currentPosition.coerceAtLeast(0)
+                konum.value = pos
+                // ilk kare bildirimi gelmezse: oynatma ilerleyince yüzey öne alınır
+                if (!kompGorunur.value && cp.isPlaying && pos > bas + 120) kompGorunur.value = true
+                delay(40)
+            }
+        }
+        // Takılma bekçisi: önce HAZIR olmasını bekler (büyük HDR kliplerde çözücüler 2 sn'yi geçebiliyor), sonra 1,5 sn ilerleme arar.
+        kompBekciIs?.cancel()
+        kompBekciIs = kapsam.launch {
+            val b0 = System.currentTimeMillis()
+            while (komp === cp && kompAktif.value && cp.playbackState != Player.STATE_READY && System.currentTimeMillis() - b0 < 12_000) delay(100)
+            if (komp !== cp || !kompAktif.value) return@launch
+            val hazirMs = System.currentTimeMillis() - b0
+            Kayit.yaz("Akıcı önizleme hazır: $hazirMs ms (durum=${cp.playbackState})")
+            val p0 = cp.currentPosition
+            delay(1500)
+            if (komp === cp && kompAktif.value && cp.playWhenReady && cp.currentPosition <= p0 + 150) {
+                Kayit.yaz("Akıcı önizleme ilerlemedi: hazırlık=$hazirMs ms, durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${cp.currentTimeline.windowCount}")
+                kompBasarisiz(bas, "ilerlemedi")
+            } else if (komp === cp) kompHata = 0
+        }
+    }
+
+    /** Akıcı önizleme açılamadı/takıldı: standart önizlemeyle aynı yerden oynamaya devam. İki kez olursa oturum boyunca kapanır. */
+    private fun kompBasarisiz(bas: Long, neden: String) {
+        kompHata++
+        if (kompHata >= 2) akiciKapali = true
+        Kayit.yaz("Akıcı önizleme başarısız ($neden), deneme $kompHata${if (akiciKapali) " — bu oturumda kapatıldı" else ""}")
+        kompSil()
+        git(bas)
+        mesaj.value = if (akiciKapali) "Akıcı önizleme bu projede açılamadı; standart önizleme kullanılıyor." else "Akıcı önizleme yeniden hazırlanacak."
+        player.play()
+    }
+
+    /** Duraklat: akıcı oynatıcı kapatılmaz (bir sonraki ▶ anında başlar); düzenleme önizlemesi aynı kareye gelir. */
+    private fun kompDuraklat(konumaGit: Long = -1L) {
+        val cp = komp
+        val pos = if (konumaGit >= 0) konumaGit else cp?.currentPosition?.coerceAtLeast(0) ?: konum.value
+        try { cp?.pause() } catch (_: Exception) {}
+        kompTikIs?.cancel(); kompBekciIs?.cancel()
+        kompAktif.value = false; kompGorunur.value = false; oynuyor.value = false
         git(pos)
+    }
+
+    /** Kompozisyon değişti ya da ekran kapanıyor: akıcı oynatıcı bırakılır. */
+    private fun kompSil() {
+        kompHazirlaniyor = false
+        kompTikIs?.cancel(); kompBekciIs?.cancel()
+        val cp = komp; komp = null
+        kompAktif.value = false; kompGorunur.value = false
+        oynuyor.value = player.isPlaying
+        if (cp != null) try { cp.release() } catch (_: Exception) {}
     }
 
     fun sec(i: Int) {
@@ -333,7 +384,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun guncelle(yapi: Boolean = false, f: (Proje) -> Proje) {
-        if (komp != null || kompHazirlaniyor) kompBitir()
+        if (komp != null || kompHazirlaniyor) { val calisiyor = kompAktif.value; val pos = konum.value; kompSil(); if (calisiyor) git(pos) }
         val i = player.currentMediaItemIndex; val ms = player.currentPosition
         val once = proje.value; val simdi = System.currentTimeMillis()
         if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
@@ -1157,7 +1208,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun kapat() {
-        komp?.let { try { it.release() } catch (_: Exception) {} }; komp = null
+        kompSil()
         if (kaydediyor.value) kayitDurdur()
         kaydetSimdi(false)
         kapsam.cancel()

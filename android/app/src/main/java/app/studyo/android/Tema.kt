@@ -59,15 +59,15 @@ object Duzen {
         val sp = ctx.getSharedPreferences("ayar", 0)
         yaziliMenu = sp.getBoolean("yaziliMenu", false)
         onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, 0.75f)
-        eskiSerit = sp.getBoolean("eskiSerit", false)
+        katmanYuk = sp.getFloat("katmanYuk", 240f).coerceIn(120f, 560f)
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
-    /** Zaman çizelgesi: false = çok satırlı (varsayılan), true = önceki klip şeridi. */
-    var eskiSerit by mutableStateOf(false)
+    /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
+    var katmanYuk by mutableFloatStateOf(240f)
+    fun katmanYukKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("katmanYuk", katmanYuk).apply() }
     /** Çok satırlı çizelgenin yakınlığı (dp / saniye; iki parmakla değişir). */
     var cizelgePps by mutableFloatStateOf(48f)
-    fun seritDegistir(ctx: Context) { eskiSerit = !eskiSerit; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("eskiSerit", eskiSerit).apply() }
     fun ppsKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("cizelgePps", cizelgePps).apply() }
 }
 
@@ -176,7 +176,7 @@ fun otoSimge(m: String): String {
         h("yükle") -> "yukle"; h("kaydet") -> "kaydet"
         h("duraklat", "durdur") -> "durdur"; h("dinle", "oynat") -> "oynat"
         h("kayıt", "kaydı") -> "mikrofon"; h("müzik") -> "nota"; h("nesne", "cam", "öneri") -> "sihir"
-        h("kes") -> "makas"; h("takip", "nokta") -> "takip"; h("logo") -> "logo"; h("kapak", "kare") -> "kapak"
+        h("kes", "böl") -> "makas"; h("takip", "nokta") -> "takip"; h("logo") -> "logo"; h("kapak", "kare") -> "kapak"
         h("altyazı", "satır", "srt") -> "altyazi"; h("oku") -> "prompter"; h("pil") -> "pil"
         h("başı") -> "basa"; h("sonu") -> "sonraki"; h("uygula") -> "uygula"
         h("oluştur", "dışa", "paylaş") -> "disa"; h("geri") -> "geri"; h("ekle", "seç") -> "ekle"

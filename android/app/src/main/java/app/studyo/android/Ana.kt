@@ -176,7 +176,6 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                     DropdownMenuItem(text = { Text("Hata kaydını paylaş") }, onClick = { menu = false; kayitPaylas(ctx) })
                     DropdownMenuItem(text = { Text(if (Renk.gunduz) "Gece teması" else "Gündüz teması") }, onClick = { menu = false; Renk.degistir(ctx) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })
-                    DropdownMenuItem(text = { Text(if (Duzen.eskiSerit) "Zaman çizelgesi: çok satırlı" else "Zaman çizelgesi: klip şeridi (önceki)") }, onClick = { menu = false; Duzen.seritDegistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
                     DropdownMenuItem(text = { Text("Sürüm ${BuildConfigBilgi.surum(ctx)}") }, onClick = { menu = false })
                 }

@@ -194,17 +194,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (Duzen.yaziliMenu) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
-                if (!Duzen.eskiSerit) {
-                    // çok satırlı zaman çizelgesi hep açık; panel açıkken altında ayar alanı
-                    val acHap = { b: String, h: String -> bolum = b; haplar[b] = h; panelAcik = true }
-                    CokluCizelge(vm, p, sec, ekle,
-                        acKatman = { acHap("katman", "katmanlar") }, acKlip = { acHap("duzenle", "klip") },
-                        acMuzik = { acHap("ses", "muzik") }, acSes = { acHap("ses", "seslendirme") },
-                        modifier = if (panelAcik) Modifier.fillMaxWidth().height(214.dp) else Modifier.fillMaxWidth().weight(1f))
-                    if (panelAcik) Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
-                        Spacer(Modifier.height(8.dp))
-                    }
+                if (bolum == "katman" && panelAcik) {
+                    KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
                 } else if (!panelAcik) {
                     Spacer(Modifier.weight(1f))
                     KlipSeridi(vm, p, sec, ekle)
@@ -580,6 +571,7 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Dugme("◀ Sola", Modifier.weight(1f), etkin = sec > 0, sira = 0) { vm.tasi(-1) }
             Dugme("Sağa ▶", Modifier.weight(1f), etkin = sec < p.klipler.lastIndex, sira = 1) { vm.tasi(1) }
+            Dugme("Böl", Modifier.weight(1f), sira = 3) { vm.klipBol() }
             Dugme("Çoğalt", Modifier.weight(1f), sira = 2) { vm.klipCogalt() }
             Dugme(if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = if (silOnay) Renk.kirmizi else Renk.kart2, sira = 4) {
                 if (silOnay) { silOnay = false; vm.klipSil() } else silOnay = true

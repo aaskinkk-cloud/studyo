@@ -6,6 +6,15 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.11 (14.11.2026, deneme · `yerel-android` dalı): katmanlar yalnız Katman bölümünde, tek yerde
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.10'un üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
+
+- Çok satırlı çizelge **yalnız Katman bölümünde**; diğer bölümlerde önceki klip şeridi (3.9 düzeni).
+- Katman bölümünün **başlığı** ("Katmanlar · N"): dokun = çizelgeyi aç/kapat. Çizelgenin altındaki turuncu **tutamaç**: sürükle = büyüt/küçült (120–560 dp, hatırlanır), çift dokun = varsayılan.
+- Katmanla ilgili her şey bu sayfada: çizelge (seç, sar, yakınlaştır, başı/sonu, kaydır, satır değiştir) + **tek işlem sırası** (Böl · Çoğalt · Öne al · Arkaya al · Gizle/Göster · Kilitle/Kilidi aç · Sil – iki adım) + altında Katman ekle ve seçili katmanın ayarları.
+- **Tekrarlar kaldırıldı:** ayarlar kartındaki işlem sırası, çizelgedeki "＋ Katman" ve klip düğmeleri, 3.9'daki satır listesi. Çizelgedeki Video satırı yalnız başvuru (kareler); klip işleri Düzenle › Klip'te — klibi bölme oraya taşındı ("Böl").
+- Ana sayfa ⋯'daki "Zaman çizelgesi" seçeneği kalktı (diğer bölümler zaten önceki şeritte).
+
 ## 3.10 (14.11.2026, deneme · `yerel-android` dalı): çok satırlı zaman çizelgesi (InShot tarzı, Ahmet'in görseline göre)
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.9'un üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
 

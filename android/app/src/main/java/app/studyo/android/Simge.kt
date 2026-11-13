@@ -55,6 +55,10 @@ object Simgeler {
         "degistir" to "M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M3 21v-5h5",
         "yukle" to "M12 3v12M7 10l5 5 5-5M5 21h14",
         "pil" to "M3 8h16v8H3zM21 11v2M6 11v2",
+        "kisi" to "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0M3 7V3h4M21 7V3h-4",
+        "baslik" to "M4 5h9v4H4zM4 11h14v4H4zM4 17h7v3H4z",
+        "zil" to "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
+        "kalp" to "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z",
     )
     private val dolu = mapOf(
         "oynat" to "M8 5v14l11-7z",

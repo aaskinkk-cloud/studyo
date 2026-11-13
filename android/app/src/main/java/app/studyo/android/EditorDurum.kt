@@ -337,7 +337,11 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (foto) {
             val r = Medya.fotoHazirla(ctx, u0) ?: return null to "$ad: fotoğraf açılamadı (desteklenmeyen biçim)."
             Kayit.yaz("Fotoğraf eklendi: $ad ${Medya.mb(boy)} → ${r.second}x${r.third}")
-            return Klip(tur = "foto", uri = Uri.fromFile(r.first).toString(), ad = ad, gen = r.second, yuk = r.third, boyutBayt = boy) to null
+            val fu = Uri.fromFile(r.first).toString()
+            val yz = if (r.third > r.second) Yuz.bul(fu) else null   // dikey fotoğrafta yüz (yüze yaklaşma için)
+            if (yz != null) Kayit.yaz("Yüz bulundu: $ad (${"%.2f".format(yz.first)}, ${"%.2f".format(yz.second)}) boy ${"%.2f".format(yz.third)}")
+            return Klip(tur = "foto", uri = fu, ad = ad, gen = r.second, yuk = r.third, boyutBayt = boy,
+                yuzX = yz?.first ?: -1f, yuzY = yz?.second ?: -1f, yuzB = yz?.third ?: 0f, yuzBakildi = true, tarihMs = Tarih.foto(ctx, u0)) to null
         }
         var u = u0
         val kalici = try { cr.takePersistableUriPermission(u0, Intent.FLAG_GRANT_READ_URI_PERMISSION); true } catch (e: Exception) { false }
@@ -350,7 +354,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         Kayit.yaz("Video eklendi: $ad ${Medya.mb(boy)} ${b.gen}x${b.yuk} ${b.kodek} hdr=${b.hdr} ses=${b.sesVar} ${b.sureMs} ms sorun=${b.sorun}")
         if (b.sorun != null) return null to "$ad: ${b.sorun}"
         return Klip(tur = "video", uri = u.toString(), ad = ad, kaynakSureMs = b.sureMs, basMs = 0, sonMs = b.sureMs,
-            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar) to null
+            gen = b.gen, yuk = b.yuk, boyutBayt = boy, kodek = b.kodek, hdr = b.hdr, sesVar = b.sesVar, tarihMs = Tarih.video(ctx, u)) to null
     }
 
     // ---------- müzik ----------
@@ -450,23 +454,49 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Hazır paket: giriş başlığı, geçiş, hatırlatıcı ve kapanışı birlikte ayarlar. Klipler, müzik ve yazılar değişmez. */
-    /** Standart başlangıç: dikey fotoğraflar yatay videoda ekranı doldurur (ortadan), her fotoğraf 5 sn yavaş yaklaşır;
-     *  hareketli giriş başlığı, sona doğru "Takip et" hatırlatıcı, en sonda "Takip et · Beğen" kapanışı. Klip sırası, müzik, yazılar değişmez. */
+    /** Varsayılan ayarlar (Şablon › Varsayılan ayarlar). Hangi maddelerin uygulanacağı ayarda saklanır (hepsi açık gelir).
+     *  - kadraj: bütün klipler ekranı doldurur (Sığdır değil)
+     *  - yuz: dikey kişi fotoğraflarında yüz bulunur; yavaş yakınlaşma yüze doğru (her fotoğraf 5 sn)
+     *  - giris: "Renkli kutular" giriş başlığı (tarih bandı, renkli kutulu başlık satırları, konum bandı)
+     *  - abone: koyu hap "Kanalıma abone ol · Yeni videolar için zili aç · ABONE OL"
+     *  - kapanis: cam kartlı kapanış (İzlediğin için teşekkürler! · Beğen · Abone olundu · Paylaş)
+     *  Klip sırası, müzik, yazılar değişmez; her şey sonra tek tek değiştirilebilir. */
     fun varsayilanUygula() {
-        guncelle(true) { p ->
-            val yatay = p.bicim == "16:9"
-            p.copy(
-                klipler = p.klipler.map { k ->
-                    val dikey = yatay && k.yuk > k.gen
-                    if (k.foto) k.copy(kenBurns = true, fotoSureMs = 5000, doldur = k.doldur || dikey) else k.copy(doldur = k.doldur || dikey)
-                },
-                giris = p.giris.copy(acik = true, stil = if (p.giris.acik) p.giris.stil else "r_strip", hareket = "trend", sureMs = maxOf(p.giris.sureMs, 3500),
-                    baslik = p.giris.baslik.ifBlank { p.ad.ifBlank { "Şefin Doğası" } }, alt = p.giris.alt.ifBlank { "Şefin Doğası" }),
-                hatirlatici = p.hatirlatici.copy(acik = true, anOran = 0.8f, yazi = "Takip et", kucuk = "Yeni videolar için"),
-                kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000, yazi = "Takip et · Beğen"),
-            )
+        val sec = Varsayilan.secili(ctx)
+        kapsam.launch {
+            mesgul.value = "Varsayılan ayarlar uygulanıyor…"
+            val p0 = proje.value
+            // yüz bulunmamış dikey fotoğraflar (eski projeler) ve çekim tarihi: arka planda
+            val yuzler = HashMap<String, Triple<Float, Float, Float>?>()
+            var tarih = 0L
+            withContext(Dispatchers.IO) {
+                if ("yuz" in sec) for (k in p0.klipler) if (k.foto && !k.yuzBakildi && k.yuk > k.gen) yuzler[k.id] = Yuz.bul(k.uri)
+                tarih = p0.klipler.firstNotNullOfOrNull { it.tarihMs.takeIf { t -> t > 0 } }
+                    ?: p0.klipler.firstOrNull { !it.foto }?.let { Tarih.video(ctx, Uri.parse(it.uri)) }?.takeIf { it > 0 }
+                    ?: p0.olusturma
+            }
+            guncelle(true) { p ->
+                p.copy(
+                    klipler = p.klipler.map { k0 ->
+                        var k = k0
+                        if ("kadraj" in sec) k = k.copy(doldur = true)
+                        if (k.foto) k = k.copy(kenBurns = true, fotoSureMs = 5000)
+                        if (k.id in yuzler) { val y = yuzler[k.id]; k = k.copy(yuzX = y?.first ?: -1f, yuzY = y?.second ?: -1f, yuzB = y?.third ?: 0f, yuzBakildi = true) }
+                        if ("yuz" in sec && k.foto) k = k.copy(yuzOdak = true)
+                        k
+                    },
+                    giris = if ("giris" in sec) p.giris.copy(acik = true, stil = "r_haber", hareket = "trend", konum = "orta", sureMs = maxOf(p.giris.sureMs, 4000),
+                        baslik = p.giris.baslik.ifBlank { p.ad.ifBlank { "Şefin Doğası" } },
+                        bant = p.giris.bant.ifBlank { Tarih.yaz(tarih) + "|Kabataş, Ordu" }) else p.giris,
+                    hatirlatici = if ("abone" in sec) p.hatirlatici.copy(acik = true, stil = "kart", anOran = 0.8f, yazi = "Kanalıma abone ol",
+                        kucuk = "Yeni videolar için zili aç", dugme = "ABONE OL") else p.hatirlatici,
+                    kapanis = if ("kapanis" in sec) p.kapanis.copy(acik = true, stil = "cam", sureMs = 5000, yazi = "İzlediğin için teşekkürler!") else p.kapanis,
+                )
+            }
+            mesgul.value = null
+            val yuzSay = proje.value.klipler.count { it.yuzEtkin }
+            mesaj.value = "Varsayılan ayarlar uygulandı" + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
         }
-        mesaj.value = "Varsayılan ayarlar uygulandı"
     }
 
     fun paketUygula(ad: String) {

@@ -109,22 +109,27 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val RW = ref.first; val RH = ref.second
             val olcek = constraints.maxWidth.toFloat() / RW
             val yog = LocalDensity.current
-            var kb by remember { mutableFloatStateOf(1f) }
+            var kbF by remember { mutableFloatStateOf(0f) }   // fotoğraf klibinde ilerleme 0…1 (yavaş yakınlaşma / yüze yaklaşma)
             LaunchedEffect(k?.id, k?.kenBurns, k?.fotoSureMs) {
                 if (k != null && k.foto && k.kenBurns) {
                     while (true) {
                         withFrameNanos { }
-                        kb = 1f + 0.08f * (vm.player.currentPosition.toFloat() / k.fotoSureMs).coerceIn(0f, 1f)
+                        kbF = (vm.player.currentPosition.toFloat() / k.fotoSureMs).coerceIn(0f, 1f)
                     }
-                } else kb = 1f
+                } else kbF = 0f
             }
+            val kbAn = if (k != null && k.foto && k.kenBurns) Yuz.an(k, RW, RH, kbF) else null
             val an = Gecisler.onizleme(p, konum)
             AndroidView(
                 factory = { c ->
                     (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player }
                 },
                 update = { v -> v.resizeMode = if (k?.doldur == true) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
-                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = kb * an.olcek; scaleY = kb * an.olcek },
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    val kb = kbAn?.s ?: 1f
+                    scaleX = kb * an.olcek; scaleY = kb * an.olcek
+                    translationX = kbAn?.onizlemeX(size.width) ?: 0f; translationY = kbAn?.onizlemeY(size.height) ?: 0f
+                },
             )
             if (an.renk > 0f) Box(Modifier.fillMaxSize().background((if (an.beyaz) Color.White else Color.Black).copy(alpha = an.renk.coerceIn(0f, 1f))))
 
@@ -233,7 +238,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
                 girisY?.let { Ciz(it, Zaman.solma(konum, gA, gB)) }
             }
-            val hatY = remember(p.hatirlatici, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH) }
+            val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
             hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
             if (p.altyaziStil.acik) {
                 val sa = Cizim.altyaziAn(p.altyazilar, konum)
@@ -265,12 +270,42 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
 
 // ===================================================== ŞABLON =====================================================
 
+/** Varsayılan ayarlar: hangi maddelerin uygulanacağı simgeli seçimlerle (dokun = dahil et / çıkar, seçim hatırlanır), altta tek uygula düğmesi.
+ *  Görünüm 3.5 düzeninde: arka plansız, üstte simge, altta küçük yazı, alt menüyle aynı ton ailesi; seçili olan tam renk + nokta. */
+@Composable
+private fun VarsayilanSayfa(vm: EditorDurum) {
+    val ctx = LocalContext.current
+    var sec by remember { mutableStateOf(Varsayilan.secili(ctx)) }
+    val mesgul by vm.mesgul.collectAsState()
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Varsayilan.MADDELER.forEachIndexed { i, m ->
+            val on = m[0] in sec
+            val ton = tonRenk(i, m[1])
+            val r = if (on) ton else Renk.soluk.copy(alpha = 0.45f)
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { Varsayilan.degistir(ctx, m[0]); sec = Varsayilan.secili(ctx) }
+                .padding(vertical = 6.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Simge(m[2], r, 22.dp)
+                Text(m[1], color = r, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center,
+                    maxLines = 2, lineHeight = 12.sp, modifier = Modifier.padding(top = 3.dp))
+                Text(m[3], color = Renk.soluk.copy(alpha = if (on) 0.9f else 0.5f), fontSize = 9.sp, textAlign = TextAlign.Center, lineHeight = 10.5.sp, maxLines = 3)
+                Box(Modifier.padding(top = 3.dp).size(4.dp).clip(CircleShape).background(if (on) ton else Color.Transparent))
+            }
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    val etkin = sec.isNotEmpty() && mesgul == null
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, Renk.turuncu.copy(alpha = if (etkin) 0.85f else 0.3f), RoundedCornerShape(12.dp))
+        .clickable(enabled = etkin) { vm.varsayilanUygula() }.padding(vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Simge("sihir", if (etkin) Renk.turuncu else Renk.soluk, 18.dp); Spacer(Modifier.width(6.dp))
+        Text(if (sec.isEmpty()) "Uygulanacak madde seç" else "Seçili ${sec.size} ayarı uygula", color = if (etkin) Renk.turuncu else Renk.soluk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+    Not("Klipler, müzik ve yazılar değişmez; her şey sonra tek tek değiştirilebilir. Seçtiğin maddeler hatırlanır.")
+}
+
 @Composable
 fun PanelSablon(vm: EditorDurum, p: Proje) {
-    Kart("Varsayılan ayarlar") {
-        GenisDugme("Varsayılan ayarları uygula", "sihir", vurgulu = true) { vm.varsayilanUygula() }
-        Not("Dikey fotoğraflar yatay videoda ekranı doldurur, her fotoğraf 5 sn yaklaşır; hareketli giriş başlığı, sona doğru \"Takip et\", en sonda \"Takip et · Beğen\" kapanışı. Klipler, müzik ve yazılar değişmez; her şey sonra tek tek değiştirilebilir.")
-    }
+    Kart("Varsayılan ayarlar") { VarsayilanSayfa(vm) }
     Kart("Hazır paketler") {
         Not("Giriş başlığı, geçiş, abone hatırlatıcı ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
         Spacer(Modifier.height(6.dp))
@@ -294,7 +329,7 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
             if (g.reels) {
                 var bant by remember(p.id) { mutableStateOf(g.bant) }
                 OutlinedTextField(bant, { bant = it; vm.girisDegis { gg -> gg.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
-                    label = { Text("Vurgu bantları (| ile ayrı bant)") }, singleLine = true)
+                    label = { Text(if (g.stil == "r_haber") "Tarih | konum (ör. 26 Eylül 2026|Kabataş, Ordu)" else "Vurgu bantları (| ile ayrı bant)") }, singleLine = true)
                 Text("Giriş hareketi", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
                 Secenekler(listOf("trend" to "Trend", "dus" to "Düşerek", "kay" to "Kayarak", "yuksel" to "Yükselerek", "buyu" to "Büyüyerek"), g.hareket) { s -> vm.girisDegis { it.copy(hareket = s) } }
                 Secenekler(listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta"), g.konum) { s -> vm.girisDegis { it.copy(konum = s) } }
@@ -311,12 +346,18 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
     }
     val h = p.hatirlatici
     Kart("Abone hatırlatıcı", baslangicAcik = h.acik) {
-        AnahtarSatiri("Videonun ortasında “Abone ol” göster (4 sn)", h.acik) { v -> vm.hatirlaticiDegis { it.copy(acik = v) } }
+        AnahtarSatiri("Videoda “Abone ol” göster (4 sn)", h.acik) { v -> vm.hatirlaticiDegis { it.copy(acik = v) } }
         if (h.acik) {
+            Secenekler(listOf("kart" to "Koyu hap · ABONE OL", "klasik" to "Kırmızı bant (önceki)"), h.stil, sutun = 2) { s -> vm.hatirlaticiDegis { it.copy(stil = s) } }
             var y by remember(p.id) { mutableStateOf(h.yazi) }
             OutlinedTextField(y, { y = it; vm.hatirlaticiDegis { hh -> hh.copy(yazi = it) } }, Modifier.fillMaxWidth(), label = { Text("Yazı") }, singleLine = true)
             var kc by remember(p.id) { mutableStateOf(h.kucuk) }
             OutlinedTextField(kc, { kc = it; vm.hatirlaticiDegis { hh -> hh.copy(kucuk = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Küçük yazı") }, singleLine = true)
+            if (h.stil != "klasik") {
+                var dg by remember(p.id) { mutableStateOf(h.dugme) }
+                OutlinedTextField(dg, { dg = it; vm.hatirlaticiDegis { hh -> hh.copy(dugme = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Düğme yazısı") }, singleLine = true)
+                Not("Logo eklediysen solda yuvarlak görünür; yoksa kanal adının baş harfi.")
+            }
             Kaydirici("Videonun neresinde", h.anOran, 0.1f..0.9f, { "%${(it * 100).roundToInt()}" }) { v -> vm.hatirlaticiDegis { it.copy(anOran = v) } }
         }
     }

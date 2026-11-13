@@ -115,7 +115,7 @@ object Disa {
         val (gA, gB) = Zaman.girisAralik(p)
         val seritler = if (p.giris.acik && p.giris.reels) Reels.seritler(p.giris, W, H) else emptyList()
         if (!p.giris.reels) Cizim.giris(p.giris, W, H)?.let { zamanli += Triple(it, gA, gB) }
-        Cizim.hatirlatici(p.hatirlatici, W, H)?.let { val (a, b) = Zaman.hatirlaticiAralik(p); zamanli += Triple(it, a, b) }
+        Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { val (a, b) = Zaman.hatirlaticiAralik(p); zamanli += Triple(it, a, b) }
         for (ns in p.nesneler) if (!ns.hareketli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
 
@@ -234,7 +234,7 @@ object Disa {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) {
             mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T)
-            if (k.kenBurns) v += MatrixTransformation { android.graphics.Matrix().apply { setScale(1.08f, 1.08f) } }
+            if (k.kenBurns) { val son = Yuz.matris(Yuz.an(k, W, H, 1f)); v += MatrixTransformation { son } }   // yakınlaşmanın son hâli (yüz varsa yüzde)
         } else {
             mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build())
         }
@@ -257,7 +257,7 @@ object Disa {
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
         val v = ArrayList<Effect>()
-        if (k.foto && k.kenBurns) v += kenBurns(k.fotoSureMs)
+        if (k.foto && k.kenBurns) v += kenBurns(k, W, H)
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         v += gecis
@@ -280,13 +280,13 @@ object Disa {
         StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky).setAlphaScale(y.alfa).build()
     )
 
-    /** Fotoğrafta yavaş yakınlaşma (%8). Zaman damgası klibin ilk karesinden ölçülür. */
-    private fun kenBurns(sureMs: Long): MatrixTransformation {
+    /** Fotoğrafta yavaş yakınlaşma (%8; dikey kişi fotoğrafında yüze doğru, bkz. Yuz). Zaman damgası klibin ilk karesinden ölçülür. */
+    private fun kenBurns(k: Klip, W: Int, H: Int): MatrixTransformation {
         var t0 = -1L
         return MatrixTransformation { t ->
             if (t0 < 0) t0 = t
-            val f = ((t - t0) / 1000f / sureMs).coerceIn(0f, 1f)
-            android.graphics.Matrix().apply { setScale(1f + 0.08f * f, 1f + 0.08f * f) }
+            val f = ((t - t0) / 1000f / k.fotoSureMs).coerceIn(0f, 1f)
+            Yuz.matris(Yuz.an(k, W, H, f))
         }
     }
 }

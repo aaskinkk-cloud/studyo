@@ -51,13 +51,14 @@ object Renk {
 object Duzen {
     /** Alt başlıklar: false = simge üstte + küçük yazı (varsayılan), true = önceki yazılı haplar. */
     var yaziliMenu by mutableStateOf(false)
-    /** Önizlemenin ekran yüksekliğine oranı (tutamaçla 0,25–0,70; çift dokunuş = 0,42). */
+    /** Önizlemenin ekran yüksekliğine oranı (tutamaçla %10–75; çift dokunuş = %50). Yukarı sürükleyerek video küçültülür, ayar alanı büyür. */
     var onizlemeOran by mutableFloatStateOf(0.5f)
+    const val ORAN_EN_AZ = 0.10f
     fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran2", onizlemeOran).apply() }
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
         yaziliMenu = sp.getBoolean("yaziliMenu", false)
-        onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(0.25f, 0.75f)
+        onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, 0.75f)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
 }

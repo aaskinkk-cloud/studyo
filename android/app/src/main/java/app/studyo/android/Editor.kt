@@ -125,12 +125,12 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
         // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
         val ekranYuk = maxHeight
-        val onizlemeYuk = (ekranYuk * Duzen.onizlemeOran).coerceAtLeast(180.dp)
+        val onizlemeYuk = (ekranYuk * Duzen.onizlemeOran).coerceAtLeast(72.dp)
         Column(Modifier.fillMaxSize().imePadding()) {
             // ---- üst çubuk: kamera bölgesi de başlığın renginde ----
             Row(
                 Modifier.fillMaxWidth().background(Renk.kart)
-                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -174,7 +174,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     detectVerticalDragGestures(onDragEnd = { Duzen.oranKaydet(ctxT) }) { ch, d ->
                         ch.consume()
                         val yukPx = with(yog) { ekranYuk.toPx() }
-                        Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(0.25f, 0.75f)
+                        Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
                     }
                 }
                 .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = 0.5f; Duzen.oranKaydet(ctxT) }) },
@@ -287,17 +287,18 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
         }
         BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black)) {
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
-            var kb by remember { mutableFloatStateOf(1f) }
+            var kbF by remember { mutableFloatStateOf(0f) }
             LaunchedEffect(k?.id, k?.kenBurns, k?.fotoSureMs) {
                 if (k != null && k.foto && k.kenBurns) {
                     while (true) {
                         withFrameNanos { }
-                        kb = 1f + 0.08f * (vm.player.currentPosition.toFloat() / k.fotoSureMs).coerceIn(0f, 1f)
+                        kbF = (vm.player.currentPosition.toFloat() / k.fotoSureMs).coerceIn(0f, 1f)
                     }
                 } else {
-                    kb = 1f
+                    kbF = 0f
                 }
             }
+            val kbAn = if (k != null && k.foto && k.kenBurns) Yuz.an(k, ref.first, ref.second, kbF) else null
             AndroidView(
                 factory = { c ->
                     PlayerView(c).apply {
@@ -310,7 +311,11 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
                 update = { v ->
                     v.resizeMode = if (k?.doldur == true) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT
                 },
-                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = kb; scaleY = kb },
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    val kb = kbAn?.s ?: 1f
+                    scaleX = kb; scaleY = kb
+                    translationX = kbAn?.onizlemeX(size.width) ?: 0f; translationY = kbAn?.onizlemeY(size.height) ?: 0f
+                },
             )
             val yaziY = remember(k?.yazi, ref) { k?.yazi?.let { Kaplama.yazi(it, ref.first, ref.second) } }
             val logoY = remember(p.logo, ref) { p.logo?.let { Kaplama.logo(it, ref.first, ref.second) } }
@@ -558,12 +563,17 @@ private fun PanelKadraj(vm: EditorDurum, k: Klip) {
 
 @Composable
 private fun PanelHareket(vm: EditorDurum, k: Klip) {
-    Kart("Fotoğraf hareketi", hepsine = if (!k.foto) null else ({ vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }),
+    Kart("Fotoğraf hareketi", hepsine = if (!k.foto) null else ({ vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns, yuzOdak = k.yuzOdak) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }),
         buna = if (!k.foto) null else ({ vm.mesaj.value = "Yalnız bu fotoğrafa uygulandı" })) {
         if (!k.foto) {
             Text("Bu ayar fotoğraf klipleri içindir. Seçili klip bir video.", color = Renk.soluk, fontSize = 13.sp)
         } else {
             AnahtarSatiri("Yavaş yakınlaşma", k.kenBurns) { v -> vm.klipGuncelle { it.copy(kenBurns = v) } }
+            if (k.kenBurns && k.yuk > k.gen) {
+                if (k.yuzB > 0f) AnahtarSatiri("Yüze odaklan ve yaklaş", k.yuzOdak) { v -> vm.klipGuncelle { it.copy(yuzOdak = v) } }
+                else Text(if (k.yuzBakildi) "Bu fotoğrafta yüz bulunamadı; ortaya doğru yaklaşır." else "Yüz araması: Şablon › Varsayılan ayarlar › Yüze yaklaş.",
+                    color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            }
         }
     }
 }

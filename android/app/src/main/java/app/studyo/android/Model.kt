@@ -49,8 +49,16 @@ data class Klip(
     val hdr: Boolean = false,
     val sesVar: Boolean = true,
     val takip: Takip? = null,
+    /** Yüz (fotoğrafta): merkez 0…1 ve yüz yüksekliği (fotoğraf yüksekliğinin oranı). yuzB = 0 → yüz yok/bakılmadı. */
+    val yuzX: Float = -1f, val yuzY: Float = -1f, val yuzB: Float = 0f, val yuzBakildi: Boolean = false,
+    /** Yüze odaklan ve yaklaş (dikey kişi fotoğrafında yavaş yakınlaşma yüze doğru). */
+    val yuzOdak: Boolean = true,
+    /** Çekim tarihi (EXIF / video üstverisi); 0 = bilinmiyor. Giriş başlığındaki tarih bandı için. */
+    val tarihMs: Long = 0,
 ) {
     val foto: Boolean get() = tur == "foto"
+    /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
+    val yuzEtkin: Boolean get() = foto && kenBurns && yuzOdak && yuzB > 0f && yuk > gen
     val sureMs: Long get() = if (foto) fotoSureMs else (sonMs - basMs).coerceAtLeast(100)
 }
 
@@ -83,10 +91,12 @@ data class Giris(
 }
 
 @Serializable
-data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Abone ol", val kucuk: String = "Yeni videolar için")
+/** stil: "kart" = koyu hap: yuvarlak logo + başlık + alt satır + kırmızı ABONE OL (varsayılan) · "klasik" = önceki kırmızı/beyaz bant */
+data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Kanalıma abone ol", val kucuk: String = "Yeni videolar için zili aç",
+                       val stil: String = "kart", val dugme: String = "ABONE OL")
 
 @Serializable
-data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğiniz için teşekkürler")
+data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğin için teşekkürler!")
 
 @Serializable
 data class Kelime(val basMs: Long, val sonMs: Long, val metin: String)

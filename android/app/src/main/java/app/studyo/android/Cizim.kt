@@ -131,13 +131,47 @@ object Cizim {
     }
 
     // ---------------- Abone hatırlatıcı ----------------
-    fun hatirlatici(h: Hatirlatici, W: Int, H: Int): Yerlesim? {
+    fun hatirlatici(h: Hatirlatici, W: Int, H: Int, logo: Logo? = null, kanal: String = ""): Yerlesim? {
         if (!h.acik) return null
         val k = min(W, H).toFloat()
+        if (h.stil != "klasik") return hatirlaticiKart(h, W, H, logo, kanal)
         return bloklar(listOf(
             Blok("▶  " + h.yazi.ifBlank { "Abone ol" }, k * 0.05f, 0xFFFFFFFF.toInt(), zemin = 0xFFE53935.toInt()),
             Blok(h.kucuk, k * 0.03f, 0xFF1B2833.toInt(), zemin = 0xEEFFFFFF.toInt(), kalin = false),
         ), (W * 0.6f).toInt(), sol = true, bosluk = 0.15f)?.let { Yerlesim(it, -1f + 2f * 0.05f, -1f + 2f * 0.2f, -1f, -1f) }
+    }
+
+    /** Koyu hap: yuvarlak logo (yoksa kanal adının baş harfi) · başlık + alt satır · kırmızı ABONE OL; sol üstte. */
+    private fun hatirlaticiKart(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): Yerlesim {
+        val k = min(W, H).toFloat()
+        val bas = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.040f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+        val alt = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.027f; color = 0xFFB9C0C7.toInt() }
+        val dg = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.034f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); letterSpacing = 0.04f }
+        val t1 = h.yazi.ifBlank { "Kanalıma abone ol" }; val t2 = h.kucuk; val t3 = h.dugme.ifBlank { "ABONE OL" }.uppercase(TR)
+        val cap = k * 0.105f; val pad = k * 0.022f; val ara = k * 0.022f
+        val dgW = dg.measureText(t3) + k * 0.06f; val dgH = k * 0.072f
+        val metinW = max(bas.measureText(t1), if (t2.isBlank()) 0f else alt.measureText(t2))
+        val w = (pad + cap + ara + metinW + ara * 1.6f + dgW + pad).toInt(); val hh = (cap + pad * 2).toInt()
+        val b = Bitmap.createBitmap(w, hh, Bitmap.Config.ARGB_8888); val c = Canvas(b)
+        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), hh.toFloat()), hh / 2f, hh / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6161A1F.toInt() })
+        val cx = pad + cap / 2f; val cy = hh / 2f
+        val lg = yuvarlakLogo(logo, cap.toInt())
+        if (lg != null) c.drawBitmap(lg, pad, (hh - cap) / 2f, null) else {
+            c.drawCircle(cx, cy, cap / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE9EEF2.toInt() })
+            val harf = kanal.trim().take(1).uppercase(TR).ifEmpty { "▶" }
+            val hp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1B2833.toInt(); textSize = cap * 0.5f; typeface = AGIR; textAlign = Paint.Align.CENTER }
+            c.drawText(harf, cx, cy + hp.textSize * 0.36f, hp)
+        }
+        val tx = pad + cap + ara
+        if (t2.isBlank()) c.drawText(t1, tx, cy + bas.textSize * 0.36f, bas) else {
+            c.drawText(t1, tx, cy - k * 0.004f, bas)
+            c.drawText(t2, tx, cy + alt.textSize * 1.15f, alt)
+        }
+        val dx = w - pad - dgW; val rc = RectF(dx, cy - dgH / 2f, dx + dgW, cy + dgH / 2f)
+        c.drawRoundRect(rc, dgH / 2f, dgH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFF2E3B.toInt() })
+        c.drawText(t3, rc.centerX() - dg.measureText(t3) / 2f, cy + dg.textSize * 0.36f, dg)
+        // sol üst: kenardan %5, üstten %8
+        return Yerlesim(b, -1f + 2f * 0.05f, 1f - 2f * 0.08f, -1f, 1f)
     }
 
     // ---------------- Altyazı ----------------
@@ -254,7 +288,7 @@ object Cizim {
         // kartlar
         val kartlar = listOf(
             Triple("Beğen", "Videoyu beğenerek\nbize destek ol", 0xFF2196F3.toInt()) to "M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z",
-            Triple("Abone ol", "Kanalımıza abone\nolmayı unutma", 0xFFE53935.toInt()) to "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
+            Triple("Abone olundu", "Kanalımıza abone\nolmayı unutma", 0xFFE53935.toInt()) to "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
             Triple("Paylaş", "Bu videoyu paylaş", 0xFFFFB300.toInt()) to "M12 8V4l8 8-8 8v-4H4V8z",
         )
         val ara = k * 0.03f

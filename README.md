@@ -6,6 +6,25 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.6 (13.11.2026, deneme · `yerel-android` dalı): varsayılan ayarlar yenilendi, yüze yaklaşma, üst boşluk
+- **Varsayılan ayarlar sayfası (Görünüm › Şablon):** 3.5'teki düğme ve renk düzeninde. Beş madde arka plansız, üstte simge, altta küçük yazı, ton renkleriyle duruyor; dokun = dahil et / çıkar, seçim hatırlanır. Altta tek düğme: **Seçili N ayarı uygula**.
+  1. **Kadrajı doldur:** bütün klipler (fotoğraf ve video, yatay ve dikey) ekranı doldurur, Sığdır değil.
+  2. **Yüze yaklaş:** dikey kişi fotoğrafında yüz bulunur. Yavaş yakınlaşma yüze doğru yapılır: yüz baştan kadrajın ortasına alınır (doldurulmuş dikey fotoğrafta yüz kesilmez) ve 5 sn içinde ekran yüksekliğinin ~%38'ine kadar büyür. Kenar hiç boş kalmaz.
+  3. **Giriş başlığı "Renkli kutular"** (gönderilen örnekteki gibi):
+     - Sarı tarih bandı (takvim simgesi, çekim tarihi).
+     - Manşet satırları sarı · deniz yeşili · mercan kutularda, dar ve yüksek **Anton** harfiyle, büyük harf. Satırlar genişliğe göre kendiliğinden bölünür; `|` ile elle de bölünebilir.
+     - Siyah konum bandı ("KABATAŞ, ORDU").
+     - Şeritler sırayla kayarak gelir.
+     - Tarih ve konum "Tarih | konum" alanından değiştirilir. Tarih ilk klibin çekim tarihidir (fotoğrafta EXIF, videoda üstveri); bilinmiyorsa projenin tarihi.
+  4. **Abone ol "Koyu hap":** solda yuvarlak logo (yoksa kanal adının baş harfi), "Kanalıma abone ol / Yeni videolar için zili aç", sağda kırmızı **ABONE OL**; sol üstte, videonun %80'inde. Önceki kırmızı bant "Kırmızı bant (önceki)" olarak seçilebilir; düğme yazısı değiştirilebilir.
+  5. **Kapanış "Cam kartlar":** "İzlediğin için teşekkürler!", Beğen · **Abone olundu** · Paylaş.
+- **Yüz bulma:** Android'in cihaz içi yüz bulucusuyla yapılır (ücretsiz, ağ yok). Yeni eklenen dikey fotoğraflarda eklerken; eski projelerde "Varsayılan ayarları uygula"da.
+  - Klip › Görünüm › Hareket'te **Yüze odaklan ve yaklaş** (aç/kapat). Yüz yoksa bu yazılır.
+  - Önizleme ve dışa aktarma aynı hesabı kullanır (`Yuz.kt`).
+- **Üst boşluk:** editörde ve dışa aktarma ekranında sistem çubuğunun altındaki boş satır kaldırıldı; ekran yukarı kaydı (yalnız yanlardaki kesik payı kaldı).
+- **Önizleme tutamacı:** yukarı sürükleyerek video ekranın %10'una kadar küçültülebilir (önce %25); ayar alanı o kadar büyür. Aşağı sürüklemeyle en çok %75; çift dokun = %50.
+- Yeni dosyalar: `Yuz.kt` (yüz bulma + yakınlaşma hesabı), `Varsayilan.kt` (madde seçimi, çekim tarihi), `res/font/anton.ttf` (SIL OFL 1.1, lisans `android/OFL-Anton.txt`).
+
 ## 3.5 (13.11.2026, deneme · `yerel-android` dalı): yumuşak geçiş, oynatıcı, menüler, prompter
 - **Çapraz geçişte parlama (kök neden):** geçiş, MediaMetadataRetriever ile alınan donuk son kareyle yapılıyordu; bu kare HDR klipte farklı ton eşlemesiyle çıktığı için geçişte parlama oluyordu. Artık geçişin üst katmanı aynı klibin gerçek son T ms'lik parçası (aynı çözücü, aynı ton eşleme), zaman çizelgesi geçiş başına T kısalır (`Proje.ortusme/zKlip`). Seçenek adları: Yumuşak · Kaydırarak · Büyüyerek.
 - **Oynatıcı:** önceki/sonraki kare düğmeleri yarı boyuta indi, "başa dön" eklendi, zaman çubuğu inceldi.

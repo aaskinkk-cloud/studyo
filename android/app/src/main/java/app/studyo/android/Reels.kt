@@ -38,7 +38,7 @@ class AnKonum(val zx: Float, val zy: Float, val kx: Float, val ky: Float, val ol
 
 object Reels {
     val STILLER = listOf(
-        "r_strip" to "Beyaz şerit", "r_redwhite" to "Kırmızı-beyaz", "r_bang" to "Sarı ünlem", "r_green" to "Yeşil tırnak",
+        "r_haber" to "Renkli kutular", "r_strip" to "Beyaz şerit", "r_redwhite" to "Kırmızı-beyaz", "r_bang" to "Sarı ünlem", "r_green" to "Yeşil tırnak",
         "r_quote" to "Sarı balon", "r_alert" to "Ünlem kutusu", "r_dikkat" to "Dikkat", "r_torn" to "Yırtık kâğıt",
         "r_frame" to "Köşe çerçeve", "r_tricolor" to "Üç renk", "r_frekans" to "Kırmızı sekme", "r_alinti" to "Kırmızı alıntı",
     )
@@ -48,6 +48,53 @@ object Reels {
     private const val BEYAZ = 0xFFFFFFFF.toInt()
     private const val YESIL = 0xFF1FA855.toInt()
     private val AGIR: Typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
+    /** Anton (SIL OFL; res/font) — dar, yüksek manşet harfi. Yüklenemezse dar kalın sistem yazısı. */
+    private val ANTON: Typeface by lazy {
+        try { androidx.core.content.res.ResourcesCompat.getFont(Depo.app, R.font.anton) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD) }
+        catch (e: Throwable) { Typeface.create("sans-serif-condensed", Typeface.BOLD) }
+    }
+    private val CIP: Typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+
+    /** Renkli kutular: manşet satırı (dolu kutu, Anton). */
+    private fun kutuSatir(m: String, boy: Float, zemin: Int, yazi: Int): Bitmap {
+        val p = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = boy; typeface = ANTON; color = yazi }
+        val r = android.graphics.Rect(); p.getTextBounds("HĞŞİ", 0, 4, r)
+        val ust = -r.top.toFloat()                       // büyük harf + şapka yüksekliği
+        val padX = boy * 0.30f; val padY = boy * 0.16f
+        val w = (p.measureText(m) + 2 * padX).toInt().coerceAtLeast(4); val h = (ust + 2 * padY).toInt().coerceAtLeast(4)
+        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888); val c = Canvas(b)
+        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), Paint().apply { color = zemin })
+        c.drawText(m, padX, padY + ust, p)
+        return b
+    }
+    /** Renkli kutular: küçük bant (tarih / konum), harf aralıklı; takvim simgesi isteğe bağlı. */
+    private fun cip(m: String, boy: Float, zemin: Int, yazi: Int, takvim: Boolean): Bitmap {
+        val p = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = boy; typeface = CIP; color = yazi; letterSpacing = 0.12f }
+        val r = android.graphics.Rect(); p.getTextBounds("HĞ", 0, 2, r)
+        val ust = -r.top.toFloat()
+        val padX = boy * 0.55f; val padY = boy * 0.42f; val ik = if (takvim) boy * 1.5f else 0f
+        val w = (p.measureText(m) + 2 * padX + ik).toInt(); val h = (ust + 2 * padY).toInt()
+        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888); val c = Canvas(b)
+        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), h * 0.16f, h * 0.16f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = zemin })
+        if (takvim) {
+            val q = boy * 0.95f; val x0 = padX * 0.9f; val y0 = (h - q) / 2f
+            val cz = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = yazi; style = Paint.Style.STROKE; strokeWidth = boy * 0.1f }
+            c.drawRoundRect(RectF(x0, y0, x0 + q, y0 + q), q * 0.12f, q * 0.12f, cz)
+            c.drawLine(x0, y0 + q * 0.32f, x0 + q, y0 + q * 0.32f, cz)
+        }
+        c.drawText(m, padX + ik, padY + ust, p)
+        return b
+    }
+    /** Satır bölme: '|' yoksa kelimeleri genişliğe göre dizer. */
+    private fun sar(m: String, p: TextPaint, en: Float): List<String> {
+        val o = ArrayList<String>(); var s = ""
+        for (k in m.split(Regex("\\s+")).filter { it.isNotEmpty() }) {
+            val d = if (s.isEmpty()) k else "$s $k"
+            if (s.isNotEmpty() && p.measureText(d) > en) { o += s; s = k } else s = d
+        }
+        if (s.isNotEmpty()) o += s
+        return o
+    }
 
     private fun yaziBoya(boy: Float, renk: Int) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = boy; color = renk; typeface = AGIR }
 
@@ -82,6 +129,16 @@ object Reels {
         val o = ArrayList<Bitmap>()
         fun bantlariEkle(zemin: Int, yazi: Int) = bantlar.forEach { o += serit(it, boy * 0.85f, yazi, en, zemin = dolu(zemin)) }
         when (stil) {
+            "r_haber" -> {
+                // tarih bandı · renkli kutulu manşet satırları (sarı, deniz yeşili, mercan) · konum bandı
+                val RENK = listOf(0xFFE3A64A.toInt() to 0xFF15100A.toInt(), 0xFF7DB8AA.toInt() to BEYAZ, 0xFFD06A5A.toInt() to BEYAZ)
+                val bm = k * 0.105f
+                bantlar.getOrNull(0)?.let { o += cip(it.uppercase(TR), k * 0.034f, 0xFFE3A64A.toInt(), 0xFF15100A.toInt(), true) }
+                val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = bm; typeface = ANTON }
+                val ms = if (satirlar.size > 1) satirlar.map { it.uppercase(TR) } else sar(satirlar.firstOrNull()?.uppercase(TR) ?: "", tp, W * 0.58f)
+                ms.forEachIndexed { i, m -> val (z, y) = RENK[i % RENK.size]; o += kutuSatir(m, bm, z, y) }
+                bantlar.getOrNull(1)?.let { o += cip(it.uppercase(TR), k * 0.036f, 0xFF161616.toInt(), BEYAZ, false) }
+            }
             "r_redwhite" -> {
                 satirlar.forEachIndexed { i, m -> o += if (i % 2 == 0) serit(m, boy, BEYAZ, en, zemin = dolu(KIRMIZI)) else serit(m, boy, KIRMIZI, en, zemin = dolu(BEYAZ)) }
                 bantlariEkle(SIYAH, SARI)

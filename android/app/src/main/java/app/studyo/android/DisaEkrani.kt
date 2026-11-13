@@ -64,7 +64,7 @@ fun DisaEkrani(vm: EditorDurum, kapat: () -> Unit) {
     Column(Modifier.fillMaxSize().background(Renk.zemin)) {
         Row(
             Modifier.fillMaxWidth().background(Renk.kart)
-                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

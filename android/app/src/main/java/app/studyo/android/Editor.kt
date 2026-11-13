@@ -29,7 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -49,12 +54,20 @@ import kotlin.math.roundToInt
 
 private data class Bolum(val anahtar: String, val ad: String, val simge: String, val haplar: List<Pair<String, String>>)
 
+private val HAP_SIMGE = mapOf(
+    "klip" to "klip", "ekle" to "ekle", "nesne" to "katman", "bicim" to "bicim",
+    "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket",
+    "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
+    "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
+    "logo" to "logo", "kapak" to "kapak", "disa" to "disa",
+)
+
 private val BOLUMLER = listOf(
-    Bolum("duzenle", "Düzenle", "✂", listOf("klip" to "Klip", "ekle" to "Ekle", "nesne" to "Nesne", "bicim" to "Biçim")),
-    Bolum("gorunum", "Görünüm", "◐", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
-    Bolum("ses", "Ses", "♪", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
-    Bolum("metin", "Metin", "T", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
-    Bolum("yayin", "Yayın", "⇪", listOf("logo" to "Logo", "kapak" to "Kapak", "disa" to "Dışa aktar")),
+    Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "ekle" to "Ekle", "nesne" to "Nesne", "bicim" to "Biçim")),
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
+    Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
+    Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
+    Bolum("yayin", "Yayın", "yildiz", listOf("logo" to "Logo", "kapak" to "Kapak", "disa" to "Dışa aktar")),
 )
 
 @Composable
@@ -89,7 +102,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
         // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
         val sade = !Duzen.onceki
-        val onizlemeYuk = (maxHeight * 0.42f).coerceAtLeast(200.dp)
+        val ekranYuk = maxHeight
+        val onizlemeYuk = (ekranYuk * Duzen.onizlemeOran).coerceAtLeast(180.dp)
         Column(Modifier.fillMaxSize().imePadding()) {
             // ---- üst çubuk: kamera bölgesi de başlığın renginde ----
             Row(
@@ -98,14 +112,48 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = cik) { Text("←", color = Renk.yazi, fontSize = 22.sp) }
-                Text(p.ad, color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Dugme("Kaydet", Modifier.padding(end = 6.dp), renk = Renk.turkuaz, yaziRenk = Color(0xFF04191B)) { vm.kaydetSimdi() }
-                Dugme("Dışa Aktar", Modifier.padding(end = 4.dp), renk = Renk.turuncu, yaziRenk = Renk.turuncuM, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
+                Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 24.dp) }
+                var adMenu by remember { mutableStateOf(false) }
+                var adDuzen by remember { mutableStateOf(false) }
+                Box(Modifier.weight(1f)) {
+                    Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { adMenu = true }.padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(p.ad, color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Simge("asagi", Renk.soluk, 18.dp)
+                    }
+                    DropdownMenu(expanded = adMenu, onDismissRequest = { adMenu = false }) {
+                        DropdownMenuItem(text = { Text("Adını değiştir") }, onClick = { adMenu = false; adDuzen = true })
+                        DropdownMenuItem(text = { Text("Projelere dön") }, onClick = { adMenu = false; cik() })
+                    }
+                }
+                if (adDuzen) {
+                    var ad by remember { mutableStateOf(p.ad) }
+                    AlertDialog(onDismissRequest = { adDuzen = false }, title = { Text("Proje adı") },
+                        text = { OutlinedTextField(ad, { ad = it }, singleLine = true) },
+                        confirmButton = { TextButton(onClick = { vm.adDegistir(ad); adDuzen = false }) { Text("Tamam") } },
+                        dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
+                }
+                UstDugme("Kaydet", "kaydet", Renk.turkuaz, Color(0xFF04191B), Modifier.padding(end = 6.dp)) { vm.kaydetSimdi() }
+                UstDugme("Dışa Aktar", "disa", Renk.turuncu, Renk.turuncuM, Modifier.padding(end = 2.dp), etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
             val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
             if (sade) {
-                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk))
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(horizontal = 10.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(18.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(18.dp)))
+                // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
+                val ctxT = LocalContext.current
+                val yog = LocalDensity.current
+                Box(Modifier.fillMaxWidth().height(18.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(onDragEnd = { Duzen.oranKaydet(ctxT) }) { ch, d ->
+                            ch.consume()
+                            val yukPx = with(yog) { ekranYuk.toPx() }
+                            Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(0.25f, 0.7f)
+                        }
+                    }
+                    .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = 0.42f; Duzen.oranKaydet(ctxT) }) },
+                    contentAlignment = Alignment.Center) {
+                    Box(Modifier.width(44.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Renk.soluk.copy(alpha = 0.6f)))
+                }
                 OynaticiSatiri(vm, p)
                 Column(Modifier.fillMaxWidth().weight(1f)) {
                     if (!panelAcik) {
@@ -138,26 +186,34 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // ---- haplar + 5 bölüm ----
             val b = BOLUMLER.first { it.anahtar == bolum }
             Row(
-                Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp).padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 b.haplar.forEach { (k, ad) ->
-                    Hap(ad, panelAcik && haplar[bolum] == k) {
-                        if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
+                    Hap(ad, panelAcik && haplar[bolum] == k, HAP_SIMGE[k], Modifier.weight(1f)) {
+                        if (k == "disa") disaAcik = true
+                        else if (panelAcik && haplar[bolum] == k) panelAcik = false
+                        else { haplar[bolum] = k; panelAcik = true }
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().background(Renk.kart).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 4.dp)) {
-                BOLUMLER.forEach { bb ->
-                    val on = bb.anahtar == bolum && panelAcik
+            Row(
+                Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)).background(Renk.kart)
+                    .windowInsetsPadding(WindowInsets.navigationBars).padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BOLUMLER.forEachIndexed { i, bb ->
+                    if (i > 0) Box(Modifier.width(1.dp).height(30.dp).background(Renk.cizgi))
+                    val on = bb.anahtar == bolum
                     Column(
-                        Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(12.dp)).clickable {
+                        Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(12.dp)).clickable {
                             if (bb.anahtar == bolum && panelAcik) panelAcik = false else { bolum = bb.anahtar; panelAcik = true }
                         },
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
                     ) {
-                        Text(bb.simge, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 20.sp)
-                        Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium)
+                        Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 24.dp)
+                        Spacer(Modifier.height(3.dp))
+                        Text(bb.ad, color = if (on) Renk.turuncu else Renk.yazi, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium)
                     }
                 }
             }
@@ -238,30 +294,57 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
 }
 
 @Composable
+private fun UstDugme(metin: String, simge: String, renk: Color, yaziRenk: Color, modifier: Modifier = Modifier, etkin: Boolean = true, onClick: () -> Unit) {
+    val sekil = RoundedCornerShape(24.dp)
+    Row(
+        modifier.height(44.dp).clip(sekil).background(Brush.verticalGradient(listOf(renk, renk.copy(alpha = 0.82f)))).alpha(if (etkin) 1f else 0.45f)
+            .clickable(enabled = etkin, onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Simge(simge, yaziRenk, 19.dp)
+        Spacer(Modifier.width(7.dp))
+        Text(metin, color = yaziRenk, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+    }
+}
+
+/** Kalın zaman çubuğu: dokun/sürükle = o ana git. */
+@Composable
+private fun ZamanCubugu(konum: Long, toplam: Long, git: (Long) -> Unit) {
+    val f = (konum.toFloat() / toplam.coerceAtLeast(1)).coerceIn(0f, 1f)
+    BoxWithConstraints(
+        Modifier.fillMaxWidth().height(30.dp)
+            .pointerInput(toplam) { detectTapGestures { o -> git((o.x / size.width * toplam).toLong()) } }
+            .pointerInput(toplam) { detectHorizontalDragGestures { ch, _ -> ch.consume(); git((ch.position.x / size.width * toplam).toLong().coerceIn(0, toplam)) } },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        val w = maxWidth
+        Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Renk.cizgi))
+        Box(Modifier.width(w * f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(Brush.horizontalGradient(listOf(Renk.turuncu, Renk.turuncu.copy(alpha = 0.85f)))))
+        Box(Modifier.offset(x = (w * f - 3.dp).coerceIn(0.dp, w - 6.dp)).width(6.dp).height(26.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu))
+    }
+}
+
+@Composable
 private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
     val konum by vm.konum.collectAsState()
     val oyn by vm.oynuyor.collectAsState()
     val toplam = p.toplamMs.coerceAtLeast(1)
-    Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(horizontal = 12.dp)) {
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(sureOndalik(konum), color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.width(70.dp))
+    Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(horizontal = 14.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(sureOndalik(konum), color = Renk.yazi, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.width(76.dp))
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { vm.onceki() }) { Text("⏮", color = Renk.yazi, fontSize = 22.sp) }
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", Renk.yazi, 28.dp) }
+            Spacer(Modifier.width(14.dp))
             Box(
-                Modifier.size(48.dp).clip(CircleShape).background(Renk.turuncu).clickable { vm.oynatDurdur() },
+                Modifier.size(58.dp).clip(CircleShape).background(Brush.radialGradient(listOf(Renk.turuncu, Renk.turuncu.copy(alpha = 0.85f)))).clickable { vm.oynatDurdur() },
                 contentAlignment = Alignment.Center,
-            ) { Text(if (oyn) "❚❚" else "▶", color = Renk.turuncuM, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
-            TextButton(onClick = { vm.sonraki() }) { Text("⏭", color = Renk.yazi, fontSize = 22.sp) }
+            ) { Simge(if (oyn) "durdur" else "oynat", Color(0xFF111111), 30.dp) }
+            Spacer(Modifier.width(14.dp))
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", Renk.yazi, 28.dp) }
             Spacer(Modifier.weight(1f))
-            Text(sureYaz(p.toplamMs), color = Renk.soluk, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.width(70.dp))
+            Text(sureYaz(p.toplamMs), color = Renk.soluk, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(76.dp))
         }
-        Slider(
-            value = konum.coerceIn(0, toplam).toFloat(),
-            onValueChange = { vm.git(it.toLong()) },
-            valueRange = 0f..toplam.toFloat(),
-            modifier = Modifier.fillMaxWidth().height(30.dp),
-            colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
-        )
+        ZamanCubugu(konum.coerceIn(0, toplam), toplam) { vm.git(it) }
     }
 }
 
@@ -277,27 +360,34 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
-            val sekil = RoundedCornerShape(10.dp)
+            val sekil = RoundedCornerShape(14.dp)
             Box(
                 Modifier.width(kw).fillMaxHeight().clip(sekil)
-                    .border(if (i == sec) 3.dp else 1.dp, if (i == sec) Renk.turuncu else Renk.cizgi, sekil)
+                    .border(if (i == sec) 3.dp else 1.5.dp, if (i == sec) Renk.turuncu else Renk.turkuaz.copy(alpha = 0.7f), sekil)
                     .clickable { vm.sec(i) },
             ) {
                 KlipResmi(k, Modifier.fillMaxSize())
-                Text("${i + 1}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.TopStart).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp))
+                Box(Modifier.align(Alignment.TopStart).padding(5.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
+                    Text("${i + 1}", color = Color.White, fontSize = if (kucuk) 10.sp else 12.sp, fontWeight = FontWeight.Bold)
+                }
                 val rozet = buildList { if (k.foto) add("Foto"); if (k.sessiz || (!k.foto && !k.sesVar)) add("Sessiz"); if (k.yazi?.metin?.isNotBlank() == true) add("T") }
                 if (rozet.isNotEmpty()) Text(rozet.joinToString(" · "), color = Color.White, fontSize = 10.sp,
                     modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp))
-                Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 11.sp,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp))
+                if (!kucuk) Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xCC0E151B)).padding(horizontal = 7.dp, vertical = 2.dp))
             }
         }
         item {
             Box(
-                Modifier.width(96.dp).fillMaxHeight().clip(RoundedCornerShape(10.dp)).border(1.5.dp, Renk.turuncu, RoundedCornerShape(10.dp)).clickable { ekle() },
+                Modifier.width(if (kucuk) 70.dp else 110.dp).fillMaxHeight().clip(RoundedCornerShape(14.dp))
+                    .border(1.5.dp, Renk.turuncu, RoundedCornerShape(14.dp)).clickable { ekle() },
                 contentAlignment = Alignment.Center,
-            ) { Text("＋\nEkle", color = Renk.turuncu, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("ekle", Renk.turuncu, if (kucuk) 20.dp else 28.dp)
+                    if (!kucuk) Text("Ekle", color = Renk.turuncu, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
+            }
         }
     }
     val ek = buildList {
@@ -412,7 +502,7 @@ private fun PanelKadraj(vm: EditorDurum, k: Klip) {
             SecimKarti("Doldur", "Kare dolar,\ntaşan kısım kesilir", k.doldur, Modifier.weight(1f)) { vm.klipGuncelle { it.copy(doldur = true) } }
         }
         Spacer(Modifier.height(8.dp))
-        Dugme("Tüm kliplere uygula", Modifier.fillMaxWidth()) { vm.hepsine({ it.copy(doldur = k.doldur) }) }
+        GenisDugme("Tüm kliplere uygula", "makas") { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Tüm kliplere uygulandı" }
     }
 }
 
@@ -423,7 +513,7 @@ private fun PanelHareket(vm: EditorDurum, k: Klip) {
             Text("Bu ayar fotoğraf klipleri içindir. Seçili klip bir video.", color = Renk.soluk, fontSize = 13.sp)
         } else {
             AnahtarSatiri("Yavaş yakınlaşma", k.kenBurns) { v -> vm.klipGuncelle { it.copy(kenBurns = v) } }
-            Dugme("Tüm fotoğraflara uygula", Modifier.fillMaxWidth()) { vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns) else it }) }
+            GenisDugme("Tüm fotoğraflara uygula", "makas") { vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }
         }
     }
 }
@@ -443,7 +533,7 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
             )
             Text("%100 üstü yalnız dışa aktarmada yükseltilir; önizleme en fazla %100 çalar.", color = Renk.soluk, fontSize = 12.sp)
-            Dugme("Tüm kliplere uygula", Modifier.fillMaxWidth().padding(top = 6.dp)) { vm.hepsine({ it.copy(ses = k.ses, sessiz = k.sessiz) }) }
+            GenisDugme("Tüm kliplere uygula", "makas", Modifier.padding(top = 6.dp)) { vm.hepsine({ it.copy(ses = k.ses, sessiz = k.sessiz) }); vm.mesaj.value = "Tüm kliplere uygulandı" }
         }
     }
 }

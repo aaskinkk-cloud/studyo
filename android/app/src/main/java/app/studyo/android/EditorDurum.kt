@@ -89,7 +89,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (p.kapanisMs > 0) {
             // Kapanış kartı önizlemede de görünür (çıktıdakiyle aynı çizim, 1080 ölçeğinde)
             val (w, h) = Disa.boyut(p.bicim, 1080)
-            val f = try { Disa.kapanisDosyasi(ctx, p, w, h, "kapanis_" + (p.kapanis.hashCode() * 31 + p.logo.hashCode() * 7 + p.bicim.hashCode()).toUInt()) } catch (e: Exception) { Kayit.hata("kapanış kartı", e); null }
+            val f = try { Disa.kapanisDosyasi(ctx, p, w, h, "kapanis_" + (p.kapanis.hashCode() * 31 + p.logo.hashCode() * 7 + p.bicim.hashCode() + (p.klipler.lastOrNull()?.let { it.uri.hashCode() + it.sonMs.hashCode() } ?: 0) * 13).toUInt()) } catch (e: Exception) { Kayit.hata("kapanış kartı", e); null }
             if (f != null) l += MediaItem.Builder().setUri(Uri.fromFile(f)).setMediaId("kapanis").setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
         }
         return l

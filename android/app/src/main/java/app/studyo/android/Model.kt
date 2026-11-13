@@ -86,7 +86,7 @@ data class Giris(
 data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Abone ol", val kucuk: String = "Yeni videolar için")
 
 @Serializable
-data class Kapanis(val acik: Boolean = false, val stil: String = "cta", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğiniz için teşekkürler")
+data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğiniz için teşekkürler")
 
 @Serializable
 data class Kelime(val basMs: Long, val sonMs: Long, val metin: String)

@@ -287,7 +287,7 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
     Kart("Kapanış", baslangicAcik = kp.acik) {
         AnahtarSatiri("Videonun sonuna kapanış kartı ekle (aydınlık)", kp.acik) { v -> vm.kapanisDegis { it.copy(acik = v) } }
         if (kp.acik) {
-            Secenekler(listOf("cta" to "Beğen · Abone · Paylaş", "sade" to "Sade"), kp.stil, sutun = 2) { s -> vm.kapanisDegis { it.copy(stil = s) } }
+            Secenekler(listOf("cam" to "Cam kartlar", "cta" to "Renkli haplar", "sade" to "Sade"), kp.stil) { s -> vm.kapanisDegis { it.copy(stil = s) } }
             var kn by remember(p.id) { mutableStateOf(kp.kanal) }
             OutlinedTextField(kn, { kn = it; vm.kapanisDegis(false) { k -> k.copy(kanal = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp), label = { Text("Kanal adı") }, singleLine = true)
             var yz by remember(p.id) { mutableStateOf(kp.yazi) }

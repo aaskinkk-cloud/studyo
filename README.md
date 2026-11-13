@@ -6,6 +6,18 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.3 (13.11.2026, deneme · `yerel-android` dalı): yeni görünüm (Ahmet'in tasarım görseline göre)
+- **Üst çubuk:** simgeli geri; proje adı + ▾ (Adını değiştir · Projelere dön); simgeli **Kaydet** (turkuaz) ve **Dışa Aktar** (turuncu) yuvarlak düğmeler. Amaçsız logo konmadı.
+- **Önizleme:** köşeleri yuvarlatılmış kart. Altında **tutamaç**: aşağı sürükle = büyüt, yukarı = küçült (ekranın %25–70'i; ayar alanı o kadar genişler), çift dokun = varsayılan (%42). Seçim hatırlanır.
+- **Oynatıcı:** büyük turuncu ▶/❚❚, simgeli ⏮ ⏭, solda an, sağda toplam süre; altında **kalın zaman çubuğu** (dokun/sürükle = o ana git).
+- **Klip şeridi:** yuvarlak köşeli büyük resimler, sol üstte yuvarlak sıra numarası, sağ altta süre; seçili klip turuncu çerçeve; kesik çizgili turuncu **＋ Ekle** kartı.
+- **Haplar:** simge + ad, eşit genişlikte tek sıra; seçili olan turuncu ve altı çizgili; seçili hapa tekrar dokun = paneli kapat.
+- **Alt çubuk:** 5 bölüm simgeli, aralarında ince ayırıcı, üst köşeleri yuvarlak.
+- **"Tüm kliplere uygula ›"** geniş hap düğmesi (Kadraj, Hareket, Klip sesi).
+- **Kapanış kartı "Cam kartlar"** (yeni varsayılan): son karenin bulanık hâli üstünde sarı halkalı logo (yoksa kanal adının baş harfi), "İzlediğin için teşekkürler!" + sarı kıvrım, Beğen · Abone ol · Paylaş cam kartları (yatayda yan yana, dikeyde alt alta). Eski "Renkli haplar" ve "Sade" seçenek olarak duruyor.
+- Simgeler uygulamanın kendi çizimi (`Simge.kt`); ek kitaplık yok.
+- Önceki düzen hâlâ ⋯ menüsünde.
+
 ## 3.2 (13.11.2026, deneme · `yerel-android` dalı): kalan dört özellik + sade düzen
 **İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — üstüne kurulur. Telefonda test edilmeden `main`'e alınmayacak.
 

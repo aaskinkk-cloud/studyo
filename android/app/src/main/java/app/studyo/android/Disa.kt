@@ -97,7 +97,12 @@ object Disa {
     /** Kapanış kartını çıktı çözünürlüğünde JPEG olarak yazar (görüntü klibi olarak eklenir). */
     fun kapanisDosyasi(ctx: Context, p: Proje, W: Int, H: Int, ad: String): File {
         val f = File(ctx.cacheDir, "$ad.jpg")
-        val b = Cizim.kapanis(p.kapanis, p.logo, W, H)
+        val son = p.klipler.lastOrNull()
+        val arka = if (p.kapanis.stil != "cam" || son == null) null else try {
+            if (son.foto) Medya.ornekleCoz(File(Uri.parse(son.uri).path ?: ""), 1280)
+            else Medya.kareTam(ctx, Uri.parse(son.uri), (son.sonMs - 40).coerceAtLeast(son.basMs), 1280)
+        } catch (e: Exception) { null }
+        val b = Cizim.kapanis(p.kapanis, p.logo, W, H, arka)
         f.outputStream().use { b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, it) }
         b.recycle()
         return f

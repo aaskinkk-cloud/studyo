@@ -200,7 +200,91 @@ object Cizim {
     }
 
     // ---------------- Kapanış kartı (aydınlık; karanlık bitiş yok) ----------------
-    fun kapanis(kp: Kapanis, logo: Logo?, W: Int, H: Int): Bitmap {
+    /** Hızlı bulanıklaştırma: çok küçültüp iki adımda büyütür (yumuşak, bellek dostu). */
+    private fun bulanik(k: Bitmap, W: Int, H: Int): Bitmap {
+        val s = max(W.toFloat() / k.width, H.toFloat() / k.height)
+        val sw = (W / s).toInt().coerceIn(1, k.width); val sh = (H / s).toInt().coerceIn(1, k.height)
+        val kirp = Bitmap.createBitmap(k, (k.width - sw) / 2, (k.height - sh) / 2, sw, sh)
+        val kucuk = Bitmap.createScaledBitmap(kirp, (W / 28).coerceAtLeast(2), (H / 28).coerceAtLeast(2), true)
+        val orta = Bitmap.createScaledBitmap(kucuk, (W / 6).coerceAtLeast(2), (H / 6).coerceAtLeast(2), true)
+        return Bitmap.createScaledBitmap(orta, W, H, true)
+    }
+
+    private fun yolCiz(c: Canvas, d: String, cx: Float, cy: Float, boy: Float, renk: Int) {
+        val yol = androidx.core.graphics.PathParser.createPathFromPathData(d)
+        c.save(); c.translate(cx - boy / 2f, cy - boy / 2f); c.scale(boy / 24f, boy / 24f)
+        c.drawPath(yol, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = renk })
+        c.restore()
+    }
+
+    /** Cam kartlı kapanış: son karenin bulanık hâli üstünde logo, teşekkür ve Beğen · Abone ol · Paylaş kartları. Karanlık bitiş yok. */
+    private fun kapanisCam(kp: Kapanis, logo: Logo?, W: Int, H: Int, arka: Bitmap?): Bitmap {
+        val b = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val k = min(W, H).toFloat()
+        if (arka != null) {
+            c.drawBitmap(bulanik(arka, W, H), 0f, 0f, null)
+            c.drawRect(0f, 0f, W.toFloat(), H.toFloat(), Paint().apply { color = 0x40000000 })
+        } else c.drawRect(0f, 0f, W.toFloat(), H.toFloat(), Paint().apply {
+            shader = LinearGradient(0f, 0f, W.toFloat(), H.toFloat(), intArrayOf(0xFF2EC5D3.toInt(), 0xFF6FB7C9.toInt(), 0xFFF5A524.toInt()), null, Shader.TileMode.CLAMP)
+        })
+        val dikey = H > W
+        var y = H * (if (dikey) 0.14f else 0.06f)
+        // logo (yoksa kanal adının baş harfi) — sarı halkalı
+        val cap = (k * 0.17f).toInt()
+        val cx = W / 2f
+        c.drawCircle(cx, y + cap / 2f, cap / 2f + k * 0.008f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFC107.toInt() })
+        val lg = yuvarlakLogo(logo, cap)
+        if (lg != null) c.drawBitmap(lg, cx - cap / 2f, y, null) else {
+            c.drawCircle(cx, y + cap / 2f, cap / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF14202B.toInt() })
+            val harf = kp.kanal.trim().take(1).uppercase(TR).ifEmpty { "★" }
+            val p = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFC107.toInt(); textSize = cap * 0.55f; typeface = AGIR; textAlign = Paint.Align.CENTER }
+            c.drawText(harf, cx, y + cap / 2f + p.textSize * 0.36f, p)
+        }
+        y += cap + k * 0.04f
+        // teşekkür yazısı + sarı kıvrım
+        bloklar(listOf(Blok(kp.yazi.ifBlank { "İzlediğin için teşekkürler!" }, k * 0.075f, 0xFFFFFFFF.toInt(), agir = true, golge = 0x99000000.toInt())), (W * 0.9f).toInt())?.let { t ->
+            c.drawBitmap(t, (W - t.width) / 2f, y, null)
+            y += t.height
+            val sw = t.width * 0.45f
+            val yol = android.graphics.Path().apply { moveTo(cx - sw / 2, y + k * 0.012f); quadTo(cx, y - k * 0.012f, cx + sw / 2, y + k * 0.004f) }
+            c.drawPath(yol, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFC107.toInt(); style = Paint.Style.STROKE; strokeWidth = k * 0.011f; strokeCap = Paint.Cap.ROUND })
+            y += k * 0.05f
+        }
+        // kartlar
+        val kartlar = listOf(
+            Triple("Beğen", "Videoyu beğenerek\nbize destek ol", 0xFF2196F3.toInt()) to "M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z",
+            Triple("Abone ol", "Kanalımıza abone\nolmayı unutma", 0xFFE53935.toInt()) to "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
+            Triple("Paylaş", "Bu videoyu paylaş", 0xFFFFB300.toInt()) to "M12 8V4l8 8-8 8v-4H4V8z",
+        )
+        val ara = k * 0.03f
+        val kw: Float; val kh: Float
+        if (dikey) { kw = W * 0.78f; kh = k * 0.30f } else { kw = (W * 0.88f - ara * 2) / 3f; kh = min(H - y - k * 0.05f, k * 0.42f) }
+        kartlar.forEachIndexed { i, (m, yol) ->
+            val x0 = if (dikey) (W - kw) / 2f else (W - (kw * 3 + ara * 2)) / 2f + i * (kw + ara)
+            val y0 = if (dikey) y + i * (kh + ara) else y
+            val rc = RectF(x0, y0, x0 + kw, y0 + kh)
+            c.drawRoundRect(rc, k * 0.035f, k * 0.035f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x33FFFFFF })
+            c.drawRoundRect(rc, k * 0.035f, k * 0.035f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x66FFFFFF; style = Paint.Style.STROKE; strokeWidth = k * 0.003f })
+            val rozet = kh * (if (dikey) 0.26f else 0.2f)
+            val rx = if (dikey) x0 + rozet * 0.9f else rc.centerX()
+            val ry = if (dikey) rc.centerY() else y0 + kh * 0.08f + rozet
+            c.drawCircle(rx, ry, rozet, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = m.third })
+            yolCiz(c, yol, rx, ry, rozet * 1.15f, 0xFFFFFFFF.toInt())
+            val metin = bloklar(listOf(
+                Blok(m.first, k * 0.05f, 0xFFFFFFFF.toInt(), agir = true, golge = 0x66000000),
+                Blok(m.second, k * 0.028f, 0xE6FFFFFF.toInt(), kalin = false, golge = 0x66000000),
+            ), (if (dikey) kw - rozet * 2.4f else kw * 0.94f).toInt(), sol = dikey, bosluk = 0.12f)
+            metin?.let { t ->
+                if (dikey) c.drawBitmap(t, rx + rozet * 1.3f, rc.centerY() - t.height / 2f, null)
+                else c.drawBitmap(t, rc.centerX() - t.width / 2f, ry + rozet + kh * 0.05f, null)
+            }
+        }
+        return b
+    }
+
+    fun kapanis(kp: Kapanis, logo: Logo?, W: Int, H: Int, arka: Bitmap? = null): Bitmap {
+        if (kp.stil == "cam") return kapanisCam(kp, logo, W, H, arka)
         val b = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
         val k = min(W, H).toFloat()

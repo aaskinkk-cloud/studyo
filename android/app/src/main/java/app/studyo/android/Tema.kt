@@ -15,7 +15,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -47,7 +49,14 @@ object Renk {
 /** Editör düzeni: sade (önizleme hep büyük, InShot gibi) varsayılan; önceki düzen ⋯ menüsünden seçilebilir. */
 object Duzen {
     var onceki by mutableStateOf(false)
-    fun yukle(ctx: Context) { onceki = ctx.getSharedPreferences("ayar", 0).getBoolean("oncekiDuzen", false) }
+    /** Önizlemenin ekran yüksekliğine oranı (tutamaçla 0,25–0,70; çift dokunuş = 0,42). */
+    var onizlemeOran by mutableFloatStateOf(0.42f)
+    fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran", onizlemeOran).apply() }
+    fun yukle(ctx: Context) {
+        val sp = ctx.getSharedPreferences("ayar", 0)
+        onceki = sp.getBoolean("oncekiDuzen", false)
+        onizlemeOran = sp.getFloat("onizlemeOran", 0.42f).coerceIn(0.25f, 0.7f)
+    }
     fun degistir(ctx: Context) { onceki = !onceki; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oncekiDuzen", onceki).apply() }
 }
 
@@ -67,18 +76,41 @@ fun StudyoTema(icerik: @Composable () -> Unit) {
     MaterialTheme(colorScheme = renkler, content = icerik)
 }
 
-/** Hap düğme (bölümün alt başlıkları). */
+/** Hap düğme (bölümün alt başlıkları): simge + ad; seçili olan turuncu dolgulu ve altı çizgili. */
 @Composable
-fun Hap(metin: String, secili: Boolean, onClick: () -> Unit) {
-    val sekil = RoundedCornerShape(17.dp)
-    Box(
-        Modifier.height(34.dp).clip(sekil)
-            .background(if (secili) Renk.turuncu else Color.Transparent)
-            .border(1.5.dp, if (secili) Renk.turuncu else Renk.cizgi, sekil)
-            .clickable(onClick = onClick).padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center,
+fun Hap(metin: String, secili: Boolean, simge: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val sekil = RoundedCornerShape(22.dp)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(
+            Modifier.fillMaxWidth().height(42.dp).clip(sekil)
+                .background(if (secili) Brush.verticalGradient(listOf(Renk.turuncu, Renk.turuncu.copy(alpha = 0.85f))) else SolidColor(Renk.kart2))
+                .border(1.dp, if (secili) Renk.turuncu else Renk.cizgi, sekil)
+                .clickable(onClick = onClick).padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+        ) {
+            val uzun = metin.length > 9
+            simge?.let { Simge(it, if (secili) Renk.turuncuM else Renk.yazi, if (uzun) 16.dp else 19.dp); Spacer(Modifier.width(if (uzun) 4.dp else 7.dp)) }
+            Text(metin, color = if (secili) Renk.turuncuM else Renk.yazi, fontSize = if (uzun) 12.5.sp else 14.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        }
+        Box(Modifier.padding(top = 4.dp).width(28.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(if (secili) Renk.turuncu else Color.Transparent))
+    }
+}
+
+/** Geniş hap düğme (ör. "Tüm kliplere uygula ›"). */
+@Composable
+fun GenisDugme(metin: String, simge: String? = null, modifier: Modifier = Modifier, vurgulu: Boolean = false, onClick: () -> Unit) {
+    val sekil = RoundedCornerShape(26.dp)
+    Row(
+        modifier.fillMaxWidth().height(50.dp).clip(sekil).background(if (vurgulu) Renk.turuncu else Renk.kart2)
+            .border(1.dp, if (vurgulu) Renk.turuncu else Renk.cizgi, sekil).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
-        Text(metin, color = if (secili) Renk.turuncuM else Renk.yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        val r = if (vurgulu) Renk.turuncuM else Renk.yazi
+        simge?.let { Simge(it, r, 20.dp); Spacer(Modifier.width(10.dp)) }
+        Text(metin, color = r, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(8.dp))
+        Simge("ileri", r, 18.dp)
     }
 }
 

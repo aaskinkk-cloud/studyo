@@ -141,37 +141,81 @@ object Cizim {
         ), (W * 0.6f).toInt(), sol = true, bosluk = 0.15f)?.let { Yerlesim(it, -1f + 2f * 0.05f, -1f + 2f * 0.2f, -1f, -1f) }
     }
 
-    /** Koyu hap: yuvarlak logo (yoksa kanal adının baş harfi) · başlık + alt satır · kırmızı ABONE OL; sol üstte. */
-    private fun hatirlaticiKart(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): Yerlesim {
+    /** Koyu hap kartın iki hâli (ABONE OL / 🔔 Abone olundu; genişlik aynı, kart zıplamaz) + dokunma noktası.
+     *  dx, dy: düğmenin merkezi (bitmap içinde 0…1). */
+    class HatKart(val normal: Bitmap, val abone: Bitmap, val nokta: Bitmap, val dx: Float, val dy: Float)
+
+    fun hatirlaticiKartSet(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): HatKart {
         val k = min(W, H).toFloat()
         val bas = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.040f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
         val alt = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.027f; color = 0xFFB9C0C7.toInt() }
         val dg = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.034f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); letterSpacing = 0.04f }
-        val t1 = h.yazi.ifBlank { "Kanalıma abone ol" }; val t2 = h.kucuk; val t3 = h.dugme.ifBlank { "ABONE OL" }.uppercase(TR)
+        val dg2 = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.033f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+        val t1 = h.yazi.ifBlank { "Kanalıma abone ol" }; val t2 = h.kucuk; val t3 = h.dugme.ifBlank { "ABONE OL" }.uppercase(TR); val t4 = "Abone olundu"
         val cap = k * 0.105f; val pad = k * 0.022f; val ara = k * 0.022f
-        val dgW = dg.measureText(t3) + k * 0.06f; val dgH = k * 0.072f
+        val zil = k * 0.034f
+        val dgH = k * 0.072f
+        val dgW = max(dg.measureText(t3) + k * 0.06f, zil + k * 0.012f + dg2.measureText(t4) + k * 0.06f)
         val metinW = max(bas.measureText(t1), if (t2.isBlank()) 0f else alt.measureText(t2))
         val w = (pad + cap + ara + metinW + ara * 1.6f + dgW + pad).toInt(); val hh = (cap + pad * 2).toInt()
-        val b = Bitmap.createBitmap(w, hh, Bitmap.Config.ARGB_8888); val c = Canvas(b)
-        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), hh.toFloat()), hh / 2f, hh / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6161A1F.toInt() })
         val cx = pad + cap / 2f; val cy = hh / 2f
-        val lg = yuvarlakLogo(logo, cap.toInt())
-        if (lg != null) c.drawBitmap(lg, pad, (hh - cap) / 2f, null) else {
-            c.drawCircle(cx, cy, cap / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE9EEF2.toInt() })
-            val harf = kanal.trim().take(1).uppercase(TR).ifEmpty { "▶" }
-            val hp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1B2833.toInt(); textSize = cap * 0.5f; typeface = AGIR; textAlign = Paint.Align.CENTER }
-            c.drawText(harf, cx, cy + hp.textSize * 0.36f, hp)
+        val dxp = w - pad - dgW; val rc = RectF(dxp, cy - dgH / 2f, dxp + dgW, cy + dgH / 2f)
+        fun kart(abone: Boolean): Bitmap {
+            val b = Bitmap.createBitmap(w, hh, Bitmap.Config.ARGB_8888); val c = Canvas(b)
+            c.drawRoundRect(RectF(0f, 0f, w.toFloat(), hh.toFloat()), hh / 2f, hh / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xE6161A1F.toInt() })
+            val lg = yuvarlakLogo(logo, cap.toInt())
+            if (lg != null) c.drawBitmap(lg, pad, (hh - cap) / 2f, null) else {
+                c.drawCircle(cx, cy, cap / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE9EEF2.toInt() })
+                val harf = kanal.trim().take(1).uppercase(TR).ifEmpty { "▶" }
+                val hp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1B2833.toInt(); textSize = cap * 0.5f; typeface = AGIR; textAlign = Paint.Align.CENTER }
+                c.drawText(harf, cx, cy + hp.textSize * 0.36f, hp)
+            }
+            val tx = pad + cap + ara
+            if (t2.isBlank()) c.drawText(t1, tx, cy + bas.textSize * 0.36f, bas) else {
+                c.drawText(t1, tx, cy - k * 0.004f, bas)
+                c.drawText(t2, tx, cy + alt.textSize * 1.15f, alt)
+            }
+            if (!abone) {
+                c.drawRoundRect(rc, dgH / 2f, dgH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFF2E3B.toInt() })
+                c.drawText(t3, rc.centerX() - dg.measureText(t3) / 2f, cy + dg.textSize * 0.36f, dg)
+            } else {
+                c.drawRoundRect(rc, dgH / 2f, dgH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF3A3F46.toInt() })
+                val icW = zil + k * 0.012f + dg2.measureText(t4)
+                val x0 = rc.centerX() - icW / 2f
+                zilCiz(c, x0 + zil / 2f, cy, zil)
+                c.drawText(t4, x0 + zil + k * 0.012f, cy + dg2.textSize * 0.36f, dg2)
+            }
+            return b
         }
-        val tx = pad + cap + ara
-        if (t2.isBlank()) c.drawText(t1, tx, cy + bas.textSize * 0.36f, bas) else {
-            c.drawText(t1, tx, cy - k * 0.004f, bas)
-            c.drawText(t2, tx, cy + alt.textSize * 1.15f, alt)
+        // dokunma noktası: beyaz nokta + ince halka (parmak izi)
+        val nr = k * 0.03f
+        val nb = Bitmap.createBitmap((nr * 2 + 4).toInt(), (nr * 2 + 4).toInt(), Bitmap.Config.ARGB_8888)
+        Canvas(nb).apply {
+            val m = nb.width / 2f
+            drawCircle(m, m, nr, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x55FFFFFF })
+            drawCircle(m, m, nr * 0.55f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xF2FFFFFF.toInt(); setShadowLayer(nr * 0.2f, 0f, 0f, 0x66000000) })
         }
-        val dx = w - pad - dgW; val rc = RectF(dx, cy - dgH / 2f, dx + dgW, cy + dgH / 2f)
-        c.drawRoundRect(rc, dgH / 2f, dgH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFF2E3B.toInt() })
-        c.drawText(t3, rc.centerX() - dg.measureText(t3) / 2f, cy + dg.textSize * 0.36f, dg)
-        // sol üst: kenardan %5, üstten %8
-        return Yerlesim(b, -1f + 2f * 0.05f, 1f - 2f * 0.08f, -1f, 1f)
+        // nokta düğmenin sağ alt yarısına basar (örnekteki gibi)
+        return HatKart(kart(false), kart(true), nb, (rc.centerX() + dgW * 0.12f) / w, (cy + dgH * 0.18f) / hh)
+    }
+
+    private fun zilCiz(c: Canvas, x: Float, y: Float, s: Float) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() }
+        val path = android.graphics.Path().apply {
+            moveTo(x - s * 0.42f, y + s * 0.28f)
+            quadTo(x - s * 0.36f, y - s * 0.46f, x, y - s * 0.46f)
+            quadTo(x + s * 0.36f, y - s * 0.46f, x + s * 0.42f, y + s * 0.28f)
+            close()
+        }
+        c.drawPath(path, p)
+        c.drawRoundRect(RectF(x - s * 0.5f, y + s * 0.22f, x + s * 0.5f, y + s * 0.34f), s * 0.06f, s * 0.06f, p)
+        c.drawCircle(x, y + s * 0.44f, s * 0.1f, p)
+    }
+
+    /** Kartın durağan hâli (sol orta). */
+    private fun hatirlaticiKart(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): Yerlesim {
+        val s = hatirlaticiKartSet(h, W, H, logo, kanal)
+        return Yerlesim(s.normal, -1f + 2f * HatAnim.SOL, 1f - 2f * HatAnim.ORTA_Y, -1f, 0f)
     }
 
     // ---------------- Altyazı ----------------
@@ -513,6 +557,7 @@ object Gecisler {
     fun ustKatman(tur: String, f: Float): Ust {
         val e = f * f * (3f - 2f * f)
         return when (tur) {
+            "erime" -> Ust(1f, 0f, 0f, 1f)                         // saydamlık maskeyle (Erime): üst katman tam opak
             "kaydir" -> Ust(1f, -e, e, 1f)                       // sola kayarak çıkar
             "yakincapraz" -> Ust(1f - e, 0f, 0f, 1f + 0.25f * e)  // büyüyerek solar
             else -> Ust(1f - e, 0f, 0f, 1f)                       // çapraz
@@ -547,5 +592,62 @@ object Gecisler {
             Matrix().apply { setScale(a.olcek, a.olcek) }
         }
         return e
+    }
+}
+
+
+/** "Abone ol" kartının canlanması (örnek video gibi): soldan kayarak açılır → nokta düğmeye basar → "🔔 Abone olundu" → solarak kapanır.
+ *  Önizleme ve dışa aktarma aynı hesabı kullanır. ms: kart başladıktan sonra geçen süre (0…sure). */
+object HatAnim {
+    const val SOL = 0.04f          // sol kenardan pay (karenin oranı)
+    const val ORTA_Y = 0.66f       // kartın dikey merkezi (karenin oranı) — sol orta
+    class An(val dx: Float, val alfa: Float, val abone: Boolean, val nokta: Float, val bas: Float)
+
+    private fun geriTasma(x: Float): Float { val c1 = 1.2f; val c3 = c1 + 1f; val t = x - 1f; return 1f + c3 * t * t * t + c1 * t * t }
+
+    /** dx: kartın kaydığı miktar (karenin genişliğine oran, eksi = solda). kartOran: kart genişliği / W. */
+    fun an(ms: Long, sure: Long, kartOran: Float): An? {
+        if (ms < 0 || ms > sure) return null
+        val t = ms.toFloat()
+        val giris = (t / 520f).coerceIn(0f, 1f)
+        val e = if (giris >= 1f) 1f else geriTasma(giris)
+        val dx = -(1f - e) * (kartOran + SOL + 0.02f)
+        val cikis = ((sure - t) / 350f).coerceIn(0f, 1f)
+        val alfa = min((t / 120f).coerceIn(0f, 1f), cikis)
+        // dokunma: 1300 ms'de belirir, 1650'de basar, 1750'de "Abone olundu", 2300'de kaybolur
+        val nokta = when {
+            t < 1300f -> 0f
+            t < 1450f -> (t - 1300f) / 150f
+            t < 2100f -> 1f
+            t < 2350f -> 1f - (t - 2100f) / 250f
+            else -> 0f
+        }
+        val bas = if (t in 1600f..1800f) 0.82f else 1f
+        return An(dx, alfa, t >= 1720f, nokta * alfa, bas)
+    }
+}
+
+/** Dışa aktarma: canlı "Abone ol" kartı (kart + dokunma noktası iki ayrı bindirme). */
+class HatirlaticiBindirme(private val kart: Cizim.HatKart, private val klipBasMs: Long, private val a: Long, private val sure: Long,
+                          private val W: Int, private val H: Int, private val nokta: Boolean) : BitmapOverlay() {
+    private val saat = Saat()
+    private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+    private fun an(t: Long): HatAnim.An? = HatAnim.an(klipBasMs + saat.yerelMs(t) - a, sure, kart.normal.width.toFloat() / W)
+    override fun getBitmap(presentationTimeUs: Long): Bitmap {
+        val x = an(presentationTimeUs) ?: return bos
+        return if (nokta) kart.nokta else if (x.abone) kart.abone else kart.normal
+    }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+        val x = an(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val solX = (HatAnim.SOL + x.dx) * W                     // kartın sol kenarı (px)
+        val zy = 1f - 2f * HatAnim.ORTA_Y
+        if (!nokta) return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(solX / W * 2f - 1f, zy).setOverlayFrameAnchor(-1f, 0f)
+            .setAlphaScale(x.alfa).build()
+        if (x.nokta <= 0.001f) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val nx = solX + kart.dx * kart.normal.width
+        // kartın dikey merkezi ORTA_Y; düğme merkezi kartın içinde dy (aşağı = NDC'de eksi)
+        val ny = zy - (kart.dy - 0.5f) * kart.normal.height / H * 2f
+        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(nx / W * 2f - 1f, ny).setOverlayFrameAnchor(0f, 0f)
+            .setScale(x.bas, x.bas).setAlphaScale(x.nokta).build()
     }
 }

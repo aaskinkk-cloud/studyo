@@ -6,6 +6,22 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.12 (14.11.2026, deneme · `yerel-android` dalı): web'deki "Erime" geçişi + canlı "Abone ol" kartı (Ahmet'in örnek videosuna göre)
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.11'in üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
+
+**Geçiş — kök nedenler ve çözüm**
+1. *Önizlemede video → fotoğraf geçişi kesme gibiydi:* gelen fotoğraf (opak) giden videonun kuyruğunun **üstüne** çiziliyordu; kuyruk hiç görünmüyordu. Çizim sırası düzeltildi: gelen klip altta, giden üstte.
+2. *Önizlemede geçişte sıçrama/takılma:* ikinci oynatıcı (giden klibin kuyruğu) her 150 ms sapmada **atlıyordu (seek)**; atlama çözücüyü durdurup görüntüyü sıçratıyordu. Artık oynarken atlamaz; küçük kaymalar hızla (0,9×–1,12×) düzeltilir, yalnız 0,7 sn'yi aşan kaymada atlanır.
+3. *Web'deki yumuşak geçiş yerel uygulamada yoktu:* web Kareden Videoya'nın **melt** geçişi birebir taşındı → Görünüm › Geçiş › **Erime** (varsayılan ayarlarda da artık Erime). 192×108 değer gürültüsü (4 kat, yukarıdan aşağı akış eğilimi), eşik = ease(k)·(1+0,14), yumuşak kenar 0,14 — web'deki sayılar. Giden klip lekeler hâlinde eriyerek kaybolur, iki klip geçiş boyunca oynamaya devam eder.
+   - Dışa aktarma: giden klibin kuyruğuna GL gölgelendirici (`EriyenMaske`, aynı gürültü dokusu) → çıkış alfası; Media3 birleştiricisi kaynak alfasına göre karıştırır.
+   - Önizleme: aynı gürültüden maske bitmapi, Compose'ta DstIn ile.
+
+**"Abone ol" kartı (kart stili) — örnekteki gibi canlı**
+- Sol ortadan **kayarak açılır** (hafif esneyerek), ~1,3 sn'de beyaz **dokunma noktası** düğmenin üstünde belirir, basar (küçülür), düğme kırmızı **ABONE OL**'dan koyu **🔔 Abone olundu**'ya döner, nokta kaybolur; sonunda kart solar.
+- Önizleme ve dışa aktarma aynı hesap (`HatAnim`). Klasik bant stili değişmedi.
+
+Kod: `Erime.kt` (gürültü, maske, gölgelendirici), `Cizim.kt` (`hatirlaticiKartSet`, `HatAnim`, `HatirlaticiBindirme`), `Paneller.kt` (çizim sırası, `erimeMaskesi`, canlı kart), `EditorDurum.kt` (`kuyrukEsle` hız eşlemesi), `Disa.kt`.
+
 ## 3.11 (14.11.2026, deneme · `yerel-android` dalı): katmanlar yalnız Katman bölümünde, tek yerde
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.10'un üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
 

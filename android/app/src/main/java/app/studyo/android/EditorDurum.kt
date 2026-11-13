@@ -55,9 +55,16 @@ class EditorDurum(private val ctx: Context, id: String) {
         kuyrukPl.setMediaItem(mi); kuyrukPl.prepare(); kuyrukPl.seekTo(0); kuyrukPl.pause()
     }
     fun kuyrukEsle(ofs: Long, oynat: Boolean) {
-        val fark = kotlin.math.abs(kuyrukPl.currentPosition - ofs)
-        if (oynat) { if (fark > 150) kuyrukPl.seekTo(ofs); if (!kuyrukPl.isPlaying) kuyrukPl.play() }
-        else { if (kuyrukPl.isPlaying) kuyrukPl.pause(); if (fark > 40) kuyrukPl.seekTo(ofs) }
+        val sapma = kuyrukPl.currentPosition - ofs
+        val fark = kotlin.math.abs(sapma)
+        if (oynat) {
+            // Oynarken atlama (seek) çözücüyü durdurup görüntüyü sıçratıyordu: küçük kaymalar hızla düzeltilir, yalnız büyük kaymada atlanır.
+            if (!kuyrukPl.isPlaying) { if (fark > 80) kuyrukPl.seekTo(ofs); kuyrukPl.play() }
+            else if (fark > 700) kuyrukPl.seekTo(ofs)
+            val hiz = when { sapma < -40 -> 1.12f; sapma > 40 -> 0.9f; else -> 1f }
+            if (kuyrukPl.playbackParameters.speed != hiz) kuyrukPl.setPlaybackSpeed(hiz)
+        }
+        else { if (kuyrukPl.isPlaying) kuyrukPl.pause(); if (kuyrukPl.playbackParameters.speed != 1f) kuyrukPl.setPlaybackSpeed(1f); if (fark > 40) kuyrukPl.seekTo(ofs) }
     }
     fun kuyrukBekle() { if (kuyrukPl.isPlaying) kuyrukPl.pause() }
     private var kaydetIs: Job? = null
@@ -672,7 +679,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             guncelle(true) { p ->
                 p.copy(
                     bicim = if (bicimDegisti) "16:9" else p.bicim,
-                    gecis = Gecis("capraz", 800, p.gecis.siyahtanAc),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
+                    gecis = Gecis("erime", 800, p.gecis.siyahtanAc),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)

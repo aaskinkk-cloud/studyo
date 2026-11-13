@@ -85,7 +85,7 @@ data class Logo(
 @Serializable
 data class Gecis(val tur: String = "yok", val sureMs: Long = 700, val siyahtanAc: Boolean = false) {
     // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
-    val cakisma: Boolean get() = tur == "capraz" || tur == "kaydir" || tur == "yakincapraz"
+    val cakisma: Boolean get() = tur == "erime" || tur == "capraz" || tur == "kaydir" || tur == "yakincapraz"
 }
 
 @Serializable

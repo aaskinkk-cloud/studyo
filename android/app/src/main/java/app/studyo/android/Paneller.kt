@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -167,6 +168,22 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) if (i in p.klipler.indices && p.klipler[i].foto) vm.sonKareIste(p.zKlip(i)) }
             val sonKareler by vm.sonKareler.collectAsState()
             val oynuyor by vm.oynuyor.collectAsState()
+            // GELEN fotoğraf ALTA (opak) — giden klibin kuyruğundan ÖNCE çizilmeli. Eskiden sonra çiziliyordu:
+            // video → fotoğraf geçişinde giden videonun kuyruğunu tamamen örtüyor, geçiş "kesme" gibi görünüyordu.
+            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) p.klipler.getOrNull(i + 1)?.let { if (it.foto) vm.sonKareIste(it) } }
+            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, _) ->
+                val yerel = (konum - b0).coerceAtLeast(0)
+                p.klipler.getOrNull(i + 1)?.takeIf { it.foto }?.let { kg ->
+                    sonKareler[vm.sonKareAnahtar(kg)]?.let { bm ->
+                        val a = Yuz.an(kg, RW, RH, yerel.toFloat() / kg.sureMs.coerceAtLeast(1), i + 1)
+                        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                            Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
+                                scaleX = a.s; scaleY = a.s; translationX = a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
+                            }, contentScale = ContentScale.FillBounds)
+                        }
+                    }
+                }
+            }
             // video kuyruğu: pencereye 2 sn kala hazırlanır, pencere içinde ana oynatıcıyla eş zamanlı oynar
             val yakin = pencereler.firstOrNull { konum >= it.second - 2000 && konum < it.second + it.third && p.klipler.getOrNull(it.first)?.foto == false }
             if (pencereler.any { p.klipler.getOrNull(it.first)?.foto == false }) {
@@ -180,11 +197,14 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val gen = constraints.maxWidth.toFloat()
                 val ka = yakin?.let { y -> val kx = p.klipler[y.first]
                     Yuz.an(kx, RW, RH, ((p.zKlip(y.first).sureMs + (konum - y.second).coerceAtLeast(0)).toFloat() / kx.sureMs.coerceAtLeast(1)), y.first) }
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize().clipToBounds()
+                    .erimeMaskesi(p.gecis.tur == "erime" && icinde, ((konum - (yakin?.second ?: 0L)).toFloat() / (yakin?.third ?: 1L)).coerceIn(0f, 1f)),
+                    contentAlignment = Alignment.Center) {
                     AndroidView(
                         factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
                         update = { v -> v.kadraj(false) },
-                        modifier = Modifier.requiredSize(gorunumGen(ka), gorunumYuk(ka)).graphicsLayer {
+                        modifier = Modifier.requiredSize(gorunumGen(ka), gorunumYuk(ka))
+                            .graphicsLayer {
                             alpha = u?.alfa ?: 0f; scaleX = (u?.olcek ?: 1f) * (ka?.s ?: 1f); scaleY = (u?.olcek ?: 1f) * (ka?.s ?: 1f)
                             translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f + (ka?.tx ?: 0f) * size.width / 2f
                             translationY = -(ka?.ty ?: 0f) * size.height / 2f
@@ -192,27 +212,15 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     )
                 }
             }
-            // Fotoğraf geçişi: gelen fotoğraf (alta, opak) ve giden fotoğraf (üstte, solar) aynı hareket hesabıyla çizilir.
-            // Gelen fotoğraf, oynatıcı yeni fotoğrafı çözerken gösterdiği siyah kareyi örter (eski "karanlık geçiş").
-            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) p.klipler.getOrNull(i + 1)?.let { if (it.foto) vm.sonKareIste(it) } }
+            // Giden fotoğraf (üstte, solar/erir) — gelen klip altta.
             pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, T) ->
                 val gen = constraints.maxWidth.toFloat()
                 val yerel = (konum - b0).coerceAtLeast(0)
-                p.klipler.getOrNull(i + 1)?.takeIf { it.foto }?.let { kg ->
-                    sonKareler[vm.sonKareAnahtar(kg)]?.let { bm ->
-                        val a = Yuz.an(kg, RW, RH, yerel.toFloat() / kg.sureMs.coerceAtLeast(1), i + 1)
-                        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                            Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
-                                scaleX = a.s; scaleY = a.s; translationX = a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
-                            }, contentScale = ContentScale.FillBounds)
-                        }
-                    }
-                }
                 p.klipler.getOrNull(i)?.takeIf { it.foto }?.let { kc ->
                     sonKareler[vm.sonKareAnahtar(p.zKlip(i))]?.let { bm ->
                         val u = Gecisler.ustKatman(p.gecis.tur, (yerel.toFloat() / T).coerceIn(0f, 1f))
                         val a = Yuz.an(kc, RW, RH, (p.zKlip(i).sureMs + yerel).toFloat() / kc.sureMs.coerceAtLeast(1), i)
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(Modifier.fillMaxSize().clipToBounds().erimeMaskesi(p.gecis.tur == "erime", (yerel.toFloat() / T).coerceIn(0f, 1f)), contentAlignment = Alignment.Center) {
                             Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(a), gorunumYuk(a)).graphicsLayer {
                                 alpha = u.alfa; scaleX = u.olcek * a.s; scaleY = u.olcek * a.s
                                 translationX = (u.zx - u.kx) * gen / 2f + a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
@@ -291,8 +299,30 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
                 girisY?.let { Ciz(it, Zaman.solma(konum, gA, gB)) }
             }
-            val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
-            hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
+            if (p.hatirlatici.stil == "klasik") {
+                val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
+                hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
+            } else if (p.hatirlatici.acik) {
+                // canlı kart: dışa aktarmadaki HatAnim hesabının aynısı
+                val hk = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlaticiKartSet(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
+                val (ha, hb) = Zaman.hatirlaticiAralik(p)
+                HatAnim.an(konum - ha, hb - ha, hk.normal.width.toFloat() / RW)?.let { x ->
+                    val solX = (HatAnim.SOL + x.dx) * RW
+                    val ust = HatAnim.ORTA_Y * RH - hk.normal.height / 2f
+                    val kb = if (x.abone) hk.abone else hk.normal
+                    Image(kb.asImageBitmap(), null,
+                        Modifier.offset { IntOffset((solX * olcek).roundToInt(), (ust * olcek).roundToInt()) }
+                            .size(with(yog) { (kb.width * olcek).toDp() }, with(yog) { (kb.height * olcek).toDp() }).alpha(x.alfa.coerceIn(0f, 1f)))
+                    if (x.nokta > 0.001f) {
+                        val nx = solX + hk.dx * kb.width - hk.nokta.width / 2f
+                        val ny = ust + hk.dy * kb.height - hk.nokta.height / 2f
+                        Image(hk.nokta.asImageBitmap(), null,
+                            Modifier.offset { IntOffset((nx * olcek).roundToInt(), (ny * olcek).roundToInt()) }
+                                .size(with(yog) { (hk.nokta.width * olcek).toDp() }, with(yog) { (hk.nokta.height * olcek).toDp() })
+                                .graphicsLayer { scaleX = x.bas; scaleY = x.bas; alpha = x.nokta.coerceIn(0f, 1f) })
+                    }
+                }
+            }
             // serbest katmanlar: dışa aktarmadaki bitmap ve animasyonun aynısı; seçili katman panel açıkken çerçeveli
             val seciliK by vm.seciliKatman.collectAsState()
             var katGecici by remember { mutableStateOf<KatmanGecici?>(null) }
@@ -547,12 +577,12 @@ fun PanelGecis(vm: EditorDurum, p: Proje) {
     val g = p.gecis
     Kart("Klip geçişi") {
         Text("Klip üstüne binen", color = Renk.soluk, fontSize = 12.5.sp)
-        Secenekler(listOf("capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur) { s -> vm.gecisDegis { it.copy(tur = s) } }
+        Secenekler(listOf("erime" to "Erime", "capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
         Text("Klip sınırında", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
         Secenekler(listOf("yok" to "Yok", "siyah" to "Siyahtan", "beyaz" to "Parlama", "yakin" to "Yakınlaşma"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
         if (g.tur != "yok") Kaydirici("Geçiş süresi", g.sureMs / 1000f, 0.3f..2f, { String.format(TR, "%.1f sn", it) }) { v -> vm.gecisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
         AnahtarSatiri("Videoyu siyahtan açarak başlat", g.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
-        Not(if (g.cakisma) "Giden klibin son kısmı gelen klibin üstünde yumuşakça solar (iki görüntü bir an birlikte görünür). Her geçiş videoyu geçiş süresi kadar kısaltır; seslendirme ve altyazıları buna göre kontrol et. Önizlemede yaklaşık gösterilir, dışa aktarmada tam olur."
+        Not(if (g.cakisma) "Giden klibin son kısmı gelen klibin üstünde kaybolur (Erime: lekeler hâlinde yukarıdan aşağı erir, web Kareden Videoya'daki gibi). İki klip de geçiş boyunca oynamaya devam eder. Her geçiş videoyu geçiş süresi kadar kısaltır."
             else "Geçiş her klip sınırında uygulanır; videonun sonu hiçbir zaman karartılmaz. Önizlemede de görünür.")
     }
 }
@@ -803,3 +833,15 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
         } }
     }
 }
+
+
+/** Önizlemede erime: içerik ekran dışı katmanda çizilir, sonra gürültü maskesiyle (DstIn) kırpılır — dışa aktarmadaki maskenin aynısı. */
+fun Modifier.erimeMaskesi(aktif: Boolean, k: Float): Modifier = if (!aktif) this else this
+    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val m = Erime.maske(k).asImageBitmap()
+        drawImage(m, androidx.compose.ui.unit.IntOffset.Zero, androidx.compose.ui.unit.IntSize(m.width, m.height),
+            androidx.compose.ui.unit.IntOffset.Zero, androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
+            blendMode = androidx.compose.ui.graphics.BlendMode.DstIn, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
+    }

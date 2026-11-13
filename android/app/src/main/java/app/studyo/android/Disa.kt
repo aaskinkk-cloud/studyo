@@ -127,7 +127,10 @@ object Disa {
         val (gA, gB) = Zaman.girisAralik(p)
         val seritler = if (p.giris.acik && p.giris.reels) Reels.seritler(p.giris, W, H) else emptyList()
         if (!p.giris.reels) Cizim.giris(p.giris, W, H)?.let { zamanli += Triple(it, gA, gB) }
-        Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { val (a, b) = Zaman.hatirlaticiAralik(p); zamanli += Triple(it, a, b) }
+        // "Abone ol": kart stilinde canlı (soldan açılır, dokunulur, "Abone olundu"); klasikte eski durağan bant
+        val hatKart = if (p.hatirlatici.acik && p.hatirlatici.stil != "klasik") Cizim.hatirlaticiKartSet(p.hatirlatici, W, H, p.logo, p.kapanis.kanal) else null
+        val (hA, hB) = Zaman.hatirlaticiAralik(p)
+        if (hatKart == null) Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { zamanli += Triple(it, hA, hB) }
         for (ns in p.nesneler) if (!ns.hareketli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
         // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
         val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
@@ -141,6 +144,10 @@ object Disa {
             if (seritler.isNotEmpty() && gA < son && gB > bas) for (sr in seritler) ek += ReelsBindirme(sr, p.giris.hareket, bas, gA, gB)
             if (p.giris.acik && p.giris.boncuk && gA < son && gB > bas) ek += BoncukBindirme(bas, gA, gB, W, H)
             for (ns in p.nesneler) if (ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)
+            if (hatKart != null && hA < son && hB > bas) {
+                ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, false)
+                ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, true)
+            }
             for ((o, bm) in katmanBmp) if (o.basMs < son && o.sonMs > bas) ek += KatmanBindirme(o, bm, bas)
             val satir = altyazilar.filter { it.basMs < son && it.sonMs > bas }
             if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
@@ -180,7 +187,7 @@ object Disa {
             var imlec = 0L
             for ((i, b0, T) in Gecisler.pencereler(p)) {
                 val k = p.klipler.getOrNull(i) ?: continue
-                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T), i, fps) ?: continue
+                val kuyruk = kuyrukOge(k, T, W, H, logo, katmanlar(b0, T), i, fps, p.gecis.tur == "erime") ?: continue
                 if (b0 > imlec) ust.addGap((b0 - imlec) * 1000)
                 ust.addItem(kuyruk)
                 pencereler += longArrayOf(b0, T)
@@ -262,7 +269,7 @@ object Disa {
     /** Giden klibin son T ms'si (gerçek görüntü ve sesi; HDR çevirisi tabandakiyle aynı) — gelen klibin üstünde solar.
      *  3.2'de kırpılmış devam yoksa son kare JPEG olarak kullanılıyordu; telefonun kare çıkarıcısı HDR'yi farklı çevirdiği için
      *  geçişte "parlama" oluyordu. Artık görüntü hep aynı çözücüden gelir. */
-    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, i: Int, fps: Int): EditedMediaItem? {
+    private fun kuyrukOge(k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, i: Int, fps: Int, erime: Boolean): EditedMediaItem? {
         val v = ArrayList<Effect>()
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) {
@@ -277,6 +284,7 @@ object Disa {
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
+        if (erime) v += EriyenMaske(T)          // web'deki "melt": giden klip gürültü maskesiyle eriyerek kaybolur
         val sesli = !k.foto && k.sesVar && !k.sessiz
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))

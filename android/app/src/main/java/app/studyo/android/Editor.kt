@@ -125,6 +125,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
         // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
         val ekranYuk = maxHeight
+        val ekranGen = maxWidth
         val onizlemeYuk = (ekranYuk * Duzen.onizlemeOran).coerceAtLeast(72.dp)
         Column(Modifier.fillMaxSize().imePadding()) {
             // ---- üst çubuk: kamera bölgesi de başlığın renginde ----
@@ -167,7 +168,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
             val tamOran = run {
                 val oranV = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
-                ((maxWidth / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
+                ((ekranGen / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
             }
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {

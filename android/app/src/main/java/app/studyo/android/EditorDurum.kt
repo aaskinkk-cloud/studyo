@@ -456,7 +456,10 @@ class EditorDurum(private val ctx: Context, id: String) {
         guncelle(true) { p ->
             val yatay = p.bicim == "16:9"
             p.copy(
-                klipler = p.klipler.map { k -> if (!k.foto) k else k.copy(kenBurns = true, fotoSureMs = 5000, doldur = k.doldur || (yatay && k.yuk > k.gen)) },
+                klipler = p.klipler.map { k ->
+                    val dikey = yatay && k.yuk > k.gen
+                    if (k.foto) k.copy(kenBurns = true, fotoSureMs = 5000, doldur = k.doldur || dikey) else k.copy(doldur = k.doldur || dikey)
+                },
                 giris = p.giris.copy(acik = true, stil = if (p.giris.acik) p.giris.stil else "r_strip", hareket = "trend", sureMs = maxOf(p.giris.sureMs, 3500),
                     baslik = p.giris.baslik.ifBlank { p.ad.ifBlank { "Şefin Doğası" } }, alt = p.giris.alt.ifBlank { "Şefin Doğası" }),
                 hatirlatici = p.hatirlatici.copy(acik = true, anOran = 0.8f, yazi = "Takip et", kucuk = "Yeni videolar için"),

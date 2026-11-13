@@ -547,31 +547,32 @@ private fun PanelBicim(vm: EditorDurum, p: Proje) {
 
 @Composable
 private fun PanelKadraj(vm: EditorDurum, k: Klip) {
-    Kart("Kadraj") {
+    Kart("Kadraj", hepsine = { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Tüm kliplere uygulandı" },
+        buna = { vm.mesaj.value = "Yalnız bu klibe uygulandı" }) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SecimKarti("Sığdır", "Tamamı görünür,\nkenarlar siyah kalabilir", !k.doldur, Modifier.weight(1f)) { vm.klipGuncelle { it.copy(doldur = false) } }
             SecimKarti("Doldur", "Kare dolar,\ntaşan kısım kesilir", k.doldur, Modifier.weight(1f)) { vm.klipGuncelle { it.copy(doldur = true) } }
         }
-        Spacer(Modifier.height(8.dp))
-        GenisDugme("Tüm kliplere uygula", "makas") { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Tüm kliplere uygulandı" }
     }
 }
 
 @Composable
 private fun PanelHareket(vm: EditorDurum, k: Klip) {
-    Kart("Fotoğraf hareketi") {
+    Kart("Fotoğraf hareketi", hepsine = if (!k.foto) null else ({ vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }),
+        buna = if (!k.foto) null else ({ vm.mesaj.value = "Yalnız bu fotoğrafa uygulandı" })) {
         if (!k.foto) {
             Text("Bu ayar fotoğraf klipleri içindir. Seçili klip bir video.", color = Renk.soluk, fontSize = 13.sp)
         } else {
             AnahtarSatiri("Yavaş yakınlaşma", k.kenBurns) { v -> vm.klipGuncelle { it.copy(kenBurns = v) } }
-            GenisDugme("Tüm fotoğraflara uygula", "makas") { vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }
         }
     }
 }
 
 @Composable
 private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
-    Kart("Klip sesi") {
+    val sesli = !k.foto && k.sesVar
+    Kart("Klip sesi", hepsine = if (!sesli) null else ({ vm.hepsine({ it.copy(ses = k.ses, sessiz = k.sessiz) }); vm.mesaj.value = "Tüm kliplere uygulandı" }),
+        buna = if (!sesli) null else ({ vm.mesaj.value = "Yalnız bu klibe uygulandı" })) {
         if (k.foto || !k.sesVar) {
             Text(if (k.foto) "Fotoğraf kliplerinde ses yok." else "Bu videoda ses izi yok (ya da telefon çözemiyor).", color = Renk.soluk, fontSize = 13.sp)
         } else {
@@ -584,7 +585,6 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
             )
             Text("%100 üstü yalnız dışa aktarmada yükseltilir; önizleme en fazla %100 çalar.", color = Renk.soluk, fontSize = 12.sp)
-            GenisDugme("Tüm kliplere uygula", "makas", Modifier.padding(top = 6.dp)) { vm.hepsine({ it.copy(ses = k.ses, sessiz = k.sessiz) }); vm.mesaj.value = "Tüm kliplere uygulandı" }
         }
     }
 }

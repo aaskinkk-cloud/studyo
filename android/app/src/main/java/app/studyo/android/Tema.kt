@@ -127,7 +127,7 @@ fun GenisDugme(metin: String, simge: String? = null, modifier: Modifier = Modifi
 
 /** Açılır-kapanır kart (başlığa dokun = aç/kapat; ad değiştirme menüsü açmaz). */
 @Composable
-fun Kart(baslik: String, baslangicAcik: Boolean = true, icerik: @Composable ColumnScope.() -> Unit) {
+fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? = null, buna: (() -> Unit)? = null, icerik: @Composable ColumnScope.() -> Unit) {
     var acik by rememberSaveable(baslik) { mutableStateOf(baslangicAcik) }
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart)) {
         Row(
@@ -136,7 +136,13 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, icerik: @Composable Colu
         ) {
             if (acik) Box(Modifier.width(3.dp).height(18.dp).background(Renk.turuncu))
             if (acik) Spacer(Modifier.width(8.dp))
+            // ✓✓ başlığın başında: tüm kliplere uygula
+            if (hepsine != null) Box(Modifier.padding(end = 6.dp).size(30.dp).clip(CircleShape).clickable { hepsine() }, contentAlignment = Alignment.Center) {
+                Simge("cift", Color(TON[1]), 20.dp) }
             Text(baslik, color = if (acik) Renk.turuncu else Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            // ✓ sağda: yalnız bu klip (seçim zaten bu klibe uygulanır) — onaylar ve kartı kapatır
+            if (buna != null) Box(Modifier.padding(end = 4.dp).size(30.dp).clip(CircleShape).clickable { buna(); acik = false }, contentAlignment = Alignment.Center) {
+                Simge("uygula", Color(TON[2]), 20.dp) }
             Text(if (acik) "▴" else "▾", color = Renk.soluk, fontSize = 16.sp)
         }
         if (acik) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), content = icerik)

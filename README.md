@@ -16,6 +16,8 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Görünüm inceltme:** renk paletleri yarı yükseklikte, kaydırıcılar 3 dp çizgi + küçük tutamaç, açma-kapama düğmeleri küçük ve ton renginde, seçenek kutuları arka plansız renkli yazı (seçili kalın + nokta), önizleme köşeleri kare, klip küçük resimlerinin kenarı ince. Hepsi ⋯ › "yazılı (önceki)" ile eski görünüme döner.
 - **Önizlemede geçiş parlaması (kök neden):** önizleme, giden klibin son karesini MediaMetadataRetriever ile alıp üstte soldurur­du; HDR videoda bu kare soluk/parlak çıktığı için geçişte parlama görünüyordu. Artık önizlemede de dışa aktarmadaki gibi giden klibin gerçek son T ms'si ikinci bir oynatıcıda (pencereye 2 sn kala hazırlanır, ana oynatıcıyla eş zamanlı, sesi dahil) oynar. Fotoğraflarda son kare kullanılmaya devam eder (HDR sorunu yok).
 - **Seçenek yazıları:** ince, yazıya uygun oval çerçeve; seçili olan tam renk çerçeve + hafif dolgu + kalın.
+- **Kart başlığında onay işaretleri:** "Tüm kliplere uygula" düğmeleri kalktı. Kadraj, Fotoğraf hareketi ve Klip sesi başlıklarının başında ✓✓ = tüm kliplere uygula; sağda ✓ = yalnız bu klip (seçim zaten bu klibe uygulanır; onaylar ve kartı kapatır).
+- **Varsayılan ayarlar:** yatay videoda dikey videolar da (yalnız fotoğraflar değil) kadrajı doldurur, ortada dar kalmaz.
 - **Prompter (Ses › Seslendirme):** metni yaz, "Tam ekran oku ve kaydet". Metin kendiliğinden kayar (hız ve yazı boyutu ayarlı, ekran açık kalır); kırmızı düğme kaydı ve kaydırmayı başlatır, ses videonun o anki konumundan itibaren seslendirme olarak eklenir. Metin ve ayarlar projede saklanır.
 
 ## 3.4 (13.11.2026, deneme · `yerel-android` dalı): düzeltmeler + cam fırçası

@@ -487,7 +487,9 @@ class DisaServisi : Service() {
         }
         val sp = prefs()
         val eski = if (devam) sp.getString("yol", null)?.let { File(it) }?.takeIf { it.exists() && it.length() > 0 } else null
-        val tek = p.muzik == null && p.sesler.isEmpty()
+        // Kaldığı yerden devam (Transformer.resume) yalnız tek diziyle çalışır: müzik, seslendirme, efekt sesi ve üst üste binen geçiş yoksa
+        val tek = p.muzik == null && p.sesler.isEmpty() && Gecisler.pencereler(p).isEmpty() &&
+            !(p.giris.acik && p.giris.reels && p.giris.efektSes)
         val cikti = File(dizin, "studyo_${System.currentTimeMillis()}.mp4")
         yol = cikti; eskiYol = eski
         sp.edit().putString("proje", pid).putInt("kisa", kisa).putFloat("kalite", kalite).putString("yol", cikti.path)

@@ -313,7 +313,14 @@ class EditorDurum(private val ctx: Context, id: String) {
                     .onFailure { e -> Kayit.hata("ekle", e); sorunlar += "${u.lastPathSegment}: ${e.message ?: e.javaClass.simpleName}" }
             }
             mesgul.value = null
-            if ("kadraj" in Varsayilan.secili(ctx)) for (i in yeni.indices) yeni[i] = yeni[i].copy(doldur = true)   // varsayılan: Doldur
+            val vs = Varsayilan.secili(ctx)
+            for (i in yeni.indices) {     // varsayılan ayarlar seçilen her klibe hemen uygulanır
+                var kk = yeni[i]
+                if ("kadraj" in vs) kk = kk.copy(doldur = true)
+                if (kk.foto) kk = kk.copy(kenBurns = true, fotoSureMs = 5000, yuzOdak = "yuz" in vs)
+                yeni[i] = kk
+            }
+            val ilkEkleme = proje.value.klipler.isEmpty()
             if (yeni.isNotEmpty()) {
                 // biçim kendiliğinden değişmez: proje YouTube 16:9 açılır, dikey klipler Doldur ile kareyi doldurur
                 val s = if (proje.value.klipler.isEmpty()) 0 else (secili.value + 1).coerceAtMost(proje.value.klipler.size)
@@ -321,6 +328,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 kaydetSimdi(false)
                 sec(s)
                 mesaj.value = "${yeni.size} klip eklendi"
+                if (ilkEkleme) varsayilanUygula()   // ilk seçimde giriş, abone ol, kapanış ve YouTube 16:9 da gelir
             }
             if (sorunlar.isNotEmpty()) uyari.value = "Eklenemeyenler:\n\n" + sorunlar.joinToString("\n\n")
         }

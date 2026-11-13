@@ -53,21 +53,29 @@ object Yuz {
         fun onizlemeY(yuk: Float) = -ty / vy * yuk / 2f
     }
 
-    /** f: 0…1 (klip içindeki ilerleme). W/H: çıkış boyutu. Yüz yoksa eski davranış: ortadan %8 yakınlaşma. */
+    /** f: 0…1 (klip içindeki ilerleme). W/H: çıkış boyutu. Bütün klipler için: fotoğrafta yavaş yakınlaşma (yüz varsa yüze),
+     *  her klipte elle kaydırma (kayX/kayY, taşan kısım içinde; kenar asla boş kalmaz). */
     fun an(k: Klip, W: Int, H: Int, f: Float): An {
         val e = f.coerceIn(0f, 1f)
-        if (!k.yuzEtkin || k.gen <= 0 || k.yuk <= 0) return An(1f + 0.08f * e, 0f, 0f, 1f, 1f)
-        val a = k.gen.toFloat() / k.yuk; val A = W.toFloat() / H
         var vx = 1f; var vy = 1f
-        if (k.doldur) { if (a < A) vy = a / A else vx = A / a }
-        val yum = e * e * (3f - 2f * e)                                  // yumuşak başla, yumuşak bitir
-        val s1 = (0.38f * vy / k.yuzB).coerceIn(1.08f, 2.2f)             // yüz ekran yüksekliğinin ~%38'i
-        val s = 1f + (s1 - 1f) * yum
-        val X = 2f * k.yuzX - 1f; val Y = 1f - 2f * k.yuzY
-        val tx = (-s * X).coerceIn(-(s - vx).coerceAtLeast(0f), (s - vx).coerceAtLeast(0f))
-        val ty = (-s * Y).coerceIn(-(s - vy).coerceAtLeast(0f), (s - vy).coerceAtLeast(0f))
+        if (k.doldur && k.gen > 0 && k.yuk > 0) { val a = k.gen.toFloat() / k.yuk; val A = W.toFloat() / H; if (a < A) vy = a / A else vx = A / a }
+        var s = 1f; var tx0 = 0f; var ty0 = 0f
+        if (k.foto && k.kenBurns) {
+            if (k.yuzEtkin && k.gen > 0 && k.yuk > 0) {
+                val yum = e * e * (3f - 2f * e)                              // yumuşak başla, yumuşak bitir
+                val s1 = (0.38f * vy / k.yuzB).coerceIn(1.08f, 2.2f)         // yüz ekran yüksekliğinin ~%38'i
+                s = 1f + (s1 - 1f) * yum
+                tx0 = -s * (2f * k.yuzX - 1f); ty0 = -s * (1f - 2f * k.yuzY)
+            } else s = 1f + 0.08f * e
+        }
+        val mx = (s - vx).coerceAtLeast(0f); val my = (s - vy).coerceAtLeast(0f)
+        val tx = (tx0 + k.kayX * mx).coerceIn(-mx, mx)
+        val ty = (ty0 - k.kayY * my).coerceIn(-my, my)
         return An(s, tx, ty, vx, vy)
     }
+
+    /** Kaydırılabilir mi (önizlemede sürükleme için): taşan kısım var mı. */
+    fun kayabilir(a: An) = a.s - a.vx > 0.001f || a.s - a.vy > 0.001f
 
     fun matris(a: An): android.graphics.Matrix = android.graphics.Matrix().apply { setScale(a.s, a.s); postTranslate(a.tx, a.ty) }
 

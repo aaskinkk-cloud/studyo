@@ -98,13 +98,14 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
     val takipSecim by vm.takipSecimde.collectAsState()
     val seciliNesne by vm.seciliNesne.collectAsState()
     val k = p.klipler.getOrNull(sira)
-    Box(modifier.background(Color.Black).padding(4.dp), contentAlignment = Alignment.Center) {
+    // kare dışı koyu gri, kare sınırı ince açık çizgi: videonun nerede bittiği görünür
+    Box(modifier.background(Color(0xFF1C1E22)).padding(4.dp), contentAlignment = Alignment.Center) {
         if (p.klipler.isEmpty()) {
             Text("Başlamak için alttan “＋ Ekle” ile video veya fotoğraf seç.\nBoyut sınırı yok; dosyalar kopyalanmaz.",
                 color = Renk.soluk, textAlign = TextAlign.Center, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
             return@Box
         }
-        BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black)) {
+        BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black).border(1.dp, Color(0x99FFFFFF))) {
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
             val RW = ref.first; val RH = ref.second
             val olcek = constraints.maxWidth.toFloat() / RW
@@ -118,7 +119,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     }
                 } else kbF = 0f
             }
-            val kbAn = if (k != null && k.foto && k.kenBurns) Yuz.an(k, RW, RH, kbF) else null
+            // elle kaydırma: sürüklerken yerel değer, bırakınca klibe yazılır
+            var surKay by remember(k?.id) { mutableStateOf<Offset?>(null) }
+            val kG = k?.let { kk -> surKay?.let { kk.copy(kayX = it.x, kayY = it.y) } ?: kk }
+            val kbAn = kG?.let { Yuz.an(it, RW, RH, if (it.foto && it.kenBurns) kbF else 0f) }
             val an = Gecisler.onizleme(p, konum)
             AndroidView(
                 factory = { c ->
@@ -154,7 +158,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
                     update = { v -> v.kadraj(dolduran) },
                     modifier = Modifier.fillMaxSize().graphicsLayer {
-                        alpha = u?.alfa ?: 0f; scaleX = u?.olcek ?: 1f; scaleY = u?.olcek ?: 1f; translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f
+                        val ka = yakin?.let { Yuz.an(p.zKlip(it.first), RW, RH, 0f) }
+                        alpha = u?.alfa ?: 0f; scaleX = u?.olcek ?: 1f; scaleY = u?.olcek ?: 1f
+                        translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f + (ka?.onizlemeX(size.width) ?: 0f)
+                        translationY = ka?.onizlemeY(size.height) ?: 0f
                     },
                 )
             }
@@ -263,6 +270,27 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         vm.nesneDegis(id) { it.copy(x = (it.x + d.x / (olcek * RW)).coerceIn(0f, 1f), y = (it.y + d.y / (olcek * RH)).coerceIn(0f, 1f)) }
                     }
                 })
+            } else if (k != null && sira < p.klipler.size) {
+                // izlerken de: parmakla sürükle = fotoğrafı/videoyu kadraj içinde kaydır (yalnız taşan kısım kadar); çift dokun = ortala
+                val gw = constraints.maxWidth.toFloat(); val gh = constraints.maxHeight.toFloat()
+                val kSon by rememberUpdatedState(k)
+                Box(Modifier.fillMaxSize()
+                    .pointerInput(k.id) { detectTapGestures(onDoubleTap = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) }; vm.mesaj.value = "Kadraj ortalandı" }) }
+                    .pointerInput(k.id, k.doldur, gw, gh) {
+                        detectDragGestures(
+                            onDragStart = { surKay = Offset(kSon.kayX, kSon.kayY) },
+                            onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
+                            onDragCancel = { surKay = null },
+                        ) { ch, d ->
+                            val ks = kSon; val a = Yuz.an(ks, RW, RH, if (ks.foto && ks.kenBurns) kbF else 0f)
+                            if (!Yuz.kayabilir(a)) return@detectDragGestures
+                            ch.consume()
+                            val pxX = (a.s - a.vx) / a.vx * gw / 2f; val pxY = (a.s - a.vy) / a.vy * gh / 2f
+                            val o = surKay ?: Offset(ks.kayX, ks.kayY)
+                            surKay = Offset(if (pxX > 0.5f) (o.x + d.x / pxX).coerceIn(-1f, 1f) else o.x,
+                                if (pxY > 0.5f) (o.y + d.y / pxY).coerceIn(-1f, 1f) else o.y)
+                        }
+                    })
             }
         }
     }

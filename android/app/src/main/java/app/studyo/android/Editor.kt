@@ -558,6 +558,12 @@ private fun PanelKadraj(vm: EditorDurum, k: Klip) {
             SecimKarti("Sığdır", "Tamamı görünür,\nkenarlar siyah kalabilir", !k.doldur, Modifier.weight(1f)) { vm.klipGuncelle { it.copy(doldur = false) } }
             SecimKarti("Doldur", "Kare dolar,\ntaşan kısım kesilir", k.doldur, Modifier.weight(1f)) { vm.klipGuncelle { it.copy(doldur = true) } }
         }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (k.doldur) "Önizlemede parmakla sürükleyerek kaydır · çift dokun = ortala" else "Kaydırmak için Doldur'u seç",
+                color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            if (k.kayX != 0f || k.kayY != 0f) TextButton(onClick = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) } }) { Text("Ortala", color = Renk.turuncu) }
+        }
     }
 }
 

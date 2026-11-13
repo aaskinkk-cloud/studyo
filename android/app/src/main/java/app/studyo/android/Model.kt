@@ -53,6 +53,8 @@ data class Klip(
     val yuzX: Float = -1f, val yuzY: Float = -1f, val yuzB: Float = 0f, val yuzBakildi: Boolean = false,
     /** Yüze odaklan ve yaklaş (dikey kişi fotoğrafında yavaş yakınlaşma yüze doğru). */
     val yuzOdak: Boolean = true,
+    /** Kadraj kaydırma (Doldur'da taşan kısım içinde): -1…1, 0 = orta. x+ sağa, y+ aşağı. Önizlemede parmakla sürüklenir. */
+    val kayX: Float = 0f, val kayY: Float = 0f,
     /** Çekim tarihi (EXIF / video üstverisi); 0 = bilinmiyor. Giriş başlığındaki tarih bandı için. */
     val tarihMs: Long = 0,
 ) {

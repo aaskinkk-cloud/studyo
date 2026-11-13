@@ -20,8 +20,13 @@ object Geometri {
         val h = (if (k.yuk > 0) k.yuk else H).toFloat()
         val s = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
         val dw = g * s; val dh = h * s
-        return ((W - dw) / 2f + x * dw) to ((H - dh) / 2f + y * dh)
+        val (ox, oy) = kayma(k, W, H)
+        return ((W - dw) / 2f + x * dw + ox) to ((H - dh) / 2f + y * dh + oy)
     }
+
+    /** Videoda elle kaydırmanın çıktıdaki piksel karşılığı (fotoğrafın yakınlaşması burada hesaba katılmaz). */
+    private fun kayma(k: Klip, W: Int, H: Int): Pair<Float, Float> =
+        if (k.foto || (k.kayX == 0f && k.kayY == 0f)) 0f to 0f else Yuz.an(k, W, H, 0f).let { it.onizlemeX(W.toFloat()) to it.onizlemeY(H.toFloat()) }
 
     /** Çıktı karesindeki (piksel) noktayı kaynak kareye (0…1) çevirir; kaynak dışındaysa null. */
     fun kaynaga(k: Klip, px: Float, py: Float, W: Int, H: Int): Pair<Float, Float>? {
@@ -29,7 +34,8 @@ object Geometri {
         val h = (if (k.yuk > 0) k.yuk else H).toFloat()
         val s = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
         val dw = g * s; val dh = h * s
-        val x = (px - (W - dw) / 2f) / dw; val y = (py - (H - dh) / 2f) / dh
+        val (ox, oy) = kayma(k, W, H)
+        val x = (px - ox - (W - dw) / 2f) / dw; val y = (py - oy - (H - dh) / 2f) / dh
         return if (x in 0f..1f && y in 0f..1f) x to y else null
     }
 }

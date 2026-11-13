@@ -238,6 +238,7 @@ object Disa {
         } else {
             mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build())
         }
+        if (!(k.foto && k.kenBurns) && (k.kayX != 0f || k.kayY != 0f)) { val m = Yuz.matris(Yuz.an(k, W, H, 0f)); v += MatrixTransformation { m } }
         v += Presentation.createForWidthAndHeight(W, H, if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         val kap = ArrayList<TextureOverlay>()
         kap += zamanli
@@ -258,6 +259,7 @@ object Disa {
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
         val v = ArrayList<Effect>()
         if (k.foto && k.kenBurns) v += kenBurns(k, W, H)
+        else if (k.kayX != 0f || k.kayY != 0f) { val m = Yuz.matris(Yuz.an(k, W, H, 0f)); v += MatrixTransformation { m } }   // elle kaydırılmış kadraj
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         v += gecis

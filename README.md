@@ -30,6 +30,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Varsayılan seçili iken yeni eklenen klipler doğrudan Doldur ile gelir.
 - Asıl neden: dikey klip eklenince boş proje kendiliğinden 9:16'ya çevriliyordu; kare dikey olunca Doldur hiçbir şey değiştirmiyordu. Bu otomatik çevirme kaldırıldı. Proje YouTube 16:9 açılır; Varsayılan da biçimi 16:9 yapar. Dikey video ve fotoğraflar 16:9 kareyi doldurur (üstü/altı kesilir). 9:16 yalnız Biçim panelinden elle seçilir.
 
+### 3.6 ek: kadraj sınırı, parmakla kaydırma, otomatik varsayılan
+- Önizlemede kare sınırı görünür (dışı koyu gri, ince açık çizgi).
+- İzlerken de fotoğraf/videoyu parmakla yukarı-aşağı-sağa-sola kaydır (Doldur'da taşan kısım kadar, kenar boş kalmaz); çift dokun = ortala. Kaydırma klipte saklanır, dışa aktarmaya, geçişe ve takip eden yazıya aynen yansır. Kadraj kartında "Ortala".
+- Fotoğraf/video seçildiği anda varsayılanlar uygulanır (Doldur, 5 sn yüze yaklaşma); ilk seçimde giriş, abone ol, kapanış ve YouTube 16:9 da gelir.
+
 ## 3.5 (13.11.2026, deneme · `yerel-android` dalı): yumuşak geçiş, oynatıcı, menüler, prompter
 - **Çapraz geçişte parlama (kök neden):** geçiş, MediaMetadataRetriever ile alınan donuk son kareyle yapılıyordu; bu kare HDR klipte farklı ton eşlemesiyle çıktığı için geçişte parlama oluyordu. Artık geçişin üst katmanı aynı klibin gerçek son T ms'lik parçası (aynı çözücü, aynı ton eşleme), zaman çizelgesi geçiş başına T kısalır (`Proje.ortusme/zKlip`). Seçenek adları: Yumuşak · Kaydırarak · Büyüyerek.
 - **Oynatıcı:** önceki/sonraki kare düğmeleri yarı boyuta indi, "başa dön" eklendi, zaman çubuğu inceldi.

@@ -126,6 +126,8 @@ data class TakipNokta(val ms: Long, val x: Float, val y: Float)
 data class Takip(
     val metin: String = "", val alt: String = "", val boyut: Float = 0.05f, val renk: Long = 0xFFFFFFFF, val kutu: Boolean = true,
     val basX: Float = 0.5f, val basY: Float = 0.5f, val basMs: Long = 0, val noktalar: List<TakipNokta> = emptyList(),
+    /** kutu (klasik) | cagri (halka + eğik çizgi + yatay çizgi) | igne (dikey çizgi) | kose (dik açılı çizgi) */
+    val stil: String = "cagri", val cizgiRenk: Long = 0xFFF2C94C,
 )
 
 /** Nesne katmanı: fotoğraftan kesilmiş saydam PNG; konum kare içinde 0…1 (merkez), genişlik karenin oranı, zaman çizelgesinde aralık. */

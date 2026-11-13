@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.7 (13.11.2026, deneme · `yerel-android` dalı): şeffaf oynatıcı, zarif takip yazısı
+- **Oynatıcı videonun üstünde:** kontroller (oynat · başa · kare geri/ileri · ince çubuk · süre) videonun altında, şeffaf koyu geçişli şeritte; ayrı satır kalktı, bir satır yer kazanıldı. Eski satır ⋯ › "yazılı (önceki)" ile döner.
+- **Açılışta tam oturma:** önizleme açılışta videonun oranına göre boyutlanır (üstte/altta boşluk yok); tutamaç durur, çift dokunuş yine tam oturur.
+- **Takip eden yazı stilleri (yan yana, çizgi simgeli):** Zarif (halka + eğik + yatay çizgi, yazı çizginin üstünde), Köşe (dik açılı çizgi), İğne (dikey çizgi), Kutulu (önceki). Çizgi rengi ayrı seçilir; nokta sağ kenara yakınsa çizgi sola açılır. Önizleme ve dışa aktarma aynı bitmapi kullanır. Yeni takiplerde varsayılan: Zarif.
+
 ## 3.6 (13.11.2026, deneme · `yerel-android` dalı): varsayılan ayarlar yenilendi, yüze yaklaşma, üst boşluk
 - **Varsayılan ayarlar sayfası (Görünüm › Şablon):** 3.5'teki düğme ve renk düzeninde. Beş madde arka plansız, üstte simge, altta küçük yazı, ton renkleriyle duruyor; dokun = dahil et / çıkar, seçim hatırlanır. Altta tek düğme: **Seçili N ayarı uygula**.
   1. **Kadrajı doldur:** bütün klipler (fotoğraf ve video, yatay ve dikey) ekranı doldurur, Sığdır değil.

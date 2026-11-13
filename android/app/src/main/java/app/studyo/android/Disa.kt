@@ -264,7 +264,7 @@ object Disa {
         val kap = ArrayList<TextureOverlay>()
         kap += zamanli
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
-        if (!k.foto) k.takip?.let { t -> Katman.takipYazisi(t, W, H)?.let { kap += TakipBindirme(k, t, it, W, H) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
+        if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kap += TakipBindirme(k, t, it, W, H) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
         val sesli = !k.foto && k.sesVar && !k.sessiz

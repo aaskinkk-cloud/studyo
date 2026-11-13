@@ -210,7 +210,7 @@ fun DugmeSirasi(vararg d: Pair<String, () -> Unit>) {
 
 /** Seçim: simge + küçük ad + çok küçük açıklama, arka plan yok; seçili olan tam renk, kalın ve altı noktalı. "16:9" gibi oranlar kendi şeklini çizer. */
 @Composable
-fun SecimKarti(baslik: String, alt: String, secili: Boolean, modifier: Modifier = Modifier, etkin: Boolean = true, sira: Int = -1, onClick: () -> Unit) {
+fun SecimKarti(baslik: String, alt: String, secili: Boolean, modifier: Modifier = Modifier, etkin: Boolean = true, sira: Int = -1, simge: String? = null, onClick: () -> Unit) {
     if (Duzen.yaziliMenu) { SecimKartiEski(baslik, alt, secili, modifier, etkin, onClick); return }
     val ton = tonRenk(sira, baslik)
     val r = if (!etkin) Renk.soluk.copy(alpha = 0.4f) else if (secili) ton else ton.copy(alpha = 0.55f)
@@ -222,7 +222,7 @@ fun SecimKarti(baslik: String, alt: String, secili: Boolean, modifier: Modifier 
             Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.size((w * k).dp, (h * k).dp).border(1.8.dp, r, RoundedCornerShape(2.dp)))
             }
-        } else Simge(otoSimge(baslik), r, 20.dp)
+        } else Simge(simge ?: otoSimge(baslik), r, 20.dp)
         Text(baslik, color = r, fontSize = 11.5.sp, fontWeight = if (secili) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(top = 3.dp))
         val a = alt.trim().replace("\n", " ")
         if (a.isNotEmpty()) Text(a, color = Renk.soluk, fontSize = 9.5.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 2)

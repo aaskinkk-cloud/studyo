@@ -99,7 +99,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
     val seciliNesne by vm.seciliNesne.collectAsState()
     val k = p.klipler.getOrNull(sira)
     // kare dışı koyu gri, kare sınırı ince açık çizgi: videonun nerede bittiği görünür
-    Box(modifier.background(Color(0xFF1C1E22)).padding(4.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.background(Color(0xFF1C1E22)), contentAlignment = Alignment.Center) {
         if (p.klipler.isEmpty()) {
             Text("Başlamak için alttan “＋ Ekle” ile video veya fotoğraf seç.\nBoyut sınırı yok; dosyalar kopyalanmaz.",
                 color = Renk.soluk, textAlign = TextAlign.Center, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
@@ -209,12 +209,12 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // takip eden yazı
             val t = k?.takip
             if (k != null && t != null && !k.foto && sira < p.klipler.size) {
-                val tb = remember(t.metin, t.alt, t.boyut, t.renk, t.kutu, ref) { Katman.takipYazisi(t, RW, RH) }
+                val tb = remember(t.metin, t.alt, t.boyut, t.renk, t.kutu, t.stil, t.cizgiRenk, ref) { Katman.takipGorsel(t, RW, RH) }
                 val src = k.basMs + (konum - vm.baslangic(sira)).coerceAtLeast(0)
                 val nk = Katman.takipKonum(t, src)
                 if (tb != null && nk != null) {
                     val (px, py) = Geometri.ciktiya(k, nk.first, nk.second, RW, RH, kbAn ?: Yuz.an(k, RW, RH, 0f))
-                    Ciz(Katman.takipYerlesim(tb, px, py, RW, RH), 1f)
+                    Ciz(Katman.takipYerlesimG(tb, px, py, RW, RH), 1f)
                 }
             }
             // giriş başlığı (klasik ya da reels şeritleri), ışıklı boncuklar
@@ -577,6 +577,11 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
                 OutlinedTextField(m, { m = it; vm.takipDegis { tt -> tt.copy(metin = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp), label = { Text("Yazı") }, maxLines = 2)
                 var a by remember(k.id) { mutableStateOf(t.alt) }
                 OutlinedTextField(a, { a = it; vm.takipDegis { tt -> tt.copy(alt = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Alt satır (isteğe bağlı)") }, singleLine = true)
+                // görünüm: yan yana, çizgi simgeli
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(Triple("cagri", "Zarif", "t_cagri"), Triple("kose", "Köşe", "t_kose"), Triple("igne", "İğne", "t_igne"), Triple("kutu", "Kutulu", "t_kutu"))
+                        .forEachIndexed { i, (s, ad, sm) -> SecimKarti(ad, "", t.stil == s, Modifier.weight(1f), sira = i, simge = sm) { vm.takipDegis { it.copy(stil = s) } } }
+                }
                 Kaydirici("Boyut", t.boyut, 0.03f..0.1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.takipDegis { it.copy(boyut = v) } }
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     YAZI_RENK.forEach { r ->
@@ -585,7 +590,17 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
                             .clickable { vm.takipDegis { it.copy(renk = r) } })
                     }
                 }
-                AnahtarSatiri("Arka kutu", t.kutu) { v -> vm.takipDegis { it.copy(kutu = v) } }
+                if (t.stil == "kutu") AnahtarSatiri("Arka kutu", t.kutu) { v -> vm.takipDegis { it.copy(kutu = v) } }
+                else {
+                    Text("Çizgi rengi", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(0xFFF2C94C, 0xFFFFFFFF, 0xFF2EC5D3, 0xFFFF6B6B, 0xFF86C06E).forEach { r ->
+                            Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
+                                .border(if (t.cizgiRenk == r) 2.dp else 0.5.dp, if (t.cizgiRenk == r) Color.White else Renk.cizgi, RoundedCornerShape(9.dp))
+                                .clickable { vm.takipDegis { it.copy(cizgiRenk = r) } })
+                        }
+                    }
+                }
                 DugmeSirasi("Noktayı yeniden seç" to { vm.player.pause(); vm.takipSecimde.value = true }, "Kaldır" to { vm.takipKaldir() })
             }
         }

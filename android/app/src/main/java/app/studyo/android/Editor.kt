@@ -164,8 +164,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
             val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
-            OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk).padding(vertical = 4.dp)
-                .clipToBounds())
+            // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
+            val tamOran = run {
+                val oranV = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
+                ((maxWidth / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
+            }
+            LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
+            Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize())
+                if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
+            }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
             val yog = LocalDensity.current
@@ -177,11 +185,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
                     }
                 }
-                .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = 0.5f; Duzen.oranKaydet(ctxT) }) },
+                .pointerInput(tamOran) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = tamOran; Duzen.oranKaydet(ctxT) }) },
                 contentAlignment = Alignment.Center) {
                 Box(Modifier.width(64.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
             }
-            OynaticiSatiri(vm, p)
+            if (Duzen.yaziliMenu) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
                 if (!panelAcik) {
                     Spacer(Modifier.weight(1f))
@@ -362,6 +370,40 @@ private fun ZamanCubugu(konum: Long, toplam: Long, git: (Long) -> Unit) {
         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.cizgi))
         Box(Modifier.width(w * f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu))
         Box(Modifier.offset(x = (w * f - 2.dp).coerceIn(0.dp, w - 4.dp)).width(4.dp).height(14.dp).clip(RoundedCornerShape(2.dp)).background(Renk.turuncu))
+    }
+}
+
+/** Videonun üstünde, altta şeffaf kontrol şeridi (ayrı satır yer kaplamaz): oynat · başa · kare geri/ileri · ince çubuk · süre. */
+@Composable
+private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier) {
+    val konum by vm.konum.collectAsState()
+    val oyn by vm.oynuyor.collectAsState()
+    val toplam = p.toplamMs.coerceAtLeast(1)
+    val beyaz = Color(0xF2FFFFFF)
+    Row(
+        modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000))))
+            .padding(start = 4.dp, end = 10.dp, top = 14.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 20.dp) }
+        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", beyaz, 14.dp) }
+        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", beyaz, 14.dp) }
+        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", beyaz, 14.dp) }
+        Spacer(Modifier.width(6.dp))
+        val f = (konum.coerceIn(0, toplam).toFloat() / toplam).coerceIn(0f, 1f)
+        BoxWithConstraints(
+            Modifier.weight(1f).height(24.dp)
+                .pointerInput(toplam) { detectTapGestures { o -> vm.git((o.x / size.width * toplam).toLong()) } }
+                .pointerInput(toplam) { detectHorizontalDragGestures { ch, _ -> ch.consume(); vm.git((ch.position.x / size.width * toplam).toLong().coerceIn(0, toplam)) } },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            val w = maxWidth
+            Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0x55FFFFFF)))
+            Box(Modifier.width(w * f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Renk.turuncu))
+            Box(Modifier.offset(x = (w * f - 6.dp).coerceIn(0.dp, w - 12.dp)).size(12.dp).clip(CircleShape).background(Color.White))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.sp, maxLines = 1)
     }
 }
 

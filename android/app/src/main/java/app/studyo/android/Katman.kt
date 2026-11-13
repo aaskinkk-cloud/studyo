@@ -62,6 +62,93 @@ object Katman {
         ), (W * 0.6f).toInt(), bosluk = 0.1f)
     }
 
+    /** Çizgili takip yazısı: iki yön (sağa / sola açılan) bitmap ve her birinde noktanın piksel yeri. */
+    class TakipGorsel(val sag: Bitmap, val sagX: Float, val sagY: Float, val sol: Bitmap, val solX: Float, val solY: Float, val kutu: Boolean = false)
+
+    fun takipGorsel(t: Takip, W: Int, H: Int): TakipGorsel? {
+        if (t.metin.isBlank()) return null
+        if (t.stil == "kutu") { val b = takipYazisi(t, W, H) ?: return null; return TakipGorsel(b, 0f, 0f, b, 0f, 0f, kutu = true) }
+        val (a, ax, ay) = cizgili(t, W, H, 1)
+        if (t.stil == "igne") return TakipGorsel(a, ax, ay, a, ax, ay)
+        val (b, bx, by) = cizgili(t, W, H, -1)
+        return TakipGorsel(a, ax, ay, b, bx, by)
+    }
+
+    /** Nokta sağ kenara yakınsa çizgi sola açılır. Bitmap'in nokta pikseli tam takip noktasına oturur. */
+    fun takipYerlesimG(g: TakipGorsel, px: Float, py: Float, W: Int, H: Int): Yerlesim {
+        if (g.kutu) return takipYerlesim(g.sag, px, py, W, H)
+        val sol = px > W * 0.6f
+        val b = if (sol) g.sol else g.sag; val dx = if (sol) g.solX else g.sagX; val dy = if (sol) g.solY else g.sagY
+        val kx = (dx / b.width) * 2f - 1f; val ky = 1f - (dy / b.height) * 2f
+        return Yerlesim(b, ((px / W) * 2f - 1f).coerceIn(-1f, 1f), (1f - (py / H) * 2f).coerceIn(-1f, 1f), kx.coerceIn(-1f, 1f), ky.coerceIn(-1f, 1f))
+    }
+
+    private fun cizgili(t: Takip, W: Int, H: Int, yon: Int): Triple<Bitmap, Float, Float> {
+        val k = min(W, H).toFloat()
+        val boy = t.boyut * k
+        val baslik = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = t.renk.toInt(); textSize = boy; typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+            setShadowLayer(boy * 0.12f, 0f, boy * 0.04f, 0x99000000.toInt())
+        }
+        val altP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = t.renk.toInt(); textSize = boy * 0.6f; typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+            setShadowLayer(boy * 0.1f, 0f, boy * 0.03f, 0x99000000.toInt())
+        }
+        val cr = t.cizgiRenk.toInt()
+        val cizgi = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cr; style = Paint.Style.STROKE; strokeWidth = (k * 0.0035f).coerceAtLeast(2f); strokeCap = Paint.Cap.ROUND
+            setShadowLayer(k * 0.004f, 0f, 0f, 0x66000000) }
+        val halka = Paint(cizgi).apply { strokeWidth = (k * 0.0028f).coerceAtLeast(1.5f); color = (cr and 0x00FFFFFF) or 0xCC000000.toInt() }
+        val nokta = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); setShadowLayer(k * 0.004f, 0f, 0f, 0x88000000.toInt()) }
+        val m = k * 0.02f; val R = k * 0.024f; val r0 = k * 0.0065f
+        val alt = t.alt.trim()
+        val bW = baslik.measureText(t.metin); val aW = if (alt.isEmpty()) 0f else altP.measureText(alt)
+        val metinW = max(bW, aW)
+        val metinH = boy * 1.05f + (if (alt.isEmpty()) 0f else boy * 0.78f)
+        val bosluk = boy * 0.28f            // yazı ile çizgi arası
+        return when (t.stil) {
+            "igne" -> {
+                val L = k * 0.10f
+                val gw = max(metinW, R * 2) + m * 2; val gh = metinH + bosluk + L + R + m * 2
+                val bm = Bitmap.createBitmap(gw.toInt() + 1, gh.toInt() + 1, Bitmap.Config.ARGB_8888); val c = Canvas(bm)
+                val nx = gw / 2f; val ny = gh - m - R
+                c.drawCircle(nx, ny, R, halka); c.drawCircle(nx, ny, r0, nokta)
+                val ust = ny - R - L
+                c.drawLine(nx, ny - R, nx, ust, cizgi)
+                c.drawLine(nx - min(metinW / 2f, k * 0.06f), ust, nx + min(metinW / 2f, k * 0.06f), ust, cizgi)
+                baslik.textAlign = Paint.Align.CENTER; altP.textAlign = Paint.Align.CENTER
+                var y = ust - bosluk
+                if (alt.isNotEmpty()) { c.drawText(alt, nx, y, altP); y -= boy * 0.78f }
+                c.drawText(t.metin, nx, y, baslik)
+                Triple(bm, nx, ny)
+            }
+            else -> {
+                // cagri: eğik + yatay; kose: dikey + yatay
+                val dx = if (t.stil == "kose") 0f else k * 0.10f
+                val dy = if (t.stil == "kose") k * 0.12f else k * 0.09f
+                val yatay = max(metinW + k * 0.03f, k * 0.18f)
+                val gw = R + dx + yatay + m * 2 + R; val gh = R + dy + bosluk + metinH + m * 2
+                val bm = Bitmap.createBitmap(gw.toInt() + 1, gh.toInt() + 1, Bitmap.Config.ARGB_8888); val c = Canvas(bm)
+                val nx = if (yon > 0) m + R else gw - m - R; val ny = gh - m - R
+                c.drawCircle(nx, ny, R, halka); c.drawCircle(nx, ny, r0, nokta)
+                // halkanın kenarından çık
+                val ux = if (t.stil == "kose") 0f else yon * dx; val uy = -dy
+                val ul = kotlin.math.sqrt(ux * ux + uy * uy).coerceAtLeast(1f)
+                val sx = nx + ux / ul * R; val sy = ny + uy / ul * R
+                val dirX = nx + yon * dx; val dirY = ny - dy
+                c.drawLine(sx, sy, dirX, dirY, cizgi)
+                val sonX = dirX + yon * yatay
+                c.drawLine(dirX, dirY, sonX, dirY, cizgi)
+                val hiza = if (yon > 0) Paint.Align.LEFT else Paint.Align.RIGHT
+                baslik.textAlign = hiza; altP.textAlign = hiza
+                val tx = dirX + yon * k * 0.012f
+                var y = dirY - bosluk
+                if (alt.isNotEmpty()) { c.drawText(alt, tx, y, altP); y -= boy * 0.78f }
+                c.drawText(t.metin, tx, y, baslik)
+                Triple(bm, nx, ny)
+            }
+        }
+    }
+
     /** Yazının alt ortası noktanın biraz üstünde durur (noktayı kapatmaz). */
     fun takipYerlesim(bmp: Bitmap, px: Float, py: Float, W: Int, H: Int): Yerlesim {
         val ust = (py - min(W, H) * 0.03f).coerceIn(bmp.height.toFloat(), H.toFloat())
@@ -100,15 +187,18 @@ object Katman {
 }
 
 /** Takip eden yazı bindirmesi (klibin kendi efektlerinde). */
-class TakipBindirme(private val k: Klip, private val t: Takip, private val bmp: Bitmap, private val W: Int, private val H: Int, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
+class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Katman.TakipGorsel, private val W: Int, private val H: Int, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
     private val saat = Saat()
-    override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
-    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-        val yerel = saat.yerelMs(presentationTimeUs)
-        val p = Katman.takipKonum(t, k.basMs + yerel) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+    private fun yer(us: Long): Yerlesim? {
+        val yerel = saat.yerelMs(us)
+        val p = Katman.takipKonum(t, k.basMs + yerel) ?: return null
         val (px, py) = Geometri.ciktiya(k, p.first, p.second, W, H, an(yerel))
-        val y = Katman.takipYerlesim(bmp, px, py, W, H)
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx.coerceIn(-1f, 1f), y.zy.coerceIn(-1f, 1f)).setOverlayFrameAnchor(y.kx, y.ky).build()
+        return Katman.takipYerlesimG(g, px, py, W, H)
+    }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap = yer(presentationTimeUs)?.bmp ?: g.sag
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+        val y = yer(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky).build()
     }
 }
 

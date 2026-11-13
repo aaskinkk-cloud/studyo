@@ -50,11 +50,11 @@ import kotlin.math.roundToInt
 private data class Bolum(val anahtar: String, val ad: String, val simge: String, val haplar: List<Pair<String, String>>)
 
 private val BOLUMLER = listOf(
-    Bolum("duzenle", "Düzenle", "✂", listOf("klip" to "Klip", "ekle" to "Ekle", "bicim" to "Biçim")),
-    Bolum("gorunum", "Görünüm", "◐", listOf("kadraj" to "Kadraj", "hareket" to "Hareket")),
+    Bolum("duzenle", "Düzenle", "✂", listOf("klip" to "Klip", "ekle" to "Ekle", "nesne" to "Nesne", "bicim" to "Biçim")),
+    Bolum("gorunum", "Görünüm", "◐", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
     Bolum("ses", "Ses", "♪", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
-    Bolum("metin", "Metin", "T", listOf("yazi" to "Yazı")),
-    Bolum("yayin", "Yayın", "⇪", listOf("logo" to "Logo", "disa" to "Dışa aktar")),
+    Bolum("metin", "Metin", "T", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
+    Bolum("yayin", "Yayın", "⇪", listOf("logo" to "Logo", "kapak" to "Kapak", "disa" to "Dışa aktar")),
 )
 
 @Composable
@@ -71,7 +71,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     val mesgul by vm.mesgul.collectAsState()
     var bolum by rememberSaveable { mutableStateOf("duzenle") }
     var panelAcik by rememberSaveable { mutableStateOf(true) }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "kadraj", "ses" to "muzik", "metin" to "yazi", "yayin" to "logo") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "ses" to "muzik", "metin" to "yazi", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
 
     val ekleSecici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.ekle(it) }
@@ -100,7 +100,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 Dugme("Kaydet", Modifier.padding(end = 6.dp), renk = Renk.turkuaz, yaziRenk = Color(0xFF04191B)) { vm.kaydetSimdi() }
                 Dugme("Dışa Aktar", Modifier.padding(end = 4.dp), renk = Renk.turuncu, yaziRenk = Renk.turuncuM, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
-            Onizleme(vm, p, Modifier.fillMaxWidth().weight(1f))
+            OnizlemeKatmanli(vm, p, panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne", Modifier.fillMaxWidth().weight(1f))
             OynaticiSatiri(vm, p)
             KlipSeridi(vm, p, sec, ekle)
             if (panelAcik) {
@@ -292,6 +292,11 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "muzik" -> PanelMuzik(vm, p)
         "seslendirme" -> PanelSeslendirme(vm, p)
         "logo" -> PanelLogo(vm, p)
+        "sablon" -> PanelSablon(vm, p)
+        "gecis" -> PanelGecis(vm, p)
+        "altyazi" -> PanelAltyazi(vm, p)
+        "kapak" -> PanelKapak(vm, p)
+        "nesne" -> PanelNesne(vm, p)
         else -> if (k == null) {
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))
         } else when (hap) {
@@ -300,6 +305,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
             "hareket" -> PanelHareket(vm, k)
             "klipses" -> PanelKlipSes(vm, k)
             "yazi" -> PanelYazi(vm, k)
+            "takip" -> PanelTakip(vm, k)
             else -> Text("Bölüm: $bolum", color = Renk.soluk)
         }
     }

@@ -94,9 +94,44 @@ object Disa {
     const val HDR_COZUCU = Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_MEDIACODEC
     const val HDR_SDR_GIBI = Composition.HDR_MODE_EXPERIMENTAL_FORCE_INTERPRET_HDR_AS_SDR
 
-    fun kompozisyon(p: Proje, W: Int, H: Int, hdrKip: Int = HDR_COZUCU): Composition {
+    /** Kapanış kartını çıktı çözünürlüğünde JPEG olarak yazar (görüntü klibi olarak eklenir). */
+    fun kapanisDosyasi(ctx: Context, p: Proje, W: Int, H: Int, ad: String): File {
+        val f = File(ctx.cacheDir, "$ad.jpg")
+        val b = Cizim.kapanis(p.kapanis, p.logo, W, H)
+        f.outputStream().use { b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, it) }
+        b.recycle()
+        return f
+    }
+
+    fun kompozisyon(ctx: Context, p: Proje, W: Int, H: Int, hdrKip: Int = HDR_COZUCU): Composition {
         val logo = p.logo?.let { Kaplama.logo(it, W, H) }
-        val ogeler = p.klipler.map { oge(it, W, H, logo) }
+        // Zaman çizelgesinde aralıkla görünen öğeler (tüm kliplere ortak bitmapler)
+        val zamanli = ArrayList<Triple<Yerlesim, Long, Long>>()
+        Cizim.giris(p.giris, W, H)?.let { val (a, b) = Zaman.girisAralik(p); zamanli += Triple(it, a, b) }
+        Cizim.hatirlatici(p.hatirlatici, W, H)?.let { val (a, b) = Zaman.hatirlaticiAralik(p); zamanli += Triple(it, a, b) }
+        for (ns in p.nesneler) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
+        val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
+        val kapanisVar = p.kapanisMs > 0
+        val n = p.klipler.size + if (kapanisVar) 1 else 0
+        val ogeler = ArrayList<EditedMediaItem>()
+        var bas = 0L
+        for ((i, k) in p.klipler.withIndex()) {
+            val gec = Gecisler.etkiler(p.gecis, k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc)
+            val ek = ArrayList<TextureOverlay>()
+            for ((y, a, b) in zamanli) if (a < bas + k.sureMs && b > bas) ek += ZamanliBindirme(y, bas, a, b)
+            val satir = altyazilar.filter { it.basMs < bas + k.sureMs && it.sonMs > bas }
+            if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
+            ogeler += oge(k, W, H, logo, gec, ek)
+            bas += k.sureMs
+        }
+        if (kapanisVar) {
+            val f = kapanisDosyasi(ctx, p, W, H, "kapanis_cikis")
+            val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
+            val v = ArrayList<Effect>()
+            v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
+            v += Gecisler.etkiler(p.gecis, p.kapanisMs, n > 1, false, false)
+            ogeler += EditedMediaItem.Builder(mi).setFrameRate(30).setEffects(Effects(listOf(), v)).build()
+        }
         val diziler = ArrayList<EditedMediaItemSequence>()
         diziler += EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build()
         val toplam = p.toplamMs
@@ -129,7 +164,7 @@ object Disa {
         return Composition.Builder(diziler).setHdrMode(hdrKip).build()
     }
 
-    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?): EditedMediaItem {
+    private fun oge(k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
@@ -137,8 +172,11 @@ object Disa {
         if (k.foto && k.kenBurns) v += kenBurns(k.fotoSureMs)
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
+        v += gecis
         val kap = ArrayList<TextureOverlay>()
+        kap += zamanli
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
+        if (!k.foto) k.takip?.let { t -> Katman.takipYazisi(t, W, H)?.let { kap += TakipBindirme(k, t, it, W, H) } }
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
         val sesli = !k.foto && k.sesVar && !k.sessiz
@@ -376,7 +414,7 @@ class DisaServisi : Service() {
         p.klipler.forEach { Kayit.yaz("  ${it.tur} ${it.ad} ${Medya.mb(it.boyutBayt)} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ${it.basMs}-${it.sonMs}") }
         try {
             Kayit.yaz("  HDR yöntemi: " + if (hdrKip == Disa.HDR_SDR_GIBI) "SDR gibi oku (yedek)" else "çözücüde SDR'ye çevir")
-            val comp = Disa.kompozisyon(p, W, H, hdrKip)
+            val comp = Disa.kompozisyon(this, p, W, H, hdrKip)
             val enc = DefaultEncoderFactory.Builder(this)
                 .setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(Disa.bitHizi(kisa, kalite)).build())
                 .setEnableFallback(true).build()

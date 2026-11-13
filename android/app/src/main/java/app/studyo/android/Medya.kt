@@ -151,6 +151,51 @@ object Medya {
         }
     }
 
+    /** Tam o andaki kare (kapak için; anahtar kareye yuvarlamaz). */
+    fun kareTam(ctx: Context, uri: Uri, ms: Long, boy: Int): Bitmap? {
+        val r = MediaMetadataRetriever()
+        try {
+            r.setDataSource(ctx, uri)
+            val t = ms * 1000
+            return if (Build.VERSION.SDK_INT >= 27) r.getScaledFrameAtTime(t, MediaMetadataRetriever.OPTION_CLOSEST, boy, boy)
+            else r.getFrameAtTime(t, MediaMetadataRetriever.OPTION_CLOSEST)?.let { olcekle(it, boy) }
+        } finally {
+            try { r.release() } catch (_: Exception) {}
+        }
+    }
+
+    /** JPEG'i galeriye (Pictures/Stüdyo) yazar ve boyutunu doğrular. */
+    fun resimKaydet(ctx: Context, b: Bitmap, ad: String): Uri {
+        val cr = ctx.contentResolver
+        val cv = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, ad)
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= 29) {
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Stüdyo")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            } else {
+                @Suppress("DEPRECATION")
+                val d = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "Stüdyo").apply { mkdirs() }
+                @Suppress("DEPRECATION")
+                put(android.provider.MediaStore.Images.Media.DATA, File(d, ad).path)
+            }
+        }
+        val kol = if (Build.VERSION.SDK_INT >= 29) android.provider.MediaStore.Images.Media.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        else android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val u = cr.insert(kol, cv) ?: throw IllegalStateException("Galeride kayıt oluşturulamadı.")
+        try {
+            val o = cr.openOutputStream(u, "w") ?: throw IllegalStateException("Dosya açılamadı.")
+            o.use { if (!b.compress(Bitmap.CompressFormat.JPEG, 94, it)) throw IllegalStateException("JPEG yazılamadı.") }
+            val boy = cr.openFileDescriptor(u, "r")?.use { it.statSize } ?: 0L
+            if (boy <= 0) throw IllegalStateException("Dosya boş kaldı.")
+            if (Build.VERSION.SDK_INT >= 29) cr.update(u, android.content.ContentValues().apply { put(android.provider.MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
+        } catch (e: Exception) {
+            try { cr.delete(u, null, null) } catch (_: Exception) {}
+            throw e
+        }
+        return u
+    }
+
     fun olcekle(b: Bitmap, boy: Int): Bitmap {
         val s = boy.toFloat() / maxOf(b.width, b.height)
         if (s >= 1f) return b

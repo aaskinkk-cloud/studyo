@@ -79,18 +79,29 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun baslangic(i: Int): Long = proje.value.klipler.take(i.coerceAtLeast(0)).sumOf { it.sureMs }
     fun anlik(): Long = if (proje.value.klipler.isEmpty()) 0 else baslangic(player.currentMediaItemIndex) + player.currentPosition.coerceAtLeast(0)
 
-    private fun ogeler(p: Proje) = p.klipler.map { k ->
-        val b = MediaItem.Builder().setUri(Uri.parse(k.uri)).setMediaId(k.id)
-        if (k.foto) b.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
-        else b.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
-        b.build()
+    private fun ogeler(p: Proje): List<MediaItem> {
+        val l = p.klipler.map { k ->
+            val b = MediaItem.Builder().setUri(Uri.parse(k.uri)).setMediaId(k.id)
+            if (k.foto) b.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
+            else b.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
+            b.build()
+        }.toMutableList()
+        if (p.kapanisMs > 0) {
+            // Kapanış kartı önizlemede de görünür (çıktıdakiyle aynı çizim, 1080 ölçeğinde)
+            val (w, h) = Disa.boyut(p.bicim, 1080)
+            val f = try { Disa.kapanisDosyasi(ctx, p, w, h, "kapanis_" + (p.kapanis.hashCode() * 31 + p.logo.hashCode() * 7 + p.bicim.hashCode()).toUInt()) } catch (e: Exception) { Kayit.hata("kapanış kartı", e); null }
+            if (f != null) l += MediaItem.Builder().setUri(Uri.fromFile(f)).setMediaId("kapanis").setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
+        }
+        return l
     }
 
     fun listeKur(i: Int = player.currentMediaItemIndex, ms: Long = player.currentPosition) {
         val p = proje.value
         if (p.klipler.isEmpty()) { player.clearMediaItems(); konum.value = 0; return }
-        val ii = i.coerceIn(0, p.klipler.lastIndex)
-        player.setMediaItems(ogeler(p), ii, ms.coerceIn(0, (p.klipler[ii].sureMs - 1).coerceAtLeast(0)))
+        val liste = ogeler(p)
+        val ii = i.coerceIn(0, liste.lastIndex)
+        val sure = if (ii < p.klipler.size) p.klipler[ii].sureMs else p.kapanisMs
+        player.setMediaItems(liste, ii, ms.coerceIn(0, (sure - 1).coerceAtLeast(0)))
         player.prepare()
         sira.value = ii
         sesUygula()
@@ -109,9 +120,14 @@ class EditorDurum(private val ctx: Context, id: String) {
         val p = proje.value
         if (p.klipler.isEmpty()) return
         var t = ms.coerceIn(0, (p.toplamMs - 1).coerceAtLeast(0))
+        var bulundu = false
         for ((i, k) in p.klipler.withIndex()) {
-            if (t < k.sureMs || i == p.klipler.lastIndex) { player.seekTo(i, t.coerceIn(0, (k.sureMs - 1).coerceAtLeast(0))); break }
+            if (t < k.sureMs) { player.seekTo(i, t); bulundu = true; break }
             t -= k.sureMs
+        }
+        if (!bulundu) {
+            if (p.kapanisMs > 0 && player.mediaItemCount > p.klipler.size) player.seekTo(p.klipler.size, t.coerceIn(0, p.kapanisMs - 1))
+            else { val k = p.klipler.last(); player.seekTo(p.klipler.lastIndex, (k.sureMs - 1).coerceAtLeast(0)) }
         }
         konum.value = ms
         muzikHizala()
@@ -377,6 +393,252 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun sesDegis(id: String, f: (SesKaydi) -> SesKaydi) = guncelle { p -> p.copy(sesler = p.sesler.map { if (it.id == id) f(it) else it }) }
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }
+
+    // ---------- görünüm: geçiş ve şablon ----------
+    fun gecisDegis(f: (Gecis) -> Gecis) = guncelle { it.copy(gecis = f(it.gecis)) }
+    fun girisDegis(f: (Giris) -> Giris) = guncelle { it.copy(giris = f(it.giris)) }
+    fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
+    private var yapiIs: Job? = null
+    /** Kapanış kartı yazısı değişince kart görüntüsü yeniden çizilir; yazarken her harfte değil, 700 ms durunca. */
+    fun kapanisDegis(yapi: Boolean = true, f: (Kapanis) -> Kapanis) {
+        guncelle(yapi) { it.copy(kapanis = f(it.kapanis)) }
+        if (!yapi) { yapiIs?.cancel(); yapiIs = kapsam.launch { delay(700); listeKur() } }
+    }
+
+    /** Hazır paket: giriş başlığı, geçiş, hatırlatıcı ve kapanışı birlikte ayarlar. Klipler, müzik ve yazılar değişmez. */
+    fun paketUygula(ad: String) {
+        guncelle(true) { p ->
+            val g = p.giris.copy(acik = true, baslik = p.giris.baslik.ifBlank { "Ahmet Aşkın" }, alt = p.giris.alt.ifBlank { "Şefin Doğası" })
+            when (ad) {
+                "reels" -> p.copy(giris = g.copy(stil = "bantlar", sureMs = 3000), gecis = Gecis("yakin", 500, false),
+                    hatirlatici = p.hatirlatici.copy(acik = true), kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000))
+                "sinema" -> p.copy(giris = g.copy(stil = "sinematik", sureMs = 4000), gecis = Gecis("siyah", 900, true),
+                    hatirlatici = p.hatirlatici.copy(acik = false), kapanis = p.kapanis.copy(acik = true, stil = "sade", sureMs = 4000))
+                else -> p.copy(giris = g.copy(stil = "altbant", sureMs = 3500), gecis = Gecis("beyaz", 700, false),
+                    hatirlatici = p.hatirlatici.copy(acik = false), kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000))
+            }
+        }
+        mesaj.value = "Paket uygulandı"
+    }
+
+    // ---------- altyazı ----------
+    val seciliAltyazi = MutableStateFlow<String?>(null)
+
+    fun altyaziEkle() {
+        val p = proje.value
+        if (p.toplamMs <= 0) return
+        val a = anlik().coerceIn(0, (p.toplamMs - 500).coerceAtLeast(0))
+        val y = Altyazi(basMs = a, sonMs = (a + 3000).coerceAtMost(p.toplamMs), metin = "")
+        guncelle { it.copy(altyazilar = (it.altyazilar + y).sortedBy { s -> s.basMs }) }
+        seciliAltyazi.value = y.id
+    }
+
+    fun altyaziHerKlibe() {
+        var bas = 0L
+        val yeni = proje.value.klipler.map { k -> Altyazi(basMs = bas, sonMs = bas + k.sureMs, metin = k.yazi?.metin ?: "").also { bas += k.sureMs } }
+        guncelle { it.copy(altyazilar = (it.altyazilar + yeni).sortedBy { s -> s.basMs }) }
+        mesaj.value = "${yeni.size} satır eklendi"
+    }
+
+    fun altyaziDegis(id: String, f: (Altyazi) -> Altyazi) = guncelle { p -> p.copy(altyazilar = p.altyazilar.map { if (it.id == id) f(it) else it }.sortedBy { it.basMs }) }
+    fun altyaziSil(id: String) = guncelle { p -> p.copy(altyazilar = p.altyazilar.filter { it.id != id }) }
+    fun altyaziTumunuSil() = guncelle { it.copy(altyazilar = emptyList()) }
+    fun altyaziStilDegis(f: (AltyaziStil) -> AltyaziStil) = guncelle { it.copy(altyaziStil = f(it.altyaziStil)) }
+
+    private fun srtZaman(ms: Long): String = String.format(java.util.Locale.US, "%02d:%02d:%02d,%03d", ms / 3600000, ms / 60000 % 60, ms / 1000 % 60, ms % 1000)
+
+    fun srt(): String = proje.value.altyazilar.filter { it.metin.isNotBlank() }.withIndex()
+        .joinToString("\n") { (i, a) -> "${i + 1}\n${srtZaman(a.basMs)} --> ${srtZaman(a.sonMs)}\n${a.metin}\n" }
+
+    fun srtYukle(u: Uri) {
+        kapsam.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val metin = ctx.contentResolver.openInputStream(u)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+                    val zaman = Regex("(\\d+):(\\d+):(\\d+)[,.](\\d+)\\s*-->\\s*(\\d+):(\\d+):(\\d+)[,.](\\d+)")
+                    fun ms(g: List<String>, o: Int) = g[o].toLong() * 3600000 + g[o + 1].toLong() * 60000 + g[o + 2].toLong() * 1000 + g[o + 3].padEnd(3, '0').take(3).toLong()
+                    metin.replace("\r", "").split(Regex("\\n\\s*\\n")).mapNotNull { blok ->
+                        val satirlar = blok.trim().lines()
+                        val zi = satirlar.indexOfFirst { zaman.containsMatchIn(it) }
+                        if (zi < 0) null else {
+                            val g = zaman.find(satirlar[zi])!!.groupValues
+                            Altyazi(basMs = ms(g, 1), sonMs = ms(g, 5), metin = satirlar.drop(zi + 1).joinToString("\n").trim())
+                        }
+                    }
+                }
+            }
+            r.onSuccess { l ->
+                if (l.isEmpty()) uyari.value = "Dosyada SRT altyazı bulunamadı."
+                else { guncelle { it.copy(altyazilar = (it.altyazilar + l).sortedBy { s -> s.basMs }) }; mesaj.value = "${l.size} satır yüklendi" }
+            }.onFailure { uyari.value = "SRT okunamadı: ${it.message}" }
+        }
+    }
+
+    // ---------- kapak ----------
+    val kapakResmi = MutableStateFlow<android.graphics.Bitmap?>(null)
+    private var kapakIs: Job? = null
+
+    fun kapakDegis(f: (Kapak) -> Kapak) { guncelle { it.copy(kapak = f(it.kapak)) }; kapakCiz() }
+
+    /** Önizlemedeki anı kapak karesi yapar. */
+    fun kapakKareSec() {
+        val p = proje.value
+        val i = player.currentMediaItemIndex
+        val k = p.klipler.getOrNull(i) ?: p.klipler.lastOrNull() ?: return
+        val yerel = if (i < p.klipler.size) player.currentPosition.coerceAtLeast(0) else 0L
+        kapakDegis { it.copy(kaynakUri = k.uri, kaynakMs = if (k.foto) 0 else k.basMs + yerel, kaynakFoto = k.foto) }
+        mesaj.value = "Kapak karesi seçildi"
+    }
+
+    private fun kapakKaynak(kp: Kapak): android.graphics.Bitmap? {
+        if (kp.kaynakUri.isEmpty()) return null
+        val u = Uri.parse(kp.kaynakUri)
+        return if (kp.kaynakFoto) Medya.ornekleCoz(File(u.path ?: ""), 1920) else Medya.kareTam(ctx, u, kp.kaynakMs, 1920)
+    }
+
+    fun kapakCiz() {
+        kapakIs?.cancel()
+        kapakIs = kapsam.launch {
+            delay(150)
+            val p = proje.value
+            val b = withContext(Dispatchers.Default) {
+                runCatching {
+                    val (w, h) = Cizim.kapakBoyut(p.bicim)
+                    val olc = 640f / maxOf(w, h)
+                    Cizim.kapak(p.kapak.copy(), kapakKaynak(p.kapak), p.logo, (w * olc).toInt(), (h * olc).toInt())
+                }.getOrNull()
+            }
+            kapakResmi.value = b
+        }
+    }
+
+    fun kapakKaydet() {
+        kapsam.launch {
+            mesgul.value = "Kapak kaydediliyor…"
+            val p = proje.value
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    val (w, h) = Cizim.kapakBoyut(p.bicim)
+                    val b = Cizim.kapak(p.kapak, kapakKaynak(p.kapak), p.logo, w, h)
+                    val ad = p.ad.replace(Regex("[\\\\/:*?\"<>|]"), "_").take(60) + "_kapak_" +
+                        java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date()) + ".jpg"
+                    Medya.resimKaydet(ctx, b, ad)
+                }
+            }
+            mesgul.value = null
+            r.onSuccess { mesaj.value = "Kapak kaydedildi: Pictures/Stüdyo" }.onFailure { Kayit.hata("kapak", it); uyari.value = "Kapak kaydedilemedi: ${it.message}" }
+        }
+    }
+
+    /** Netlik (Laplace varyansı) ve pozlamaya göre kapak için en iyi kareleri önerir. */
+    val kapakOnerileri = MutableStateFlow<List<Pair<Kapak, android.graphics.Bitmap>>>(emptyList())
+    val kapakOneriHazirlaniyor = MutableStateFlow(false)
+
+    private fun kareSkoru(b: android.graphics.Bitmap): Float {
+        val k = Medya.olcekle(b, 160)
+        val w = k.width; val h = k.height
+        val px = IntArray(w * h); k.getPixels(px, 0, w, 0, 0, w, h)
+        val g = FloatArray(w * h) { i -> val c = px[i]; (c shr 16 and 255) * 0.299f + (c shr 8 and 255) * 0.587f + (c and 255) * 0.114f }
+        var ort = 0f; for (v in g) ort += v; ort /= g.size
+        var t = 0.0; var t2 = 0.0; var n = 0
+        for (y in 1 until h - 1) for (x in 1 until w - 1) {
+            val i = y * w + x
+            val l = (4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w]).toDouble()
+            t += l; t2 += l * l; n++
+        }
+        val varyans = if (n > 0) (t2 / n - (t / n) * (t / n)).toFloat() else 0f
+        val poz = (1f - kotlin.math.abs(ort - 125f) / 150f).coerceIn(0.15f, 1f)
+        return varyans * poz
+    }
+
+    fun kapakOneriHazirla() {
+        if (kapakOneriHazirlaniyor.value) return
+        kapakOneriHazirlaniyor.value = true
+        kapsam.launch {
+            val p = proje.value
+            val l = withContext(Dispatchers.IO) {
+                val adaylar = ArrayList<Triple<Kapak, android.graphics.Bitmap, Float>>()
+                val kl = p.klipler
+                val adim = maxOf(1, kl.size / 12)
+                for (i in kl.indices step adim) {
+                    val k = kl[i]
+                    val anlar = if (k.foto) listOf(0L) else listOf(0.3f, 0.6f).map { k.basMs + (k.sureMs * it).toLong() }
+                    for (an in anlar) {
+                        val b = try {
+                            if (k.foto) Medya.ornekleCoz(File(Uri.parse(k.uri).path ?: ""), 480) else Medya.kare(ctx, Uri.parse(k.uri), an, 480)
+                        } catch (e: Exception) { null } ?: continue
+                        adaylar += Triple(p.kapak.copy(kaynakUri = k.uri, kaynakMs = if (k.foto) 0 else an, kaynakFoto = k.foto), b, kareSkoru(b))
+                    }
+                }
+                adaylar.sortedByDescending { it.third }.take(6).map { it.first to it.second }
+            }
+            kapakOnerileri.value = l
+            kapakOneriHazirlaniyor.value = false
+            if (l.isEmpty()) uyari.value = "Kapak önerisi çıkarılamadı."
+        }
+    }
+
+    fun kapakOneriSec(k: Kapak) = kapakDegis { it.copy(kaynakUri = k.kaynakUri, kaynakMs = k.kaynakMs, kaynakFoto = k.kaynakFoto) }
+
+    // ---------- takip eden yazı ----------
+    val takipSecimde = MutableStateFlow(false)
+    val takipIlerleme = MutableStateFlow<Float?>(null)
+    private var takipIs: Job? = null
+
+    /** Önizlemede dokunulan nokta (oynayan klibin kaynak karesinde 0…1). İzleme hemen başlar. */
+    fun takipNoktaSec(i: Int, x: Float, y: Float) {
+        val p = proje.value
+        val k = p.klipler.getOrNull(i) ?: return
+        if (k.foto) { uyari.value = "Takip eden yazı yalnız videolarda çalışır."; return }
+        takipSecimde.value = false
+        player.pause()
+        val bas = (k.basMs + player.currentPosition.coerceAtLeast(0)).coerceIn(k.basMs, (k.sonMs - 100).coerceAtLeast(k.basMs))
+        secili.value = i
+        guncelle { pp -> pp.copy(klipler = pp.klipler.toMutableList().also { l ->
+            val eski = l[i].takip ?: Takip(metin = "Buraya bak")
+            l[i] = l[i].copy(takip = eski.copy(basX = x, basY = y, basMs = bas, noktalar = emptyList()))
+        }) }
+        takipIs?.cancel()
+        takipIs = kapsam.launch {
+            takipIlerleme.value = 0f
+            val r = runCatching { Takipci.izle(ctx, k, bas, x, y) { f -> takipIlerleme.value = f } }
+            takipIlerleme.value = null
+            r.onSuccess { n ->
+                guncelle { pp -> pp.copy(klipler = pp.klipler.map { if (it.id == k.id) it.copy(takip = it.takip?.copy(noktalar = n)) else it }) }
+                kaydetSimdi(false)
+                Kayit.yaz("Takip: ${k.ad} ${n.size} nokta")
+                mesaj.value = "Takip tamam (${n.size} kare)"
+            }.onFailure { e ->
+                if (e !is kotlinx.coroutines.CancellationException) { Kayit.hata("takip", e); uyari.value = "Takip yapılamadı: ${e.message}" }
+            }
+        }
+    }
+
+    fun takipIptal() { takipIs?.cancel(); takipIlerleme.value = null }
+    fun takipDegis(f: (Takip) -> Takip) = klipGuncelle { it.copy(takip = it.takip?.let(f)) }
+    fun takipKaldir() { takipIptal(); klipGuncelle { it.copy(takip = null) } }
+
+    // ---------- nesne katmanları ----------
+    val seciliNesne = MutableStateFlow<String?>(null)
+
+    fun nesneEkle(u: Uri) {
+        kapsam.launch {
+            mesgul.value = "Nesne kesiliyor…"
+            val (f, hata) = try { Nesneci.kes(ctx, u) } catch (e: Exception) { Kayit.hata("nesne", e); null to (e.message ?: "bilinmeyen hata") }
+            mesgul.value = null
+            if (f == null) { uyari.value = hata ?: "Nesne kesilemedi."; return@launch }
+            val p = proje.value
+            val a = anlik().coerceIn(0, (p.toplamMs - 500).coerceAtLeast(0))
+            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(p.toplamMs.coerceAtLeast(a + 500)))
+            guncelle { it.copy(nesneler = it.nesneler + n) }
+            kaydetSimdi(false)
+            seciliNesne.value = n.id
+            mesaj.value = "Nesne eklendi — önizlemede sürükleyerek yerleştir"
+        }
+    }
+
+    fun nesneDegis(id: String, f: (Nesne) -> Nesne) = guncelle { p -> p.copy(nesneler = p.nesneler.map { if (it.id == id) f(it) else it }) }
+    fun nesneSil(id: String) { guncelle { p -> p.copy(nesneler = p.nesneler.filter { it.id != id }) }; if (seciliNesne.value == id) seciliNesne.value = null }
 
     fun kapat() {
         if (kaydediyor.value) kayitDurdur()

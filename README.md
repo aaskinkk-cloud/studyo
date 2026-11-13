@@ -6,6 +6,20 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.1 (13.11.2026, deneme · `yerel-android` dalı): web editördeki özellikler yerel editöre taşındı
+**İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — üstüne kurulur. Telefonda test edilmeden `main`'e alınmayacak.
+
+Sırayla (önizlemede de, dışa aktarmada da aynı çizim ve aynı zaman hesabı):
+1. **Geçiş** (Görünüm › Geçiş): Yok · Siyahtan · Beyaz parlama · Yakınlaşarak; süre 0,3–2 sn; "videoyu siyahtan açarak başlat". Klip sınırında giden klibin sonu ve gelen klibin başı efektlenir; videonun sonu asla karartılmaz. Zaman çizelgesi değişmez (seslendirme kaymaz). *Yok:* iki klibin üst üste bindiği geçişler (çapraz, kaydırma, silinme) — Media3'te çoklu video dizisi gerektiriyor; ayrı adımda.
+2. **Şablon** (Görünüm › Şablon): hazır paketler (YouTube · Reels · Sinema); giriş başlığı (Sinematik, Alt bant, Kutulu, Neon, Renkli bant; başlık `|` ile satır, alt başlık, süre); abone hatırlatıcı (videonun %10–90'ında, 4 sn); kapanış kartı (aydınlık degrade, yuvarlak logo, kanal adı, Beğen · Abone ol · Paylaş ya da sade; 2–8 sn, videonun sonuna eklenir). *Yok:* web'deki 12 reels stili, efekt sesleri, ışıklı boncuklar, çekim tarihi bandı.
+3. **Altyazı** (Metin › Altyazı): "şu anda ekle" (3 sn), her klibe bir satır, başı/sonu = şu an, git, sil; SRT yükle/kaydet; görünüm: koyu kutu / kenarlı / sarı kenarlı, alt/orta/üst, boyut. *Yok:* otomatik konuşma→yazı (ücretsiz cihaz içi Türkçe tanıma modeli gerekiyor).
+4. **Kapak** (Yayın › Kapak): önizlemedeki kare ya da **6 öneri** (netlik + pozlamaya göre); yazı (`*vurgu*`, `|` satır), Kalın kenarlı / Kutulu / Renkli bant, konum, 5 vurgu rengi, boyut, canlandır + kenar karartma, logo; JPG → Pictures/Stüdyo (yazma doğrulanır).
+5. **Takip eden yazı** (Metin › Takip): önizlemede noktaya dokun → nokta klibin sonuna kadar kare kare izlenir (şablon eşleme, ışık değişimine dayanıklı, titreme süzgeci; video belleğe alınmaz, kareler küçük gruplar halinde çözülür). Yazı + alt satır, boyut, renk, kutu. Zamanlar kaynak dosyaya göre tutulur; klibi sonradan kırpsan da kaymaz.
+6. **Nesne kesme** (Düzenle › Nesne): fotoğraftan ana nesne Google ML Kit Subject Segmentation ile kesilir (ücretsiz, cihaz içinde; model Play Hizmetleri ile bir kez iner), saydam kenarlar kırpılır, videonun üstüne katman olarak eklenir; önizlemede parmakla sürükle, boyut, yumuşak gölge, başı/sonu = şu an. *Yok:* web'deki ISNet kalitesi ve videodan (hareketli) nesne kesme.
+7. **Gündüz teması**: Ana sayfa ⋯ › Gündüz teması (gece teması silinmedi, aynı menüden geri dönülür; seçim hatırlanır).
+
+Kod: `Cizim.kt` (başlık/hatırlatıcı/altyazı/kapanış/kapak çizimleri, geçiş hesabı, zamanlı bindirmeler), `Katman.kt` (geometri, takip ve nesne bindirmeleri), `Takipci.kt`, `Nesneci.kt`, `Paneller.kt` (yeni paneller + katmanlı önizleme), `res/layout/oynatici.xml` (TextureView: önizlemede ölçekleme çalışsın diye).
+
 ## 3.0 (13.11.2026): yerel Android uygulaması — büyük videolar
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — mevcut Stüdyo'nun üstüne kurulur (aynı paket ve imza), kaldırmak gerekmez.
 

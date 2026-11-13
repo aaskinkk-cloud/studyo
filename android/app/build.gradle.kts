@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
     signingConfigs {
         create("okur") {
@@ -49,4 +49,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
+    // Nesne kesme: Google ML Kit Subject Segmentation (ücretsiz, cihaz içinde; model Play Hizmetleri ile bir kez iner)
+    implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
 }

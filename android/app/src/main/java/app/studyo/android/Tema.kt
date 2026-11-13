@@ -24,31 +24,40 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/** Renkler. Gece (koyu) teması varsayılan; gündüz teması ⋯ menüsünden seçilir ve hatırlanır. Gece görünümü silinmedi. */
 object Renk {
-    val zemin = Color(0xFF121A21)
-    val kart = Color(0xFF1B2833)
-    val kart2 = Color(0xFF243444)
-    val cizgi = Color(0xFF2E4153)
-    val yazi = Color(0xFFE6EDF3)
-    val soluk = Color(0xFF8AA0B2)
-    val turuncu = Color(0xFFF5A524)
-    val turuncuM = Color(0xFF1B1204)
-    val turkuaz = Color(0xFF2EC5D3)
-    val kirmizi = Color(0xFFEF5350)
-    val yesil = Color(0xFF4CC38A)
+    var gunduz by mutableStateOf(false)
+    private fun s(gece: Long, gun: Long) = Color(if (gunduz) gun else gece)
+    val zemin get() = s(0xFF121A21, 0xFFF2F5F8)
+    val kart get() = s(0xFF1B2833, 0xFFFFFFFF)
+    val kart2 get() = s(0xFF243444, 0xFFE6ECF1)
+    val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB)
+    val yazi get() = s(0xFFE6EDF3, 0xFF15212C)
+    val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80)
+    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C)
+    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204)
+    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD)
+    val kirmizi get() = s(0xFFEF5350, 0xFFD93A36)
+    val yesil get() = s(0xFF4CC38A, 0xFF16915A)
+
+    fun yukle(ctx: Context) { gunduz = ctx.getSharedPreferences("ayar", 0).getBoolean("gunduz", false) }
+    fun degistir(ctx: Context) { gunduz = !gunduz; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("gunduz", gunduz).apply() }
 }
 
 @Composable
 fun StudyoTema(icerik: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Renk.turuncu, onPrimary = Renk.turuncuM, secondary = Renk.turkuaz, onSecondary = Color(0xFF04191B),
-            background = Renk.zemin, onBackground = Renk.yazi, surface = Renk.kart, onSurface = Renk.yazi,
-            surfaceVariant = Renk.kart2, onSurfaceVariant = Renk.soluk, error = Renk.kirmizi,
-            surfaceContainerHigh = Renk.kart, surfaceContainer = Renk.kart,
-        ),
-        content = icerik,
+    val renkler = if (Renk.gunduz) lightColorScheme(
+        primary = Renk.turuncu, onPrimary = Renk.turuncuM, secondary = Renk.turkuaz, onSecondary = Color.White,
+        background = Renk.zemin, onBackground = Renk.yazi, surface = Renk.kart, onSurface = Renk.yazi,
+        surfaceVariant = Renk.kart2, onSurfaceVariant = Renk.soluk, error = Renk.kirmizi,
+        surfaceContainerHigh = Renk.kart, surfaceContainer = Renk.kart, outline = Renk.cizgi,
+    ) else darkColorScheme(
+        primary = Renk.turuncu, onPrimary = Renk.turuncuM, secondary = Renk.turkuaz, onSecondary = Color(0xFF04191B),
+        background = Renk.zemin, onBackground = Renk.yazi, surface = Renk.kart, onSurface = Renk.yazi,
+        surfaceVariant = Renk.kart2, onSurfaceVariant = Renk.soluk, error = Renk.kirmizi,
+        surfaceContainerHigh = Renk.kart, surfaceContainer = Renk.kart,
     )
+    MaterialTheme(colorScheme = renkler, content = icerik)
 }
 
 /** Hap düğme (bölümün alt başlıkları). */

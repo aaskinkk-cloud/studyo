@@ -48,6 +48,7 @@ data class Klip(
     val kodek: String = "",
     val hdr: Boolean = false,
     val sesVar: Boolean = true,
+    val takip: Takip? = null,
 ) {
     val foto: Boolean get() = tur == "foto"
     val sureMs: Long get() = if (foto) fotoSureMs else (sonMs - basMs).coerceAtLeast(100)
@@ -62,6 +63,49 @@ data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long,
 @Serializable
 data class Logo(val yol: String, val konum: String = "sagUst", val boyut: Float = 0.16f, val opaklik: Float = 1f, val yuvarlak: Boolean = true)
 
+/** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
+@Serializable
+data class Gecis(val tur: String = "yok", val sureMs: Long = 700, val siyahtanAc: Boolean = false)   // yok | siyah | beyaz | yakin
+
+@Serializable
+data class Giris(val acik: Boolean = false, val stil: String = "sinematik", val baslik: String = "", val alt: String = "", val sureMs: Long = 3500)
+
+@Serializable
+data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Abone ol", val kucuk: String = "Yeni videolar için")
+
+@Serializable
+data class Kapanis(val acik: Boolean = false, val stil: String = "cta", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğiniz için teşekkürler")
+
+@Serializable
+data class Altyazi(val id: String = yeniId(), val basMs: Long, val sonMs: Long, val metin: String = "")
+
+@Serializable
+data class AltyaziStil(val acik: Boolean = true, val stil: String = "kutu", val boyut: Float = 0.05f, val konum: String = "alt")   // kutu | kenarli | sari
+
+@Serializable
+data class Kapak(
+    val kaynakUri: String = "", val kaynakMs: Long = 0, val kaynakFoto: Boolean = false,
+    val yazi: String = "", val stil: String = "kalin", val boyut: Float = 0.11f, val konum: String = "alt",
+    val vurgu: Long = 0xFFFFD400, val logo: Boolean = true, val canli: Boolean = true,
+)
+
+/** Takip eden yazı: zamanlar KAYNAK dosyanın zamanı (ms; kırpma değişse de kaymaz), konumlar kaynak karede 0…1. */
+@Serializable
+data class TakipNokta(val ms: Long, val x: Float, val y: Float)
+
+@Serializable
+data class Takip(
+    val metin: String = "", val alt: String = "", val boyut: Float = 0.05f, val renk: Long = 0xFFFFFFFF, val kutu: Boolean = true,
+    val basX: Float = 0.5f, val basY: Float = 0.5f, val basMs: Long = 0, val noktalar: List<TakipNokta> = emptyList(),
+)
+
+/** Nesne katmanı: fotoğraftan kesilmiş saydam PNG; konum kare içinde 0…1 (merkez), genişlik karenin oranı, zaman çizelgesinde aralık. */
+@Serializable
+data class Nesne(
+    val id: String = yeniId(), val yol: String, val x: Float = 0.5f, val y: Float = 0.55f, val olcek: Float = 0.4f,
+    val basMs: Long = 0, val sonMs: Long = 5000, val golge: Boolean = true,
+)
+
 @Serializable
 data class Proje(
     val id: String = yeniId(),
@@ -73,6 +117,18 @@ data class Proje(
     val muzik: Muzik? = null,
     val sesler: List<SesKaydi> = emptyList(),
     val logo: Logo? = null,
+    val gecis: Gecis = Gecis(),
+    val giris: Giris = Giris(),
+    val hatirlatici: Hatirlatici = Hatirlatici(),
+    val kapanis: Kapanis = Kapanis(),
+    val altyazilar: List<Altyazi> = emptyList(),
+    val altyaziStil: AltyaziStil = AltyaziStil(),
+    val kapak: Kapak = Kapak(),
+    val nesneler: List<Nesne> = emptyList(),
 ) {
-    val toplamMs: Long get() = klipler.sumOf { it.sureMs }
+    /** Yalnız kliplerin süresi */
+    val klipMs: Long get() = klipler.sumOf { it.sureMs }
+    /** Kapanış kartı varsa onunla birlikte videonun tamamı */
+    val kapanisMs: Long get() = if (kapanis.acik && klipler.isNotEmpty()) kapanis.sureMs else 0L
+    val toplamMs: Long get() = klipMs + kapanisMs
 }

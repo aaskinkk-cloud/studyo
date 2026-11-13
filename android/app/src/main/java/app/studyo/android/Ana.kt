@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Depo.baslat(this)
+        Renk.yukle(this)
         DisaServisi.acilisKontrol(this)
         enableEdgeToEdge()
         tamEkran()
@@ -156,6 +157,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                 TextButton(onClick = { menu = true }) { Text("⋯", color = Renk.yazi, fontSize = 24.sp) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Hata kaydını paylaş") }, onClick = { menu = false; kayitPaylas(ctx) })
+                    DropdownMenuItem(text = { Text(if (Renk.gunduz) "Gece teması" else "Gündüz teması") }, onClick = { menu = false; Renk.degistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
                     DropdownMenuItem(text = { Text("Sürüm ${BuildConfigBilgi.surum(ctx)}") }, onClick = { menu = false })
                 }

@@ -2,12 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.0 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
-## 3.1 (13.11.2026, deneme · `yerel-android` dalı): web editördeki özellikler yerel editöre taşındı
-**İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — üstüne kurulur. Telefonda test edilmeden `main`'e alınmayacak.
+## 3.1 (13.11.2026): web editördeki özellikler yerel editöre taşındı
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — üstüne kurulur.
+**Test (13.11.2026, Galaxy S25 Ultra, Ahmet):** geçiş, şablon, altyazı, kapak, takip eden yazı, nesne kesme, gündüz teması ve dışa aktarma — başarılı.
 
 Sırayla (önizlemede de, dışa aktarmada da aynı çizim ve aynı zaman hesabı):
 1. **Geçiş** (Görünüm › Geçiş): Yok · Siyahtan · Beyaz parlama · Yakınlaşarak; süre 0,3–2 sn; "videoyu siyahtan açarak başlat". Klip sınırında giden klibin sonu ve gelen klibin başı efektlenir; videonun sonu asla karartılmaz. Zaman çizelgesi değişmez (seslendirme kaymaz). *Yok:* iki klibin üst üste bindiği geçişler (çapraz, kaydırma, silinme) — Media3'te çoklu video dizisi gerektiriyor; ayrı adımda.

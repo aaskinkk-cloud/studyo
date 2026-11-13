@@ -6,6 +6,20 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.10 (14.11.2026, deneme · `yerel-android` dalı): çok satırlı zaman çizelgesi (InShot tarzı, Ahmet'in görseline göre)
+**İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.9'un üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
+
+Klip şeridinin yerinde **hep açık** çok satırlı zaman çizelgesi (panel açıkken üstte, altında ayar alanı):
+- **Satırlar:** 1. satır Video (kliplerin kareleri yan yana, numaralı, sonda ＋ Ekle) · altında her katman ayrı satır (üstteki satır = en üstteki katman; metin mor, görsel turkuaz + küçük resim, çıkartma turuncu, ses yeşil + ses dalgası) · Müzik (dalga; döngüde başa sarar) · Ses kaydı (seslendirmeler, dalga).
+- **Oynatma çizgisi ortada sabit**, çizelge altından kayar; üstte saniye cetveli, çizginin yanında anlık zaman.
+- **Hareket:** tek parmak yatay = sar (oynuyorsa durur) · iki parmak = yakınlaştır/uzaklaştır (4–400 dp/sn, hatırlanır) · dikey = satırlar arasında kaydır.
+- **Seç:** çubuğa dokun. Katmana çift dokun = ayarları aç. Video satırının adına dokun = Klip ayarı; Müzik/Ses kaydı satırına dokun = ilgili panel.
+- **Seçili video klibi:** beyaz tutamaçlar; sol ucu sürükle = baştan kırp, sağ ucu = sondan kırp (fotoğrafta süre).
+- **Seçili katman:** uçları sürükle = başı/sonu (ses katmanında baştan kırpınca sesin başladığı yer de kayar); gövdeyi sürükle = zamanda kaydır, **yukarı/aşağı sürükle = satır (katman sırası) değiştir**.
+- **Temel gereçler** (çizelgenin üstünde, seçime göre tek sıra): katman seçiliyken Böl · Çoğalt · Gizle · Kilitle · Sil · Ayarlar; klip seçiliyken Böl · Çoğalt · Sessiz · Katman ekle · Klip ayarı. **Böl** oynatma çizgisinin olduğu yerden ikiye ayırır.
+- Önceki görünüm silinmedi: Ana sayfa ⋯ › "Zaman çizelgesi: klip şeridi (önceki)".
+- Kod: `Cizelge.kt` (çizelge), `Dalga.kt` (ses dalgası: çözülür, 50 ms'lik tepe değerleri, `cache/dalga`), `EditorDurum.kt` (`klipBol`, `katmanBol`), `Tema.kt` (`Duzen.eskiSerit`, `Duzen.cizelgePps`).
+
 ## 3.9 (14.11.2026, deneme · `yerel-android` dalı): çok katmanlı düzenleme (1. aşama)
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — 3.8'in üstüne kurulur. **Test:** derlendi; cihaz testi bekleniyor.
 

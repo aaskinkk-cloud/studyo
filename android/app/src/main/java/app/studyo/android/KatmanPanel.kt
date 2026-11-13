@@ -59,11 +59,12 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje) {
             SimgeDugme("yildiz", "Çıkartma", Modifier.weight(1f), renk = tonRenk(3, "")) { cikartmaAcik = true }
             SimgeDugme("nota", "Ses", Modifier.weight(1f), renk = tonRenk(4, "")) { sesSec.launch(arrayOf("audio/*")) }
         }
-        Text("Yeni katman oynatıcının bulunduğu andan başlar. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.",
+        Text("Yeni katman oynatıcının bulunduğu andan başlar ve çizelgede kendi satırına yerleşir. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.",
             color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
     }
 
-    if (p.katmanlar.isNotEmpty()) Kart("Katmanlar · ${p.katmanlar.size}") {
+    // çok satırlı çizelge açıkken katman satırları yukarıdaki çizelgededir; bu liste yalnız önceki klip şeridi düzeninde
+    if (p.katmanlar.isNotEmpty() && Duzen.eskiSerit) Kart("Katmanlar · ${p.katmanlar.size}") {
         Text("Üstteki satır en üstteki katmandır. ≡ tutup sürükle = sıra · çubuğun ucunu sürükle = başı/sonu · ortasını sürükle = kaydır · dokun = oraya git.",
             color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(bottom = 4.dp))
         val n = p.katmanlar.size

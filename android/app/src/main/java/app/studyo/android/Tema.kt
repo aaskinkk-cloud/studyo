@@ -59,8 +59,16 @@ object Duzen {
         val sp = ctx.getSharedPreferences("ayar", 0)
         yaziliMenu = sp.getBoolean("yaziliMenu", false)
         onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, 0.75f)
+        eskiSerit = sp.getBoolean("eskiSerit", false)
+        cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
+    /** Zaman çizelgesi: false = çok satırlı (varsayılan), true = önceki klip şeridi. */
+    var eskiSerit by mutableStateOf(false)
+    /** Çok satırlı çizelgenin yakınlığı (dp / saniye; iki parmakla değişir). */
+    var cizelgePps by mutableFloatStateOf(48f)
+    fun seritDegistir(ctx: Context) { eskiSerit = !eskiSerit; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("eskiSerit", eskiSerit).apply() }
+    fun ppsKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("cizelgePps", cizelgePps).apply() }
 }
 
 @Composable

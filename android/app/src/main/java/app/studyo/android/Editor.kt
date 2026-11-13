@@ -194,7 +194,18 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (Duzen.yaziliMenu) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
-                if (!panelAcik) {
+                if (!Duzen.eskiSerit) {
+                    // çok satırlı zaman çizelgesi hep açık; panel açıkken altında ayar alanı
+                    val acHap = { b: String, h: String -> bolum = b; haplar[b] = h; panelAcik = true }
+                    CokluCizelge(vm, p, sec, ekle,
+                        acKatman = { acHap("katman", "katmanlar") }, acKlip = { acHap("duzenle", "klip") },
+                        acMuzik = { acHap("ses", "muzik") }, acSes = { acHap("ses", "seslendirme") },
+                        modifier = if (panelAcik) Modifier.fillMaxWidth().height(214.dp) else Modifier.fillMaxWidth().weight(1f))
+                    if (panelAcik) Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
+                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                } else if (!panelAcik) {
                     Spacer(Modifier.weight(1f))
                     KlipSeridi(vm, p, sec, ekle)
                     Spacer(Modifier.weight(1f))

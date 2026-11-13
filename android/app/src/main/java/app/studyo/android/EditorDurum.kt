@@ -291,6 +291,24 @@ class EditorDurum(private val ctx: Context, id: String) {
         sec(s + 1)
     }
 
+    /** Oynatıcının üstündeki klibi o andan ikiye böler. */
+    fun klipBol() {
+        val p = proje.value
+        if (p.klipler.isEmpty()) return
+        val t = konum.value
+        var i = 0; var bas = 0L
+        while (i < p.klipler.size && bas + p.zKlip(i).sureMs <= t) { bas += p.zKlip(i).sureMs; i++ }
+        if (i >= p.klipler.size) { mesaj.value = "Bölmek için çizgiyi bir klibin üstüne getir"; return }
+        val k = p.klipler[i]; val ofs = t - bas
+        if (ofs < 300 || ofs > k.sureMs - 300) { mesaj.value = "Bölmek için çizgiyi klibin ortasına doğru getir"; return }
+        val (a, b) = if (k.foto) k.copy(fotoSureMs = ofs) to k.copy(id = yeniId(), fotoSureMs = k.fotoSureMs - ofs)
+            else k.copy(sonMs = k.basMs + ofs) to k.copy(id = yeniId(), basMs = k.basMs + ofs)
+        guncelle(true) { pp -> pp.copy(klipler = pp.klipler.toMutableList().apply { set(i, a); add(i + 1, b) }) }
+        secili.value = i + 1
+        git(t)
+        mesaj.value = "Klip bölündü"
+    }
+
     fun klipSil() {
         val s = secili.value
         if (s !in proje.value.klipler.indices) return
@@ -508,6 +526,19 @@ class EditorDurum(private val ctx: Context, id: String) {
             katmanEkleOge(KatmanOge(tur = "ses", ad = r.first.substringBeforeLast('.').take(30), yol = u.toString(), anim = "yok",
                 basMs = a, sonMs = b, kaynakSureMs = r.second))
         }
+    }
+
+    /** Katmanı oynatıcının olduğu yerden ikiye böler (ses katmanında kaynak başlangıcı da kayar). */
+    fun katmanBol(id: String) {
+        val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return
+        val t = konum.value
+        if (t < o.basMs + 200 || t > o.sonMs - 200) { mesaj.value = "Bölmek için çizgiyi katmanın üstüne getir"; return }
+        val a = o.copy(sonMs = t)
+        val b = o.copy(id = yeniId(), basMs = t, kaynakBasMs = o.kaynakBasMs + ((t - o.basMs) * o.hiz).toLong())
+        guncelle { p -> val i = p.katmanlar.indexOfFirst { it.id == id }
+            p.copy(katmanlar = p.katmanlar.toMutableList().apply { set(i, a); add(i + 1, b) }) }
+        seciliKatman.value = b.id
+        mesaj.value = "Bölündü"
     }
 
     fun katmanSil(id: String) {

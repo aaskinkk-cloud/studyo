@@ -321,7 +321,8 @@ fun KlipResmi(k: Klip?, modifier: Modifier) {
 fun kayitPaylas(ctx: Context) {
     val i = Intent(Intent.ACTION_SEND).setType("text/plain")
         .putExtra(Intent.EXTRA_SUBJECT, "Stüdyo hata kaydı")
-        .putExtra(Intent.EXTRA_TEXT, "Stüdyo ${BuildConfigBilgi.surum(ctx)}\n\n" + Kayit.metin())
+        // Paylaşılan uygulamalar uzun metni ~20 KB'de kesiyor (en yeni satırlar kayboluyordu): yalnız son 16 KB gönderilir
+        .putExtra(Intent.EXTRA_TEXT, "Stüdyo ${BuildConfigBilgi.surum(ctx)}\n\n" + Kayit.metin().takeLast(16_000))
     ctx.startActivity(Intent.createChooser(i, "Hata kaydını paylaş").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 

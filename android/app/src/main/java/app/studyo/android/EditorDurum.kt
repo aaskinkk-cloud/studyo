@@ -237,12 +237,18 @@ class EditorDurum(private val ctx: Context, id: String) {
                 Kayit.yaz("Akıcı önizleme: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${bas} ms'den")
                 kompTikIs?.cancel()
                 kompTikIs = kapsam.launch { while (isActive && komp === cp) { konum.value = cp.currentPosition.coerceAtLeast(0); delay(40) } }
-                // Takılma bekçisi: 1,8 sn içinde ilerlemezse (ilk karede kalırsa) bu oturumda standart önizlemeye geçilir
-                // ve oynatma kesintisiz oradan sürer. Aynı yol tekrar denenmez.
+                // Takılma bekçisi: önce hazırlanmasını bekler (büyük HDR videolarda çözücü açılışı 2 sn'yi geçebiliyor;
+                // 3.14-3.15'te bu "takıldı" sanılıyordu), HAZIR olduktan sonra 1,5 sn ilerlemezse standart önizlemeye geçilir.
                 kapsam.launch {
-                    delay(1800)
-                    if (komp === cp && cp.currentPosition <= bas + 150) {
-                        Kayit.yaz("Akıcı önizleme ilerlemedi: durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${comp.sequences.size}")
+                    val t0 = System.currentTimeMillis()
+                    while (komp === cp && cp.playbackState != Player.STATE_READY && System.currentTimeMillis() - t0 < 10_000) delay(100)
+                    if (komp !== cp) return@launch
+                    val hazir = System.currentTimeMillis() - t0
+                    Kayit.yaz("Akıcı önizleme hazır: ${hazir} ms (durum=${cp.playbackState})")
+                    val p0 = cp.currentPosition
+                    delay(1500)
+                    if (komp === cp && cp.currentPosition <= p0 + 150) {
+                        Kayit.yaz("Akıcı önizleme ilerlemedi: hazırlık=${hazir} ms, durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${comp.sequences.size}")
                         akiciKapali = true
                         kompBitir(bas)
                         mesaj.value = "Akıcı önizleme bu telefonda takıldı; standart önizlemeyle oynatılıyor."

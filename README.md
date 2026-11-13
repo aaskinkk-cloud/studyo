@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.16 (14.11.2026, deneme · `yerel-android` dalı): hata kaydı paylaşımı + bekçi hazırlığı bekler
+- Hata kaydı paylaşımı: alan uygulama metni ~20 KB'de kesiyordu, en yeni satırlar (akıcı önizleme kayıtları) gitmiyordu → yalnız son 16 KB paylaşılır.
+- Akıcı önizleme bekçisi önce hazırlanmayı bekler (en çok 10 sn), hazır olduktan sonra 1,5 sn ilerleme yoksa standart önizlemeye geçer. Kayda "Akıcı önizleme hazır: N ms" yazılır. (3.15'te ilk açılışta büyük HDR klipler 2 sn'yi geçince yanlışlıkla "takıldı" sayılıp eski, titreyen önizlemeye dönülüyor olabilirdi [Muhtemel].)
+
 ## 3.15 (14.11.2026, deneme · `yerel-android` dalı): web Kareden Videoya yöntemi + klipler arası geçiş simgesi
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — **Test:** derlendi; cihaz testi bekleniyor.
 

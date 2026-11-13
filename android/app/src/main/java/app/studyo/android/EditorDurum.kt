@@ -40,6 +40,26 @@ class EditorDurum(private val ctx: Context, id: String) {
     val player: ExoPlayer = ExoPlayer.Builder(ctx).build()
     private val muzikPl: ExoPlayer = ExoPlayer.Builder(ctx).build()
     private val sesPl: ExoPlayer = ExoPlayer.Builder(ctx).build()
+
+    /** Önizlemede üst üste binen geçiş: giden klibin gerçek son T ms'si ikinci oynatıcıda (dışa aktarmadaki kuyrukla aynı).
+     *  Eskiden son kare MediaMetadataRetriever ile alınıyordu; HDR videoda bu kare soluk/parlak çıktığı için geçişte parlama görünüyordu. */
+    val kuyrukPl: ExoPlayer = ExoPlayer.Builder(ctx).build()
+    private var kuyrukAnahtar: String? = null
+    fun kuyrukHazirla(k: Klip, T: Long) {
+        val a = "${k.id}#${k.sonMs}#$T#${k.ses}#${k.sessiz}"
+        if (a == kuyrukAnahtar) return
+        kuyrukAnahtar = a
+        val mi = MediaItem.Builder().setUri(Uri.parse(k.uri)).setClippingConfiguration(
+            MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build()).build()
+        kuyrukPl.volume = if (k.sesVar && !k.sessiz) k.ses.coerceIn(0f, 1f) else 0f
+        kuyrukPl.setMediaItem(mi); kuyrukPl.prepare(); kuyrukPl.seekTo(0); kuyrukPl.pause()
+    }
+    fun kuyrukEsle(ofs: Long, oynat: Boolean) {
+        val fark = kotlin.math.abs(kuyrukPl.currentPosition - ofs)
+        if (oynat) { if (fark > 150) kuyrukPl.seekTo(ofs); if (!kuyrukPl.isPlaying) kuyrukPl.play() }
+        else { if (kuyrukPl.isPlaying) kuyrukPl.pause(); if (fark > 40) kuyrukPl.seekTo(ofs) }
+    }
+    fun kuyrukBekle() { if (kuyrukPl.isPlaying) kuyrukPl.pause() }
     private var kaydetIs: Job? = null
     private var tikIs: Job? = null
     private var sesAktif: String? = null
@@ -803,7 +823,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (kaydediyor.value) kayitDurdur()
         kaydetSimdi(false)
         kapsam.cancel()
-        player.release(); muzikPl.release(); sesPl.release()
+        player.release(); muzikPl.release(); sesPl.release(); kuyrukPl.release()
         try { sesHavuzu?.release() } catch (_: Exception) {}
     }
 }

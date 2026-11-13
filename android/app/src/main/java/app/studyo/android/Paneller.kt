@@ -64,10 +64,12 @@ fun Secenekler(liste: List<Pair<String, String>>, secili: String, sutun: Int = 3
                     ) { Text(ad, color = if (on) Renk.turuncu else Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
                 } else {
                     val ton = tonRenk(liste.indexOfFirst { it.first == k }, ad)
-                    Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable { sec(k) }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ad, color = if (on) ton else ton.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1,
+                    val sekil = RoundedCornerShape(50)
+                    Box(Modifier.weight(1f).clip(sekil).border(if (on) 1.2.dp else 0.7.dp, ton.copy(alpha = if (on) 0.95f else 0.35f), sekil)
+                        .background(if (on) ton.copy(alpha = 0.10f) else Color.Transparent).clickable { sec(k) }.padding(vertical = 6.dp, horizontal = 6.dp),
+                        contentAlignment = Alignment.Center) {
+                        Text(ad, color = if (on) ton else ton.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (on) ton else Color.Transparent))
                     }
                 }
             }
@@ -128,9 +130,30 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
 
             // üst üste binen geçiş: giden klibin son karesi üstte solar/kayar (çıktıda giden klibin devamı oynar)
             val pencereler = remember(p.klipler, p.gecis, p.kapanis) { Gecisler.pencereler(p) }
-            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) if (i in p.klipler.indices) vm.sonKareIste(p.zKlip(i)) }
+            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) if (i in p.klipler.indices && p.klipler[i].foto) vm.sonKareIste(p.zKlip(i)) }
             val sonKareler by vm.sonKareler.collectAsState()
-            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, T) ->
+            val oynuyor by vm.oynuyor.collectAsState()
+            // video kuyruğu: pencereye 2 sn kala hazırlanır, pencere içinde ana oynatıcıyla eş zamanlı oynar
+            val yakin = pencereler.firstOrNull { konum >= it.second - 2000 && konum < it.second + it.third && p.klipler.getOrNull(it.first)?.foto == false }
+            if (pencereler.any { p.klipler.getOrNull(it.first)?.foto == false }) {
+                val icinde = yakin != null && konum >= yakin.second
+                val u = if (icinde) Gecisler.ustKatman(p.gecis.tur, ((konum - yakin!!.second).toFloat() / yakin.third).coerceIn(0f, 1f)) else null
+                if (yakin != null) {
+                    val kk = p.zKlip(yakin.first)
+                    LaunchedEffect(kk.id, kk.sonMs, yakin.third, kk.ses, kk.sessiz) { vm.kuyrukHazirla(kk, yakin.third) }
+                    SideEffect { if (icinde) vm.kuyrukEsle(konum - yakin.second, oynuyor) else vm.kuyrukBekle() }
+                } else SideEffect { vm.kuyrukBekle() }
+                val dolduran = yakin?.let { p.klipler.getOrNull(it.first)?.doldur } == true
+                val gen = constraints.maxWidth.toFloat()
+                AndroidView(
+                    factory = { c -> (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.kuyrukPl } },
+                    update = { v -> v.resizeMode = if (dolduran) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
+                    modifier = Modifier.fillMaxSize().graphicsLayer {
+                        alpha = u?.alfa ?: 0f; scaleX = u?.olcek ?: 1f; scaleY = u?.olcek ?: 1f; translationX = ((u?.zx ?: 0f) - (u?.kx ?: 0f)) * gen / 2f
+                    },
+                )
+            }
+            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third && p.klipler.getOrNull(it.first)?.foto == true }?.let { (i, b0, T) ->
                 val kk = p.zKlip(i)
                 sonKareler[vm.sonKareAnahtar(kk)]?.let { bm ->
                     val u = Gecisler.ustKatman(p.gecis.tur, ((konum - b0).toFloat() / T).coerceIn(0f, 1f))

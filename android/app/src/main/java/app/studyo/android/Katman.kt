@@ -66,6 +66,17 @@ object Katman {
         return Yerlesim(bmp, (cx / W) * 2f - 1f, 1f - (ust / H) * 2f, 0f, -1f)
     }
 
+    fun kareNo(n: Nesne, ms: Long): Int = (((ms - n.basMs).coerceAtLeast(0)) / n.kareMs.coerceAtLeast(1)).toInt().coerceIn(0, (n.kareSayi - 1).coerceAtLeast(0))
+    fun kareYolu(n: Nesne, i: Int): String = java.io.File(n.kareDizin, String.format(java.util.Locale.US, "%04d.png", i)).path
+
+    /** Hareketli nesnenin i. karesi, çıktı genişliğinin n.olcek oranında. */
+    fun nesneKaresi(n: Nesne, i: Int, W: Int): Bitmap? {
+        val k = BitmapFactory.decodeFile(kareYolu(n, i)) ?: return null
+        val gen = (n.olcek * W).roundToInt().coerceAtLeast(8)
+        val yuk = (k.height * gen.toFloat() / k.width).roundToInt().coerceAtLeast(8)
+        return Bitmap.createScaledBitmap(k, gen, yuk, true).also { if (it !== k) k.recycle() }
+    }
+
     /** Nesne PNG'sini çıktı ölçeğinde hazırlar (isteğe bağlı yumuşak gölgeyle). */
     fun nesne(n: Nesne, W: Int, H: Int): Yerlesim? {
         val kaynak = BitmapFactory.decodeFile(n.yol) ?: return null
@@ -95,5 +106,43 @@ class TakipBindirme(private val k: Klip, private val t: Takip, private val bmp: 
         val (px, py) = Geometri.ciktiya(k, p.first, p.second, W, H)
         val y = Katman.takipYerlesim(bmp, px, py, W, H)
         return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx.coerceIn(-1f, 1f), y.zy.coerceIn(-1f, 1f)).setOverlayFrameAnchor(y.kx, y.ky).build()
+    }
+}
+
+/** Üst üste binen geçiş: birincil (üst) dizide giden klibin kuyruğu var; pencere içinde solar/kayar/büyür, dışında görünmez. */
+class GecisBirlestirici(private val tur: String, private val pencereler: List<LongArray>, private val W: Int, private val H: Int) : androidx.media3.common.VideoCompositorSettings {
+    override fun getOutputSize(inputSizes: MutableList<androidx.media3.common.util.Size>): androidx.media3.common.util.Size = androidx.media3.common.util.Size(W, H)
+    override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings {
+        if (inputId != 0) return StaticOverlaySettings.Builder().build()
+        val ms = presentationTimeUs / 1000
+        val p = pencereler.firstOrNull { ms >= it[0] && ms < it[0] + it[1] } ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val f = ((ms - p[0]).toFloat() / p[1]).coerceIn(0f, 1f)
+        return Gecisler.ustKatman(tur, f).let { a ->
+            StaticOverlaySettings.Builder().setAlphaScale(a.alfa).setBackgroundFrameAnchor(a.zx, 0f).setOverlayFrameAnchor(a.kx, 0f).setScale(a.olcek, a.olcek).build()
+        }
+    }
+}
+
+/** Videodan kesilmiş hareketli nesne: o anki kareyi (PNG) yükler; son kareden sonra son karede durur. */
+class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, private val W: Int, private val H: Int) : BitmapOverlay() {
+    private val saat = Saat()
+    private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+    private var sonIdx = -1
+    private var bmp: Bitmap? = null
+    private fun hazirla(t: Long): Long {
+        val ms = klipBasMs + saat.yerelMs(t)
+        val idx = Katman.kareNo(n, ms)
+        if (idx != sonIdx) {
+            sonIdx = idx
+            bmp = Katman.nesneKaresi(n, idx, W)
+        }
+        return ms
+    }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return bmp ?: bos }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+        val ms = hazirla(presentationTimeUs)
+        val a = Zaman.solma(ms, n.basMs, n.sonMs, 200)
+        if (bmp == null || a <= 0f) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((n.x * 2f - 1f).coerceIn(-1f, 1f), (1f - n.y * 2f).coerceIn(-1f, 1f)).setOverlayFrameAnchor(0f, 0f).setAlphaScale(a).build()
     }
 }

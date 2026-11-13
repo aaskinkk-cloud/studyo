@@ -6,6 +6,17 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.2 (13.11.2026, deneme · `yerel-android` dalı): kalan dört özellik + sade düzen
+**İndir (deneme):** https://github.com/aaskinkk-cloud/studyo/releases/download/yerel/studyo-yerel.apk — üstüne kurulur. Telefonda test edilmeden `main`'e alınmayacak.
+
+- **Sade düzen (InShot gibi):** önizleme ekranın %42'si ve **her bölümde görünür** (eskiden açık panel önizlemeyi eziyordu; Düzenle'de hiç görünmüyordu). Panel açılınca klip şeridinin yerini alır; klip seçmek gereken panellerde küçük şerit üstte kalır. Önceki düzen silinmedi: Ana sayfa ⋯ › "Editör: önceki düzen".
+- **Üst üste binen geçişler** (Görünüm › Geçiş): Çapraz · Kaydırarak · Büyüyerek. Media3'te iki video dizisi: üst dizide giden klibin **kırpılmış devamı** (yoksa son karesi) gelen klibin üstünde solar/kayar; birleştirici (`GecisBirlestirici`) pencere dışında üst diziyi görünmez yapar. Video süresi değişmez, seslendirme kaymaz. Önizlemede giden klibin son karesiyle gösterilir.
+- **Otomatik altyazı** (Metin › Altyazı): Vosk + Türkçe küçük model (~35 MB, ilk kullanımda bir kez iner, sonra internetsiz). Kaynak: videoların sesi ya da seslendirme. Ses akışla çözülür, 16 kHz'e çevrilir; kelime zamanları saklanır. Satırlar: en çok 7 kelime / 38 harf / 3,5 sn, 0,7 sn duraklamada yeni satır. Elle yazılan satırlar korunur. Yeni görünüm **"Kelime vurgulu"**: o an söylenen kelime seçilen renkte.
+- **Reels stilleri** (Görünüm › Şablon › Giriş başlığı): 12 stil (Beyaz şerit, Kırmızı-beyaz, Sarı ünlem, Yeşil tırnak, Sarı balon, Ünlem kutusu, Dikkat, Yırtık kâğıt, Köşe çerçeve, Üç renk, Kırmızı sekme, Kırmızı alıntı); başlık satırları `|`, vurgu bantları `|`; 5 giriş hareketi (Trend, Düşerek, Kayarak, Yükselerek, Büyüyerek), konum; **efekt sesleri** (vuuş · tok · pop; uygulama içinde sentezlenir, telif yok; önizlemede de çalar) ve seviye; **ışıklı boncuklar** (tüm stillerde). Kapakta da 12 reels stili.
+- **Videodan hareketli nesne** (Düzenle › Nesne): önizlemede o andan 2–10 sn, saniyede 15 kare ML Kit ile kesilir, 720 px PNG kare dizisi olur; hareketli katman olarak istenen klibin üstüne konur (sürükle, boyut, başı/sonu).
+- APK yalnız arm64 (Vosk/JNA yerel kitaplıkları için; boyut küçük kalır).
+- Kod: `Altyazici.kt`, `Reels.kt` (stiller, hareket, boncuk, efekt sesleri), `Katman.kt` (`GecisBirlestirici`, `NesneKareBindirme`), `Nesneci.videodanKes`, `Cizim.pencereler/ustKatman/altyaziKelimeli`.
+
 ## 3.1 (13.11.2026): web editördeki özellikler yerel editöre taşındı
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — üstüne kurulur.
 **Test (13.11.2026, Galaxy S25 Ultra, Ahmet):** geçiş, şablon, altyazı, kapak, takip eden yazı, nesne kesme, gündüz teması ve dışa aktarma — başarılı.

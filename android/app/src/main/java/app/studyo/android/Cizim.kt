@@ -119,6 +119,10 @@ object Cizim {
                 Blok(bas, k * 0.065f, 0xFF111111.toInt(), zemin = 0xFFFFD400.toInt(), agir = true),
                 Blok(alt, k * 0.042f, 0xFFFFFFFF.toInt(), zemin = 0xFFE53935.toInt()),
             ), en, bosluk = 0.15f)?.let { Yerlesim(it, 0f, -0.3f, 0f, 0f) }
+            "minimal" -> bloklar(listOf(
+                Blok(bas, k * 0.06f, 0xFFFFFFFF.toInt(), kalin = false, aralik = 0.08f, golge = 0x99000000.toInt()),
+                Blok(alt, k * 0.034f, 0xFFF5A524.toInt(), kalin = false, aralik = 0.2f, golge = 0x99000000.toInt()),
+            ), en, bosluk = 0.4f)?.let { Yerlesim(it, 0f, -1f + 2f * 0.1f, 0f, -1f) }
             else -> bloklar(listOf(   // sinematik
                 Blok(bas, k * 0.085f, 0xFFFFFFFF.toInt(), aralik = 0.06f, agir = true),
                 Blok(alt, k * 0.04f, 0xFFE8E8E8.toInt(), kalin = false, aralik = 0.18f),
@@ -154,6 +158,35 @@ object Cizim {
             else -> Yerlesim(bmp, 0f, -1f + 2f * m, 0f, -1f)
         }
     }
+
+    /** Kısa video altyazısı: kelimeler kalın, kenarlı; o an söylenen kelime vurgu renginde. */
+    fun altyaziKelimeli(k: List<Kelime>, idx: Int, st: AltyaziStil, W: Int, H: Int): Yerlesim? {
+        if (k.isEmpty()) return null
+        val sb = SpannableStringBuilder()
+        k.forEachIndexed { i, w ->
+            if (i > 0) sb.append(' ')
+            val a = sb.length; sb.append(w.metin)
+            if (i == idx) sb.setSpan(ForegroundColorSpan(st.vurgu.toInt()), a, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        val boy = st.boyut * 1.15f * min(W, H)
+        val bmp = bloklar(listOf(Blok(sb, boy, 0xFFFFFFFF.toInt(), kontur = boy * 0.17f, golge = null, agir = true)), (W * 0.86f).toInt()) ?: return null
+        val m = 0.12f
+        return when (st.konum) {
+            "ust" -> Yerlesim(bmp, 0f, 1f - 2f * m, 0f, 1f)
+            "orta" -> Yerlesim(bmp, 0f, 0f, 0f, 0f)
+            else -> Yerlesim(bmp, 0f, -1f + 2f * m, 0f, -1f)
+        }
+    }
+
+    /** O an gösterilecek altyazı (satır + kelime vurgusu) — önizleme ve çıktı aynı fonksiyonu kullanır. */
+    fun altyaziAn(satirlar: List<Altyazi>, ms: Long): Pair<Altyazi, Int>? {
+        val s = satirlar.firstOrNull { ms >= it.basMs && ms < it.sonMs && it.metin.isNotBlank() } ?: return null
+        val idx = if (s.kelimeler.isEmpty()) -1 else s.kelimeler.indexOfLast { it.basMs <= ms }.coerceAtLeast(0)
+        return s to idx
+    }
+
+    fun altyaziCiz(s: Altyazi, idx: Int, st: AltyaziStil, W: Int, H: Int): Yerlesim? =
+        if (st.stil == "kisa" && s.kelimeler.isNotEmpty()) altyaziKelimeli(s.kelimeler, idx, st, W, H) else altyazi(s.metin, st, W, H)
 
     private fun yuvarlakLogo(l: Logo?, cap: Int): Bitmap? {
         if (l == null || l.yol.isEmpty()) return null
@@ -240,6 +273,15 @@ object Cizim {
         val k = min(W, H).toFloat()
         val boy = kp.boyut * k
         val vurgu = kp.vurgu.toInt()
+        if (kp.stil.startsWith("r_")) {
+            Reels.statik(kp.stil, kp.yazi, kp.bant, W, H)?.let { t ->
+                val m = k * 0.06f
+                val y = when (kp.konum) { "ust" -> m; "orta" -> (H - t.height) / 2f; else -> H - t.height - m }
+                c.drawBitmap(t, W * 0.06f, y, null)
+            }
+            if (kp.logo) yuvarlakLogo(logo, (k * 0.16f).toInt())?.let { lg -> c.drawBitmap(lg, W - lg.width - k * 0.04f, k * 0.04f, null) }
+            return b
+        }
         val blok = when (kp.stil) {
             "kutulu" -> Blok(vurgulu(kp.yazi, 0xFFFFFFFF.toInt(), vurgu), boy, 0xFFFFFFFF.toInt(), zemin = 0xCC000000.toInt(), agir = true)
             "bant" -> Blok(vurgulu(kp.yazi, 0xFF111111.toInt(), 0xFFE53935.toInt()), boy, 0xFF111111.toInt(), zemin = vurgu, agir = true)
@@ -295,8 +337,12 @@ class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Al
     private var simdiki: Yerlesim? = null
     private fun guncelle(t: Long) {
         val ms = klipBasMs + saat.yerelMs(t)
-        val s = satirlar.firstOrNull { ms >= it.basMs && ms < it.sonMs }
-        simdiki = s?.let { onbellek.getOrPut(it.id) { Cizim.altyazi(it.metin, st, W, H) } }
+        val an = Cizim.altyaziAn(satirlar, ms)
+        simdiki = an?.let { (s, i) ->
+            val anahtar = if (st.stil == "kisa") "${s.id}#$i" else s.id
+            if (onbellek.size > 40) onbellek.clear()
+            onbellek.getOrPut(anahtar) { Cizim.altyaziCiz(s, i, st, W, H) }
+        }
     }
     override fun getBitmap(presentationTimeUs: Long): Bitmap { guncelle(presentationTimeUs); return simdiki?.bmp ?: bos }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
@@ -326,6 +372,39 @@ object Gecisler {
             "beyaz" -> An(k, true, 1f)
             "yakin" -> An(k * k * 0.7f, true, 1f + 0.35f * k)
             else -> YOK
+        }
+    }
+
+    /** Üst üste binen geçiş pencereleri: (giden klip sırası, başlangıç ms, süre ms). Çıktı ve önizleme aynı listeyi kullanır. */
+    fun pencereler(p: Proje): List<Triple<Int, Long, Long>> {
+        if (!p.gecis.cakisma) return emptyList()
+        val sureler = p.klipler.map { it.sureMs } + if (p.kapanisMs > 0) listOf(p.kapanisMs) else emptyList()
+        val n = sureler.size
+        if (n < 2) return emptyList()
+        val baslar = LongArray(n); var t = 0L
+        for (i in 0 until n) { baslar[i] = t; t += sureler[i] }
+        val toplam = t
+        val o = ArrayList<Triple<Int, Long, Long>>()
+        var imlec = 0L
+        for (i in 0 until minOf(n - 1, p.klipler.size)) {
+            val b0 = baslar[i + 1]
+            val sonraki = if (i + 2 < n) baslar[i + 2] else toplam
+            val T = minOf(p.gecis.sureMs, sureler[i + 1] - 100, sonraki - b0 - 100)
+            if (T < 150 || b0 < imlec + 1) continue
+            o += Triple(i, b0, T)
+            imlec = b0 + T
+        }
+        return o
+    }
+
+    /** Üst üste binen geçişte üst katmanın (giden klibin kuyruğu) durumu; f: 0→1. */
+    class Ust(val alfa: Float, val zx: Float, val kx: Float, val olcek: Float)
+    fun ustKatman(tur: String, f: Float): Ust {
+        val e = f * f * (3f - 2f * f)
+        return when (tur) {
+            "kaydir" -> Ust(1f, -e, e, 1f)                       // sola kayarak çıkar
+            "yakincapraz" -> Ust(1f - e, 0f, 0f, 1f + 0.25f * e)  // büyüyerek solar
+            else -> Ust(1f - e, 0f, 0f, 1f)                       // çapraz
         }
     }
 

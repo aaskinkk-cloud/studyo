@@ -65,10 +65,22 @@ data class Logo(val yol: String, val konum: String = "sagUst", val boyut: Float 
 
 /** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
 @Serializable
-data class Gecis(val tur: String = "yok", val sureMs: Long = 700, val siyahtanAc: Boolean = false)   // yok | siyah | beyaz | yakin
+data class Gecis(val tur: String = "yok", val sureMs: Long = 700, val siyahtanAc: Boolean = false) {
+    // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
+    val cakisma: Boolean get() = tur == "capraz" || tur == "kaydir" || tur == "yakincapraz"
+}
 
 @Serializable
-data class Giris(val acik: Boolean = false, val stil: String = "sinematik", val baslik: String = "", val alt: String = "", val sureMs: Long = 3500)
+data class Giris(
+    val acik: Boolean = false, val stil: String = "sinematik", val baslik: String = "", val alt: String = "", val sureMs: Long = 3500,
+    val bant: String = "",               // reels stillerinde vurgu bantları (| ile ayrı bant)
+    val hareket: String = "kay",         // reels giriş hareketi: trend | dus | kay | yuksel | buyu
+    val konum: String = "orta",          // reels yazılarının yeri: ust | orta | alt
+    val efektSes: Boolean = true, val sesSeviye: Float = 0.6f,
+    val boncuk: Boolean = false,         // ışıklı boncuklar (girişte süzülen ışık noktaları)
+) {
+    val reels: Boolean get() = stil.startsWith("r_")
+}
 
 @Serializable
 data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Abone ol", val kucuk: String = "Yeni videolar için")
@@ -77,16 +89,19 @@ data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val 
 data class Kapanis(val acik: Boolean = false, val stil: String = "cta", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğiniz için teşekkürler")
 
 @Serializable
-data class Altyazi(val id: String = yeniId(), val basMs: Long, val sonMs: Long, val metin: String = "")
+data class Kelime(val basMs: Long, val sonMs: Long, val metin: String)
 
 @Serializable
-data class AltyaziStil(val acik: Boolean = true, val stil: String = "kutu", val boyut: Float = 0.05f, val konum: String = "alt")   // kutu | kenarli | sari
+data class Altyazi(val id: String = yeniId(), val basMs: Long, val sonMs: Long, val metin: String = "", val kelimeler: List<Kelime> = emptyList())
+
+@Serializable
+data class AltyaziStil(val acik: Boolean = true, val stil: String = "kutu", val boyut: Float = 0.05f, val konum: String = "alt", val vurgu: Long = 0xFFFFD400)   // kutu | kenarli | sari | kisa (o anki kelime renkli)
 
 @Serializable
 data class Kapak(
     val kaynakUri: String = "", val kaynakMs: Long = 0, val kaynakFoto: Boolean = false,
     val yazi: String = "", val stil: String = "kalin", val boyut: Float = 0.11f, val konum: String = "alt",
-    val vurgu: Long = 0xFFFFD400, val logo: Boolean = true, val canli: Boolean = true,
+    val vurgu: Long = 0xFFFFD400, val logo: Boolean = true, val canli: Boolean = true, val bant: String = "",
 )
 
 /** Takip eden yazı: zamanlar KAYNAK dosyanın zamanı (ms; kırpma değişse de kaymaz), konumlar kaynak karede 0…1. */
@@ -104,7 +119,11 @@ data class Takip(
 data class Nesne(
     val id: String = yeniId(), val yol: String, val x: Float = 0.5f, val y: Float = 0.55f, val olcek: Float = 0.4f,
     val basMs: Long = 0, val sonMs: Long = 5000, val golge: Boolean = true,
-)
+    /** Videodan kesilen hareketli nesne: kare dizini (PNG), kare aralığı, kare sayısı. Boşsa tek fotoğraf. */
+    val kareDizin: String = "", val kareMs: Long = 0, val kareSayi: Int = 0,
+) {
+    val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
+}
 
 @Serializable
 data class Proje(

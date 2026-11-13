@@ -13,7 +13,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.2." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {
         create("okur") {
@@ -51,4 +52,7 @@ dependencies {
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
     // Nesne kesme: Google ML Kit Subject Segmentation (ücretsiz, cihaz içinde; model Play Hizmetleri ile bir kez iner)
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
+    // Otomatik altyazı: Vosk (Apache-2.0), çevrimdışı konuşma tanıma; Türkçe model uygulama içinden bir kez iner
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
+    implementation("com.alphacephei:vosk-android:0.3.47@aar")
 }

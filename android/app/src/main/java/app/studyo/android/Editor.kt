@@ -86,7 +86,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
 
     LaunchedEffect(mesaj) { if (mesaj != null) { delay(2200); vm.mesaj.value = null } }
 
-    Box(Modifier.fillMaxSize().background(Renk.zemin)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
+        // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
+        val sade = !Duzen.onceki
+        val onizlemeYuk = (maxHeight * 0.42f).coerceAtLeast(200.dp)
         Column(Modifier.fillMaxSize().imePadding()) {
             // ---- üst çubuk: kamera bölgesi de başlığın renginde ----
             Row(
@@ -100,14 +103,36 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 Dugme("Kaydet", Modifier.padding(end = 6.dp), renk = Renk.turkuaz, yaziRenk = Color(0xFF04191B)) { vm.kaydetSimdi() }
                 Dugme("Dışa Aktar", Modifier.padding(end = 4.dp), renk = Renk.turuncu, yaziRenk = Renk.turuncuM, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
-            OnizlemeKatmanli(vm, p, panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne", Modifier.fillMaxWidth().weight(1f))
-            OynaticiSatiri(vm, p)
-            KlipSeridi(vm, p, sec, ekle)
-            if (panelAcik) {
-                Column(
-                    Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
-                ) {
-                    Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+            val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
+            if (sade) {
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().height(onizlemeYuk))
+                OynaticiSatiri(vm, p)
+                Column(Modifier.fillMaxWidth().weight(1f)) {
+                    if (!panelAcik) {
+                        Spacer(Modifier.weight(1f))
+                        KlipSeridi(vm, p, sec, ekle)
+                        Spacer(Modifier.weight(1f))
+                    } else {
+                        // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
+                        val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip")
+                        if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
+                        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
+                            Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                }
+            } else {
+                // önceki düzen (Ana sayfa ⋯ menüsünden geri seçilebilir)
+                OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxWidth().weight(1f))
+                OynaticiSatiri(vm, p)
+                KlipSeridi(vm, p, sec, ekle)
+                if (panelAcik) {
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+                    ) {
+                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+                    }
                 }
             }
             // ---- haplar + 5 bölüm ----
@@ -241,19 +266,20 @@ private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
 }
 
 @Composable
-private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit) {
+private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false) {
     val durum = rememberLazyListState()
     LaunchedEffect(sec) { if (sec in p.klipler.indices) durum.animateScrollToItem(sec) }
+    val kw = if (kucuk) 92.dp else 136.dp
     LazyRow(
         state = durum,
-        modifier = Modifier.fillMaxWidth().height(96.dp).padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().height(if (kucuk) 62.dp else 96.dp).padding(vertical = 4.dp),
         contentPadding = PaddingValues(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
             val sekil = RoundedCornerShape(10.dp)
             Box(
-                Modifier.width(136.dp).fillMaxHeight().clip(sekil)
+                Modifier.width(kw).fillMaxHeight().clip(sekil)
                     .border(if (i == sec) 3.dp else 1.dp, if (i == sec) Renk.turuncu else Renk.cizgi, sekil)
                     .clickable { vm.sec(i) },
             ) {
@@ -279,7 +305,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit) {
         if (p.sesler.isNotEmpty()) add("🎙 ${p.sesler.size} seslendirme")
         if (p.logo != null) add("◎ logo")
     }
-    if (ek.isNotEmpty()) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+    if (ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
 }
 

@@ -44,6 +44,13 @@ object Renk {
     fun degistir(ctx: Context) { gunduz = !gunduz; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("gunduz", gunduz).apply() }
 }
 
+/** Editör düzeni: sade (önizleme hep büyük, InShot gibi) varsayılan; önceki düzen ⋯ menüsünden seçilebilir. */
+object Duzen {
+    var onceki by mutableStateOf(false)
+    fun yukle(ctx: Context) { onceki = ctx.getSharedPreferences("ayar", 0).getBoolean("oncekiDuzen", false) }
+    fun degistir(ctx: Context) { onceki = !onceki; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oncekiDuzen", onceki).apply() }
+}
+
 @Composable
 fun StudyoTema(icerik: @Composable () -> Unit) {
     val renkler = if (Renk.gunduz) lightColorScheme(

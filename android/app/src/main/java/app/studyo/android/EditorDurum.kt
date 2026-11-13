@@ -137,8 +137,10 @@ class EditorDurum(private val ctx: Context, id: String) {
         tikIs?.cancel()
         tikIs = kapsam.launch {
             muzikHizala()
+            sonSesKonum = -1L
             while (isActive && player.isPlaying) {
                 konum.value = anlik()
+                sfxTik(konum.value)
                 sesTakip()
                 delay(40)
             }
@@ -640,10 +642,128 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun nesneDegis(id: String, f: (Nesne) -> Nesne) = guncelle { p -> p.copy(nesneler = p.nesneler.map { if (it.id == id) f(it) else it }) }
     fun nesneSil(id: String) { guncelle { p -> p.copy(nesneler = p.nesneler.filter { it.id != id }) }; if (seciliNesne.value == id) seciliNesne.value = null }
 
+    // ---------- otomatik altyazı ----------
+    val altyaziIlerleme = MutableStateFlow<Pair<String, Float>?>(null)
+    private var altyaziIs: Job? = null
+
+    fun altyaziOtomatik(kaynak: String) {
+        if (altyaziIs?.isActive == true) return
+        val p = proje.value
+        if (kaynak == "ses" && p.sesler.isEmpty()) { uyari.value = "Projede seslendirme kaydı yok."; return }
+        if (kaynak == "klip" && p.klipler.none { !it.foto && it.sesVar && !it.sessiz }) { uyari.value = "Sesi açık video klip yok."; return }
+        altyaziIs = kapsam.launch {
+            try {
+                if (!Altyazici.modelHazir(ctx)) {
+                    altyaziIlerleme.value = "Türkçe model iniyor (~35 MB, bir kez)" to 0f
+                    Altyazici.modelIndir(ctx) { f -> altyaziIlerleme.value = "Türkçe model iniyor (~35 MB, bir kez)" to f }
+                }
+                altyaziIlerleme.value = "Konuşma yazıya dökülüyor" to 0f
+                val satirlar = Altyazici.olustur(ctx, p, kaynak) { f -> altyaziIlerleme.value = "Konuşma yazıya dökülüyor" to f }
+                // önceki otomatik satırları (kelime zamanlı) değiştir, elle yazılanlar kalır
+                guncelle { pp -> pp.copy(altyazilar = (pp.altyazilar.filter { it.kelimeler.isEmpty() } + satirlar).sortedBy { it.basMs }) }
+                kaydetSimdi(false)
+                mesaj.value = if (satirlar.isEmpty()) "Konuşma bulunamadı" else "${satirlar.size} altyazı satırı oluştu"
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) { Kayit.hata("otomatik altyazı", e); uyari.value = "Altyazı oluşturulamadı: ${e.message}" }
+            } finally {
+                altyaziIlerleme.value = null
+            }
+        }
+    }
+
+    fun altyaziIptal() { altyaziIs?.cancel() }
+
+    // ---------- videodan hareketli nesne ----------
+    val nesneIlerleme = MutableStateFlow<Float?>(null)
+    private var nesneIs: Job? = null
+
+    fun videodanNesne(sureMs: Long) {
+        val p = proje.value
+        val i = player.currentMediaItemIndex
+        val k = p.klipler.getOrNull(i)
+        if (k == null || k.foto) { uyari.value = "Önce önizlemede nesnenin olduğu video klibe gel."; return }
+        player.pause()
+        val bas = (k.basMs + player.currentPosition.coerceAtLeast(0)).coerceIn(k.basMs, k.sonMs - 300)
+        val sure = minOf(sureMs, k.sonMs - bas)
+        val an = anlik()
+        nesneIs?.cancel()
+        nesneIs = kapsam.launch {
+            nesneIlerleme.value = 0f
+            val (n, hata) = try { Nesneci.videodanKes(ctx, k, bas, sure) { f -> nesneIlerleme.value = f } }
+                catch (e: kotlinx.coroutines.CancellationException) { nesneIlerleme.value = null; return@launch }
+                catch (e: Exception) { null to (e.message ?: "bilinmeyen hata") }
+            nesneIlerleme.value = null
+            if (n == null) { uyari.value = hata ?: "Nesne kesilemedi."; return@launch }
+            val toplam = proje.value.toplamMs
+            val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(toplam.coerceAtLeast(an + 500)))
+            guncelle { it.copy(nesneler = it.nesneler + yeni) }
+            kaydetSimdi(false)
+            seciliNesne.value = yeni.id
+            mesaj.value = "Hareketli nesne eklendi (${n.kareSayi} kare)"
+        }
+    }
+
+    fun nesneIptal() { nesneIs?.cancel(); nesneIlerleme.value = null }
+
+    // ---------- üst üste binen geçiş önizlemesi: giden klibin son karesi ----------
+    val sonKareler = MutableStateFlow<Map<String, android.graphics.Bitmap>>(emptyMap())
+    private val sonKareIstenen = HashSet<String>()
+
+    fun sonKareAnahtar(k: Klip) = "${k.id}#${k.sonMs}"
+    fun sonKareIste(k: Klip) {
+        val a = sonKareAnahtar(k)
+        if (!sonKareIstenen.add(a)) return
+        kapsam.launch {
+            val b = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (k.foto) Medya.ornekleCoz(File(Uri.parse(k.uri).path ?: ""), 1280)
+                    else Medya.kareTam(ctx, Uri.parse(k.uri), (k.sonMs - 40).coerceAtLeast(k.basMs), 1280)
+                }.getOrNull()
+            }
+            if (b != null) sonKareler.value = sonKareler.value + (a to b)
+        }
+    }
+
+    // ---------- reels efekt sesleri (önizleme) ----------
+    private var sesHavuzu: android.media.SoundPool? = null
+    private val sesKimlik = HashMap<String, Int>()
+    private var sonSesKonum = -1L
+    private var sfxAnlari: List<Pair<Long, String>> = emptyList()
+    private var sfxAnahtar = 0
+
+    private fun sfxHazirla() {
+        val p = proje.value
+        val g = p.giris
+        val anahtar = g.hashCode() * 31 + p.toplamMs.hashCode()
+        if (anahtar == sfxAnahtar) return
+        sfxAnahtar = anahtar
+        sfxAnlari = if (g.acik && g.reels && g.efektSes) {
+            val (a, b) = Zaman.girisAralik(p)
+            Reels.sesAnlari(g, Reels.seritler(g, 540, 960).size, a, b)
+        } else emptyList()
+        if (sfxAnlari.isNotEmpty() && sesHavuzu == null) {
+            val h = android.media.SoundPool.Builder().setMaxStreams(4).build()
+            for (t in listOf("vuus", "pop", "tok")) sesKimlik[t] = h.load(Sfx.dosya(ctx, t).path, 1)
+            sesHavuzu = h
+        }
+    }
+
+    /** Oynatırken her tikte çağrılır: geçilen efekt anlarında sesi çalar. */
+    fun sfxTik(ms: Long) {
+        sfxHazirla()
+        val onceki = sonSesKonum
+        sonSesKonum = ms
+        if (onceki < 0 || ms < onceki || ms - onceki > 400) return
+        val h = sesHavuzu ?: return
+        val v = proje.value.giris.sesSeviye.coerceIn(0f, 1f)
+        for ((an, tur) in sfxAnlari) if (an in (onceki + 1)..ms) sesKimlik[tur]?.let { h.play(it, v, v, 1, 0, 1f) }
+    }
+
     fun kapat() {
         if (kaydediyor.value) kayitDurdur()
         kaydetSimdi(false)
         kapsam.cancel()
         player.release(); muzikPl.release(); sesPl.release()
+        try { sesHavuzu?.release() } catch (_: Exception) {}
     }
 }

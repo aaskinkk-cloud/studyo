@@ -22,6 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -113,6 +116,21 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             )
             if (an.renk > 0f) Box(Modifier.fillMaxSize().background((if (an.beyaz) Color.White else Color.Black).copy(alpha = an.renk.coerceIn(0f, 1f))))
 
+            // üst üste binen geçiş: giden klibin son karesi üstte solar/kayar (çıktıda giden klibin devamı oynar)
+            val pencereler = remember(p.klipler, p.gecis, p.kapanis) { Gecisler.pencereler(p) }
+            LaunchedEffect(pencereler) { for ((i, _, _) in pencereler) p.klipler.getOrNull(i)?.let { vm.sonKareIste(it) } }
+            val sonKareler by vm.sonKareler.collectAsState()
+            pencereler.firstOrNull { konum >= it.second && konum < it.second + it.third }?.let { (i, b0, T) ->
+                val kk = p.klipler[i]
+                sonKareler[vm.sonKareAnahtar(kk)]?.let { bm ->
+                    val u = Gecisler.ustKatman(p.gecis.tur, ((konum - b0).toFloat() / T).coerceIn(0f, 1f))
+                    val gen = constraints.maxWidth.toFloat()
+                    Image(bm.asImageBitmap(), null, Modifier.fillMaxSize().background(Color.Black).graphicsLayer {
+                        alpha = u.alfa; scaleX = u.olcek; scaleY = u.olcek; translationX = (u.zx - u.kx) * gen / 2f
+                    }, contentScale = if (kk.doldur) ContentScale.Crop else ContentScale.Fit)
+                }
+            }
+
             @Composable
             fun Ciz(y: Yerlesim, alfa: Float) {
                 if (alfa <= 0.01f) return
@@ -130,8 +148,17 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // nesneler
             p.nesneler.forEach { n ->
                 key(n.id) {
-                    val ny = remember(n.yol, n.olcek, n.golge, n.x, n.y, ref) { Katman.nesne(n, RW, RH) }
-                    ny?.let { Ciz(it, Zaman.solma(konum, n.basMs, n.sonMs)) }
+                    if (n.hareketli) {
+                        val a = Zaman.solma(konum, n.basMs, n.sonMs, 200)
+                        val idx = Katman.kareNo(n, konum)
+                        val kb2 by produceState<Bitmap?>(null, n.id, idx, n.olcek, a > 0f) {
+                            value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW) } else null
+                        }
+                        kb2?.let { Ciz(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a) }
+                    } else {
+                        val ny = remember(n.yol, n.olcek, n.golge, n.x, n.y, ref) { Katman.nesne(n, RW, RH) }
+                        ny?.let { Ciz(it, Zaman.solma(konum, n.basMs, n.sonMs)) }
+                    }
                 }
             }
             // takip eden yazı
@@ -145,14 +172,39 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Ciz(Katman.takipYerlesim(tb, px, py, RW, RH), 1f)
                 }
             }
-            // giriş başlığı, hatırlatıcı, altyazı
-            val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
-            girisY?.let { val (a, b) = Zaman.girisAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
+            // giriş başlığı (klasik ya da reels şeritleri), ışıklı boncuklar
+            val (gA, gB) = Zaman.girisAralik(p)
+            if (p.giris.acik && p.giris.boncuk) {
+                val sb = Zaman.solma(konum, gA, gB, 600)
+                if (sb > 0f) Canvas(Modifier.fillMaxSize()) {
+                    val kk = minOf(size.width, size.height)
+                    for (nk in Boncuk.noktalar(konum - gA, sb)) {
+                        if (nk.alfa <= 0.01f) continue
+                        val c = Offset(nk.x * size.width, nk.y * size.height); val rr = nk.r * kk
+                        val renk = Color(nk.renk)
+                        drawCircle(Brush.radialGradient(listOf(renk.copy(alpha = nk.alfa), renk.copy(alpha = nk.alfa / 3f), Color.Transparent), c, rr), rr, c)
+                    }
+                }
+            }
+            if (p.giris.reels) {
+                val seritler = remember(p.giris, ref) { if (p.giris.acik) Reels.seritler(p.giris, RW, RH) else emptyList() }
+                for (sr in seritler) {
+                    val ak = Reels.an(sr, p.giris.hareket, konum, gA, gB) ?: continue
+                    val (x0, y0) = ak.solUst(sr.bmp.width, sr.bmp.height, RW, RH)
+                    Image(sr.bmp.asImageBitmap(), null,
+                        Modifier.offset { IntOffset((x0 * olcek).roundToInt(), (y0 * olcek).roundToInt()) }
+                            .size(with(yog) { (sr.bmp.width * ak.olcek * olcek).toDp() }, with(yog) { (sr.bmp.height * ak.olcek * olcek).toDp() })
+                            .alpha(ak.alfa.coerceIn(0f, 1f)))
+                }
+            } else {
+                val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
+                girisY?.let { Ciz(it, Zaman.solma(konum, gA, gB)) }
+            }
             val hatY = remember(p.hatirlatici, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH) }
             hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
             if (p.altyaziStil.acik) {
-                val satir = p.altyazilar.firstOrNull { konum >= it.basMs && konum < it.sonMs && it.metin.isNotBlank() }
-                val ay = remember(satir?.metin, p.altyaziStil, ref) { satir?.let { Cizim.altyazi(it.metin, p.altyaziStil, RW, RH) } }
+                val sa = Cizim.altyaziAn(p.altyazilar, konum)
+                val ay = remember(sa?.first?.id, sa?.first?.metin, sa?.second, p.altyaziStil, ref) { sa?.let { Cizim.altyaziCiz(it.first, it.second, p.altyaziStil, RW, RH) } }
                 ay?.let { Ciz(it, 1f) }
             }
             logoY?.let { if (sira < p.klipler.size) Ciz(it, 1f) }
@@ -195,13 +247,28 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
     Kart("Giriş başlığı") {
         AnahtarSatiri("Videonun başında başlık göster", g.acik) { v -> vm.girisDegis { it.copy(acik = v) } }
         if (g.acik) {
-            Secenekler(listOf("sinematik" to "Sinematik", "altbant" to "Alt bant", "kutulu" to "Kutulu", "neon" to "Neon", "bantlar" to "Renkli bant"), g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
+            Text("Klasik", color = Renk.soluk, fontSize = 12.5.sp)
+            Secenekler(listOf("sinematik" to "Sinematik", "altbant" to "Alt bant", "kutulu" to "Kutulu", "neon" to "Neon", "bantlar" to "Renkli bant", "minimal" to "Sade"), g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
+            Text("Reels tarzı · şeritler sırayla kayarak gelir", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
+            Secenekler(Reels.STILLER, g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
             var bas by remember(p.id) { mutableStateOf(g.baslik) }
             OutlinedTextField(bas, { bas = it; vm.girisDegis { gg -> gg.copy(baslik = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp),
                 label = { Text("Başlık (satır bölmek için |)") }, maxLines = 2)
-            var alt by remember(p.id) { mutableStateOf(g.alt) }
-            OutlinedTextField(alt, { alt = it; vm.girisDegis { gg -> gg.copy(alt = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
-                label = { Text("Alt başlık (yer, tarih…)") }, singleLine = true)
+            if (g.reels) {
+                var bant by remember(p.id) { mutableStateOf(g.bant) }
+                OutlinedTextField(bant, { bant = it; vm.girisDegis { gg -> gg.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
+                    label = { Text("Vurgu bantları (| ile ayrı bant)") }, singleLine = true)
+                Text("Giriş hareketi", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+                Secenekler(listOf("trend" to "Trend", "dus" to "Düşerek", "kay" to "Kayarak", "yuksel" to "Yükselerek", "buyu" to "Büyüyerek"), g.hareket) { s -> vm.girisDegis { it.copy(hareket = s) } }
+                Secenekler(listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta"), g.konum) { s -> vm.girisDegis { it.copy(konum = s) } }
+                AnahtarSatiri("Efekt sesleri (vuuş · tok · pop)", g.efektSes) { v -> vm.girisDegis { it.copy(efektSes = v) } }
+                if (g.efektSes) Kaydirici("Efekt sesi", g.sesSeviye, 0.1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.girisDegis { it.copy(sesSeviye = v) } }
+            } else {
+                var alt by remember(p.id) { mutableStateOf(g.alt) }
+                OutlinedTextField(alt, { alt = it; vm.girisDegis { gg -> gg.copy(alt = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
+                    label = { Text("Alt başlık (yer, tarih…)") }, singleLine = true)
+            }
+            AnahtarSatiri("Işıklı boncuklar (girişte süzülen ışıklar)", g.boncuk) { v -> vm.girisDegis { it.copy(boncuk = v) } }
             Kaydirici("Ekranda kalma", g.sureMs / 1000f, 2f..8f, { String.format(TR, "%.1f sn", it) }) { v -> vm.girisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
         }
     }
@@ -237,11 +304,14 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
 fun PanelGecis(vm: EditorDurum, p: Proje) {
     val g = p.gecis
     Kart("Klip geçişi") {
-        Secenekler(listOf("yok" to "Yok", "siyah" to "Siyahtan", "beyaz" to "Beyaz parlama", "yakin" to "Yakınlaşarak"), g.tur, sutun = 2) { s -> vm.gecisDegis { it.copy(tur = s) } }
+        Text("Klip üstüne binen", color = Renk.soluk, fontSize = 12.5.sp)
+        Secenekler(listOf("capraz" to "Çapraz", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur) { s -> vm.gecisDegis { it.copy(tur = s) } }
+        Text("Klip sınırında", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
+        Secenekler(listOf("yok" to "Yok", "siyah" to "Siyahtan", "beyaz" to "Parlama", "yakin" to "Yakınlaşma"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
         if (g.tur != "yok") Kaydirici("Geçiş süresi", g.sureMs / 1000f, 0.3f..2f, { String.format(TR, "%.1f sn", it) }) { v -> vm.gecisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
         AnahtarSatiri("Videoyu siyahtan açarak başlat", g.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
-        Not("Geçiş her klip sınırında uygulanır; videonun sonu hiçbir zaman karartılmaz. Önizlemede de görünür. " +
-            "İki klibin üst üste bindiği geçişler (çapraz, kaydırma, silinme) bu sürümde yok.")
+        Not(if (g.cakisma) "Giden klip, gelen klibin üstünde solarak/kayarak çekilir. Video süresi değişmez (seslendirme kaymaz): giden klibin kırpılan devamı varsa o oynar, yoksa son karesi kullanılır. Önizlemede son kare ile gösterilir."
+            else "Geçiş her klip sınırında uygulanır; videonun sonu hiçbir zaman karartılmaz. Önizlemede de görünür.")
     }
 }
 
@@ -258,6 +328,21 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
         } catch (e: Exception) { vm.uyari.value = "SRT kaydedilemedi: ${e.message}" }
     }
     var silOnay by remember { mutableStateOf(false) }
+    val oto by vm.altyaziIlerleme.collectAsState()
+    var kaynak by remember { mutableStateOf(if (p.sesler.isNotEmpty()) "ses" else "klip") }
+    Kart("Otomatik altyazı") {
+        val o = oto
+        if (o != null) {
+            Text("${o.first} · %${(o.second * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
+            LinearProgressIndicator(progress = { o.second }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+            Dugme("İptal", Modifier.fillMaxWidth()) { vm.altyaziIptal() }
+        } else {
+            Secenekler(listOf("klip" to "Videoların sesi", "ses" to "Seslendirmem"), kaynak, sutun = 2) { kaynak = it }
+            Dugme("▶ Altyazıyı oluştur", Modifier.fillMaxWidth().padding(top = 6.dp), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.altyaziOtomatik(kaynak) }
+            Not("Konuşma telefonun içinde yazıya dökülür; ses dışarı gitmez. İlk kullanımda Türkçe model (~35 MB) bir kez iner, Wi-Fi önerilir. " +
+                "Kelime zamanları tutulur: “Kelime vurgulu” görünümde o an söylenen kelime renklenir. Elle yazdığın satırlar silinmez.")
+        }
+    }
     Kart("Altyazı satırları (${p.altyazilar.size})") {
         DugmeSirasi("＋ Şu anda ekle" to { vm.altyaziEkle() }, "Her klibe satır" to { vm.altyaziHerKlibe() })
         DugmeSirasi("SRT yükle" to { yukle.launch(arrayOf("*/*")) }, "SRT kaydet" to { kaydet.launch(p.ad.take(40) + ".srt") },
@@ -280,7 +365,14 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
     val st = p.altyaziStil
     Kart("Altyazı görünümü") {
         AnahtarSatiri("Altyazıları videoya yaz", st.acik) { v -> vm.altyaziStilDegis { it.copy(acik = v) } }
-        Secenekler(listOf("kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı"), st.stil) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
+        Secenekler(listOf("kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı", "kisa" to "Kelime vurgulu"), st.stil, sutun = 2) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
+        if (st.stil == "kisa") Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(0xFFFFD400, 0xFF35E06B, 0xFF27D3FF, 0xFFFF5FA2, 0xFFFFFFFF).forEach { r ->
+                Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(10.dp)).background(Color(r))
+                    .border(if (st.vurgu == r) 3.dp else 1.dp, if (st.vurgu == r) Renk.turuncu else Renk.cizgi, RoundedCornerShape(10.dp))
+                    .clickable { vm.altyaziStilDegis { it.copy(vurgu = r) } })
+            }
+        }
         Secenekler(listOf("alt" to "Altta", "orta" to "Ortada", "ust" to "Üstte"), st.konum) { s -> vm.altyaziStilDegis { it.copy(konum = s) } }
         Kaydirici("Yazı boyutu", st.boyut, 0.03f..0.09f, { "%${(it * 100).roundToInt()}" }) { v -> vm.altyaziStilDegis { it.copy(boyut = v) } }
     }
@@ -323,6 +415,12 @@ fun PanelKapak(vm: EditorDurum, p: Proje) {
         OutlinedTextField(y, { y = it; vm.kapakDegis { k -> k.copy(yazi = it) } }, Modifier.fillMaxWidth(),
             label = { Text("Yazı — vurgu için *yıldız* içine al, satır için |") }, maxLines = 3)
         Secenekler(listOf("kalin" to "Kalın kenarlı", "kutulu" to "Kutulu", "bant" to "Renkli bant"), kp.stil) { s -> vm.kapakDegis { it.copy(stil = s) } }
+        Text("Reels stilleri (satır: |, bant: aşağıda)", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
+        Secenekler(Reels.STILLER, kp.stil) { s -> vm.kapakDegis { it.copy(stil = s) } }
+        if (kp.stil.startsWith("r_")) {
+            var bant by remember(p.id) { mutableStateOf(kp.bant) }
+            OutlinedTextField(bant, { bant = it; vm.kapakDegis { k -> k.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Bantlar (| ile ayrı bant)") }, singleLine = true)
+        }
         Secenekler(listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta"), kp.konum) { s -> vm.kapakDegis { it.copy(konum = s) } }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             VURGULAR.forEach { (r, _) ->
@@ -399,6 +497,21 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
         Not("Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
             "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
     }
+    val nIl by vm.nesneIlerleme.collectAsState()
+    Kart("Videodan hareketli nesne", baslangicAcik = false) {
+        val f = nIl
+        if (f != null) {
+            Text("Kareler kesiliyor… %${(f * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
+            LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+            Dugme("İptal", Modifier.fillMaxWidth()) { vm.nesneIptal() }
+        } else {
+            var sn by remember { mutableFloatStateOf(5f) }
+            Etiketli("Süre", String.format(TR, "%.0f sn", sn))
+            Slider(value = sn, onValueChange = { sn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
+            Dugme("✂ Bu andan itibaren kes", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
+            Not("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
+        }
+    }
     if (p.nesneler.isNotEmpty()) Kart("Katmanlar (${p.nesneler.size})") {
         p.nesneler.forEach { n -> key(n.id) {
             val on = n.id == secili
@@ -410,13 +523,13 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
                     Box(Modifier.size(52.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF3A4A5A))) { b?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) } }
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("${sureOndalik(n.basMs)} → ${sureOndalik(n.sonMs)}", color = Renk.yazi, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("${sureOndalik(n.basMs)} → ${sureOndalik(n.sonMs)}" + if (n.hareketli) " · hareketli" else "", color = Renk.yazi, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         Text(if (on) "Seçili · önizlemede sürükle" else "Seçmek için dokun", color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 if (on) {
                     Kaydirici("Boyut", n.olcek, 0.1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
-                    AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
+                    if (!n.hareketli) AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
                     var silOnay by remember(n.id) { mutableStateOf(false) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Dugme("Başı = şu an", Modifier.weight(1f), renk = Renk.kart) { val t = vm.anlik(); vm.nesneDegis(n.id) { it.copy(basMs = t, sonMs = maxOf(it.sonMs, t + 500)) } }

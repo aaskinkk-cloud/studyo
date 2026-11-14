@@ -6,6 +6,16 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.39 (15.11.2026, deneme · `yerel-android` dalı): akıcı geçişler — Hafif erime ve Akış
+**Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Ahmet (3.38 cihaz testi):** dışa aktarmada parlama da renklenme de olmadı.
+- **İstek:** kesme hissi vermeyen, bir sonraki kare devamıymış gibi geçiş; hafif bir erime.
+- **Geçişler paneline yeni "AKICI" satırı:**
+  - **Hafif erime:** Erime'nin sakin hâli; gürültü karşıtlığı yarıya iner, kenar 0,35 genişliğinde yumuşak.
+  - **Akış:** giden kare hafifçe yaklaşmayı sürdürür (%5), gelen kare hafif yakından (%4) gelip kendi kadrajına oturur. Karışım ışık değerinde (gamma 2,2) yapılır: sıradan çapraz geçişteki ortada solma/kararma olmaz. Eğri smootherstep: başı ve sonu çok yumuşak. Pencerenin ilk karesi yalnız giden, son karesi yalnız gelen (ölçeksiz) → gövdelerle kesintisiz.
+- İkisi de tek tuval yolunda (TekTuval.kt) çizilir; önizleme ve dışa aktarma aynı.
+- **Cihaz testi (Ahmet):** Geçişler › AKICI › Akış ve Hafif erime ile ▶ ve 720p dışa aktarma.
+
 ## 3.38 (15.11.2026, deneme · `yerel-android` dalı): geçiş bitince renk değişimi
 **Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Belirti (Ahmet):** kaydedilen videoda geçiş bittikten kısa süre sonra görüntü "renkleniyor".

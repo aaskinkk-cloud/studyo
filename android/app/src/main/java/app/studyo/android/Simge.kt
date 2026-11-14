@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 object Simgeler {
     private val cizgi = mapOf(
         "geri" to "M19 12H5M12 19l-7-7 7-7",
+        "g_hafif" to "M3 15c3-3 5-3 8 0s5 3 8 0M5 9c2-2 4-2 6 0s4 2 6 0",
+        "g_akis" to "M3 12c3-5 6-5 9 0s6 5 9 0M16 8l4 4-4 4",
         "h_yakin" to "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M21 21l-5-5M8 11h6M11 8v6",
         "h_uzak" to "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M21 21l-5-5M8 11h6",
         "h_sag" to "M4 12h15M13 6l6 6-6 6",

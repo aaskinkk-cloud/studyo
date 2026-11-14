@@ -66,7 +66,7 @@ private const val OGE_BASI_US = 300_000L
 private class TekTuvalProgram(private val ctx: Context, private val useHdr: Boolean, private val t: GelenTarif) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(VS, FS)
     private val gurultu: Int = Erime.dokuYukle()
-    private val turNo = when (t.tur) { "erime" -> 1; "kaydir" -> 2; "yakincapraz" -> 3; else -> 0 }
+    private val turNo = when (t.tur) { "erime" -> 1; "kaydir" -> 2; "yakincapraz" -> 3; "hafif" -> 4; "akis" -> 5; else -> 0 }
     private var t0 = -1L
     private var kaynak: GelenKaynak? = null
     private var kaynakDenendi = false
@@ -113,7 +113,10 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         if (bTex >= 0 && !bVardi) { bVardi = true; if (tauUs > 50_000L) gecHazirUs = tauUs }
         // Gelen klip geç hazır olduysa (▶ geçişin içinden başlatıldı): 200 ms içinde olması gereken karışıma yumuşakça yetişir
         if (bTex >= 0 && gecHazirUs >= 0) f *= ((tauUs - gecHazirUs) / 200_000f).coerceIn(0f, 1f)
-        val e = f * f * (3f - 2f * f)
+        // akış (3.39): daha da yumuşak başlayıp biten eğri (smootherstep); diğerleri smoothstep
+        val e = if (turNo == 5) f * f * f * (f * (f * 6f - 15f) + 10f) else f * f * (3f - 2f * f)
+        // hafif erime (3.39): gürültünün karşıtlığı yarıya iner, kenar 0,35 yumuşaklıkta; eşik 0,25 → 1,10
+        val esik = if (turNo == 4) { val q = if (f < 0.5f) 2f * f * f else 1f - (-2f * f + 2f) * (-2f * f + 2f) / 2f; 0.25f + q * 0.85f } else Erime.esik(f)
         GLES20.glDisable(GLES20.GL_BLEND)
         program.use()
         program.setSamplerTexIdUniform("uA", inputTexId, 0)
@@ -121,8 +124,8 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         program.setSamplerTexIdUniform("uGurultu", gurultu, 2)
         program.setIntUniform("uTur", if (bTex < 0) 0 else turNo)
         program.setFloatUniform("uE", e)
-        program.setFloatUniform("uEsik", Erime.esik(f))
-        program.setFloatUniform("uYum", Erime.E)
+        program.setFloatUniform("uEsik", esik)
+        program.setFloatUniform("uYum", if (turNo == 4) 0.35f else Erime.E)
         program.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         try { kaynak?.birak() } catch (_: Throwable) {}
@@ -186,6 +189,18 @@ void main() {
   } else if (uTur == 3) {
     vec2 ua = (vUv - 0.5) / (1.0 + 0.25 * uE) + 0.5;
     c = mix(texture2D(uA, ua).rgb, b, uE);
+  } else if (uTur == 4) {
+    // hafif erime: gürültü karşıtlığı yarıya iner, geniş yumuşak kenar → dokulu ama sakin bir çözülme
+    float n = 0.25 + 0.5 * texture2D(uGurultu, vec2(vUv.x, 1.0 - vUv.y)).r;
+    float m = clamp((uEsik - n) / uYum, 0.0, 1.0);
+    c = mix(texture2D(uA, vUv).rgb, b, m);
+  } else if (uTur == 5) {
+    // akış: giden kare hafifçe yaklaşmayı sürdürür, gelen kare hafif yakından gelip kendi kadrajına oturur;
+    // karışım ışık değerinde (gamma 2,2) yapılır → ortada kararma/solma olmaz, kesme hissi kalmaz.
+    // Pencerenin ilk karesinde yalnız giden, son karesinde yalnız gelen (ölçeksiz) görünür → gövdelerle kesintisiz.
+    vec3 a5 = texture2D(uA, (vUv - 0.5) / (1.0 + 0.05 * uE) + 0.5).rgb;
+    vec3 b5 = texture2D(uB, (vUv - 0.5) / (1.0 + 0.04 * (1.0 - uE)) + 0.5).rgb;
+    c = pow(mix(pow(a5, vec3(2.2)), pow(b5, vec3(2.2)), uE), vec3(1.0 / 2.2));
   } else {
     c = mix(texture2D(uA, vUv).rgb, b, uE);
   }

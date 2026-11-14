@@ -832,6 +832,10 @@ private val GECIS_TEMEL = listOf(
     Triple("yok", "Yok", "g_yok") to 0xFFE6EDF3, Triple("erime", "Erime", "g_erime") to 0xFFF5A524,
     Triple("capraz", "Yumuşak", "g_capraz") to 0xFF5DCAA5, Triple("kaydir", "Kaydır", "g_kaydir") to 0xFF85B7EB,
 )
+/** 3.39: kesme hissi vermeyen akıcı geçişler. */
+private val GECIS_AKICI = listOf(
+    Triple("hafif", "Hafif erime", "g_hafif") to 0xFFD9CF5A, Triple("akis", "Akış", "g_akis") to 0xFF3FBFAE,
+)
 private val GECIS_ISIK = listOf(
     Triple("yakincapraz", "Büyüyerek", "g_buyu") to 0xFFED93B1, Triple("siyah", "Siyahtan", "g_siyah") to 0xFFB4B2A9,
     Triple("beyaz", "Parlama", "g_beyaz") to 0xFFFAC775, Triple("yakin", "Yakınlaşma", "g_yakin") to 0xFFAFA9EC,
@@ -880,9 +884,9 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
                 textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
-        listOf("TEMEL" to GECIS_TEMEL, "IŞIK VE HAREKET" to GECIS_ISIK).forEach { (baslik, liste) ->
+        listOf("TEMEL" to GECIS_TEMEL, "AKICI" to GECIS_AKICI, "IŞIK VE HAREKET" to GECIS_ISIK).forEach { (baslik, liste) ->
             Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = if (liste.size >= 4) Arrangement.SpaceBetween else Arrangement.spacedBy(14.dp)) {
                 liste.forEach { (t, renk) ->
                     val (k, ad, simge) = t
                     val secili = sec == k
@@ -895,7 +899,9 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
                 }
             }
         }
-        Text(if (Gecis(sec).cakisma) "İki klip geçiş süresince birlikte oynar; giden klip gelenin üstünde kaybolur."
+        Text(if (sec == "akis") "Giden kare hafifçe yaklaşırken gelen kare yumuşakça yerine oturur; ortada solma yok, kesme hissi vermez."
+            else if (sec == "hafif") "Sakin, yumuşak kenarlı bir erime; dokusu Erime'den hafif."
+            else if (Gecis(sec).cakisma) "İki klip geçiş süresince birlikte oynar; giden klip gelenin üstünde kaybolur."
             else if (sec == "yok") "Klipler doğrudan kesilerek birleşir." else "Geçiş her klip sınırında uygulanır; videonun sonu karartılmaz.",
             color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 10.dp))
     }

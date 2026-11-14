@@ -525,10 +525,15 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
     Kart("Giriş başlığı") {
         AnahtarSatiri("Videonun başında başlık göster", g.acik) { v -> vm.girisDegis { it.copy(acik = v) } }
         if (g.acik) {
-            Text("Klasik", color = Renk.soluk, fontSize = 12.5.sp)
-            Secenekler(listOf("sinematik" to "Sinematik", "altbant" to "Alt bant", "kutulu" to "Kutulu", "neon" to "Neon", "bantlar" to "Renkli bant", "minimal" to "Sade"), g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
-            Text("Reels tarzı · şeritler sırayla kayarak gelir", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
-            Secenekler(Reels.STILLER, g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
+            if (Duzen.yaziliMenu) {   // önceki görünüm (⋯ › yazılı menü)
+                Text("Klasik", color = Renk.soluk, fontSize = 12.5.sp)
+                Secenekler(GIRIS_KLASIK, g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
+                Text("Reels tarzı · şeritler sırayla kayarak gelir", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
+                Secenekler(Reels.STILLER, g.stil) { s -> vm.girisDegis { it.copy(stil = s) } }
+            } else {
+                GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK)
+                GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER)
+            }
             var bas by remember(p.id) { mutableStateOf(g.baslik) }
             OutlinedTextField(bas, { bas = it; vm.girisDegis { gg -> gg.copy(baslik = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp),
                 label = { Text("Başlık (satır bölmek için |)") }, maxLines = 2)
@@ -592,6 +597,60 @@ fun PanelGecis(vm: EditorDurum, p: Proje) {
             AnahtarSatiri("Videoyu siyahtan açarak başlat", p.gecis.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
         }
     }
+}
+
+private val GIRIS_KLASIK = listOf("sinematik" to "Sinematik", "altbant" to "Alt bant", "kutulu" to "Kutulu", "neon" to "Neon", "bantlar" to "Renkli bant", "minimal" to "Sade")
+
+/** Giriş başlığı stilleri (3.26, Geçişler paneli biçiminde): sağa kayan bant; her stil ilk klibin resmi üstünde kendi
+ *  başlığınla önizlenir, seçili olan beyaz halkalı, adı altında. */
+@Composable
+private fun GirisBandi(vm: EditorDurum, p: Proje, baslik: String, liste: List<Pair<String, String>>) {
+    val g = p.giris
+    val (oW, oH) = Disa.boyut(p.bicim, 360)
+    val genDp = if (oW >= oH) 128.dp else if (oW == oH) 92.dp else 66.dp
+    val yukDp = genDp * (oH.toFloat() / oW)
+    val ilk = p.klipler.firstOrNull()
+    Text(baslik, color = Renk.soluk.copy(alpha = 0.85f), fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
+        items(liste.size) { n ->
+            val (k, ad) = liste[n]
+            val secili = g.stil == k
+            val metin = g.baslik.ifBlank { "Başlığın burada" }
+            val bmp by produceState<Bitmap?>(null, k, metin, g.bant, g.alt, g.konum, p.bicim) {
+                value = withContext(Dispatchers.Default) { runCatching { girisOrnek(g.copy(acik = true, stil = k, baslik = metin), oW, oH) }.getOrNull() }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(genDp + 6.dp).clip(RoundedCornerShape(12.dp))
+                .clickable { vm.girisDegis { it.copy(stil = k) } }.padding(vertical = 2.dp)) {
+                Box(Modifier.size(genDp, yukDp).clip(RoundedCornerShape(10.dp)).background(Renk.kart2)
+                    .border(if (secili) 2.5.dp else 0.5.dp, if (secili) Renk.yazi else Renk.cizgi, RoundedCornerShape(10.dp))) {
+                    if (ilk != null) KlipResmi(ilk, Modifier.fillMaxSize().alpha(0.85f))
+                    bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize()) }
+                }
+                Text(ad, color = if (secili) Renk.yazi else Renk.soluk, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+    }
+}
+
+/** Giriş başlığının son (yerleşmiş) hâli, oW×oH saydam bitmap üstünde — videodaki konum ve boyutla. */
+private fun girisOrnek(g: Giris, W: Int, H: Int): Bitmap? {
+    val o = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(o)
+    if (g.reels) {
+        val ss = Reels.seritler(g, W, H)
+        if (ss.isEmpty()) return null
+        for (sr in ss) {
+            val px = (sr.cx + 1f) / 2f * W - sr.bmp.width / 2f
+            val py = (1f - sr.cy) / 2f * H - sr.bmp.height / 2f
+            c.drawBitmap(sr.bmp, px, py, null)
+        }
+    } else {
+        val y = Cizim.giris(g, W, H) ?: return null
+        val (x0, y0) = y.solUst(W, H)
+        c.drawBitmap(y.bmp, x0, y0, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply { alpha = (y.alfa * 255).toInt().coerceIn(0, 255) })
+    }
+    return o
 }
 
 /** Geçiş türleri (3.25): (anahtar, ad, simge, renk). Üst üste binenler TEMEL'de, klip sınırındakiler IŞIK VE HAREKET'te. */

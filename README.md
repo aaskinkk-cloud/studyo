@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.26 (14.11.2026, deneme · `yerel-android` dalı): giriş başlıkları sağa kayan önizleme bandı
+- Şablon › Giriş başlığı: bütün başlık stilleri (KLASİK 6 + REELS TARZI 13 — web'deki "Stil önerileri": Beyaz şerit, Kırmızı-beyaz, Sarı ünlem, Yeşil tırnak, Sarı balon, Ünlem kutusu, Dikkat, Yırtık kâğıt, Köşe çerçeve, Üç renk, Kırmızı sekme, Kırmızı alıntı, Renkli kutular) **sağa kayan bant** hâlinde; Geçişler paneli biçiminde (bölüm başlığı, seçili beyaz halkalı, adı altında).
+- Her kutu, ilk klibin resmi üstünde **senin başlığınla** ve videodaki konum/boyutla önizlenir (proje biçimine göre yatay/dikey/kare).
+- Önceki yazılı seçenek görünümü ⋯ › yazılı menü açıkken duruyor.
+
 ## 3.25 (14.11.2026, deneme · `yerel-android` dalı): yeni Geçişler paneli ve klip şeridi (Ahmet'in onayladığı taslak)
 - **Geçişler paneli** (klipler arasındaki ⇄ simgesinden ve Görünüm › Geçiş'ten aynı panel): solda "Tümüne", ortada başlık (hangi ara olduğu), sağda ✓ Tamam; altında **süre** (− kaydırıcı +, 0,1 sn adım, 0,2–2,0 sn); TEMEL (Yok, Erime, Yumuşak, Kaydır) ve IŞIK VE HAREKET (Büyüyerek, Siyahtan, Parlama, Yakınlaşma) yuvarlak renkli simgelerle; seçili simge beyaz halkalı.
 - **Standart geçiş süresi 0,8 sn** (Kareden Videoya "YouTube anı videosu" hazır ayarıyla aynı; önceki model varsayılanı 0,7 sn idi).

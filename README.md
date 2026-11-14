@@ -6,6 +6,17 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.36 (15.11.2026, deneme · `yerel-android` dalı): ▶ ortadan başlatınca donma ve "göz kırpma"
+**Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Belirti (Ahmet, 3.35.61):** göz kırpma. Kayıtta iki kez "Akıcı önizleme ilerlemedi" (00:06:42, 00:16:01) → standart önizlemeye düşüş. Baştan başlatılan her oynatma sorunsuz.
+- **Kök neden:**
+  - **[Kesin]** İki donma da ▶ videonun ortasından (43743 ve 21626 ms) başlatılınca oldu; konum 5 sn hiç ilerlemedi (durum hazır, oynuyor). Baştan başlatılan her oynatma çalıştı.
+  - **[Kesin]** O projedeki geçiş sesi dizisi (gelen videonun ilk 0,8 sn'si) 18623 ms'de bitiyordu; iki başlangıç noktası da bunun sonrasındaydı.
+  - **[Muhtemel, Media3 kaynağına göre]** Bitmiş noktasından başlatılan ses dizisinin ses girişi oluşmuyor; Media3'ün önizleme ses karıştırıcısı (`PlaybackAudioGraphWrapper.processData`) bütün girişler oluşmadan hiç ses işlemiyor → ses saati durur → görüntü donar.
+  - **Göz kırpma:** donma sonrası standart önizlemeye geçiş ve standart önizlemenin eski geçiş çizimi [Muhtemel].
+- **Çözüm:** her yalnız-ses dizisi (geçiş sesi, seslendirme, ses katmanları, reels efekt sesleri, döngüsüz kısa müzik) videonun sonuna kadar sessizlikle uzatılır; ▶ nereden başlatılırsa başlatılsın her dizi sesini (sessizliğini) verir. Dışa aktarmada sonuç değişmez.
+- **Cihaz testi (Ahmet):** 1) Uygulamayı tümüyle kapatıp aç. 2) Bir geçişin ortasında duraklat, yeniden ▶. 3) Sondaki bir klibe dokun, ▶. 4) Göz kırpma kalırsa hata kaydı + 720p video.
+
 ## 3.35 (14.11.2026, deneme · `yerel-android` dalı): klip içi parlama giderildi; Hareket paneli; klip şeridini gizle
 **Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Belirti (Ahmet):** kliplerde 1–2 sn sonra başlayan aydınlanma ("parlama"); fotoğraflarda da, kaydedilen videoda da.

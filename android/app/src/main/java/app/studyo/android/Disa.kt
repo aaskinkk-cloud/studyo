@@ -267,7 +267,13 @@ object Disa {
                 }
             }
         }
-        if (adB > 0) diziler += sesB.build()
+        // 3.36: her yalnız-ses dizisi videonun sonuna kadar sessizlikle (gap) uzatılır. KÖK NEDEN (kayıt 15.11 00:06:42 ve 00:16:01):
+        // ▶ bu dizinin bittiği andan SONRA bir yerden başlatılınca (43743 ve 21626 ms; dizi 18623'te bitiyordu) o dizinin oynatıcısı
+        // "bitmiş" durumda kalıyor, ses girişi hiç oluşmuyor; Media3'ün önizleme ses karıştırıcısı bütün girişleri beklediği için
+        // (PlaybackAudioGraphWrapper.processData) ses saati ilerlemiyor → konum donuyor → standart önizlemeye düşüyor (göz kırpma).
+        // Baştan başlatınca sorun yoktu, çünkü dizi başta (boşlukla) girişini oluşturuyordu.
+        fun EditedMediaItemSequence.Builder.sonaKadar(imlecMs: Long) = apply { if (imlecMs < toplam) addGap((toplam - imlecMs) * 1000) }
+        if (adB > 0) diziler += sesB.sonaKadar(imB).build()
         Kayit.yaz("  Diziler: tek görüntü dizisi, ${ogeler.size} öğe (parça yok), tek tuval geçiş: $gecisAdet, gelen klip sesi: $adB")
         p.muzik?.let { m ->
             val mib = MediaItem.Builder().setUri(Uri.parse(m.uri))
@@ -275,7 +281,9 @@ object Disa {
                 mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(toplam).build())
             val e = EditedMediaItem.Builder(mib.build()).setRemoveVideo(true).sureli(ctx, onizleme, m.uri, m.sureMs, if (!m.dongu && m.sureMs > toplam) toplam else 0L)
                 .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(m.ses)), listOf<Effect>())).build()
-            diziler += EditedMediaItemSequence.Builder(e).setIsLooping(m.dongu).build()
+            val mb = EditedMediaItemSequence.Builder(listOf(e)).setIsLooping(m.dongu)
+            if (!m.dongu && m.sureMs in 1 until toplam) mb.addGap((toplam - m.sureMs) * 1000)     // kısa müzik: sonu sessizlik (3.36)
+            diziler += mb.build()
         }
         val sesler = p.sesler.sortedBy { it.basMs }.filter { it.basMs < toplam }
         if (sesler.isNotEmpty()) {
@@ -294,7 +302,7 @@ object Disa {
                     .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(s.ses)), listOf<Effect>())).build())
                 imlec = son; adet++
             }
-            if (adet > 0) diziler += b.build()
+            if (adet > 0) diziler += b.sonaKadar(imlec).build()
         }
         // ---- ses katmanları: her biri ayrı dizi (baştaki boşluk + kırpılmış ses; hız ve seviye) ----
         for (o in p.katmanlar) {
@@ -312,7 +320,7 @@ object Disa {
             val b = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
             if (bas > 0) b.addGap(bas * 1000)
             b.addItem(EditedMediaItem.Builder(mi).sureli(ctx, onizleme, o.yol, o.kaynakSureMs, kaynakSon).setEffects(Effects(ap, listOf<Effect>())).build())
-            diziler += b.build()
+            diziler += b.sonaKadar(bas + ((kaynakSon - o.kaynakBasMs) / hiz).toLong()).build()
             Kayit.yaz("  Ses katmanı: ${o.ad} ${bas}-${son} ms, hız=$hiz, ses=${o.ses}")
         }
         // ---- reels başlık efekt sesleri ----
@@ -330,7 +338,7 @@ object Disa {
                         .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(p.giris.sesSeviye * 1.4f)), listOf<Effect>())).build())
                     imlec = an + sure
                 }
-                diziler += b.build()
+                diziler += b.sonaKadar(imlec).build()
             }
         }
         return Composition.Builder(diziler).setHdrMode(hdrKip).build()

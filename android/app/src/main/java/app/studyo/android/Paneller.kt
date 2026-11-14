@@ -638,7 +638,7 @@ private fun KonumSecici(secili: String, ton: Color, onSec: (String) -> Unit) {
 
 /** Geçişler panelindeki süre satırı: etiket · − · kaydırıcı · + · değer (renk tonlu). */
 @Composable
-private fun TonKaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPointRange<Float>, adim: Float, ton: Color, yaz: (Float) -> String, bitti: (Float) -> Unit) {
+internal fun TonKaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPointRange<Float>, adim: Float, ton: Color, yaz: (Float) -> String, bitti: (Float) -> Unit) {
     var v by remember(deger) { mutableFloatStateOf(deger) }
     fun ayarla(x: Float) { val y = (Math.round(x / adim) * adim).coerceIn(aralik.start, aralik.endInclusive); v = y; bitti(y) }
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {

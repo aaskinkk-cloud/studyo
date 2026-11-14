@@ -197,9 +197,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Column(Modifier.fillMaxWidth().weight(1f)) {
                 if (bolum == "katman" && panelAcik) {
                     KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
-                } else if (!panelAcik) {
+                } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip")) {
+                    // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     Spacer(Modifier.weight(1f))
                     KlipSeridi(vm, p, sec, ekle)
+                    p.klipler.getOrNull(sec)?.let { KlipAyar(vm, it) }
                     Spacer(Modifier.weight(1f))
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
@@ -549,6 +551,34 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     }
     if (ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
+}
+
+/** Büyük şeridin altında seçili klibin süresi (fotoğraf) ya da kırpma aralığı (video) — Geçişler biçiminde, tek satır. */
+@Composable
+private fun KlipAyar(vm: EditorDurum, k: Klip) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+        if (k.foto) {
+            TonKaydirici("Süre", k.fotoSureMs / 1000f, 1f..15f, 0.5f, Renk.turuncu, { String.format(TR, "%.1f sn", it) }) { v ->
+                vm.klipGuncelle(true) { it.copy(fotoSureMs = (v * 1000).toLong()) }
+            }
+        } else {
+            var aralik by remember(k.id, k.basMs, k.sonMs) { mutableStateOf(k.basMs.toFloat()..k.sonMs.toFloat()) }
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Kırp", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.width(64.dp))
+                RangeSlider(
+                    value = aralik, onValueChange = { aralik = it },
+                    valueRange = 0f..k.kaynakSureMs.coerceAtLeast(1).toFloat(),
+                    onValueChangeFinished = { vm.kirp(aralik.start.toLong(), aralik.endInclusive.toLong()) },
+                    colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
+                    modifier = Modifier.weight(1f),
+                )
+                Text(sureOndalik((aralik.endInclusive - aralik.start).toLong()), color = Renk.turuncu, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End, modifier = Modifier.width(60.dp))
+            }
+            Text("${sureOndalik(aralik.start.toLong())} – ${sureOndalik(aralik.endInclusive.toLong())}", color = Renk.soluk, fontSize = 11.sp,
+                modifier = Modifier.padding(start = 64.dp))
+        }
+    }
 }
 
 /** Klip kartının üstündeki renkli küçük simge düğmesi (3.25). */

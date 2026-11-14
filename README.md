@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.29 (14.11.2026, deneme · `yerel-android` dalı): Düzenle › Klip tek sayfa
+- **Sorun (Ahmet):** Düzenle'de "Klip" açıkken ve kapalıyken iki ayrı görünüm çıkıyordu (büyük şerit / küçük şerit + yalnız "Fotoğraf süresi" olan Klip kartı).
+- **Çözüm:** ikisi tek görünüm: büyük şerit (üstünde ses · böl · çoğalt · sil, oklar) ve hemen altında seçili klibin **süresi** (fotoğraf: − kaydırıcı +, 0,5 sn adım) ya da **kırpma aralığı** (video). Ayrı Klip kartı kaldırıldı. (⋯ › yazılı menü açıkken eski düzen.)
+
 ## 3.28 (14.11.2026, deneme · `yerel-android` dalı): Dışa aktar ekranı görsel tasarım (Şablon sayfasıyla aynı)
 - Bölümler TON renklerinde: Çözünürlük sarı, Kalite yeşil, Video oluştur turuncu, ilerleme/doğrulama turkuaz, Kesintisiz çalışma pembe, Kaydedildi yeşil.
 - Çözünürlük tek satırda renk tonlu büyük yazı (720p · 1080p · 2K · 4K) + boyut, seçilende renkli ve noktalı; desteklenmeyen soluk. Kalite Varsayılan ayarlar biçiminde simgeli.

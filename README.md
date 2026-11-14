@@ -6,6 +6,19 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.38 (15.11.2026, deneme · `yerel-android` dalı): geçiş bitince renk değişimi
+**Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Belirti (Ahmet):** kaydedilen videoda geçiş bittikten kısa süre sonra görüntü "renkleniyor".
+- **Ölçüm (Ahmet'in Erime 720p videosu, 780 kare, ffmpeg ile her karenin parlaklık/renk/doygunluk ortalaması) [Kesin]:**
+  - Tek karede, parlaklık değişmeden yalnız renk sıçrıyor: doygunluk 8,7 → 10,4 (9,200 sn), 9,5 → 11,4 (13,400 sn), 10,1 → 11,9 (17,600 sn); ≈ %16–20 daha canlı.
+  - Bu kareler tam geçiş penceresinin sonu (pencereler 8,4–9,2 / 12,6–13,4 / 16,8–17,6 sn); görünür erime pencerenin ortasında bittiği için göze "geçişten sonra" görünüyor.
+  - Kodlayıcının anahtar kareleri tam saniyelerde; sıçramalar onlarla çakışmıyor (kodlayıcı kaynaklı değil).
+  - Önceki ölçümlerde yalnız parlaklığa bakmıştım; renk sıçraması orada görünmüyordu.
+- **Kök neden [Kesin, Media3 kaynağıyla]:** telefon fotoğrafları Display P3 renk profili taşıyor. Media3 dışa aktarmada fotoğrafı sRGB'ye çevirerek açıyor (`DefaultAssetLoaderFactory`: `inPreferredColorSpace = SRGB`); ▶ önizlemede çevirmeden açıyor (`BitmapFactoryImageDecoder`). Geçiş kodu fotoğrafı her iki durumda da çevirmeden açıyordu → dışa aktarmada geçişteki fotoğraf soluk, geçiş bitince Media3'ün açtığı gövde daha canlı.
+- **Çözüm:** geçişteki gelen fotoğraf, ana hatla aynı biçimde açılır: dışa aktarmada sRGB'ye çevrilerek, önizlemede çevrilmeden.
+- **Açık:** 18,53 sn'de (5. klibin içinde, geçişten uzakta) bir karelik küçük bir renk değişimi daha var (doygunluk 12,0 → 11,2); nedeni henüz belli değil [Tahmin yok]. Yeni videoda kalırsa ayrıca bakılacak.
+- **Cihaz testi (Ahmet):** aynı projeyi Erime ile 720p dışa aktar, galeride izle; gönderirsen yeniden ölçerim.
+
 ## 3.37 (15.11.2026, deneme · `yerel-android` dalı): takılı kalan "Video oluşturuluyor" bildirimi
 - **Belirti (Ahmet, ekran görüntüsü 00:38):** video kaydedildiği hâlde bildirim panelinde "Video oluşturuluyor · Doğrulanıyor…" ve "Duraklat" kalıcı duruyor.
 - **Kök neden [Muhtemel]:** iş bitince ilerleme bildirimi hizmetten koparılıp (DETACH) aynı numarayla "bitti"ye güncelleniyordu. Android kısa sürede art arda gelen bildirim güncellemelerini sessizce düşürür; son güncelleme düşünce kaldırılamayan "sürüyor" bildirimi kalıyordu. Videoya etkisi yok [Kesin: kayıtta TAMAM, dosya doğrulandı].

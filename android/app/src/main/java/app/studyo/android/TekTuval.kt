@@ -235,8 +235,32 @@ private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean,
         } else {
             val yol = t.resimYol ?: ""
             val boy = (maxOf(t.W, t.H) * 2).coerceIn(1280, 4096)
-            resim = ResimYukleyici { Medya.ornekleCoz(File(yol), boy) }
+            resim = ResimYukleyici { resimAc(File(yol), boy, srgb = !t.onizleme) }
         }
+    }
+
+    /** 3.38: fotoğraf, ana hattaki Media3 ile AYNI renk uzayında açılır. KÖK NEDEN (Ahmet'in 720p videosu, 15.11): geçiş biter
+     *  bitmez tek karede doygunluk %16 artıyordu (ör. 9,200 / 13,400 / 17,600 sn; parlaklık aynı, yalnız renk) — tam geçiş
+     *  penceresinin sonu = gelen fotoğrafı benim kodumdan Media3'ün devraldığı kare. Telefon fotoğrafları Display P3 renk
+     *  profili taşıyor; Media3 dışa aktarmada fotoğrafı sRGB'ye ÇEVİREREK açıyor (DefaultAssetLoaderFactory:
+     *  inPreferredColorSpace = SRGB), ▶ önizlemede ise çevirmeden (BitmapFactoryImageDecoder). Geçiş kodu her ikisinde de
+     *  çevirmeden açıyordu → dışa aktarmada geçişteki fotoğraf soluk, gövdesi canlı. Artık her biri kendi hattıyla aynı. */
+    private fun resimAc(f: File, boy: Int, srgb: Boolean): Bitmap? {
+        val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeFile(f.path, o)
+        if (o.outWidth <= 0 || o.outHeight <= 0) return null
+        var ss = 1
+        while (maxOf(o.outWidth, o.outHeight) / (ss * 2) >= boy) ss *= 2
+        val op = android.graphics.BitmapFactory.Options().apply {
+            inSampleSize = ss
+            if (srgb) inPreferredColorSpace = android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB)
+        }
+        val b = android.graphics.BitmapFactory.decodeFile(f.path, op) ?: return null
+        val k = boy.toFloat() / maxOf(b.width, b.height)
+        if (k >= 1f) return b
+        val n = Bitmap.createScaledBitmap(b, (b.width * k).toInt().coerceAtLeast(1), (b.height * k).toInt().coerceAtLeast(1), true)
+        if (n !== b) b.recycle()
+        return n
     }
 
     /** Dönüşüm programlarından sıradakini kurar. true: hepsi kurulu. */

@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.graphics.Brush
@@ -444,32 +445,76 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     gecisSecim?.let { i -> if (i < p.klipler.lastIndex) GecisSecimi(vm, p, i) { gecisSecim = null } }
     val durum = rememberLazyListState()
     LaunchedEffect(sec) { if (sec in p.klipler.indices) durum.animateScrollToItem(sec) }
-    val kw = if (kucuk) 92.dp else 136.dp
+    // 3.25 (Ahmet'in onayladığı taslak): seçili klip büyük; üstünde renkli küçük simgeler (ses, böl, çoğalt, sil) ve
+    // kenarlarında sola/sağa taşı okları. Basılı tutup sürükleyerek de taşınır.
+    val kw = if (kucuk) 92.dp else 112.dp
+    val kwSecili = if (kucuk) 92.dp else 200.dp
+    val yukseklik = if (kucuk) 62.dp else 158.dp
+    val yogunluk = LocalDensity.current
+    val adimPx = with(yogunluk) { (kw + 8.dp + 38.dp).toPx() }
+    var surukleId by remember { mutableStateOf<String?>(null) }
+    var dx by remember { mutableFloatStateOf(0f) }
+    var silOnayId by remember { mutableStateOf<String?>(null) }
     LazyRow(
         state = durum,
-        modifier = Modifier.fillMaxWidth().height(if (kucuk) 62.dp else 96.dp).padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().height(yukseklik).padding(vertical = 4.dp),
         contentPadding = PaddingValues(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
-            val sekil = RoundedCornerShape(6.dp)
+            val secili = i == sec
+            val sekil = RoundedCornerShape(if (secili && !kucuk) 12.dp else 8.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.width(kw).fillMaxHeight().clip(sekil)
-                    .border(if (i == sec) 2.dp else 0.5.dp, if (i == sec) Color(TON[0]) else Renk.cizgi, sekil)
-                    .clickable { vm.sec(i) },
+                Modifier.width(if (secili) kwSecili else kw).fillMaxHeight(if (secili || kucuk) 1f else 0.68f)
+                    .graphicsLayer { if (surukleId == k.id) { translationX = dx; scaleX = 1.04f; scaleY = 1.04f } }
+                    .clip(sekil)
+                    .border(if (secili) 2.5.dp else 0.5.dp, if (secili) Renk.turuncu else Renk.cizgi, sekil)
+                    .clickable { vm.sec(i) }
+                    .then(if (kucuk) Modifier else Modifier.pointerInput(k.id, i) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { surukleId = k.id; dx = 0f; vm.sec(i) },
+                            onDrag = { c, d -> c.consume(); dx += d.x },
+                            onDragEnd = {
+                                val hedef = (i + (dx / adimPx).roundToInt()).coerceIn(0, p.klipler.lastIndex)
+                                surukleId = null; dx = 0f
+                                if (hedef != i) vm.klipTasi(i, hedef)
+                            },
+                            onDragCancel = { surukleId = null; dx = 0f },
+                        )
+                    }),
             ) {
                 KlipResmi(k, Modifier.fillMaxSize())
-                Box(Modifier.align(Alignment.TopStart).padding(5.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
+                Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
                     Text("${i + 1}", color = Color.White, fontSize = if (kucuk) 10.sp else 12.sp, fontWeight = FontWeight.Bold)
                 }
-                val rozet = buildList { if (k.foto) add("Foto"); if (k.sessiz || (!k.foto && !k.sesVar)) add("Sessiz"); if (k.yazi?.metin?.isNotBlank() == true) add("T") }
-                if (rozet.isNotEmpty()) Text(rozet.joinToString(" · "), color = Color.White, fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp))
-                if (!kucuk) Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xCC0E151B)).padding(horizontal = 7.dp, vertical = 2.dp))
+                val sessiz = k.sessiz || (!k.foto && !k.sesVar)
+                if (secili && !kucuk) {
+                    // renkli küçük simgeler: ses · böl · çoğalt · sil
+                    Row(Modifier.align(Alignment.TopEnd).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (!k.foto && k.sesVar) SimgeDugmesi(if (k.sessiz) "sessiz" else "ses", 0xFF5DCAA5) { vm.sesAcKapat() }
+                        SimgeDugmesi("makas", 0xFFF0997B) { vm.klipBolSecili() }
+                        SimgeDugmesi("cogalt", 0xFF85B7EB) { vm.klipCogalt() }
+                        val onay = silOnayId == k.id
+                        SimgeDugmesi("sil", if (onay) 0xFFFFFFFF else 0xFFED93B1, if (onay) Renk.kirmizi else Color(0xB3000000)) {
+                            if (onay) { silOnayId = null; vm.klipSil() } else silOnayId = k.id
+                        }
+                    }
+                    if (i > 0) Box(Modifier.align(Alignment.CenterStart).padding(4.dp).size(30.dp).clip(CircleShape).background(Color(0xB3000000)).clickable { vm.tasi(-1) },
+                        contentAlignment = Alignment.Center) { Simge("sol", Color(0xFF97C459), 20.dp) }
+                    if (i < p.klipler.lastIndex) Box(Modifier.align(Alignment.CenterEnd).padding(4.dp).size(30.dp).clip(CircleShape).background(Color(0xB3000000)).clickable { vm.tasi(1) },
+                        contentAlignment = Alignment.Center) { Simge("ileri", Color(0xFF97C459), 20.dp) }
+                    val alt = buildList { add(if (k.foto) "Foto" else "Video"); add(sureOndalik(k.sureMs)); if (sessiz) add("Sessiz"); if (k.yazi?.metin?.isNotBlank() == true) add("T") }
+                    Text(if (silOnayId == k.id) "Silmek için çöp kutusuna yine dokun" else alt.joinToString(" · "), color = Color.White, fontSize = 11.sp, maxLines = 1,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xB3000000)).padding(horizontal = 8.dp, vertical = 2.dp))
+                } else if (!kucuk) {
+                    Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC0E151B)).padding(horizontal = 6.dp, vertical = 1.dp))
+                    if (sessiz) Box(Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).clip(CircleShape).background(Color(0xB3000000)), contentAlignment = Alignment.Center) { Simge("sessiz", Color(0xFF5DCAA5), 12.dp) }
+                }
             }
-            // klipler arasındaki geçiş simgesi: dokun = bu aradaki geçişi seç
+            // klipler arasındaki geçiş simgesi: dokun = Geçişler paneli (bu ara)
             if (i < p.klipler.lastIndex) {
                 val tur = p.gecisAt(i).tur
                 val ozel = k.gecis != null
@@ -485,13 +530,13 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         }
         item {
             Box(
-                Modifier.width(if (kucuk) 70.dp else 110.dp).fillMaxHeight().clip(RoundedCornerShape(14.dp))
+                Modifier.width(if (kucuk) 70.dp else 96.dp).fillMaxHeight(if (kucuk) 1f else 0.68f).clip(RoundedCornerShape(14.dp))
                     .border(1.5.dp, Renk.turuncu, RoundedCornerShape(14.dp)).clickable { ekle() },
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Simge("ekle", Renk.turuncu, if (kucuk) 20.dp else 28.dp)
-                    if (!kucuk) Text("Ekle", color = Renk.turuncu, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Simge("ekle", Renk.turuncu, if (kucuk) 20.dp else 26.dp)
+                    if (!kucuk) Text("Ekle", color = Renk.turuncu, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }
@@ -506,41 +551,19 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
 }
 
-/** Klipler arasındaki geçiş seçimi (her video düzenleyicideki gibi): bu ara için tür, ya da tümüne uygula. */
+/** Klip kartının üstündeki renkli küçük simge düğmesi (3.25). */
+@Composable
+private fun SimgeDugmesi(ad: String, renk: Long, zemin: Color = Color(0xB3000000), tik: () -> Unit) =
+    Box(Modifier.size(28.dp).clip(CircleShape).background(zemin).clickable { tik() }, contentAlignment = Alignment.Center) { Simge(ad, Color(renk), 16.dp) }
+
+/** Klipler arasındaki geçiş simgesinden açılan Geçişler paneli (3.25, Ahmet'in görseli). */
 @Composable
 private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
-    val secenek = listOf(
-        "erime" to "Erime", "capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek",
-        "siyah" to "Siyahtan", "yakin" to "Yakınlaşma", "yok" to "Yok (kesme)",
-    )
-    val simdiki = p.gecisAt(i).tur
-    var sec by remember(i) { mutableStateOf(simdiki) }
-    AlertDialog(
-        onDismissRequest = kapat,
-        title = { Text("Geçiş · klip ${i + 1} → ${i + 2}") },
-        text = {
-            Column {
-                secenek.chunked(4).forEach { satir ->
-                    Row(Modifier.fillMaxWidth()) {
-                        satir.forEachIndexed { j, (k, ad) ->
-                            SecimKarti(ad, "", sec == k, Modifier.weight(1f), sira = j, simge = if (k == "yok") "kapat" else "gecis") { sec = k }
-                        }
-                        repeat(4 - satir.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
-                Text("Süre: ${String.format(TR, "%.1f", p.gecis.sureMs / 1000f)} sn (Görünüm › Geçiş'ten değişir). " +
-                    "Erime, Yumuşak, Kaydırarak ve Büyüyerek'te iki klip bir an birlikte oynar.", color = Renk.soluk, fontSize = 11.5.sp,
-                    modifier = Modifier.padding(top = 8.dp))
-            }
-        },
-        confirmButton = {
-            Row {
-                TextButton(onClick = { vm.gecisHepsine(sec); kapat() }) { Text("Tümüne uygula") }
-                TextButton(onClick = { vm.klipGecis(i, if (sec == p.gecis.tur) null else sec); kapat() }) { Text("Bu araya") }
-            }
-        },
-        dismissButton = { TextButton(onClick = kapat) { Text("Vazgeç") } },
-    )
+    androidx.compose.ui.window.Dialog(onDismissRequest = kapat, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart).padding(vertical = 8.dp)) {
+            GecisIcerik(vm, p, ara = i, kapat = kapat)
+        }
+    }
 }
 
 @Composable
@@ -619,17 +642,8 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
             )
         }
-        var silOnay by remember(k.id) { mutableStateOf(false) }
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Dugme("◀ Sola", Modifier.weight(1f), etkin = sec > 0, sira = 0) { vm.tasi(-1) }
-            Dugme("Sağa ▶", Modifier.weight(1f), etkin = sec < p.klipler.lastIndex, sira = 1) { vm.tasi(1) }
-            Dugme("Böl", Modifier.weight(1f), sira = 3) { vm.klipBol() }
-            Dugme("Çoğalt", Modifier.weight(1f), sira = 2) { vm.klipCogalt() }
-            Dugme(if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = if (silOnay) Renk.kirmizi else Renk.kart2, sira = 4) {
-                if (silOnay) { silOnay = false; vm.klipSil() } else silOnay = true
-            }
-        }
+        Text("Sil, böl, çoğalt ve ses: şeritte seçili klibin üstünde. Taşımak için oklara dokun ya da klibe basılı tutup sürükle.",
+            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
     }
 }
 

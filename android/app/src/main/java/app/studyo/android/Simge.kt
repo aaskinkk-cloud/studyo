@@ -17,6 +17,16 @@ import androidx.compose.foundation.layout.size
 object Simgeler {
     private val cizgi = mapOf(
         "geri" to "M19 12H5M12 19l-7-7 7-7",
+        "sessiz" to "M11 5L6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6",
+        "sol" to "M15 6l-6 6 6 6",
+        "g_yok" to "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8",
+        "g_capraz" to "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+        "g_kaydir" to "M4 4v16M20 12H9M13 8l-4 4 4 4",
+        "g_buyu" to "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+        "g_siyah" to "M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z",
+        "g_beyaz" to "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+        "g_yakin" to "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3M11 8v6M8 11h6",
+        "eksi" to "M5 12h14",
         "kaydet" to "M5 3h11l4 4v14H5zM8 3v5h8V3M8 21v-7h9v7",
         "disa" to "M12 15V3M7 8l5-5 5 5M5 13v8h14v-8",
         "asagi" to "M6 9l6 6 6-6",
@@ -70,6 +80,8 @@ object Simgeler {
         "onceki" to "M6 6h2v12H6zM9.5 12L18 18V6z",
         "sonraki" to "M16 6h2v12h-2zM6 18l8.5-6L6 6z",
         "yarim" to "M12 2a10 10 0 0 0 0 20z",
+        "g_capraz" to "M12 3a9 9 0 0 0 0 18z",
+        "g_erime" to "M4 4h3v3H4zM10 4h3v3h-3zM16 4h3v3h-3zM7 7h3v3H7zM13 7h3v3h-3zM4 10h3v3H4zM10 10h3v3h-3zM16 10h3v3h-3zM7 13h3v3H7zM13 13h3v3h-3zM4 16h3v3H4zM10 16h3v3h-3zM16 16h3v3h-3z",
         "basa" to "M19 6l-10 6 10 6z",
     )
     private val onbellek = HashMap<String, ImageVector>()

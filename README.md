@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.25 (14.11.2026, deneme · `yerel-android` dalı): yeni Geçişler paneli ve klip şeridi (Ahmet'in onayladığı taslak)
+- **Geçişler paneli** (klipler arasındaki ⇄ simgesinden ve Görünüm › Geçiş'ten aynı panel): solda "Tümüne", ortada başlık (hangi ara olduğu), sağda ✓ Tamam; altında **süre** (− kaydırıcı +, 0,1 sn adım, 0,2–2,0 sn); TEMEL (Yok, Erime, Yumuşak, Kaydır) ve IŞIK VE HAREKET (Büyüyerek, Siyahtan, Parlama, Yakınlaşma) yuvarlak renkli simgelerle; seçili simge beyaz halkalı.
+- **Standart geçiş süresi 0,8 sn** (Kareden Videoya "YouTube anı videosu" hazır ayarıyla aynı; önceki model varsayılanı 0,7 sn idi).
+- **Klip şeridi:** seçili klip büyük (200 dp); resmin üstünde renkli küçük simgeler: ses aç/kapat (yalnız sesli video), böl (çizgi klibin içindeyse oradan, değilse ortadan), çoğalt, sil (iki dokunuş). Kenarlarda sola/sağa taşı okları. **Basılı tutup sürükleyerek** taşıma.
+- Klip kartından Sola/Sağa/Böl/Çoğalt/Sil düğmeleri kaldırıldı (şeritte).
+
 ## 3.24 (14.11.2026, deneme · `yerel-android` dalı): ▶ önizleme Media3'ün varsayılan yoluyla
 - **Cihaz kaydı (Ahmet, 13:08–13:09, 3.23):** çökme yok, dışa aktarma TAMAM (4K, 11 sn). Ama ▶ önizleme ~4. saniyede `ERROR_CODE_DECODING_FAILED` verip standart önizlemeye düşüyor; Ahmet önizlemede görüntünün kendisinde karanlık noktalar ve parlama görüyor (bozuk çözülen kareler + standart önizlemeye geçiş [Muhtemel]).
 - **Kök neden [Muhtemel]:** 3.23'te kapatılan video ön ısıtması Media3'te yalnız eski Android/test için duran yol; gerçek cihazda kod çözücü hatası veriyor. 3.22'deki çökmeyse, tek görüntü dizisine (3.20'den beri) gereksiz yere **çok girişli** görüntü hattı dayatılmasıyla birlikte görülüyordu.

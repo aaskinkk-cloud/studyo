@@ -586,16 +586,85 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
 
 @Composable
 fun PanelGecis(vm: EditorDurum, p: Proje) {
-    val g = p.gecis
-    Kart("Klip geçişi") {
-        Text("Klip üstüne binen", color = Renk.soluk, fontSize = 12.5.sp)
-        Secenekler(listOf("erime" to "Erime", "capraz" to "Yumuşak", "kaydir" to "Kaydırarak", "yakincapraz" to "Büyüyerek"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
-        Text("Klip sınırında", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
-        Secenekler(listOf("yok" to "Yok", "siyah" to "Siyahtan", "beyaz" to "Parlama", "yakin" to "Yakınlaşma"), g.tur, sutun = 4) { s -> vm.gecisDegis { it.copy(tur = s) } }
-        if (g.tur != "yok") Kaydirici("Geçiş süresi", g.sureMs / 1000f, 0.3f..2f, { String.format(TR, "%.1f sn", it) }) { v -> vm.gecisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
-        AnahtarSatiri("Videoyu siyahtan açarak başlat", g.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
-        Not(if (g.cakisma) "Giden klibin son kısmı gelen klibin üstünde kaybolur (Erime: lekeler hâlinde yukarıdan aşağı erir, web Kareden Videoya'daki gibi). İki klip de geçiş boyunca oynamaya devam eder. Her geçiş videoyu geçiş süresi kadar kısaltır."
-            else "Geçiş her klip sınırında uygulanır; videonun sonu hiçbir zaman karartılmaz. Önizlemede de görünür.")
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(vertical = 6.dp)) {
+        GecisIcerik(vm, p, ara = null, kapat = null)
+        Box(Modifier.padding(horizontal = 14.dp)) {
+            AnahtarSatiri("Videoyu siyahtan açarak başlat", p.gecis.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
+        }
+    }
+}
+
+/** Geçiş türleri (3.25): (anahtar, ad, simge, renk). Üst üste binenler TEMEL'de, klip sınırındakiler IŞIK VE HAREKET'te. */
+private val GECIS_TEMEL = listOf(
+    Triple("yok", "Yok", "g_yok") to 0xFFE6EDF3, Triple("erime", "Erime", "g_erime") to 0xFFF5A524,
+    Triple("capraz", "Yumuşak", "g_capraz") to 0xFF5DCAA5, Triple("kaydir", "Kaydır", "g_kaydir") to 0xFF85B7EB,
+)
+private val GECIS_ISIK = listOf(
+    Triple("yakincapraz", "Büyüyerek", "g_buyu") to 0xFFED93B1, Triple("siyah", "Siyahtan", "g_siyah") to 0xFFB4B2A9,
+    Triple("beyaz", "Parlama", "g_beyaz") to 0xFFFAC775, Triple("yakin", "Yakınlaşma", "g_yakin") to 0xFFAFA9EC,
+)
+
+/** Geçişler paneli (Ahmet'in görseli, 14.11.2026): solda "Tümüne", ortada başlık, sağda ✓; altında süre (− kaydırıcı +),
+ *  sonra yuvarlak simgeli türler. ara = klipler arasındaki simgeden açıldıysa o ara (i → i+1); null = projenin geçişi. */
+@Composable
+fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
+    val simdiki = if (ara != null) p.gecisAt(ara).tur else p.gecis.tur
+    var sec by remember(ara, simdiki) { mutableStateOf(simdiki) }
+    fun uygula(t: String) {
+        sec = t
+        if (ara == null) vm.gecisDegis { it.copy(tur = t) }
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { vm.gecisHepsine(sec); kapat?.invoke() }.padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Simge("cift", Renk.yazi, 26.dp)
+                Text("Tümüne", color = Renk.soluk, fontSize = 10.5.sp)
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Geçişler", color = Renk.yazi.copy(alpha = 0.8f), fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (ara != null) "Klip ${ara + 1} → ${ara + 2}" else "Bütün klipler", color = Renk.soluk, fontSize = 11.sp)
+            }
+            if (kapat != null) Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable {
+                    if (ara != null) vm.klipGecis(ara, if (sec == p.gecis.tur) null else sec)
+                    kapat()
+                }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Simge("uygula", Renk.yazi, 26.dp)
+                Text("Tamam", color = Renk.soluk, fontSize = 10.5.sp)
+            } else Spacer(Modifier.width(48.dp))
+        }
+        // süre: standart 0,8 sn (Kareden Videoya "YouTube anı videosu"), 0,2–2,0 sn, ± 0,1 sn
+        var sn by remember(p.gecis.sureMs) { mutableFloatStateOf(p.gecis.sureMs / 1000f) }
+        fun sureYaz(v: Float) { val y = (Math.round(v * 10f) / 10f).coerceIn(0.2f, 2f); sn = y; vm.gecisDegis { it.copy(sureMs = (y * 1000).toLong()) } }
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Süre", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.width(38.dp))
+            Box(Modifier.size(32.dp).clip(CircleShape).border(1.dp, Renk.cizgi, CircleShape).clickable { sureYaz(sn - 0.1f) }, contentAlignment = Alignment.Center) { Simge("eksi", Renk.yazi, 16.dp) }
+            InceSlider(value = sn, onValueChange = { sn = (Math.round(it * 10f) / 10f) }, valueRange = 0.2f..2f,
+                onValueChangeFinished = { sureYaz(sn) }, modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
+            Box(Modifier.size(32.dp).clip(CircleShape).border(1.dp, Renk.cizgi, CircleShape).clickable { sureYaz(sn + 0.1f) }, contentAlignment = Alignment.Center) { Simge("ekle", Renk.yazi, 16.dp) }
+            Text(String.format(TR, "%.1f sn", sn), color = Renk.turuncu, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+        listOf("TEMEL" to GECIS_TEMEL, "IŞIK VE HAREKET" to GECIS_ISIK).forEach { (baslik, liste) ->
+            Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                liste.forEach { (t, renk) ->
+                    val (k, ad, simge) = t
+                    val secili = sec == k
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(68.dp).clip(RoundedCornerShape(12.dp)).clickable { uygula(k) }.padding(vertical = 2.dp)) {
+                        Box(Modifier.size(56.dp).clip(CircleShape).background(if (secili) Color.Transparent else Renk.kart2)
+                            .border(if (secili) 2.5.dp else 0.dp, if (secili) Renk.yazi else Color.Transparent, CircleShape),
+                            contentAlignment = Alignment.Center) { Simge(simge, Color(renk), 26.dp) }
+                        Text(ad, color = if (secili) Renk.yazi else Renk.soluk, fontSize = 11.sp, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+        }
+        Text(if (Gecis(sec).cakisma) "İki klip geçiş süresince birlikte oynar; giden klip gelenin üstünde kaybolur."
+            else if (sec == "yok") "Klipler doğrudan kesilerek birleşir." else "Geçiş her klip sınırında uygulanır; videonun sonu karartılmaz.",
+            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 10.dp))
     }
 }
 

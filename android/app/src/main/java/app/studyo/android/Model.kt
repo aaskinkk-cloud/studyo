@@ -85,7 +85,7 @@ data class Logo(
 
 /** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
 @Serializable
-data class Gecis(val tur: String = "yok", val sureMs: Long = 700, val siyahtanAc: Boolean = false) {
+data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc: Boolean = false) {
     // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
     val cakisma: Boolean get() = tur == "erime" || tur == "capraz" || tur == "kaydir" || tur == "yakincapraz"
 }

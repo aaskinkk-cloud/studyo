@@ -451,6 +451,26 @@ class EditorDurum(private val ctx: Context, id: String) {
         sec(h)
     }
 
+    /** Parmakla sürükleyerek taşıma (3.25): from sıradaki klip to sırasına. */
+    fun klipTasi(from: Int, to: Int) {
+        val n = proje.value.klipler.size
+        if (from !in 0 until n || to !in 0 until n || from == to) return
+        guncelle(true) { p -> p.copy(klipler = p.klipler.toMutableList().also { val k = it.removeAt(from); it.add(to, k) }) }
+        sec(to)
+    }
+
+    /** Klibin üstündeki makas: çizgi seçili klibin içindeyse oradan, değilse klibin ortasından böler. */
+    fun klipBolSecili() {
+        val s = secili.value; val p = proje.value
+        if (s !in p.klipler.indices) return
+        val st = baslangic(s); val d = p.zKlip(s).sureMs
+        if (konum.value !in (st + 300)..(st + d - 300)) git(st + d / 2)
+        klipBol()
+    }
+
+    /** Klibin üstündeki ses simgesi: sesi kapat/aç. */
+    fun sesAcKapat() = klipGuncelle(true) { it.copy(sessiz = !it.sessiz) }
+
     fun klipCogalt() {
         val s = secili.value
         if (s !in proje.value.klipler.indices) return

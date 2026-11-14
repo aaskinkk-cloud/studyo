@@ -6,6 +6,20 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.35 (14.11.2026, deneme · `yerel-android` dalı): klip içi parlama giderildi; Hareket paneli; klip şeridini gizle
+**Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Belirti (Ahmet):** kliplerde 1–2 sn sonra başlayan aydınlanma ("parlama"); fotoğraflarda da, kaydedilen videoda da.
+- **Ölçüm (Ahmet'in 720p videosu, 1032 kare, ffmpeg ile her karenin ortalama parlaklığı) [Kesin]:**
+  - Geçiş sonlarında sıçrama yok; geçişler yumuşak bitiyor, tek karelik parlama yok.
+  - Klip içinde yavaş aydınlanma var: ör. 3. klipte 4 sn'de 81 → 131 (%60), 7. klipte 64 → 88.
+  - Kareler gösteriyor ki aydınlanan her klipte görüntü otomatik hareketle **yerden gökyüzüne kayıyor**; aşağı kayan klipte parlaklık tersine düşüyor (90 → 80).
+- **Kök neden [Kesin]:** dikey fotoğraf 16:9'a "doldur" ile girince yüksekliğinin ~%40'ı görünüyor; "otomatik" hareket 4 sn'de fotoğrafın neredeyse tamamını tarıyordu. Ekrana giren gökyüzü görüntüyü aydınlatıyordu.
+- **Çözüm (Ahmet'in seçimi: 2):** otomatik hareket artık **kaydırmaz**, odak noktasına doğru yavaş yaklaşır (saniyede ~%3; yatay fotoğraf + yüz: yüze yaklaşma, Kareden Videoya'daki gibi). Video: eskisi gibi saniyede %1,5 yaklaşma. Mevcut projeler de kendiliğinden yeni otomatiğe geçer.
+- **Odak noktası:** kendisi bulur (yüz → ana nesne → orta). Görünüm › Hareket açıkken önizlemede fotoğrafa **dokununca** yaklaşma oradan başlar; seçili nokta önizlemede halkayla gösterilir (turuncu = senin seçimin, beyaz = otomatik). "Otomatik" ile geri alınır. Nokta yaklaşırken hafifçe ortaya gelir; görüntü kare dışına taşmaz.
+- **Hareket paneli (Geçişler paneli biçiminde, TON renkleri):** YAKINLAŞMA: Otomatik · Yakınlaş · Uzaklaş · Sabit; KAYDIRMA: Sağa · Sola · Yukarı · Aşağı (en çok karenin yarısı kadar; kaydırma payı yoksa %15 yakınlaştırıp kaydırır). Solda "Tümüne". Video klipler için de çalışır. Önizleme, dışa aktarma ve geçişteki gelen klip aynı hesabı (Yuz.an) kullanır.
+- **Klip şeridini gizle:** Düzenle › Klip'te büyük klip şeridinin üstünde "Gizle / Göster" (göz simgesi); seçim hatırlanır. İzlerken seçili klip büyüyüp şerit kaydığı için göz yoruyordu.
+- **Cihaz testi (Ahmet):** 1) Aynı projeyi aç, ▶: kliplerde aydınlanma olmamalı, görüntü yavaşça yaklaşmalı. 2) Görünüm › Hareket: bir fotoğrafta yüz/nesne dışında bir yere dokun, ▶: yaklaşma oraya doğru olmalı. 3) Uzaklaş ve Sağa'yı dene. 4) Düzenle › Klip'te "Gizle"ye bas. 5) 720p dışa aktar, istersen gönder; parlaklığı yeniden ölçerim.
+
 ## 3.34 (14.11.2026, deneme · `yerel-android` dalı): geçişin başındaki kısa duraksama
 **Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Cihaz kaydı (Ahmet, 3.33.59, 14.11 22:00–22:10):** çökme yok, önizleme hiç düşmedi. Erime, Yumuşak (çapraz) ve Kaydır'ın her geçişinde 24 kare çizildi, "hazır değil=0". Sonraki denemelerde geçişler kapatılmış ("tek tuval geçiş: 0"); neyin kötü göründüğü kayıtta yok.

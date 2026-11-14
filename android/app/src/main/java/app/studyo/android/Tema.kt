@@ -62,6 +62,7 @@ object Duzen {
         onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, 0.75f)
         katmanYuk = sp.getFloat("katmanYuk", 240f).coerceIn(120f, 560f)
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
+        seritGizli = sp.getBoolean("seritGizli", false)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
@@ -70,6 +71,9 @@ object Duzen {
     /** Çok satırlı çizelgenin yakınlığı (dp / saniye; iki parmakla değişir). */
     var cizelgePps by mutableFloatStateOf(48f)
     fun ppsKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("cizelgePps", cizelgePps).apply() }
+    /** 3.35: büyük klip şeridi gizli (izlerken göz yormasın); seçim hatırlanır. */
+    var seritGizli by mutableStateOf(false)
+    fun seritDegis(ctx: Context) { seritGizli = !seritGizli; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("seritGizli", seritGizli).apply() }
 }
 
 @Composable

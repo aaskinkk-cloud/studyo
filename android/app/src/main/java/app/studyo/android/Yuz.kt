@@ -138,15 +138,13 @@ object Yuz {
     private const val HIZ = 3f              // Kareden Videoya varsayılanı: kb.rate = 3
     private const val YUZ_GUC = 0.30f       // kb.face = 30
     private const val TAVAN = 0.6f          // KBCAP
-    private const val YUZ_DUR = 0.7f        // FACE_STOP: hareket sürenin %70'inde yüze varır
 
     /**
-     * Kareden Videoya "otomatik" hareketinin birebir karşılığı (drawClip / kbScale / panMode / panOy / faceZoom).
-     * f: 0…1, klibin ekrandaki TAM süresi içinde (gelen geçiş dahil) ilerleme; i: klibin sırası; D: o tam süre (sn).
-     *  - dikey (kareden taşan) fotoğraf + yüz: yüze doğru kayar, %70'te yüzde durur, kalan sürede başın biraz üstü sabit hafifçe yaklaşır
-     *  - dikey fotoğraf, yüz yok: sırayla bir yukarı bir aşağı kayar (+%4 yaklaşma)
-     *  - yatay fotoğraf + yüz: yüze doğru yaklaşır, yüz ekranın %42 yüksekliğine gelir
-     *  - yatay fotoğraf: saniyede %3 yaklaşır (en çok %60) · video: saniyede %1,5
+     * Klibin o andaki hareketi (3.35). f: 0…1, klibin ekrandaki TAM süresi içinde (gelen geçiş dahil) ilerleme; i: sıra; D: tam süre (sn).
+     *  - otomatik, fotoğraf: odak noktasına doğru yavaş yaklaşma (saniyede ~%3); yatay fotoğraf + yüz: yüze yaklaşır (yüz %42 yükseklikte)
+     *  - otomatik, video: saniyede %1,5 yaklaşma (Kareden Videoya)
+     *  - yakin / uzak: odak noktasında yaklaşma / uzaklaşma · sag / sol / yukari / asagi: en çok karenin yarısı kadar kaydırma
+     *  - odak: elle seçilen nokta → yüz → ana nesne → orta
      * Kadraj (hareketsiz hâli) akıllı doldurma: yüz üstten %36–50'de (baş kesilmez), yoksa ana nesne ortada; üstüne elle kaydırma.
      */
     fun an(k: Klip, W: Int, H: Int, f: Float, i: Int = 0, D: Float = k.sureMs / 1000f): An {
@@ -166,52 +164,76 @@ object Yuz {
 
         var fw = dw; var fh = dh; var cx = W / 2f + ox * W; var cy = H / 2f + oy * H
         if (k.kenBurns) {
-            val uzun = dh > H * 1.15f                                     // isTall
-            val yuzKay = k.foto && yuzVar && uzun                         // tallFace
-            val yuzYak = k.foto && yuzVar && !yuzKay                      // faceZoomOn
-            val pm = when { yuzYak -> null; yuzKay -> "yuz"; k.foto && uzun -> if (i % 2 == 1) "asagi" else "yukari"; else -> null }
-            val zf = sinirla(0.62f * H / max(1f, k.yuzB * dh), 1.05f, 4f)
-            val yuzEn = 1f + (zf - 1f) * YUZ_GUC                          // faceZoomMax
-            val tut = sinirla((yuzEn - 1f) * 0.35f, 0.04f, 0.14f)          // faceHold
-            fun panOy(mxY: Float): Float {
-                val tr = min(2f * mxY, 0.06f * HIZ * D); val f0 = sinirla(oy, -mxY, mxY)
-                if (pm == "yuz") {
-                    val d = max(tr, 0.12f)
-                    val a = if (f0 + mxY >= mxY - f0) max(-mxY, f0 - d) else min(mxY, f0 + d)
-                    val q = (p / YUZ_DUR).coerceIn(0f, 1f); val e = 1f - (1f - q) * (1f - q) * (1f - q)
-                    return a + (f0 - a) * e
-                }
-                val a = if (pm == "yukari") max(-mxY, f0 - tr) else min(mxY, f0 + tr)
-                return a + (f0 - a) * yum(p)
-            }
+            // 3.35: dikey fotoğrafta otomatik KAYDIRMA kaldırıldı (Ahmet'in videosunda ölçüldü: 4 sn'de yerden gökyüzüne kayınca
+            // ortalama parlaklık %60'a kadar artıyor, "parlama" gibi görünüyordu). Otomatik = odak noktasına doğru yavaş yaklaşma.
+            // Odak: elle seçilen nokta → yüz → ana nesne → orta. Kaydırma yalnız Hareket panelinde seçilirse yapılır.
+            val tur = k.hareket.ifEmpty { "otomatik" }
+            val uzun = dh > H * 1.15f
+            val secili = k.odakSecX >= 0f && k.odakSecY >= 0f
             val el = p * D
-            val s = when {
-                yuzYak -> 1f
-                pm == "yuz" -> 1f + tut * yum(((p - YUZ_DUR) / (1f - YUZ_DUR)).coerceIn(0f, 1f))
-                pm != null -> 1f + 0.04f * p
-                !k.foto -> 1f + min(TAVAN, HIZ / 200f * el)
-                else -> 1f + min(TAVAN, HIZ / 100f * el)
-            }
-            fw = dw * s; fh = dh * s
-            if (pm != null) cy = H / 2f + panOy(max(0f, (fh - H) / 2f / H)) * H
-            if (pm == "yuz" && s > 1.0005f) {                             // yüze varınca: başın biraz üstü sabit kalarak yaklaş
-                val fw0 = fw / s; val fh0 = fh / s; val ay = (fy - 0.6f * k.yuzB).coerceIn(0f, 1f)
-                val cy0 = H / 2f + panOy(max(0f, (fh0 - H) / 2f / H)) * H
-                val px = cx + (fx - 0.5f) * fw0; val py = cy0 + (ay - 0.5f) * fh0
-                cx = px - (fx - 0.5f) * fw; cy = py - (ay - 0.5f) * fh
+            val yakMax = min(TAVAN, max(0.12f, HIZ / 100f * D))        // saniyede ~%3 (Kareden Videoya hızı), en az %12
+            fun yaklas(s: Float) {
+                val (ax, ay) = odakNokta(k)
+                val x0 = cx + (ax - 0.5f) * dw; val y0 = cy + (ay - 0.5f) * dh     // odak noktasının s = 1'deki ekran yeri
+                val q = ((s - 1f) / yakMax).coerceIn(0f, 1f)
+                val hx = x0 + (W / 2f - x0) * 0.35f * q; val hy = y0 + (H / 2f - y0) * 0.35f * q   // nokta hafifçe ortaya gelir
+                fw = dw * s; fh = dh * s
+                cx = hx - (ax - 0.5f) * fw; cy = hy - (ay - 0.5f) * fh
                 if (fw >= W) cx = sinirla(cx, W - fw / 2f, fw / 2f); if (fh >= H) cy = sinirla(cy, H - fh / 2f, fh / 2f)
             }
-            if (yuzYak) {                                                 // yüze doğru yaklaş, yüz ekranın %42'sine gelir
-                val e = yum(p); val sc = 1f + (yuzEn - 1f) * e
-                val fw1 = fw; val fh1 = fh; fw = fw1 * sc; fh = fh1 * sc
-                val px0 = cx + (fx - 0.5f) * fw1; val py0 = cy + (fy - 0.5f) * fh1
-                val m = if (yuzEn > 1.001f) (sc - 1f) / (yuzEn - 1f) * min(1f, (yuzEn - 1f) / 1.2f) else 0f
-                val hx = px0 + (W / 2f - px0) * m; val hy = py0 + (H * 0.42f - py0) * m
-                cx = sinirla(hx - (fx - 0.5f) * fw, W - fw / 2f, fw / 2f); cy = sinirla(hy - (fy - 0.5f) * fh, H - fh / 2f, fh / 2f)
+            fun kaydir(yatay: Boolean, ileri: Boolean) {
+                val tasma = if (yatay) dw - W else dh - H
+                val s = if (tasma >= 0.15f * (if (yatay) W else H)) 1f else 1.15f
+                fw = dw * s; fh = dh * s
+                val mx = max(0f, (if (yatay) fw - W else fh - H) / 2f / (if (yatay) W else H))
+                if (mx <= 0.001f) { yaklas(1f + yakMax * p); return }
+                val tr = min(min(2f * mx, 0.06f * HIZ * D), 0.5f)            // en çok karenin yarısı kadar
+                val f0 = sinirla(if (yatay) ox else oy, -mx, mx)
+                var a = f0 - tr / 2f; var b = f0 + tr / 2f
+                if (b > mx) { a -= b - mx; b = mx }; if (a < -mx) { b += -mx - a; a = -mx }
+                a = max(a, -mx); b = min(b, mx)
+                val bas = if (ileri) a else b; val son = if (ileri) b else a
+                val o = bas + (son - bas) * yum(p)
+                if (yatay) { cx = W / 2f + o * W; cy = H / 2f + sinirla(oy, -max(0f, (fh - H) / 2f / H), max(0f, (fh - H) / 2f / H)) * H }
+                else { cy = H / 2f + o * H; cx = W / 2f + sinirla(ox, -max(0f, (fw - W) / 2f / W), max(0f, (fw - W) / 2f / W)) * W }
+            }
+            when {
+                tur == "otomatik" && !k.foto -> { val s = 1f + min(TAVAN, HIZ / 200f * el); fw = dw * s; fh = dh * s }   // video: eskisi gibi
+                tur == "otomatik" && k.foto && yuzVar && !uzun && !secili -> {
+                    // yatay fotoğraf + yüz: yüze doğru yaklaşır, yüz ekranın %42 yüksekliğine gelir (Kareden Videoya)
+                    val zf = sinirla(0.62f * H / max(1f, k.yuzB * dh), 1.05f, 4f)
+                    val yuzEn = 1f + (zf - 1f) * YUZ_GUC
+                    val e = yum(p); val sc = 1f + (yuzEn - 1f) * e
+                    val fw1 = fw; val fh1 = fh; fw = fw1 * sc; fh = fh1 * sc
+                    val px0 = cx + (fx - 0.5f) * fw1; val py0 = cy + (fy - 0.5f) * fh1
+                    val m = if (yuzEn > 1.001f) (sc - 1f) / (yuzEn - 1f) * min(1f, (yuzEn - 1f) / 1.2f) else 0f
+                    val hx = px0 + (W / 2f - px0) * m; val hy = py0 + (H * 0.42f - py0) * m
+                    cx = sinirla(hx - (fx - 0.5f) * fw, W - fw / 2f, fw / 2f); cy = sinirla(hy - (fy - 0.5f) * fh, H - fh / 2f, fh / 2f)
+                }
+                tur == "uzak" -> yaklas(1f + yakMax * (1f - p))
+                tur == "sag" -> kaydir(yatay = true, ileri = false)       // kamera sağa döner: görüntü sola akar
+                tur == "sol" -> kaydir(yatay = true, ileri = true)
+                tur == "yukari" -> kaydir(yatay = false, ileri = true)    // kamera yukarı: görüntü aşağı akar
+                tur == "asagi" -> kaydir(yatay = false, ileri = false)
+                else -> yaklas(1f + yakMax * p)                            // otomatik (fotoğraf) ve "yakin"
             }
         }
         // ekran → giriş karesinin NDC'si (MatrixTransformation, Presentation'dan önce)
         return An(fw / dw, (cx - W / 2f) / (dw / 2f), -(cy - H / 2f) / (dh / 2f), W / dw, H / dh)
+    }
+
+    /** Yaklaşmanın odak noktası (kaynak karede 0…1): elle seçilen → yüz → ana nesne → orta. */
+    fun odakNokta(k: Klip): Pair<Float, Float> = when {
+        k.odakSecX >= 0f && k.odakSecY >= 0f -> k.odakSecX to k.odakSecY
+        k.yuzOdak && k.yuzB > 0f && k.yuzX >= 0f -> k.yuzX to k.yuzY
+        k.odakX >= 0f && k.odakY >= 0f -> k.odakX to k.odakY
+        else -> 0.5f to 0.5f
+    }
+    fun odakKaynak(k: Klip): String = when {
+        k.odakSecX >= 0f && k.odakSecY >= 0f -> "senin seçtiğin nokta"
+        k.yuzOdak && k.yuzB > 0f && k.yuzX >= 0f -> "yüz (otomatik)"
+        k.odakX >= 0f && k.odakY >= 0f -> "ana nesne (otomatik)"
+        else -> "orta (otomatik)"
     }
 
     /** Kaydırılabilir mi (önizlemede sürükleme için): taşan kısım var mı. */

@@ -17,6 +17,16 @@ import androidx.compose.foundation.layout.size
 object Simgeler {
     private val cizgi = mapOf(
         "geri" to "M19 12H5M12 19l-7-7 7-7",
+        "h_yakin" to "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M21 21l-5-5M8 11h6M11 8v6",
+        "h_uzak" to "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M21 21l-5-5M8 11h6",
+        "h_sag" to "M4 12h15M13 6l6 6-6 6",
+        "h_sol" to "M20 12H5M11 6l-6 6 6 6",
+        "h_yukari" to "M12 20V5M6 11l6-6 6 6",
+        "h_asagi" to "M12 4v15M6 13l6 6 6-6",
+        "h_sabit" to "M4 6h16v12H4zM9 12h6",
+        "h_odak" to "M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6",
+        "goz" to "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6",
+        "gozkapali" to "M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.6M6.5 7.5C4 9.2 2.5 12 2.5 12s3.5 6 9.5 6a9.6 9.6 0 0 0 4.6-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2",
         "sessiz" to "M11 5L6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6",
         "sol" to "M15 6l-6 6 6 6",
         "g_yok" to "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8",

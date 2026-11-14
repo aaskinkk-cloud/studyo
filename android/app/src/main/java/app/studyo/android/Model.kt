@@ -63,6 +63,10 @@ data class Klip(
     val kareHizi: Float = 0f,
     /** Bu klipten sonrakine geçiş (klipler arasındaki geçiş simgesiyle seçilir); null = projenin geçişi. */
     val gecis: String? = null,
+    /** 3.35 hareket türü (kenBurns açıkken): otomatik | yakin | uzak | sag | sol | yukari | asagi. kenBurns = false → sabit. */
+    val hareket: String = "otomatik",
+    /** 3.35 elle seçilen yaklaşma noktası (kaynak karede 0…1); -1 = otomatik (yüz → ana nesne → orta). */
+    val odakSecX: Float = -1f, val odakSecY: Float = -1f,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */

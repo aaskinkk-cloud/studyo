@@ -94,7 +94,7 @@ private fun Not(m: String) = Text(m, color = Renk.soluk, fontSize = 12.5.sp, mod
 
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
-fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false) {
+fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false, hareketPaneli: Boolean = false) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
     val konumAkis by vm.konum.collectAsState()
@@ -452,8 +452,26 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 // izlerken de: parmakla sürükle = fotoğrafı/videoyu kadraj içinde kaydır (yalnız taşan kısım kadar); çift dokun = ortala
                 val gw = constraints.maxWidth.toFloat(); val gh = constraints.maxHeight.toFloat()
                 val kSon by rememberUpdatedState(k)
+                // 3.35: Hareket paneli açıkken dokun = yaklaşmanın odak noktası (dokunulan yer kaynak kareye çevrilir)
+                if (hareketPaneli && (kSon.kenBurns && kSon.hareket in setOf("otomatik", "yakin", "uzak") || !kSon.kenBurns)) {
+                    val an0 = Yuz.an(kSon, RW, RH, kbF, sira)
+                    val (ox0, oy0) = Yuz.odakNokta(kSon)
+                    val (mx, my) = Geometri.ciktiya(kSon, ox0, oy0, RW, RH, an0)
+                    val elle = kSon.odakSecX >= 0f
+                    Box(Modifier.offset { IntOffset((mx * olcek).roundToInt() - with(yog) { 14.dp.roundToPx() }, (my * olcek).roundToInt() - with(yog) { 14.dp.roundToPx() }) }
+                        .size(28.dp).border(2.dp, if (elle) Color(TON[3]) else Color.White.copy(alpha = 0.75f), CircleShape))
+                }
                 Box(Modifier.fillMaxSize()
-                    .pointerInput(k.id) { detectTapGestures(onDoubleTap = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) }; vm.mesaj.value = "Kadraj ortalandı" }) }
+                    .pointerInput(k.id, hareketPaneli, olcek) { detectTapGestures(
+                        onTap = { o ->
+                            if (!hareketPaneli) return@detectTapGestures
+                            val ks = kSon
+                            val kn = Geometri.kaynaga(ks, o.x / olcek, o.y / olcek, RW, RH, Yuz.an(ks, RW, RH, kbF, sira)) ?: return@detectTapGestures
+                            vm.hepsine({ c -> if (c.id != ks.id) c else c.copy(odakSecX = kn.first, odakSecY = kn.second, kenBurns = true,
+                                hareket = if (c.kenBurns && c.hareket in setOf("otomatik", "yakin", "uzak")) c.hareket else "yakin") })
+                            vm.mesaj.value = "Yaklaşma buradan başlayacak"
+                        },
+                        onDoubleTap = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) }; vm.mesaj.value = "Kadraj ortalandı" }) }
                     .pointerInput(k.id, k.doldur, gw, gh) {
                         detectDragGestures(
                             onDragStart = { surKay = Offset(kSon.kayX, kSon.kayY) },

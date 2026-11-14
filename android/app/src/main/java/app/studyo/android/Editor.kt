@@ -176,7 +176,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
-                    katmanPaneli = panelAcik && bolum == "katman")
+                    katmanPaneli = panelAcik && bolum == "katman", hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket")
                 if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
@@ -202,7 +202,17 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     // 3.31: kaydırılabilir; şerit + bölüm kartları (Geçişler paneli biçiminde)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp, bottom = 10.dp)) {
-                        KlipSeridi(vm, p, sec, ekle)
+                        // 3.35: büyük şerit gizlenebilir (izlerken klip resimleri göz yormasın); seçim hatırlanır
+                        val ctxS = LocalContext.current
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (Duzen.seritGizli) "Klipler gizli · ${p.klipler.size} klip" else "Klipler", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { Duzen.seritDegis(ctxS) }.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Simge(if (Duzen.seritGizli) "goz" else "gozkapali", Color(TON[2]), 18.dp)
+                                Text(if (Duzen.seritGizli) "Göster" else "Gizle", color = Color(TON[2]), fontSize = 11.5.sp, modifier = Modifier.padding(start = 5.dp))
+                            }
+                        }
+                        if (!Duzen.seritGizli) KlipSeridi(vm, p, sec, ekle)
                         KlipAyar(vm, p, p.klipler.getOrNull(sec), sec, ekle) { bicim ->
                             val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
                             Depo.kaydet(y); ac(y.id)
@@ -777,19 +787,71 @@ private fun PanelKadraj(vm: EditorDurum, k: Klip) {
     }
 }
 
+/** Hareket türleri (3.35): (anahtar, ad, simge). Geçişler paneli biçiminde yuvarlak simgeler, TON renk ailesi. */
+private val HAREKET_YAKIN = listOf(Triple("otomatik", "Otomatik", "sihir"), Triple("yakin", "Yakınlaş", "h_yakin"),
+    Triple("uzak", "Uzaklaş", "h_uzak"), Triple("sabit", "Sabit", "h_sabit"))
+private val HAREKET_KAY = listOf(Triple("sag", "Sağa", "h_sag"), Triple("sol", "Sola", "h_sol"),
+    Triple("yukari", "Yukarı", "h_yukari"), Triple("asagi", "Aşağı", "h_asagi"))
+
+/** Hareket paneli (3.35, Geçişler paneli biçiminde): solda "Tümüne", ortada başlık; YAKINLAŞMA ve KAYDIRMA türleri;
+ *  ODAK: yaklaşmanın başladığı nokta — kendisi bulur (yüz → ana nesne → orta), önizlemede dokunarak değiştirilir. */
 @Composable
 private fun PanelHareket(vm: EditorDurum, k: Klip) {
-    Kart("Fotoğraf hareketi", hepsine = if (!k.foto) null else ({ vm.hepsine({ if (it.foto) it.copy(kenBurns = k.kenBurns, yuzOdak = k.yuzOdak) else it }); vm.mesaj.value = "Tüm fotoğraflara uygulandı" }),
-        buna = if (!k.foto) null else ({ vm.mesaj.value = "Yalnız bu fotoğrafa uygulandı" })) {
-        if (!k.foto) {
-            Text("Bu ayar fotoğraf klipleri içindir. Seçili klip bir video.", color = Renk.soluk, fontSize = 13.sp)
-        } else {
-            AnahtarSatiri("Yavaş yakınlaşma", k.kenBurns) { v -> vm.klipGuncelle { it.copy(kenBurns = v) } }
-            if (k.kenBurns && k.yuk > k.gen) {
-                if (k.yuzB > 0f) AnahtarSatiri("Yüze odaklan ve yaklaş", k.yuzOdak) { v -> vm.klipGuncelle { it.copy(yuzOdak = v) } }
-                else Text(if (k.yuzBakildi) "Bu fotoğrafta yüz bulunamadı; kadraj ana nesneye göre ayarlandı." else "Yüz araması: Şablon › Varsayılan ayarlar › Yüze yaklaş.",
-                    color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+    val secili = if (!k.kenBurns) "sabit" else k.hareket.ifEmpty { "otomatik" }
+    fun sec(t: String) = vm.klipGuncelle { if (t == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = t) }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable {
+                    vm.hepsine({ it.copy(kenBurns = k.kenBurns, hareket = k.hareket) }); vm.mesaj.value = "Hareket tüm kliplere uygulandı"
+                }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Simge("cift", Renk.yazi, 26.dp)
+                Text("Tümüne", color = Renk.soluk, fontSize = 10.5.sp)
             }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Hareket", color = Renk.yazi.copy(alpha = 0.8f), fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (k.foto) "Fotoğraf" else "Video", color = Renk.soluk, fontSize = 11.sp)
+            }
+            Spacer(Modifier.width(48.dp))
+        }
+        listOf("YAKINLAŞMA" to HAREKET_YAKIN, "KAYDIRMA" to HAREKET_KAY).forEachIndexed { b, (baslik, liste) ->
+            Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                liste.forEachIndexed { n, (anah, ad, simge) ->
+                    val on = secili == anah
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(68.dp).clip(RoundedCornerShape(12.dp)).clickable { sec(anah) }.padding(vertical = 2.dp)) {
+                        Box(Modifier.size(56.dp).clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
+                            .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape),
+                            contentAlignment = Alignment.Center) { Simge(simge, Color(TON[(b * 4 + n) % TON.size]), 26.dp) }
+                        Text(ad, color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.sp, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+        }
+        Text(when (secili) {
+            "otomatik" -> if (k.foto) "Odak noktasına doğru yavaş yaklaşır; görüntü kaymaz (ton değişmez)." else "Saniyede %1,5 yavaş yaklaşır."
+            "yakin" -> "Odak noktasına doğru yaklaşır."
+            "uzak" -> "Odak noktasından geriye, tam kadraja uzaklaşır."
+            "sabit" -> "Hareket yok; kadraj sabit kalır."
+            else -> "Görüntü seçilen yöne kayar (en çok karenin yarısı). Gökyüzü/yer gibi farklı bölgeler girerse ton değişebilir."
+        }, color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+        if (secili == "otomatik" || secili == "yakin" || secili == "uzak") {
+            Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(1.dp).background(Renk.cizgi))
+            Text("ODAK", color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Simge("h_odak", Color(TON[3]), 24.dp)
+                Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Text(Yuz.odakKaynak(k).replaceFirstChar { it.uppercase() }, color = Renk.yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Önizlemede fotoğrafa dokun: yaklaşma oradan başlar.", color = Renk.soluk, fontSize = 11.5.sp)
+                }
+                if (k.odakSecX >= 0f) Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable {
+                        vm.klipGuncelle { it.copy(odakSecX = -1f, odakSecY = -1f) }; vm.mesaj.value = "Odak otomatik"
+                    }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("sihir", Color(TON[2]), 22.dp)
+                    Text("Otomatik", color = Renk.soluk, fontSize = 10.5.sp)
+                }
+            }
+            if (k.foto && k.yuzB > 0f && k.odakSecX < 0f)
+                AnahtarSatiri("Yüze odaklan", k.yuzOdak) { v -> vm.klipGuncelle { it.copy(yuzOdak = v) } }
         }
     }
 }

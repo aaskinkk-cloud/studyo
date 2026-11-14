@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.27 (14.11.2026, deneme · `yerel-android` dalı): Şablon sayfası görsel tasarım (Geçişler paneli biçiminde)
+- Bölümler kendi renk tonunda, **Varsayılan ayarlardaki TON ailesiyle**: Hazır paketler turuncu, Giriş başlığı sarı, Abone hatırlatıcı pembe, Kapanış turkuaz, Varsayılan ayarlar yeşil. Başlıkta renkli **anahtar** (özelliği aç/kapat); başlığa dokunmak bölümü açar/kapatır.
+- Seçenekler yazı yerine **simge ve önizleme**: hazır paketler ve giriş hareketi renk tonlu simgelerle (Varsayılan ayarlar biçimi: seçilende renkli + nokta); giriş başlığı, abone ve kapanış stilleri sağa kayan **önizleme bantlarında** (ilk klibin resmi üstünde gerçek çizim, seçili renk tonlu halkalı); başlık konumu üç minik karede; efekt sesi ve boncuk renkli haplar.
+- Süreler/oranlar Geçişler'deki gibi **− kaydırıcı +** (renk tonlu değer).
+- Önceki düzen: ⋯ › yazılı menü açıkken eskisi gibi.
+
 ## 3.26 (14.11.2026, deneme · `yerel-android` dalı): giriş başlıkları sağa kayan önizleme bandı
 - Şablon › Giriş başlığı: bütün başlık stilleri (KLASİK 6 + REELS TARZI 13 — web'deki "Stil önerileri": Beyaz şerit, Kırmızı-beyaz, Sarı ünlem, Yeşil tırnak, Sarı balon, Ünlem kutusu, Dikkat, Yırtık kâğıt, Köşe çerçeve, Üç renk, Kırmızı sekme, Kırmızı alıntı, Renkli kutular) **sağa kayan bant** hâlinde; Geçişler paneli biçiminde (bölüm başlığı, seçili beyaz halkalı, adı altında).
 - Her kutu, ilk klibin resmi üstünde **senin başlığınla** ve videodaki konum/boyutla önizlenir (proje biçimine göre yatay/dikey/kare).

@@ -511,6 +511,183 @@ private fun VarsayilanSayfa(vm: EditorDurum) {
 
 @Composable
 fun PanelSablon(vm: EditorDurum, p: Proje) {
+    if (Duzen.yaziliMenu) PanelSablonEski(vm, p) else PanelSablonYeni(vm, p)
+}
+
+/** 3.27: Şablon sayfası Geçişler paneli biçiminde — her bölüm kendi renk tonunda (Varsayılan ayarlardaki TON ailesi),
+ *  seçenekler simge ve önizleme olarak, süreler − kaydırıcı + ile; özellik anahtarı bölüm başlığında. */
+@Composable
+private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
+    val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
+    Kart("Hazır paketler", ton = turuncu) {
+        TonSecici(listOf(Triple("youtube", "YouTube", "oynat"), Triple("reels", "Reels", "yildiz"), Triple("sinema", "Sinema", "kadraj")), "", ilkSira = 3,
+            alt = listOf("alt bant · parlama · kapanış", "renkli bant · yakınlaşma", "sinematik · siyahtan")) { vm.paketUygula(it) }
+        Not("Giriş, geçiş, abone ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
+    }
+    val g = p.giris
+    Kart("Giriş başlığı", ton = sari, anahtar = g.acik, anahtarDegis = { v -> vm.girisDegis { it.copy(acik = v) } }) {
+        if (!g.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
+        GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
+        GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)
+        var bas by remember(p.id) { mutableStateOf(g.baslik) }
+        OutlinedTextField(bas, { bas = it; vm.girisDegis { gg -> gg.copy(baslik = it) } }, Modifier.fillMaxWidth().padding(top = 8.dp),
+            label = { Text("Başlık (satır bölmek için |)") }, maxLines = 2)
+        if (g.reels) {
+            var bant by remember(p.id) { mutableStateOf(g.bant) }
+            OutlinedTextField(bant, { bant = it; vm.girisDegis { gg -> gg.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
+                label = { Text(if (g.stil == "r_haber") "Tarih | konum (ör. 26 Eylül 2026|Kabataş, Ordu)" else "Vurgu bantları (| ile ayrı bant)") }, singleLine = true)
+            Bolum("HAREKET")
+            TonSecici(listOf(Triple("trend", "Trend", "sihir"), Triple("dus", "Düşerek", "asagi"), Triple("kay", "Kayarak", "sag"),
+                Triple("yuksel", "Yükselerek", "disa"), Triple("buyu", "Büyüyerek", "g_buyu")), g.hareket) { s -> vm.girisDegis { it.copy(hareket = s) } }
+            Bolum("KONUM VE EFEKT")
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                KonumSecici(g.konum, sari) { s -> vm.girisDegis { it.copy(konum = s) } }
+                Spacer(Modifier.weight(1f))
+                TonHap("Efekt sesi", "ses", g.efektSes, turkuaz) { vm.girisDegis { it.copy(efektSes = !it.efektSes) } }
+                Spacer(Modifier.width(6.dp))
+                TonHap("Boncuk", "yildiz", g.boncuk, pembe) { vm.girisDegis { it.copy(boncuk = !it.boncuk) } }
+            }
+            if (g.efektSes) TonKaydirici("Efekt sesi", g.sesSeviye, 0.1f..1f, 0.1f, turkuaz, { "%${(it * 100).roundToInt()}" }) { v -> vm.girisDegis { it.copy(sesSeviye = v) } }
+        } else {
+            var alt by remember(p.id) { mutableStateOf(g.alt) }
+            OutlinedTextField(alt, { alt = it; vm.girisDegis { gg -> gg.copy(alt = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
+                label = { Text("Alt başlık (yer, tarih…)") }, singleLine = true)
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+                TonHap("Boncuk", "yildiz", g.boncuk, pembe) { vm.girisDegis { it.copy(boncuk = !it.boncuk) } }
+            }
+        }
+        TonKaydirici("Ekranda", g.sureMs / 1000f, 2f..8f, 0.5f, sari, { String.format(TR, "%.1f sn", it) }) { v -> vm.girisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
+    }
+    val h = p.hatirlatici
+    Kart("Abone hatırlatıcı", ton = pembe, anahtar = h.acik, anahtarDegis = { v -> vm.hatirlaticiDegis { it.copy(acik = v) } }) {
+        if (!h.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
+        OnizlemeBandi(p, listOf("kart" to "Koyu hap", "klasik" to "Kırmızı bant"), h.stil, pembe, h.copy(stil = "") to p.logo,
+            { s, W, H -> Cizim.hatirlatici(h.copy(acik = true, stil = s), W, H, p.logo, p.kapanis.kanal)?.let { yerlesimBmp(it, W, H) } }) { s -> vm.hatirlaticiDegis { it.copy(stil = s) } }
+        var y by remember(p.id) { mutableStateOf(h.yazi) }
+        OutlinedTextField(y, { y = it; vm.hatirlaticiDegis { hh -> hh.copy(yazi = it) } }, Modifier.fillMaxWidth().padding(top = 8.dp), label = { Text("Yazı") }, singleLine = true)
+        var kc by remember(p.id) { mutableStateOf(h.kucuk) }
+        OutlinedTextField(kc, { kc = it; vm.hatirlaticiDegis { hh -> hh.copy(kucuk = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Küçük yazı") }, singleLine = true)
+        if (h.stil != "klasik") {
+            var dg by remember(p.id) { mutableStateOf(h.dugme) }
+            OutlinedTextField(dg, { dg = it; vm.hatirlaticiDegis { hh -> hh.copy(dugme = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Düğme yazısı") }, singleLine = true)
+        }
+        TonKaydirici("Zamanı", h.anOran, 0.1f..0.9f, 0.05f, pembe, { "%${(it * 100).roundToInt()}" }) { v -> vm.hatirlaticiDegis { it.copy(anOran = v) } }
+    }
+    val kp = p.kapanis
+    Kart("Kapanış", ton = turkuaz, anahtar = kp.acik, anahtarDegis = { v -> vm.kapanisDegis { it.copy(acik = v) } }) {
+        if (!kp.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
+        OnizlemeBandi(p, listOf("cam" to "Cam kartlar", "cta" to "Renkli haplar", "sade" to "Sade"), kp.stil, turkuaz, kp.copy(stil = "") to p.logo,
+            { s, W, H -> Cizim.kapanis(kp.copy(acik = true, stil = s), p.logo, W, H, null) }) { s -> vm.kapanisDegis { it.copy(stil = s) } }
+        var kn by remember(p.id) { mutableStateOf(kp.kanal) }
+        OutlinedTextField(kn, { kn = it; vm.kapanisDegis(false) { k -> k.copy(kanal = it) } }, Modifier.fillMaxWidth().padding(top = 8.dp), label = { Text("Kanal adı") }, singleLine = true)
+        var yz by remember(p.id) { mutableStateOf(kp.yazi) }
+        OutlinedTextField(yz, { yz = it; vm.kapanisDegis(false) { k -> k.copy(yazi = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Yazı") }, singleLine = true)
+        TonKaydirici("Süre", kp.sureMs / 1000f, 2f..8f, 0.5f, turkuaz, { String.format(TR, "%.1f sn", it) }) { v -> vm.kapanisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
+    }
+    Kart("Varsayılan ayarlar", ton = yesil) { VarsayilanSayfa(vm) }
+}
+
+@Composable
+private fun Bolum(m: String) = Text(m, color = Renk.soluk.copy(alpha = 0.85f), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
+
+/** Varsayılan ayarlardaki seçici biçimi: renk tonlu simge + ad (+ küçük açıklama), seçilende renkli ve altında nokta. */
+@Composable
+private fun TonSecici(liste: List<Triple<String, String, String>>, secili: String, ilkSira: Int = 0, alt: List<String>? = null, onSec: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        liste.forEachIndexed { i, (k, ad, simge) ->
+            val on = secili == k
+            val ton = tonRenk(i + ilkSira, ad)
+            val r = if (on || secili.isEmpty()) ton else ton.copy(alpha = 0.55f)
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { onSec(k) }.padding(vertical = 6.dp, horizontal = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Simge(simge, r, 22.dp)
+                Text(ad, color = r, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
+                alt?.getOrNull(i)?.let { Text(it, color = Renk.soluk, fontSize = 9.sp, textAlign = TextAlign.Center, lineHeight = 10.5.sp, maxLines = 2) }
+                Box(Modifier.padding(top = 3.dp).size(4.dp).clip(CircleShape).background(if (on) ton else Color.Transparent))
+            }
+        }
+    }
+}
+
+/** Açık/kapalı küçük hap (renk tonlu). */
+@Composable
+private fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, tik: () -> Unit) {
+    Row(Modifier.clip(RoundedCornerShape(16.dp)).background(if (acik) ton.copy(alpha = 0.18f) else Renk.kart2).clickable { tik() }.padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Simge(simge, if (acik) ton else Renk.soluk, 15.dp); Spacer(Modifier.width(4.dp))
+        Text(ad, color = if (acik) ton else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (acik) FontWeight.Bold else FontWeight.Normal)
+    }
+}
+
+/** Başlığın yeri: üç küçük kare (bant üstte / ortada / altta). */
+@Composable
+private fun KonumSecici(secili: String, ton: Color, onSec: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta").forEach { (k, ad) ->
+            val on = secili == k
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onSec(k) }.padding(2.dp)) {
+                Box(Modifier.size(44.dp, 30.dp).clip(RoundedCornerShape(6.dp)).background(Renk.kart2).border(if (on) 2.dp else 0.dp, if (on) ton else Color.Transparent, RoundedCornerShape(6.dp))) {
+                    Box(Modifier.align(when (k) { "ust" -> Alignment.TopCenter; "alt" -> Alignment.BottomCenter; else -> Alignment.Center })
+                        .padding(horizontal = 6.dp, vertical = 5.dp).fillMaxWidth().height(5.dp).clip(RoundedCornerShape(2.dp)).background(if (on) ton else Renk.soluk.copy(alpha = 0.6f)))
+                }
+                Text(ad, color = if (on) ton else Renk.soluk, fontSize = 10.5.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+    }
+}
+
+/** Geçişler panelindeki süre satırı: etiket · − · kaydırıcı · + · değer (renk tonlu). */
+@Composable
+private fun TonKaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPointRange<Float>, adim: Float, ton: Color, yaz: (Float) -> String, bitti: (Float) -> Unit) {
+    var v by remember(deger) { mutableFloatStateOf(deger) }
+    fun ayarla(x: Float) { val y = (Math.round(x / adim) * adim).coerceIn(aralik.start, aralik.endInclusive); v = y; bitti(y) }
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(etiket, color = Renk.soluk, fontSize = 12.5.sp, maxLines = 1, modifier = Modifier.width(64.dp))
+        Box(Modifier.size(30.dp).clip(CircleShape).border(1.dp, Renk.cizgi, CircleShape).clickable { ayarla(v - adim) }, contentAlignment = Alignment.Center) { Simge("eksi", Renk.yazi, 15.dp) }
+        InceSlider(value = v, onValueChange = { v = it }, valueRange = aralik, onValueChangeFinished = { ayarla(v) }, renk = ton,
+            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+            colors = SliderDefaults.colors(thumbColor = ton, activeTrackColor = ton, inactiveTrackColor = Renk.cizgi))
+        Box(Modifier.size(30.dp).clip(CircleShape).border(1.dp, Renk.cizgi, CircleShape).clickable { ayarla(v + adim) }, contentAlignment = Alignment.Center) { Simge("ekle", Renk.yazi, 15.dp) }
+        Text(yaz(v), color = ton, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
+    }
+}
+
+/** Stil önizleme bandı (sağa kayar): her kutu ilk klibin resmi üstünde o stilin çizimi; seçili renk tonlu halkalı. */
+@Composable
+private fun OnizlemeBandi(p: Proje, liste: List<Pair<String, String>>, secili: String, ton: Color, anahtar: Any?, ciz: (String, Int, Int) -> Bitmap?, onSec: (String) -> Unit) {
+    val (oW, oH) = Disa.boyut(p.bicim, 360)
+    val genDp = if (oW > oH) 128.dp else if (oW == oH) 92.dp else 66.dp
+    val yukDp = genDp * (oH.toFloat() / oW)
+    val ilk = p.klipler.firstOrNull()
+    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
+        items(liste.size) { n ->
+            val (k, ad) = liste[n]
+            val on = secili == k
+            val bmp by produceState<Bitmap?>(null, k, anahtar, p.bicim) { value = withContext(Dispatchers.Default) { runCatching { ciz(k, oW, oH) }.getOrNull() } }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(genDp + 6.dp).clip(RoundedCornerShape(12.dp))
+                .clickable { onSec(k) }.padding(vertical = 2.dp)) {
+                Box(Modifier.size(genDp, yukDp).clip(RoundedCornerShape(10.dp)).background(Renk.kart2)
+                    .border(if (on) 2.5.dp else 0.5.dp, if (on) ton else Renk.cizgi, RoundedCornerShape(10.dp))) {
+                    if (ilk != null) KlipResmi(ilk, Modifier.fillMaxSize().alpha(0.85f))
+                    bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize()) }
+                }
+                Text(ad, color = if (on) ton else Renk.soluk, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+    }
+}
+
+/** Yerlesim'i W×H saydam bitmap üstüne, videodaki yerinde çizer. */
+private fun yerlesimBmp(y: Yerlesim, W: Int, H: Int): Bitmap {
+    val o = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+    val (x0, y0) = y.solUst(W, H)
+    android.graphics.Canvas(o).drawBitmap(y.bmp, x0, y0, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG).apply { alpha = (y.alfa * 255).toInt().coerceIn(0, 255) })
+    return o
+}
+
+@Composable
+private fun PanelSablonEski(vm: EditorDurum, p: Proje) {
     Kart("Varsayılan ayarlar") { VarsayilanSayfa(vm) }
     Kart("Hazır paketler") {
         Not("Giriş başlığı, geçiş, abone hatırlatıcı ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
@@ -604,33 +781,12 @@ private val GIRIS_KLASIK = listOf("sinematik" to "Sinematik", "altbant" to "Alt 
 /** Giriş başlığı stilleri (3.26, Geçişler paneli biçiminde): sağa kayan bant; her stil ilk klibin resmi üstünde kendi
  *  başlığınla önizlenir, seçili olan beyaz halkalı, adı altında. */
 @Composable
-private fun GirisBandi(vm: EditorDurum, p: Proje, baslik: String, liste: List<Pair<String, String>>) {
+private fun GirisBandi(vm: EditorDurum, p: Proje, baslik: String, liste: List<Pair<String, String>>, ton: Color = Renk.yazi) {
     val g = p.giris
-    val (oW, oH) = Disa.boyut(p.bicim, 360)
-    val genDp = if (oW >= oH) 128.dp else if (oW == oH) 92.dp else 66.dp
-    val yukDp = genDp * (oH.toFloat() / oW)
-    val ilk = p.klipler.firstOrNull()
-    Text(baslik, color = Renk.soluk.copy(alpha = 0.85f), fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
-    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
-        items(liste.size) { n ->
-            val (k, ad) = liste[n]
-            val secili = g.stil == k
-            val metin = g.baslik.ifBlank { "Başlığın burada" }
-            val bmp by produceState<Bitmap?>(null, k, metin, g.bant, g.alt, g.konum, p.bicim) {
-                value = withContext(Dispatchers.Default) { runCatching { girisOrnek(g.copy(acik = true, stil = k, baslik = metin), oW, oH) }.getOrNull() }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(genDp + 6.dp).clip(RoundedCornerShape(12.dp))
-                .clickable { vm.girisDegis { it.copy(stil = k) } }.padding(vertical = 2.dp)) {
-                Box(Modifier.size(genDp, yukDp).clip(RoundedCornerShape(10.dp)).background(Renk.kart2)
-                    .border(if (secili) 2.5.dp else 0.5.dp, if (secili) Renk.yazi else Renk.cizgi, RoundedCornerShape(10.dp))) {
-                    if (ilk != null) KlipResmi(ilk, Modifier.fillMaxSize().alpha(0.85f))
-                    bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize()) }
-                }
-                Text(ad, color = if (secili) Renk.yazi else Renk.soluk, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
-            }
-        }
-    }
+    val metin = g.baslik.ifBlank { "Başlığın burada" }
+    Bolum(baslik)
+    OnizlemeBandi(p, liste, g.stil, ton, listOf(metin, g.bant, g.alt, g.konum),
+        { k, W, H -> girisOrnek(g.copy(acik = true, stil = k, baslik = metin), W, H) }) { k -> vm.girisDegis { it.copy(stil = k) } }
 }
 
 /** Giriş başlığının son (yerleşmiş) hâli, oW×oH saydam bitmap üstünde — videodaki konum ve boyutla. */

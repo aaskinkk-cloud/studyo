@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -136,19 +137,24 @@ fun GenisDugme(metin: String, simge: String? = null, modifier: Modifier = Modifi
 
 /** Açılır-kapanır kart (başlığa dokun = aç/kapat; ad değiştirme menüsü açmaz). */
 @Composable
-fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? = null, buna: (() -> Unit)? = null, icerik: @Composable ColumnScope.() -> Unit) {
+fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? = null, buna: (() -> Unit)? = null,
+         ton: Color? = null, anahtar: Boolean? = null, anahtarDegis: ((Boolean) -> Unit)? = null, icerik: @Composable ColumnScope.() -> Unit) {
+    val vurgu = ton ?: Renk.turuncu
     var acik by rememberSaveable(baslik) { mutableStateOf(baslangicAcik) }
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart)) {
         Row(
             Modifier.fillMaxWidth().clickable { acik = !acik }.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (acik) Box(Modifier.width(3.dp).height(18.dp).background(Renk.turuncu))
-            if (acik) Spacer(Modifier.width(8.dp))
+            if (acik || ton != null) Box(Modifier.width(3.dp).height(18.dp).background(if (acik) vurgu else vurgu.copy(alpha = 0.5f)))
+            if (acik || ton != null) Spacer(Modifier.width(8.dp))
             // ✓✓ başlığın başında: tüm kliplere uygula
             if (hepsine != null) Box(Modifier.padding(end = 6.dp).size(30.dp).clip(CircleShape).clickable { hepsine() }, contentAlignment = Alignment.Center) {
                 Simge("cift", Color(TON[1]), 20.dp) }
-            Text(baslik, color = if (acik) Renk.turuncu else Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            Text(baslik, color = if (acik || ton != null) vurgu else Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            // renkli anahtar: özelliği aç/kapat (kartı açıp kapatmaz)
+            if (anahtar != null && anahtarDegis != null) Switch(checked = anahtar, onCheckedChange = anahtarDegis, modifier = Modifier.padding(end = 6.dp).scale(0.8f),
+                colors = SwitchDefaults.colors(checkedTrackColor = vurgu, checkedThumbColor = Renk.zemin, uncheckedTrackColor = Renk.kart2, uncheckedThumbColor = Renk.soluk, uncheckedBorderColor = Renk.cizgi))
             // ✓ sağda: yalnız bu klip (seçim zaten bu klibe uygulanır) — onaylar ve kartı kapatır
             if (buna != null) Box(Modifier.padding(end = 4.dp).size(30.dp).clip(CircleShape).clickable { buna(); acik = false }, contentAlignment = Alignment.Center) {
                 Simge("uygula", Color(TON[2]), 20.dp) }

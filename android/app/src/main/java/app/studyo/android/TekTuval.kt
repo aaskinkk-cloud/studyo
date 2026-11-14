@@ -68,6 +68,12 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
     private var kaynak: GelenKaynak? = null
     private var kaynakDenendi = false
     private var hataYazildi = false
+    // 3.33 tanı izi (yalnız önizleme): ilk karelerin duvar saati ve çizim süresi → ▶ geç başlarsa nerede beklediği kayıtta görünür
+    private val iz = StringBuilder()
+    private var izAdet = 0
+    private var ilkCizim = -1L
+    private var gecHazirUs = -1L        // gelen klip geçiş başladıktan sonra hazır olduysa o an (ani belirmesin diye yumuşak yetişir)
+    private var bVardi = false
     private val fb = IntArray(1)
     private val vp = IntArray(4)
 
@@ -81,6 +87,8 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         val yerelUs = if (t.onizleme) presentationTimeUs - t.cizelgeBasMs * 1000 else { if (t0 < 0) t0 = presentationTimeUs; presentationTimeUs - t0 }
         val tauUs = yerelUs - (t.ogeMs - t.gecisMs) * 1000            // geçişin içindeki an (negatif: geçiş başlamadı)
         var bTex = -1
+        val c0 = SystemClock.elapsedRealtime()
+        if (ilkCizim < 0) ilkCizim = c0
         GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, fb, 0)
         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, vp, 0)
         try {
@@ -97,7 +105,10 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         }
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb[0])
         GLES20.glViewport(vp[0], vp[1], vp[2], vp[3])
-        val f = if (bTex < 0) 0f else (tauUs.toFloat() / (t.gecisMs * 1000f)).coerceIn(0f, 1f)
+        var f = if (bTex < 0) 0f else (tauUs.toFloat() / (t.gecisMs * 1000f)).coerceIn(0f, 1f)
+        if (bTex >= 0 && !bVardi) { bVardi = true; if (tauUs > 50_000L) gecHazirUs = tauUs }
+        // Gelen klip geç hazır olduysa (▶ geçişin içinden başlatıldı): 200 ms içinde olması gereken karışıma yumuşakça yetişir
+        if (bTex >= 0 && gecHazirUs >= 0) f *= ((tauUs - gecHazirUs) / 200_000f).coerceIn(0f, 1f)
         val e = f * f * (3f - 2f * f)
         GLES20.glDisable(GLES20.GL_BLEND)
         program.use()
@@ -111,10 +122,17 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         program.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         try { kaynak?.birak() } catch (_: Throwable) {}
+        if (t.onizleme && tauUs >= 0 && izAdet < 8) {
+            izAdet++
+            val c1 = SystemClock.elapsedRealtime()
+            iz.append(" [τ=").append(tauUs / 1000).append(" +").append(c0 - ilkCizim).append("ms çizim=").append(c1 - c0).append("ms").append(if (bTex < 0) " B yok" else "").append(']')
+        }
     }
 
     private fun kaynakKapat() {
         try { kaynak?.kapat() } catch (e: Throwable) { Kayit.hata("Geçiş ${t.etiket} kapat", e) }
+        if (iz.isNotEmpty()) { Kayit.yaz("    iz ${t.etiket}:$iz"); iz.setLength(0) }
+        izAdet = 0; ilkCizim = -1L; gecHazirUs = -1L; bVardi = false
         kaynak = null; kaynakDenendi = false
     }
 
@@ -222,7 +240,7 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
         if (v != null) {
             val k = t.klip!!
             val hedef = k.basMs * 1000 + tauUs
-            val varMi = v.kare(hedef, if (t.onizleme) (if (kareSayi == 0) 1000L else 120L) else 8000L)
+            val varMi = v.kare(hedef, if (t.onizleme) 40L else 8000L)      // önizlemede GL iş parçacığı bekletilmez (3.33)
             if (!varMi && v.hata != null && !yedekKullanildi) {
                 // İkinci çözücü açılamadı (ör. telefon aynı anda iki büyük çözücüye izin vermedi): gelen klip geçiş boyunca
                 // geçiş SONUNDAKİ karesiyle bekler (web'deki "bekleme"); gövdeye geçerken sıçrama olmaz.
@@ -262,7 +280,7 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
     private fun resimKare(tauUs: Long): Int {
         val r = resim ?: return -1
         if (!resimHazir) {
-            val b = r.al(if (t.onizleme) 250L else 15_000L)
+            val b = r.al(if (t.onizleme) 0L else 15_000L)      // önizlemede beklenmez: hazır değilse giden klip çizilir (3.33)
             if (b == null) { bosSayi++; return -1 }
             val ham = GlUtil.createTexture(b)
             val h = dokuAc(b.width, b.height)

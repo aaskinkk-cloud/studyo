@@ -6,6 +6,22 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.33 (14.11.2026, deneme · `yerel-android` dalı): ▶ geçişin içinden başlatılınca önizlemenin düşmesi
+**Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Cihaz kaydı (Ahmet, 3.32.58, 14.11 21:11–21:30):**
+  - **Kayıt (dışa aktarma) çalıştı [Kesin]:** 4K, 7 geçişin hepsi 23–24 kare çizildi, "hazır değil=0", HDR H.265 gelen klip `c2.qti.hevc.decoder` ile SDR'ye çevrilerek çözüldü, 9 sn'de TAMAM. Çökme yok.
+  - **▶ baştan oynatınca çalıştı [Kesin]:** 5 geçiş art arda 24'er kare, gerçek zamanlı, çökme yok.
+  - **▶ bir klibin başından başlatılınca düştü:** "Akıcı önizleme ilerlemedi" (konum 8400 ve 4240), ikincide oturum boyunca kapandı → standart (eski) önizleme göründü.
+- **Kök neden:**
+  - **[Kesin]** Bir klibe dokununca konum, o klibin zaman çizelgesindeki başlangıcına gider; tek tuval yapısında bu an bir önceki klibin geçiş penceresinin **içidir**. İki düşüş de tam bu durumda oldu.
+  - **[Kesin]** Takılma bekçisi 1,5 sn sonra tek ölçüm yapıyordu. İkinci düşüşte konum tam kıpırdamaya başlamıştı (4200 → 4240, 3 kare çizilmiş): oynatma takılmamış, **geç başlamıştı**; bekçi sağlıklı oynatmayı kesti.
+  - **[Muhtemel]** Geç başlamanın nedeni: geçişin içinden başlanınca gelen klibin kaynağı ilk karede kuruluyor ve GL iş parçacığı onu bekliyordu (3.32'de 250 ms–1 sn bekleme izni vardı). Gecikmenin tamamının buradan gelip gelmediği kayıttan kesin okunamıyor; bu yüzden aşağıdaki iz eklendi.
+- **Çözüm:**
+  - Önizlemede GL iş parçacığı gelen klibi **beklemez**: kaynak hazır değilse giden klip çizilir; hazır olunca karışım 200 ms içinde olması gereken yere yumuşakça yetişir (ani belirme yok). Kayıtta (dışa aktarma) davranış aynı: kare kare beklenir.
+  - Bekçi 5 sn boyunca ilerleme arar; ilerleme başlayınca bırakır. Geç başlarsa süresi kayda yazılır ("Akıcı önizleme geç başladı: … ms").
+  - **Tanı izi:** önizlemede her geçişin ilk 8 karesi için duvar saati ve çizim süresi kayda yazılır (`iz 2→3: [τ=0 +0ms çizim=12ms] …`). Gecikme sürerse hangi adımda olduğu tek kayıtta görünür.
+- **Cihaz testi (Ahmet):** 1) Uygulamayı tümüyle kapatıp aç (önizleme o oturumda kapatılmıştı). 2) Baştan ▶: sonuna kadar oynamalı. 3) 3. klibe dokun, ▶: 5 sn içinde oynamaya başlamalı, "standart önizleme" iletisi çıkmamalı. 4) 21:13'te kaydedilen 4K videoyu galeride izle: geçişlerde göz kırpma / geri sarma / parlama var mı? 5) ⋯ › Hata kaydını paylaş.
+
 ## 3.32 (14.11.2026, deneme · `yerel-android` dalı): geçişler tek tuvalde — web Kareden Videoya yapısı
 **Test:** yeni geçiş dosyası (`TekTuval.kt`) Kotlin derleyicisiyle tür denetiminden geçti; tam derleme GitHub Actions'ta. **Cihaz testi bekleniyor** (aşağıda adımlar).
 - **Belirti (Ahmet, 3.31.57 cihaz kaydı 14.11 13:29 / 19:24 / 20:43):** geçişli projede ▶ önizleme kurulur kurulmaz düşüyor: `flush() is valid only at Executing states; currently at Released state` (`CompositionPlaybackThread`, `disablePrewarming`) ve `queueInputBuffer() … Released state` (`ERROR_CODE_DECODING_FAILED`). Önizlemede karanlık nokta / parlama. Önceki sürümlerde göz kırpma ve klip sonunda geri sarma.

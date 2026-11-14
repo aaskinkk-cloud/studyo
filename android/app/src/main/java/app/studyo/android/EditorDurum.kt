@@ -291,12 +291,23 @@ class EditorDurum(private val ctx: Context, id: String) {
             if (komp !== cp || !kompAktif.value) return@launch
             val hazirMs = System.currentTimeMillis() - b0
             Kayit.yaz("Akıcı önizleme hazır: $hazirMs ms (durum=${cp.playbackState})")
+            // 3.33: 1,5 sn'lik tek ölçüm, geç ama sağlıklı başlayan oynatmayı da "takıldı" sayıyordu (kayıt 14.11 21:11:55 ve
+            // 21:30:32: konum tam kıpırdamaya başlarken kesildi). Artık 5 sn boyunca ilerleme aranır; ne kadar geç başladığı yazılır.
             val p0 = cp.currentPosition
-            delay(1500)
-            if (komp === cp && kompAktif.value && cp.playWhenReady && cp.currentPosition <= p0 + 150) {
-                Kayit.yaz("Akıcı önizleme ilerlemedi: hazırlık=$hazirMs ms, durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, konum=${cp.currentPosition}, dizi=${cp.currentTimeline.windowCount}")
+            val i0 = System.currentTimeMillis()
+            var ilerledi = false
+            while (komp === cp && kompAktif.value && cp.playWhenReady && System.currentTimeMillis() - i0 < 5000) {
+                delay(100)
+                if (cp.currentPosition > p0 + 150) { ilerledi = true; break }
+            }
+            val gecen = System.currentTimeMillis() - i0
+            if (komp === cp && kompAktif.value && cp.playWhenReady && !ilerledi) {
+                Kayit.yaz("Akıcı önizleme ilerlemedi: hazırlık=$hazirMs ms, bekleme=$gecen ms, durum=${cp.playbackState}, oynuyor=${cp.isPlaying}, başlangıç=$p0, konum=${cp.currentPosition}, dizi=${cp.currentTimeline.windowCount}")
                 kompBasarisiz(bas, "ilerlemedi")
-            } else if (komp === cp) kompHata = 0
+            } else if (komp === cp) {
+                if (ilerledi && gecen > 600) Kayit.yaz("Akıcı önizleme geç başladı: $gecen ms (başlangıç=$p0)")
+                kompHata = 0
+            }
         }
     }
 

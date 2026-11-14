@@ -592,7 +592,7 @@ private fun Bolum(m: String) = Text(m, color = Renk.soluk.copy(alpha = 0.85f), f
 
 /** Varsayılan ayarlardaki seçici biçimi: renk tonlu simge + ad (+ küçük açıklama), seçilende renkli ve altında nokta. */
 @Composable
-private fun TonSecici(liste: List<Triple<String, String, String>>, secili: String, ilkSira: Int = 0, alt: List<String>? = null, onSec: (String) -> Unit) {
+internal fun TonSecici(liste: List<Triple<String, String, String>>, secili: String, ilkSira: Int = 0, alt: List<String>? = null, onSec: (String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         liste.forEachIndexed { i, (k, ad, simge) ->
             val on = secili == k
@@ -611,7 +611,7 @@ private fun TonSecici(liste: List<Triple<String, String, String>>, secili: Strin
 
 /** Açık/kapalı küçük hap (renk tonlu). */
 @Composable
-private fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, tik: () -> Unit) {
+internal fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, tik: () -> Unit) {
     Row(Modifier.clip(RoundedCornerShape(16.dp)).background(if (acik) ton.copy(alpha = 0.18f) else Renk.kart2).clickable { tik() }.padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Simge(simge, if (acik) ton else Renk.soluk, 15.dp); Spacer(Modifier.width(4.dp))

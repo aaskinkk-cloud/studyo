@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.28 (14.11.2026, deneme · `yerel-android` dalı): Dışa aktar ekranı görsel tasarım (Şablon sayfasıyla aynı)
+- Bölümler TON renklerinde: Çözünürlük sarı, Kalite yeşil, Video oluştur turuncu, ilerleme/doğrulama turkuaz, Kesintisiz çalışma pembe, Kaydedildi yeşil.
+- Çözünürlük tek satırda renk tonlu büyük yazı (720p · 1080p · 2K · 4K) + boyut, seçilende renkli ve noktalı; desteklenmeyen soluk. Kalite Varsayılan ayarlar biçiminde simgeli.
+- Özet (süre, çıktı, tahmini boyut, boş alan) ve sonuç (boyut, süre, işlem) renkli değerli kutularda; yer yetersizse kutu kırmızı. Bitince Oynat · Paylaş · Yeni simgeli.
+- Önceki düzen: ⋯ › yazılı menü açıkken eskisi gibi.
+
 ## 3.27 (14.11.2026, deneme · `yerel-android` dalı): Şablon sayfası görsel tasarım (Geçişler paneli biçiminde)
 - Bölümler kendi renk tonunda, **Varsayılan ayarlardaki TON ailesiyle**: Hazır paketler turuncu, Giriş başlığı sarı, Abone hatırlatıcı pembe, Kapanış turkuaz, Varsayılan ayarlar yeşil. Başlıkta renkli **anahtar** (özelliği aç/kapat); başlığa dokunmak bölümü açar/kapatır.
 - Seçenekler yazı yerine **simge ve önizleme**: hazır paketler ve giriş hareketi renk tonlu simgelerle (Varsayılan ayarlar biçimi: seçilende renkli + nokta); giriş başlığı, abone ve kapanış stilleri sağa kayan **önizleme bantlarında** (ilk klibin resmi üstünde gerçek çizim, seçili renk tonlu halkalı); başlık konumu üç minik karede; efekt sesi ve boncuk renkli haplar.

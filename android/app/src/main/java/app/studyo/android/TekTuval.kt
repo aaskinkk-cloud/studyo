@@ -58,7 +58,10 @@ class TekTuvalGecis(private val t: GelenTarif) : GlEffect {
     override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = TekTuvalProgram(context.applicationContext, useHdr, t)
 }
 
-private const val ON_HAZIRLIK_US = 1_500_000L      // web'deki gibi: gelen klip geçişten kısa süre önce hazırlanır (web: ~1,2 sn)
+// 3.34: gelen klip geçişten 2 sn önce kurulur ve hazırlığı karelere bölünür (bkz. GelenKaynak.onHazirla). Öğenin ilk 300 ms'sinde
+// kurulmaz: o anlar bir önceki geçişin hemen devamıdır, orada duraksama görünür.
+private const val ON_HAZIRLIK_US = 2_000_000L
+private const val OGE_BASI_US = 300_000L
 
 private class TekTuvalProgram(private val ctx: Context, private val useHdr: Boolean, private val t: GelenTarif) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(VS, FS)
@@ -93,10 +96,11 @@ private class TekTuvalProgram(private val ctx: Context, private val useHdr: Bool
         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, vp, 0)
         try {
             if (tauUs < -3_000_000L && kaynak != null) kaynakKapat()   // önizlemede geri sarıldı: çözücü boşuna açık kalmasın
-            if (tauUs >= -ON_HAZIRLIK_US && kaynak == null && !kaynakDenendi) {
+            if (tauUs >= -ON_HAZIRLIK_US && (yerelUs >= OGE_BASI_US || tauUs >= 0) && kaynak == null && !kaynakDenendi) {
                 kaynakDenendi = true
-                kaynak = GelenKaynak(ctx, useHdr, t)
-            }
+                val k0 = SystemClock.elapsedRealtime()
+                kaynak = GelenKaynak(ctx, useHdr, t).also { it.kurulumMs = SystemClock.elapsedRealtime() - k0 }
+            } else if (tauUs < 0) kaynak?.onHazirla()      // geçişten önceki her karede küçük bir hazırlık adımı
             if (tauUs >= 0) bTex = kaynak?.kare(tauUs.coerceAtMost(t.gecisMs * 1000)) ?: -1
         } catch (e: Throwable) {
             // Gelen klip çizilemedi: giden klip olduğu gibi gösterilir (yanlış kare / siyah kare asla basılmaz), nedeni kayda yazılır
@@ -193,7 +197,7 @@ void main() {
 
 /** Gelen klibin o andaki karesini, ana hattaki AYNI Media3 dönüşüm programlarıyla (kadraj/hareket + sunum) W×H dokuya çizer.
  *  Bütün işlevler GL iş parçacığında çağrılır. */
-private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val t: GelenTarif) {
+private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean, private val t: GelenTarif) {
     private val gl: GlObjectsProvider = DefaultGlObjectsProvider()
     private val programlar = ArrayList<BaseGlShaderProgram>()
     private val ciktilar = ArrayList<GlTextureInfo?>()
@@ -212,18 +216,20 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
     private var ilkUs = -1L; private var sonUs = -1L; private var kareSayi = 0; private var bosSayi = 0
     private var yedekKullanildi = false
     private var kapandi = false
+    // 3.34: hazırlık karelere bölünür. 3.33 kaydında her geçişin İLK karesi 47–73 ms sürüyordu (fotoğrafın ~20 MB'lık dokuya
+    // tek seferde yüklenmesi + gölgelendiricilerin ilk kullanımı) → geçişin başında ~2 karelik duraksama. Artık doku 24 bantta,
+    // her karede bir bant yüklenir; dönüşümler geçişten önce bir kez "ısıtılır"; τ=0'da yalnız karışım çizilir.
+    private var bantlar: List<Bitmap>? = null
+    private var bantNo = 0
+    private var bantY = 0
+    private var yukDoku = -1
+    private var isindi = false
+    var kurulumMs = 0L
+    private var enUzunAdimMs = 0L
+    private var adimSayi = 0
 
     init {
         val k = t.klip
-        for ((i, e) in t.etkiler.withIndex()) {
-            val pr = e.toGlShaderProgram(ctx, useHdr)
-            ciktilar += null
-            pr.setOutputListener(object : GlShaderProgram.OutputListener {
-                override fun onOutputFrameAvailable(outputTexture: GlTextureInfo, presentationTimeUs: Long) { ciktilar[i] = outputTexture }
-            })
-            pr.setErrorListener(Executor { it.run() }, GlShaderProgram.ErrorListener { ex -> Kayit.hata("Geçiş ${t.etiket} dönüşüm", ex) })
-            programlar += pr
-        }
         if (k != null && !k.foto) {
             video = VideoCozucu(ctx, Uri.parse(k.uri), k.basMs * 1000, t.hdrCozucudeCevir, t.etiket)
         } else {
@@ -231,6 +237,99 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
             val boy = (maxOf(t.W, t.H) * 2).coerceIn(1280, 4096)
             resim = ResimYukleyici { Medya.ornekleCoz(File(yol), boy) }
         }
+    }
+
+    /** Dönüşüm programlarından sıradakini kurar. true: hepsi kurulu. */
+    private fun programAdim(): Boolean {
+        val i = programlar.size
+        if (i >= t.etkiler.size) return true
+        val pr = t.etkiler[i].toGlShaderProgram(ctx, useHdr)
+        ciktilar += null
+        pr.setOutputListener(object : GlShaderProgram.OutputListener {
+            override fun onOutputFrameAvailable(outputTexture: GlTextureInfo, presentationTimeUs: Long) { ciktilar[i] = outputTexture }
+        })
+        pr.setErrorListener(Executor { it.run() }, GlShaderProgram.ErrorListener { ex -> Kayit.hata("Geçiş ${t.etiket} dönüşüm", ex) })
+        programlar += pr
+        return false
+    }
+    private fun programlarKur() { while (!programAdim()) { } }
+
+    private fun oes(): GlProgram = oesProgram ?: GlProgram(VS_OES, FS_OES).also {
+        it.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE); oesProgram = it
+    }
+    private fun bmp(): GlProgram = bmpProgram ?: GlProgram(TekTuvalProgram.VS, FS_BMP).also {
+        it.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE); bmpProgram = it
+    }
+
+    /** Geçişten önceki karelerde çağrılır (GL iş parçacığı): her çağrıda yalnız bir küçük adım. */
+    fun onHazirla() {
+        if (kapandi || isindi) return
+        val c0 = SystemClock.elapsedRealtime()
+        try {
+            if (!programAdim()) return
+            if (video != null) {
+                if (oesProgram == null) { oes(); return }
+                val v = video ?: return
+                if (!v.kare(t.klip!!.basMs * 1000, 0L)) return       // ilk kare çözülmedi: sonraki karede yeniden
+                if (v.yeniKare || hamDoku == null) { videoKopyala(v); return }
+                zincir(hamDoku!!, 0L); birak(); isindi = true
+            } else {
+                if (bmpProgram == null) { bmp(); return }
+                if (resimHazir) { zincir(hamDoku!!, 0L); birak(); isindi = true; return }
+                resimAdim(0L)
+            }
+        } finally {
+            adimSayi++
+            enUzunAdimMs = maxOf(enUzunAdimMs, SystemClock.elapsedRealtime() - c0)
+        }
+    }
+
+    /** Resmin bir sonraki hazırlık adımı. true: resim dokusu hazır. */
+    private fun resimAdim(bekleMs: Long): Boolean {
+        if (resimHazir) return true
+        val r = resim ?: return false
+        val l = bantlar ?: run {
+            val b = r.bantlar(bekleMs) ?: return false
+            bantlar = b; bantNo = 0; bantY = 0
+            yukDoku = GlUtil.createTexture(b[0].width, b.sumOf { it.height }, false)
+            return false
+        }
+        if (bantNo < l.size) {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, yukDoku)
+            GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, bantY, l[bantNo])
+            bantY += l[bantNo].height
+            l[bantNo].recycle()
+            bantNo++
+            return false
+        }
+        // tüm bantlar yüklendi: sRGB → SMPTE 170M çevrilmiş kopya (Media3 resim girdisiyle aynı)
+        val h = dokuAc(l[0].width, bantY)
+        val p = bmp()
+        GlUtil.focusFramebufferUsingCurrentContext(h.fboId, h.width, h.height)
+        GLES20.glDisable(GLES20.GL_BLEND)
+        p.use()
+        p.setSamplerTexIdUniform("uTex", yukDoku, 0)
+        p.setIntUniform("uSrgb", if (resimSrgb) 1 else 0)
+        p.bindAttributesAndUniforms()
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        GlUtil.deleteTexture(yukDoku); yukDoku = -1
+        bantlar = null
+        hamSil(); hamDoku = h; resimHazir = true
+        return true
+    }
+
+    private fun videoKopyala(v: VideoCozucu) {
+        val (dw, dh) = v.boyut(maxOf(t.W, t.H) * 2)
+        val h = hamDoku?.takeIf { it.width == dw && it.height == dh } ?: run { hamSil(); dokuAc(dw, dh).also { hamDoku = it } }
+        val p = oes()
+        v.matris(texM)
+        GlUtil.focusFramebufferUsingCurrentContext(h.fboId, h.width, h.height)
+        GLES20.glDisable(GLES20.GL_BLEND)
+        p.use()
+        p.setSamplerTexIdUniform("uTex", v.texId, 0)
+        p.setFloatsUniform("uTexM", texM)
+        p.bindAttributesAndUniforms()
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
 
     /** tauUs: geçişin içindeki an. Dönen: W×H doku kimliği; hazır değilse −1 (çağıran giden klibi olduğu gibi çizer). */
@@ -255,23 +354,12 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
             }
             if (!varMi) { bosSayi++; return -1 }
             if (v.yeniKare || hamDoku == null) {
-                val (dw, dh) = v.boyut(maxOf(t.W, t.H) * 2)
-                val h = hamDoku?.takeIf { it.width == dw && it.height == dh } ?: run { hamSil(); dokuAc(dw, dh).also { hamDoku = it } }
-                val p = oesProgram ?: GlProgram(VS_OES, FS_OES).also {
-                    it.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE); oesProgram = it
-                }
-                v.matris(texM)
-                GlUtil.focusFramebufferUsingCurrentContext(h.fboId, h.width, h.height)
-                GLES20.glDisable(GLES20.GL_BLEND)
-                p.use()
-                p.setSamplerTexIdUniform("uTex", v.texId, 0)
-                p.setFloatsUniform("uTexM", texM)
-                p.bindAttributesAndUniforms()
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+                videoKopyala(v)
                 if (ilkUs < 0) ilkUs = v.gosterilenUs - k.basMs * 1000
                 sonUs = v.gosterilenUs - k.basMs * 1000
             }
             kareSayi++
+            programlarKur()
             return zincir(hamDoku!!, tauUs)
         }
         return resimKare(tauUs)
@@ -279,27 +367,12 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
 
     private fun resimKare(tauUs: Long): Int {
         val r = resim ?: return -1
-        if (!resimHazir) {
-            val b = r.al(if (t.onizleme) 0L else 15_000L)      // önizlemede beklenmez: hazır değilse giden klip çizilir (3.33)
-            if (b == null) { bosSayi++; return -1 }
-            val ham = GlUtil.createTexture(b)
-            val h = dokuAc(b.width, b.height)
-            val p = bmpProgram ?: GlProgram(TekTuvalProgram.VS, FS_BMP).also {
-                it.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE); bmpProgram = it
-            }
-            GlUtil.focusFramebufferUsingCurrentContext(h.fboId, h.width, h.height)
-            GLES20.glDisable(GLES20.GL_BLEND)
-            p.use()
-            p.setSamplerTexIdUniform("uTex", ham, 0)
-            p.setIntUniform("uSrgb", if (resimSrgb) 1 else 0)
-            p.bindAttributesAndUniforms()
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-            GlUtil.deleteTexture(ham)
-            b.recycle()
-            hamSil(); hamDoku = h; resimHazir = true
-            if (ilkUs < 0) ilkUs = tauUs
-        }
+        if (r.bitmedi(if (t.onizleme) 0L else 15_000L)) { bosSayi++; return -1 }   // önizlemede beklenmez (3.33)
+        // geç kalındıysa (▶ geçişin içinden başladı / kayıt): kalan adımlar şimdi tamamlanır
+        while (!resimAdim(0L)) { if (bantlar == null && !resimHazir) { bosSayi++; return -1 } }
+        if (ilkUs < 0) ilkUs = tauUs
         sonUs = tauUs; kareSayi++
+        programlarKur()
         return zincir(hamDoku!!, tauUs)
     }
 
@@ -371,11 +444,15 @@ private class GelenKaynak(private val ctx: Context, useHdr: Boolean, private val
             }
             Kayit.yaz("  Geçiş ${t.etiket} ${t.tur} ${t.gecisMs} ms [${if (t.onizleme) "önizleme" else "kayıt"}]: gelen=$kay · pre-roll=0 (gelen klip kendi ilk ${t.gecisMs} ms'sini 1x oynar) · " +
                 "ilk kare=${ilkUs / 1000} ms, son kare=${sonUs / 1000} ms, çizilen=$kareSayi, hazır değil=$bosSayi, hazırlık=${SystemClock.elapsedRealtime() - kurulus} ms" +
+                " · kurulum=$kurulumMs ms, ön hazırlık=$adimSayi adım (en uzun ${enUzunAdimMs} ms)${if (isindi) "" else ", GEÇ KALDI"}" +
                 (v?.hata?.let { " · HATA: $it" } ?: ""))
         }
         birak()
         try { v?.kapat() } catch (_: Throwable) {}
         try { resim?.kapat() } catch (_: Throwable) {}
+        bantlar?.forEach { try { if (!it.isRecycled) it.recycle() } catch (_: Throwable) {} }
+        bantlar = null
+        if (yukDoku >= 0) try { GlUtil.deleteTexture(yukDoku) } catch (_: Throwable) {}
         for (pr in programlar) try { pr.release() } catch (_: Throwable) {}
         programlar.clear()
         hamSil()
@@ -447,20 +524,40 @@ void main() {
 private class ResimYukleyici(private val ac: () -> Bitmap?) {
     private val kilit = Object()
     private var bitti = false
-    private var bmp: Bitmap? = null
+    private var bant: List<Bitmap>? = null
     private var alindi = false
+    @Volatile private var iptal = false
     private val isP = Thread({
-        val b = try { ac() } catch (e: Throwable) { Kayit.hata("Geçiş resmi", e); null }
-        synchronized(kilit) { bmp = b; bitti = true; kilit.notifyAll() }
+        val l = try {
+            var b = ac()
+            if (b != null && b.config != Bitmap.Config.ARGB_8888) { val c = b.copy(Bitmap.Config.ARGB_8888, false); b.recycle(); b = c }
+            if (b == null) null else {
+                // 24 yatay bant: GL iş parçacığı her karede birini yükler (her biri ~1 MB → birkaç ms)
+                val bh = ((b.height + 23) / 24).coerceAtLeast(16)
+                val o = ArrayList<Bitmap>()
+                var y = 0
+                while (y < b.height && !iptal) { val h = minOf(bh, b.height - y); o += Bitmap.createBitmap(b, 0, y, b.width, h); y += h }
+                b.recycle()
+                if (iptal) { o.forEach { it.recycle() }; null } else o
+            }
+        } catch (e: Throwable) { Kayit.hata("Geçiş resmi", e); null }
+        synchronized(kilit) { bant = l; bitti = true; kilit.notifyAll() }
     }, "studyo-gecis-resim").apply { start() }
 
-    fun al(bekleMs: Long): Bitmap? = synchronized(kilit) {
+    private fun bekle(bekleMs: Long) {
         val son = SystemClock.elapsedRealtime() + bekleMs
         while (!bitti) { val kalan = son - SystemClock.elapsedRealtime(); if (kalan <= 0) break; kilit.wait(kalan) }
-        if (!bitti) null else { alindi = true; bmp.also { bmp = null } }
     }
 
-    fun kapat() { synchronized(kilit) { if (!alindi) { bmp?.recycle(); bmp = null } } }
+    /** true: resim hâlâ açılıyor (bekleMs kadar beklendikten sonra). */
+    fun bitmedi(bekleMs: Long): Boolean = synchronized(kilit) { bekle(bekleMs); !bitti }
+
+    fun bantlar(bekleMs: Long): List<Bitmap>? = synchronized(kilit) {
+        bekle(bekleMs)
+        if (!bitti || alindi) null else { alindi = true; bant }
+    }
+
+    fun kapat() { iptal = true; synchronized(kilit) { if (!alindi) { bant?.forEach { it.recycle() }; bant = null } } }
 }
 
 /** Gelen videonun ikinci çözücüsü: kendi iş parçacığında çözer, istenen ana ait kareyi SurfaceTexture'a basar.

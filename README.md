@@ -6,6 +6,15 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.34 (14.11.2026, deneme · `yerel-android` dalı): geçişin başındaki kısa duraksama
+**Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Cihaz kaydı (Ahmet, 3.33.59, 14.11 22:00–22:10):** çökme yok, önizleme hiç düşmedi. Erime, Yumuşak (çapraz) ve Kaydır'ın her geçişinde 24 kare çizildi, "hazır değil=0". Sonraki denemelerde geçişler kapatılmış ("tek tuval geçiş: 0"); neyin kötü göründüğü kayıtta yok.
+- **Ölçülen kusur [Kesin]:** tanı izinde her geçişin **ilk karesi 47–73 ms** sürüyor, sonraki kareler 0–1 ms. 30 fps'de bir kare 33 ms olduğu için her geçişin başında ~2 karelik duraksama (takılma) oluşuyor.
+- **Kök neden [Muhtemel]:** gelen fotoğraf, ilk geçiş karesinde tek seferde ~20 MB'lık dokuya yükleniyor; gelen klibin dönüşüm gölgelendiricileri de ilk kez o karede çalışıyordu.
+- **Çözüm:** gelen klip geçişten 2 sn önce kurulur (öğenin ilk 300 ms'si hariç: orası bir önceki geçişin devamı). Hazırlık karelere bölünür: her karede tek adım (bir gölgelendirici ya da fotoğrafın 24 bandından biri), ardından dönüşümler bir kez "ısıtılır". Geçişin ilk karesinde yalnız karışım çizilir. Video gelen klipte de ilk kare ve dönüşümler geçişten önce hazırlanır.
+- **Kayıt:** geçiş özetine `kurulum=… ms, ön hazırlık=… adım (en uzun … ms)` eklendi; hazırlık yetişmezse `GEÇ KALDI` yazar. Tanı izi sürüyor.
+- **Cihaz testi (Ahmet):** 1) Geçişi Erime yap, baştan ▶: geçişlerin başında takılma olmamalı. 2) Görüntüde başka bir sorun görürsen (ton, göz kırpma, yavaş açılış, kenar…) tek cümleyle yaz. 3) ⋯ › Hata kaydını paylaş.
+
 ## 3.33 (14.11.2026, deneme · `yerel-android` dalı): ▶ geçişin içinden başlatılınca önizlemenin düşmesi
 **Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Cihaz kaydı (Ahmet, 3.32.58, 14.11 21:11–21:30):**

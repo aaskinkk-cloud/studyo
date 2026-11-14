@@ -244,8 +244,11 @@ class EditorDurum(private val ctx: Context, id: String) {
             kompHazirlaniyor = false
             if (comp == null) { kompBasarisiz(bas, "kompozisyon kurulamadı"); return@launch }
             try {
-                val cp = androidx.media3.transformer.StudyoOynatici.isinmasiz(androidx.media3.transformer.CompositionPlayer.Builder(ctx))
-                    .setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()).build()
+                // 3.24: ana video artık tek görüntü dizisi (diğer diziler yalnız ses) → Media3'ün varsayılan, en çok sınanmış yolu:
+                // tek girişli görüntü hattı + video ön ısıtması açık. 3.22'deki çökme (disablePrewarming → flush) tek diziye
+                // çok girişli hattın dayatılmasıyla görülüyordu [Muhtemel]; 3.23'te ön ısıtma kapatılınca da kod çözücü
+                // 4. saniyede ERROR_CODE_DECODING_FAILED veriyordu (ön ısıtmasız yol Media3'te yalnız eski Android/test için).
+                val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx).build()
                 cp.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp && kompAktif.value) oynuyor.value = isPlaying }
                     override fun onRenderedFirstFrame() { if (komp === cp) kompGorunur.value = true }
@@ -254,11 +257,14 @@ class EditorDurum(private val ctx: Context, id: String) {
                     }
                     override fun onPlayerError(error: PlaybackException) {
                         Kayit.hata("akıcı önizleme", error)
+                        var c: Throwable? = error.cause; var n = 0
+                        while (c != null && n < 4) { Kayit.hata("  neden ${++n}", c); c = c.cause.takeIf { it !== c } }
                         if (komp === cp) kompBasarisiz(cp.currentPosition.coerceAtLeast(0), "oynatıcı hatası ${error.errorCodeName}")
                     }
                 })
                 cp.setComposition(comp)
                 komp = cp
+                Depo.onizlemeCokmesi = { e -> if (komp === cp) { Kayit.yaz("Akıcı önizleme iş parçacığı çöktü (uygulama korundu): ${e.javaClass.simpleName}"); kompBasarisiz(konum.value, "oynatıcı çöktü") } }
                 Kayit.yaz("Akıcı önizleme kuruldu: ${p.klipler.size} klip, ${comp.sequences.size} dizi, ${w}x$h, ${System.currentTimeMillis() - t0} ms")
                 kompOynat(cp, bas, t0)
             } catch (e: Throwable) {
@@ -1218,6 +1224,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun kapat() {
+        Depo.onizlemeCokmesi = null
         kompSil()
         if (kaydediyor.value) kayitDurdur()
         kaydetSimdi(false)

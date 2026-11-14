@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.24 (14.11.2026, deneme · `yerel-android` dalı): ▶ önizleme Media3'ün varsayılan yoluyla
+- **Cihaz kaydı (Ahmet, 13:08–13:09, 3.23):** çökme yok, dışa aktarma TAMAM (4K, 11 sn). Ama ▶ önizleme ~4. saniyede `ERROR_CODE_DECODING_FAILED` verip standart önizlemeye düşüyor; Ahmet önizlemede görüntünün kendisinde karanlık noktalar ve parlama görüyor (bozuk çözülen kareler + standart önizlemeye geçiş [Muhtemel]).
+- **Kök neden [Muhtemel]:** 3.23'te kapatılan video ön ısıtması Media3'te yalnız eski Android/test için duran yol; gerçek cihazda kod çözücü hatası veriyor. 3.22'deki çökmeyse, tek görüntü dizisine (3.20'den beri) gereksiz yere **çok girişli** görüntü hattı dayatılmasıyla birlikte görülüyordu.
+- **Çözüm:** akıcı önizleme Media3'ün varsayılan kurulumuyla: tek girişli görüntü hattı, ön ısıtma açık (Media3 örnek uygulamasındaki resim+video dizisi önizlemesinin aynısı). Ön ısıtma kapatma dosyası kaldırıldı.
+- **Güvence:** önizleme oynatıcısının iç iş parçacığı yine de çökerse uygulama artık kapanmaz; kayda yazılır, standart önizlemeye dönülür. Önizleme hatalarında asıl neden zinciri de kayda yazılır.
+
 ## 3.23 (14.11.2026, deneme · `yerel-android` dalı): ▶'da uygulamanın çökmesi giderildi
 - **Cihaz kaydı (Ahmet, 12:35, 3.22 çökme kaydı):** `IllegalStateException: flush() is valid only at Executing states; currently at Released state` — `CompositionPlaybackThread`, `RendererHolder.disablePrewarming` → `MediaCodecRenderer.onDisabled`.
 - **Kök neden [Kesin]:** Media3 1.8.1 CompositionPlayer, sıradaki video klip için video oluşturucusunu önceden ısıtıyor (prewarming). 3.20'den beri dizide resim ↔ video (geçiş parçası) sık değiştiği için bu yol sürekli çalışıyor; ısıtılan oluşturucu kapatılırken serbest bırakılmış çözücüye `flush()` çağrılıyor ve oynatma iş parçacığında yakalanmayan hata uygulamayı kapatıyor.

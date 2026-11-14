@@ -38,6 +38,8 @@ object Depo {
         private set
 
     @Volatile private var cokmeKuruldu = false
+    /** Akıcı önizleme oynatıcısının iç iş parçacığı çökerse çağrılır (ana iş parçacığında). Editör açıkken atanır. */
+    @Volatile var onizlemeCokmesi: ((Throwable) -> Unit)? = null
 
     fun baslat(ctx: Context) {
         app = ctx.applicationContext
@@ -52,6 +54,12 @@ object Depo {
                 while (c != null) { neden += "\n  Neden: ${c.javaClass.name}: ${c.message}\n" + c.stackTraceToString().lines().take(12).joinToString("\n"); c = c.cause.takeIf { it !== c } }
                 Kayit.yaz("ÇÖKME [${t.name}] ${e.javaClass.name}: ${e.message}\n" + e.stackTraceToString().lines().take(30).joinToString("\n") + neden)
             } catch (_: Throwable) {}
+            // Önizleme oynatıcısının iç iş parçacığı: uygulama kapatılmaz; önizleme bırakılıp standart önizlemeye dönülür
+            val kurtar = onizlemeCokmesi
+            if (t.name == "CompositionPlaybackThread" && kurtar != null) {
+                try { android.os.Handler(android.os.Looper.getMainLooper()).post { kurtar(e) } } catch (_: Throwable) {}
+                return@setDefaultUncaughtExceptionHandler
+            }
             onceki?.uncaughtException(t, e)
         }
     }

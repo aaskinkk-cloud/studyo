@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.30 (14.11.2026, deneme · `yerel-android` dalı): Ekle ve Biçim, Klip bölümünde; boş YouTube projesi
+- Düzenle'de "Ekle" ve "Biçim" alt bölümleri kaldırıldı (Düzenle: Klip · Nesne).
+- Klip görünümünde süre/kırpma satırının yanında turuncu yuvarlak **Ekle** düğmesi (şeridin sonundaki + da duruyor).
+- Altında **BİÇİM** satırı: 16:9 YouTube · 9:16 Reels · 1:1 Kare (oran çerçeveli simgeler) ve **Boş** — varsayılan ayarlar uygulanmayan yeni bir YouTube (16:9) projesi açar (giriş, abone, kapanış, kadraj, hareket kendiliğinden gelmez; her şeyi sen eklersin). `Proje.bos`.
+
 ## 3.29 (14.11.2026, deneme · `yerel-android` dalı): Düzenle › Klip tek sayfa
 - **Sorun (Ahmet):** Düzenle'de "Klip" açıkken ve kapalıyken iki ayrı görünüm çıkıyordu (büyük şerit / küçük şerit + yalnız "Fotoğraf süresi" olan Klip kartı).
 - **Çözüm:** ikisi tek görünüm: büyük şerit (üstünde ses · böl · çoğalt · sil, oklar) ve hemen altında seçili klibin **süresi** (fotoğraf: − kaydırıcı +, 0,5 sn adım) ya da **kırpma aralığı** (video). Ayrı Klip kartı kaldırıldı. (⋯ › yazılı menü açıkken eski düzen.)

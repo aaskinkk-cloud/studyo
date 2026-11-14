@@ -87,7 +87,8 @@ private val HAP_SIMGE = mapOf(
 )
 
 private val BOLUMLER = listOf(
-    Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "ekle" to "Ekle", "nesne" to "Nesne", "bicim" to "Biçim")),
+    // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
+    Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
@@ -96,7 +97,7 @@ private val BOLUMLER = listOf(
 )
 
 @Composable
-fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, kapat: () -> Unit) {
+fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, kapat: () -> Unit, ac: (String) -> Unit = {}) {
     val ctx = LocalContext.current
     val vm = remember(id) { EditorDurum(ctx.applicationContext, id) }
     DisposableEffect(vm) { onDispose { vm.kapat() } }
@@ -201,7 +202,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     Spacer(Modifier.weight(1f))
                     KlipSeridi(vm, p, sec, ekle)
-                    p.klipler.getOrNull(sec)?.let { KlipAyar(vm, it) }
+                    KlipAyar(vm, p, p.klipler.getOrNull(sec), ekle) { bicim ->
+                        val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
+                        Depo.kaydet(y); ac(y.id)
+                    }
                     Spacer(Modifier.weight(1f))
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
@@ -555,8 +559,31 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
 
 /** Büyük şeridin altında seçili klibin süresi (fotoğraf) ya da kırpma aralığı (video) — Geçişler biçiminde, tek satır. */
 @Composable
-private fun KlipAyar(vm: EditorDurum, k: Klip) {
+private fun KlipAyar(vm: EditorDurum, p: Proje, k: Klip?, ekle: () -> Unit, bosProje: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+        // süre/kırpma satırı + yanında şık turuncu "Ekle" düğmesi
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) { if (k != null) KlipSureKirp(vm, k) else Text("Video ya da fotoğraf ekleyerek başla", color = Renk.soluk, fontSize = 13.sp) }
+            Column(Modifier.padding(start = 10.dp, top = 8.dp).clip(RoundedCornerShape(14.dp)).clickable { ekle() }.padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(44.dp).clip(CircleShape).background(Renk.turuncu), contentAlignment = Alignment.Center) { Simge("ekle", Renk.turuncuM, 24.dp) }
+                Text("Ekle", color = Renk.turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+        // biçim: YouTube · Reels · Kare · boş YouTube projesi (varsayılansız)
+        Text("BİÇİM", color = Renk.soluk.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            SecimKarti("16:9", "YouTube", p.bicim == "16:9", Modifier.weight(1f), sira = 0) { vm.bicim("16:9") }
+            SecimKarti("9:16", "Reels", p.bicim == "9:16", Modifier.weight(1f), sira = 2) { vm.bicim("9:16") }
+            SecimKarti("1:1", "Kare", p.bicim == "1:1", Modifier.weight(1f), sira = 3) { vm.bicim("1:1") }
+            SecimKarti("Boş", "YouTube · ayarsız", false, Modifier.weight(1f), sira = 4, simge = "klip") { bosProje("16:9") }
+        }
+    }
+}
+
+@Composable
+private fun KlipSureKirp(vm: EditorDurum, k: Klip) {
+    Column(Modifier.fillMaxWidth()) {
         if (k.foto) {
             TonKaydirici("Süre", k.fotoSureMs / 1000f, 1f..15f, 0.5f, Renk.turuncu, { String.format(TR, "%.1f sn", it) }) { v ->
                 vm.klipGuncelle(true) { it.copy(fotoSureMs = (v * 1000).toLong()) }

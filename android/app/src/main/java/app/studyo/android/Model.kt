@@ -182,6 +182,8 @@ data class Proje(
     val olusturma: Long = System.currentTimeMillis(),
     val guncelleme: Long = System.currentTimeMillis(),
     val bicim: String = "16:9",     // 16:9 | 9:16 | 1:1
+    /** Boş YouTube projesi (3.30): varsayılan ayarlar (giriş, abone, kapanış, kadraj, hareket) kendiliğinden uygulanmaz. */
+    val bos: Boolean = false,
     val klipler: List<Klip> = emptyList(),
     val muzik: Muzik? = null,
     val sesler: List<SesKaydi> = emptyList(),

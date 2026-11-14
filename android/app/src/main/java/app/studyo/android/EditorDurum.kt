@@ -519,8 +519,8 @@ class EditorDurum(private val ctx: Context, id: String) {
                     .onFailure { e -> Kayit.hata("ekle", e); sorunlar += "${u.lastPathSegment}: ${e.message ?: e.javaClass.simpleName}" }
             }
             mesgul.value = null
-            val vs = Varsayilan.secili(ctx)
-            for (i in yeni.indices) {     // varsayılan ayarlar seçilen her klibe hemen uygulanır
+            val vs = if (proje.value.bos) emptySet() else Varsayilan.secili(ctx)
+            if (!proje.value.bos) for (i in yeni.indices) {     // varsayılan ayarlar seçilen her klibe hemen uygulanır
                 var kk = yeni[i]
                 if ("kadraj" in vs) kk = kk.copy(doldur = true)
                 if (kk.foto) kk = kk.copy(kenBurns = true, fotoSureMs = 5000, yuzOdak = "yuz" in vs)
@@ -534,7 +534,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 kaydetSimdi(false)
                 sec(s)
                 mesaj.value = "${yeni.size} klip eklendi"
-                if (ilkEkleme) varsayilanUygula()   // ilk seçimde giriş, abone ol, kapanış ve YouTube 16:9 da gelir
+                if (ilkEkleme && !proje.value.bos) varsayilanUygula()   // ilk seçimde giriş, abone ol, kapanış ve YouTube 16:9 da gelir
             }
             if (sorunlar.isNotEmpty()) uyari.value = "Eklenemeyenler:\n\n" + sorunlar.joinToString("\n\n")
         }

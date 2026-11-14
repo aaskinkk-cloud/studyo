@@ -134,7 +134,7 @@ fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) 
         )
     } else {
         key(a) {
-            EditorEkrani(a, bekleyen, bekleyenAlindi = { bekleyen = emptyList() }, kapat = { acik = null })
+            EditorEkrani(a, bekleyen, bekleyenAlindi = { bekleyen = emptyList() }, kapat = { acik = null }, ac = { acik = it })
         }
     }
 }

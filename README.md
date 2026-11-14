@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.31 (14.11.2026, deneme · `yerel-android` dalı): Klip görünümü bölüm kartları, kaydırma
+- Şeridin altındaki işlevsiz "◎ logo" satırı kaldırıldı.
+- Klip görünümü aşağı-yukarı **kayıyor**; alttaki bölümler artık kesilmiyor.
+- Bölümler Geçişler paneli biçiminde koyu yuvarlak **kartlarda**, renk tonlu başlıkla: **KLİP** (turuncu; sıra · tür · dosya adı, süre/kırpma, turuncu Ekle) ve **BİÇİM** (sarı; YouTube 16:9 · Reels 9:16 · Kare 1:1 yuvarlak simgeler, oran çerçevesi kendi renginde, seçili beyaz halkalı; pembe **Boş proje**).
+
 ## 3.30 (14.11.2026, deneme · `yerel-android` dalı): Ekle ve Biçim, Klip bölümünde; boş YouTube projesi
 - Düzenle'de "Ekle" ve "Biçim" alt bölümleri kaldırıldı (Düzenle: Klip · Nesne).
 - Klip görünümünde süre/kırpma satırının yanında turuncu yuvarlak **Ekle** düğmesi (şeridin sonundaki + da duruyor).

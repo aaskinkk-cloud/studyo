@@ -200,13 +200,14 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
                 } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip")) {
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
-                    Spacer(Modifier.weight(1f))
-                    KlipSeridi(vm, p, sec, ekle)
-                    KlipAyar(vm, p, p.klipler.getOrNull(sec), ekle) { bicim ->
-                        val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
-                        Depo.kaydet(y); ac(y.id)
+                    // 3.31: kaydırılabilir; şerit + bölüm kartları (Geçişler paneli biçiminde)
+                    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp, bottom = 10.dp)) {
+                        KlipSeridi(vm, p, sec, ekle)
+                        KlipAyar(vm, p, p.klipler.getOrNull(sec), sec, ekle) { bicim ->
+                            val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
+                            Depo.kaydet(y); ac(y.id)
+                        }
                     }
-                    Spacer(Modifier.weight(1f))
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
                     val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip")
@@ -553,30 +554,65 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         if (p.logo != null) add("◎ logo")
         if (p.katmanlar.isNotEmpty()) add("▣ ${p.katmanlar.size} katman")
     }
-    if (ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+    if (false && ek.isNotEmpty() && !kucuk) Text(ek.joinToString("   "), color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp))
 }
 
 /** Büyük şeridin altında seçili klibin süresi (fotoğraf) ya da kırpma aralığı (video) — Geçişler biçiminde, tek satır. */
+/** Geçişler paneli biçiminde bölüm kartı: koyu yuvarlak zemin, renk tonlu başlık. */
 @Composable
-private fun KlipAyar(vm: EditorDurum, p: Proje, k: Klip?, ekle: () -> Unit, bosProje: (String) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
-        // süre/kırpma satırı + yanında şık turuncu "Ekle" düğmesi
+private fun BolumKarti(baslik: String, ton: Color, sag: String = "", icerik: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(horizontal = 14.dp, vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(3.dp).height(16.dp).background(ton))
+            Spacer(Modifier.width(8.dp))
+            Text(baslik, color = ton, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            if (sag.isNotEmpty()) Text(sag, color = Renk.soluk, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 190.dp))
+        }
+        icerik()
+    }
+}
+
+@Composable
+private fun KlipAyar(vm: EditorDurum, p: Proje, k: Klip?, sec: Int, ekle: () -> Unit, bosProje: (String) -> Unit) {
+    val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
+    // KLİP: süre/kırpma + Ekle
+    BolumKarti(if (k != null) "KLİP ${sec + 1}/${p.klipler.size} · ${if (k.foto) "Fotoğraf" else "Video"}" else "KLİP", turuncu, k?.ad ?: "") {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { if (k != null) KlipSureKirp(vm, k) else Text("Video ya da fotoğraf ekleyerek başla", color = Renk.soluk, fontSize = 13.sp) }
-            Column(Modifier.padding(start = 10.dp, top = 8.dp).clip(RoundedCornerShape(14.dp)).clickable { ekle() }.padding(4.dp),
+            Column(Modifier.weight(1f)) {
+                if (k != null) KlipSureKirp(vm, k)
+                else Text("Video ya da fotoğraf ekleyerek başla", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
+            }
+            Column(Modifier.padding(start = 10.dp, top = 6.dp).clip(RoundedCornerShape(14.dp)).clickable { ekle() }.padding(4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(Renk.turuncu), contentAlignment = Alignment.Center) { Simge("ekle", Renk.turuncuM, 24.dp) }
-                Text("Ekle", color = Renk.turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+                Box(Modifier.size(46.dp).clip(CircleShape).background(turuncu), contentAlignment = Alignment.Center) { Simge("ekle", Renk.turuncuM, 24.dp) }
+                Text("Ekle", color = turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
             }
         }
-        // biçim: YouTube · Reels · Kare · boş YouTube projesi (varsayılansız)
-        Text("BİÇİM", color = Renk.soluk.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            SecimKarti("16:9", "YouTube", p.bicim == "16:9", Modifier.weight(1f), sira = 0) { vm.bicim("16:9") }
-            SecimKarti("9:16", "Reels", p.bicim == "9:16", Modifier.weight(1f), sira = 2) { vm.bicim("9:16") }
-            SecimKarti("1:1", "Kare", p.bicim == "1:1", Modifier.weight(1f), sira = 3) { vm.bicim("1:1") }
-            SecimKarti("Boş", "YouTube · ayarsız", false, Modifier.weight(1f), sira = 4, simge = "klip") { bosProje("16:9") }
+    }
+    // BİÇİM: yuvarlak simgeler (Geçişler paneli gibi), seçili beyaz halkalı
+    BolumKarti("BİÇİM", sari, when (p.bicim) { "9:16" -> "Reels · dikey"; "1:1" -> "Kare"; else -> "YouTube · yatay" }) {
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf(Triple("16:9", "YouTube", sari), Triple("9:16", "Reels", turkuaz), Triple("1:1", "Kare", yesil)).forEach { (b, ad, ton) ->
+                val on = p.bicim == b
+                val (w, h) = b.split(":").map { it.toFloat() }
+                val olc = 26f / maxOf(w, h)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(70.dp).clip(RoundedCornerShape(12.dp)).clickable { vm.bicim(b) }.padding(vertical = 2.dp)) {
+                    Box(Modifier.size(56.dp).clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
+                        .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size((w * olc).dp, (h * olc).dp).border(2.dp, ton, RoundedCornerShape(3.dp)))
+                    }
+                    Text(ad, color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                    Text(b, color = ton.copy(alpha = 0.8f), fontSize = 9.5.sp)
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(70.dp).clip(RoundedCornerShape(12.dp)).clickable { bosProje("16:9") }.padding(vertical = 2.dp)) {
+                Box(Modifier.size(56.dp).clip(CircleShape).background(Renk.kart2).border(1.dp, pembe.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+                    Simge("ekle", pembe, 24.dp)
+                }
+                Text("Boş proje", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                Text("YouTube · ayarsız", color = pembe.copy(alpha = 0.8f), fontSize = 9.5.sp, maxLines = 1)
+            }
         }
     }
 }

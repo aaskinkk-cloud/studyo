@@ -44,6 +44,8 @@ object Depo {
     fun baslat(ctx: Context) {
         app = ctx.applicationContext
         Kayit.baslat(app)
+        // 3.32: eski sürümlerin önceden kodlanmış geçiş parçaları artık kullanılmıyor; yer açılır
+        Thread { try { File(app.cacheDir, "gecis").deleteRecursively() } catch (_: Throwable) {} }.start()
         // Çökme kaydı (3.22): uygulama kapanmadan önce nedeni hata kaydına yazılır
         if (cokmeKuruldu) return
         cokmeKuruldu = true

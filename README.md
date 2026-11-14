@@ -6,6 +6,28 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.32 (14.11.2026, deneme · `yerel-android` dalı): geçişler tek tuvalde — web Kareden Videoya yapısı
+**Test:** yeni geçiş dosyası (`TekTuval.kt`) Kotlin derleyicisiyle tür denetiminden geçti; tam derleme GitHub Actions'ta. **Cihaz testi bekleniyor** (aşağıda adımlar).
+- **Belirti (Ahmet, 3.31.57 cihaz kaydı 14.11 13:29 / 19:24 / 20:43):** geçişli projede ▶ önizleme kurulur kurulmaz düşüyor: `flush() is valid only at Executing states; currently at Released state` (`CompositionPlaybackThread`, `disablePrewarming`) ve `queueInputBuffer() … Released state` (`ERROR_CODE_DECODING_FAILED`). Önizlemede karanlık nokta / parlama. Önceki sürümlerde göz kırpma ve klip sonunda geri sarma.
+- **Kök neden:**
+  - **[Kesin]** Kayıtta "geçiş parçası" olan her önizleme kurulumu aynı saniyede düştü; "0 geçiş parçası" olan her kurulum çalıştı, 4K dışa aktarma da tamamlandı. Hata Media3 oynatıcısının içinde: bırakılmış kod çözücü kullanılıyor. 3.24'teki yakalayıcı bunu çözmüyordu, yalnız uygulamayı açık tutuyordu.
+  - **[Muhtemel]** Tetikleyen, 3.20'den beri tek diziye ayrı öğe olarak konan 0,8 sn'lik mp4 geçiş parçalarının fotoğraflarla sık nöbetleşmesi (oynatıcı sıradaki videoyu ön ısıtırken çözücüyü erken bırakıyor).
+  - **[Muhtemel]** Parlama / ton farkı: parça ikinci kez kodlanmış bir mp4'tü, gövdeler doğrudan kaynaktan okunuyordu.
+  - 3.12–3.19'daki göz kırpma ve geri sarma ise iki görüntü dizisi + Media3 çok girişli birleştiriciden geliyordu. Yani geçişi **ayrı dizi ya da ayrı öğe** yapan her yöntem Media3'ün bir sınırına takılıyordu.
+- **Çözüm (web Kareden Videoya'daki tek tuval):**
+  - Dizide yalnız klipler var: `[A: gövde + son T ms][B: T'den sonrası]`. Geçiş parçası, önbellek (`GecisHazir`, `cache/gecis`) ve "Geçişler hazırlanıyor k/n" beklemesi **kaldırıldı**. Dizi, cihazda çalıştığı kayıtla görülen parçasız biçimde.
+  - Geçiş, giden klibin öğesinin son T ms'sinde tek bir GL geçişinde çizilir (`TekTuval.kt` › `TekTuvalGecis`). Gelen klibin kareleri aynı GL bağlamında, aynı saatle bu efektin kendi kaynağından gelir: video için ikinci bir MediaCodec (kendi iş parçacığında, geçişten ~1,5 sn önce hazırlanır), fotoğraf ve kapanış kartı için bitmap.
+  - Gelen klip, ana hattaki **aynı Media3 dönüşüm programlarından** (akıllı kadraj + hareket + doldur/sığdır) geçer; geçişin son karesi ile gövdenin ilk karesi aynı geometridedir.
+  - **Ton:** fotoğraf ve kapanış kartı Media3'ün resim girdisindeki aynı formülle sRGB → SMPTE 170M çevrilir; video karesi Media3'ün yaptığı gibi olduğu gibi kullanılır; HDR klipte ikinci çözücüden de aynı "SDR'ye çevir" isteği yapılır. Yeniden kodlama olmadığı için gövdeyle ton farkı kalmaz [Muhtemel; cihazda doğrulanacak].
+  - Erime, Yumuşak (çapraz), Kaydır, Büyüyerek aynı gölgelendiricide, eski sayılarla (web'deki erime gürültüsü dahil).
+  - Zaman çizelgesi (`Proje.ortusme`) değişmedi: logo, altyazı, katman, müzik zamanları aynı. Giden klibin sesi kendi öğesinde sürer; gelen klibin ilk T ms'sinin sesi yalnız-ses dizisiyle çalar (3.22'deki yol).
+  - **Pre-roll kullanılmadı, gerek yok [Kesin]:** web'de gelen klip geçişte kendi başlangıcından *önceki* görüntüyü oynatır; Stüdyo'nun çizelgesinde ise gelen klip geçiş boyunca **kendi ilk T ms'sini 1x hızla** oynatır (donma, kare tekrarı yok), gövde T'den devam eder. Pre-roll eklemek çizelgeyi kaydırırdı.
+  - Giden klibin kendi yazısı / takip yazısı klip ile birlikte kaybolur; gelen klibin yazısı geçişle birlikte belirir. Logo ve zaman çizelgesi katmanları en üstte sabit kalır.
+- **Güvenceler:** gelen kare hazır değilse giden klip olduğu gibi çizilir (yanlış ya da siyah kare basılmaz). İkinci çözücü açılamazsa (ör. iki büyük 4K çözücüye izin verilmezse) sırayla diğer çözücüler denenir; olmazsa gelen klip geçiş sonundaki karesiyle bekler ve kayda "DURAĞAN KARE (yedek)" yazılır. Öğe bitince ikinci çözücü hemen bırakılır.
+- **Bilinen sınır:** gelen klipte takip eden yazı varsa geçiş bitince belirir (geçiş sırasında çizilmiyor).
+- **Kayıt:** kurulumda her geçiş için tür, süre, pencere, gelen klibin türü/çözünürlüğü/kodeği/HDR ve kaynak aralığı; geçiş bitince `Geçiş 6→7 erime 800 ms [önizleme|kayıt]: … çözücü=…, renk=…, ön çözme=… ms/… kare, ilk kare=…, son kare=…, çizilen=…, hazır değil=…`.
+- **Cihaz testi (Ahmet):** 1) Aynı projede (6 fotoğraf + HDR H.265 video + kapanış) geçiş **Erime**, ▶: sonuna kadar oynamalı, "standart önizlemeye dönüldü" iletisi çıkmamalı. 2) 1080p dışa aktar; geçişlerde göz kırpma, geri sarma, parlama var mı bak. 3) Türü Kaydır / Büyüyerek yapıp ▶ ile yinele. 4) ⋯ › Hata kaydını paylaş.
+
 ## 3.31 (14.11.2026, deneme · `yerel-android` dalı): Klip görünümü bölüm kartları, kaydırma
 - Şeridin altındaki işlevsiz "◎ logo" satırı kaldırıldı.
 - Klip görünümü aşağı-yukarı **kayıyor**; alttaki bölümler artık kesilmiyor.

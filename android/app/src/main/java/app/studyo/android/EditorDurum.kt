@@ -230,13 +230,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         kompHazirlikIs = kapsam.launch {
             val t0 = System.currentTimeMillis()
             val (w, h) = Disa.boyut(p.bicim, 720)
-            // 3.20: geçiş parçaları (dışa aktarmadakiyle aynı yöntem, 720p) — önbellekte olanlar anında geçer
-            val gHata = try {
-                GecisHazir.hazirla(ctx, p, w, h, Disa.HDR_COZUCU, 720) { k, n -> mesaj.value = "Geçişler hazırlanıyor $k/$n" }
-                null
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { Kayit.hata("akıcı önizleme geçiş", e); e }
-            if (!kompHazirlaniyor) { kompAktif.value = false; return@launch }
-            if (gHata != null) { kompHazirlaniyor = false; kompBasarisiz(bas, "geçiş parçası: ${gHata.message}"); return@launch }
+            // 3.32: geçişler kompozisyonun içinde tek tuvalde çizilir (TekTuval.kt); önceden hazırlanan parça ve bekleme yok
             val comp = withContext(Dispatchers.Default) {
                 runCatching { Disa.kompozisyon(ctx, p, w, h, Disa.HDR_COZUCU, onizleme = true) }.onFailure { Kayit.hata("akıcı önizleme kur", it) }.getOrNull()
             }
@@ -244,10 +238,8 @@ class EditorDurum(private val ctx: Context, id: String) {
             kompHazirlaniyor = false
             if (comp == null) { kompBasarisiz(bas, "kompozisyon kurulamadı"); return@launch }
             try {
-                // 3.24: ana video artık tek görüntü dizisi (diğer diziler yalnız ses) → Media3'ün varsayılan, en çok sınanmış yolu:
-                // tek girişli görüntü hattı + video ön ısıtması açık. 3.22'deki çökme (disablePrewarming → flush) tek diziye
-                // çok girişli hattın dayatılmasıyla görülüyordu [Muhtemel]; 3.23'te ön ısıtma kapatılınca da kod çözücü
-                // 4. saniyede ERROR_CODE_DECODING_FAILED veriyordu (ön ısıtmasız yol Media3'te yalnız eski Android/test için).
+                // 3.32: dizide yalnız klipler var (geçiş parçası yok) → Media3'ün varsayılan yolu, cihaz kaydında parçasız
+                // projelerde her seferinde çalışan biçim. 3.20–3.31'deki çökme, diziye konan kısa mp4 parçalardan geliyordu.
                 val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx).build()
                 cp.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp && kompAktif.value) oynuyor.value = isPlaying }

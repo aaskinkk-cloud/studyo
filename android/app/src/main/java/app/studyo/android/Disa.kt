@@ -192,57 +192,59 @@ object Disa {
         val n = p.klipler.size + if (kapanisVar) 1 else 0
         val toplam = p.toplamMs
 
-        // ---- 3.20: TEK GÖRÜNTÜ DİZİSİ (web Kareden Videoya yöntemi: her karede iki klip tek yerde birleşir) ----
-        // KÖK NEDEN (3.12–3.19: geçişte göz kırpma, klip sonunda 1–2 sn geri sarıp tekrar): üst üste binen geçiş, ana
-        // videoda İKİ ayrı görüntü dizisiyle (iki çözücü + Media3 çok girişli birleştirici) kuruluyordu. Birleştirici iki
-        // dizinin karelerini damgaya göre eşler; dizide öğe değişirken/boşluktan çıkarken eşleme kayınca kare atlıyor ya da
-        // eski kare tekrar geliyordu. Kod düzeltmesiyle (3.13–3.19) bu kökten giderilemedi.
-        // ÇÖZÜM: ana videoda tek görüntü dizisi (geçişsiz projede cihazda doğrulanan 3.1 yolu). Her geçiş, iki klibin
-        // yalnız örtüşen T ms'sinden ayrı, kısa bir "geçiş parçası" olarak önceden işlenir (GecisHazir) ve dizide iki klibin
-        // arasına konur: [A gövdesi][A→B geçiş parçası][B gövdesi]. Parçanın ilk karesi A'nın, son karesi B'nin devamıdır;
-        // sınırlarda birleştirici yok → kırpma, sıçrama, geri sarma olamaz. Önizleme (▶) aynı kompozisyonu oynatır.
+        // ---- 3.32: TEK GÖRÜNTÜ DİZİSİ + TEK TUVAL GEÇİŞ (web Kareden Videoya yöntemi) ----
+        // KÖK NEDEN 1 (3.12–3.19: göz kırpma, klip sonunda 1–2 sn geri sarıp tekrar): geçiş iki ayrı görüntü dizisi + Media3
+        // çok girişli birleştiriciyle kuruluyordu; iki dizinin kareleri damgayla eşlenirken kayıyordu.
+        // KÖK NEDEN 2 (3.20–3.31: ▶'da "flush()/queueInputBuffer() … Released state" çökmesi, parlama/ton farkı): geçiş, önceden
+        // kodlanmış 0,8 sn'lik mp4 "parça" olarak tek diziye ayrı öğe diye konuyordu. Kısa video öğeleri fotoğraflarla
+        // nöbetleşince Media3 oynatıcısı çözücüyü kullanılırken bırakıyordu (cihaz kaydı 14.11 13:29, 19:24, 20:43: parça olan
+        // her kurulum çöktü, parçasız her kurulum çalıştı); parça ikinci kez kodlandığı için tonu da gövdeden farklıydı.
+        // ÇÖZÜM: dizide yalnız klipler vardır (parçasız, cihazda çalışan biçim). Her klibin öğesi kendi çıkış geçişini de içerir:
+        // [A: gövde + son T ms][B: T'den sonrası]. A'nın son T ms'sinde TekTuvalGecis, gelen klibin karelerini aynı GL
+        // geçişinde, aynı saatle A'nın üstüne karıştırır (bkz. TekTuval.kt). Zaman çizelgesi (Proje.ortusme) değişmez.
         val ogeler = ArrayList<EditedMediaItem>()
         var bas = 0L
         var gecisAdet = 0
+        val kapanisYol: String? = if (kapanisVar) kapanisDosyasi(ctx, p, W, H, if (onizleme) "kapanis_akici" else "kapanis_cikis").path else null
         for (j in 0 until n) {
             val klipMi = j < p.klipler.size
             val tam = if (klipMi) p.klipler[j].sureMs else p.kapanisMs
             val tIn = if (j > 0) p.ortusme(j - 1) else 0L
             val tOut = if (klipMi) p.ortusme(j) else 0L
-            val govdeBas = bas + tIn
-            val govde = (tam - tIn - tOut).coerceAtLeast(40)
-            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, govde, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, govdeBas)
-            ogeler += if (klipMi) parca(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(govdeBas, govde), j, tam, tIn, govde, fps, govdeBas) else {
-                val f = kapanisDosyasi(ctx, p, W, H, if (onizleme) "kapanis_akici" else "kapanis_cikis")
-                val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(govde).build()
+            val ogeBas = bas + tIn                              // öğenin zaman çizelgesindeki başlangıcı
+            val uz = (tam - tIn).coerceAtLeast(40)              // gövde + çıkış geçişi (T)
+            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas)
+            val tekTuval: Effect? = if (tOut > 0) {
+                val B = p.klipler.getOrNull(j + 1)
+                val etk = ArrayList<androidx.media3.effect.GlMatrixTransformation>()
+                if (B != null) hareket(B, W, H, j + 1, B.sureMs, 0L, 0L, dogrudan = true)?.let { etk += it }
+                etk += Presentation.createForWidthAndHeight(W, H,
+                    if (B != null && B.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
+                val tur = p.gecisAt(j).tur
+                Kayit.yaz("  Geçiş ${j + 1}→${j + 2}: $tur $tOut ms, tek tuval, pencere ${ogeBas + uz - tOut}–${ogeBas + uz} ms · gelen=" +
+                    (B?.let { "${it.tur} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} kaynak ${it.basMs}–${it.basMs + tOut} ms" } ?: "kapanış kartı"))
+                gecisAdet++
+                TekTuvalGecis(GelenTarif(
+                    etiket = "${j + 1}→${j + 2}", tur = tur, gecisMs = tOut, ogeMs = uz, cizelgeBasMs = ogeBas, W = W, H = H,
+                    klip = B, resimYol = if (B == null) kapanisYol else if (B.foto) Uri.parse(B.uri).path else null,
+                    etkiler = etk, yazi = B?.yazi?.let { Kaplama.yazi(it, W, H) },
+                    hdrCozucudeCevir = B != null && B.hdr && hdrKip == HDR_COZUCU, onizleme = onizleme))
+            } else null
+            ogeler += if (klipMi) parca(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(ogeBas, uz), j, tam, tIn, uz, fps, ogeBas, tekTuval = tekTuval) else {
+                val mi = MediaItem.Builder().setUri(Uri.fromFile(File(kapanisYol!!))).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uz).build()
                 val v = ArrayList<Effect>()
                 v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
                 v += gec
-                val kk = katmanlar(govdeBas, govde)
+                val kk = katmanlar(ogeBas, uz)
                 if (kk.isNotEmpty()) v += OverlayEffect(kk)
                 EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
-            }
-            if (tOut > 0) {
-                val gb = govdeBas + govde
-                val f = GecisHazir.dosya(ctx, p, j, W, H, hdrKip, fps)
-                if (!f.exists() || f.length() <= 0) throw IllegalStateException("Geçiş parçası hazır değil (${j + 1}→${j + 2})")
-                val mi = MediaItem.Builder().setUri(Uri.fromFile(f))
-                    .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(tOut).build()).build()
-                val v = ArrayList<Effect>()
-                v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
-                val kap = ArrayList<TextureOverlay>()
-                kap += katmanlar(gb, tOut)
-                logo?.let { kap += bindir(it) }
-                if (kap.isNotEmpty()) v += OverlayEffect(kap)
-                ogeler += EditedMediaItem.Builder(mi).sureli(ctx, onizleme, Uri.fromFile(f).toString(), 0L, tOut).setEffects(Effects(listOf(), v)).build()
-                gecisAdet++
             }
             bas += tam - tOut
         }
         val diziler = ArrayList<EditedMediaItemSequence>()
         diziler += EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build()
-        // ---- geçiş sesleri (3.22): parçalar yalnız görüntüdür; geçiş süresince giden klibin son T ms'sinin sesi (dizi 1) ve
-        // gelen klibin ilk T ms'sinin sesi (dizi 2) yalnız-ses dizileriyle aynı anda çalar (müzik/seslendirme ile aynı yol).
+        // ---- geçiş sesi (3.32): giden klibin sesi kendi öğesinde geçişin sonuna kadar sürer. Gelen klibin ilk T ms'sinin
+        // sesi, yalnız-ses dizisiyle aynı anda çalar (müzik/seslendirme ile aynı yol); klibin gövdesi T'den devam eder.
         fun sesOge(k: Klip, bas: Long, son: Long): EditedMediaItem {
             val mi = MediaItem.Builder().setUri(Uri.parse(k.uri))
                 .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(bas).setEndPositionMs(son).build()).build()
@@ -250,20 +252,14 @@ object Disa {
             return EditedMediaItem.Builder(mi).setRemoveVideo(true).sureli(ctx, onizleme, k.uri, k.kaynakSureMs, son)
                 .setEffects(Effects(ap, listOf<Effect>())).build()
         }
-        val sesA = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
         val sesB = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
-        var imA = 0L; var imB = 0L; var adA = 0; var adB = 0
+        var imB = 0L; var adB = 0
         run {
             var b0 = 0L
             for (j in p.klipler.indices) {
                 val T = p.ortusme(j)
                 b0 += p.klipler[j].sureMs - T          // geçişin başladığı an (zaman çizelgesi)
                 if (T <= 0) continue
-                val A = p.klipler[j]
-                if (!A.foto && A.sesVar && !A.sessiz) {
-                    if (b0 > imA) sesA.addGap((b0 - imA) * 1000)
-                    sesA.addItem(sesOge(A, (A.sonMs - T).coerceAtLeast(A.basMs), A.sonMs)); imA = b0 + T; adA++
-                }
                 val B = p.klipler.getOrNull(j + 1)
                 if (B != null && !B.foto && B.sesVar && !B.sessiz) {
                     if (b0 > imB) sesB.addGap((b0 - imB) * 1000)
@@ -271,9 +267,8 @@ object Disa {
                 }
             }
         }
-        if (adA > 0) diziler += sesA.build()
         if (adB > 0) diziler += sesB.build()
-        Kayit.yaz("  Diziler: tek görüntü dizisi, ${ogeler.size} öğe ($gecisAdet geçiş parçası), geçiş sesi $adA+$adB")
+        Kayit.yaz("  Diziler: tek görüntü dizisi, ${ogeler.size} öğe (parça yok), tek tuval geçiş: $gecisAdet, gelen klip sesi: $adB")
         p.muzik?.let { m ->
             val mib = MediaItem.Builder().setUri(Uri.parse(m.uri))
             if (!m.dongu && m.sureMs > toplam)
@@ -344,7 +339,7 @@ object Disa {
     /** Klibin bir parçası: klip içinde ofsMs'den başlayan uzMs'lik kısım (tamMs: klibin ekrandaki tam süresi).
      *  Hareket/yüz kadrajı ve takip yazısı tam klibe göre hesaplanır → parçalar birbirinin kesintisiz devamıdır. */
     private fun parca(ctx: Context, onizleme: Boolean, k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>,
-                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList(), sesKapali: Boolean = false): EditedMediaItem {
+                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList(), sesKapali: Boolean = false, tekTuval: Effect? = null): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         val klipSon = (k.basMs + ofsMs + uzMs).coerceAtMost(k.sonMs)
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uzMs)
@@ -354,12 +349,24 @@ object Disa {
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         v += gecis
-        val kap = ArrayList<TextureOverlay>()
-        kap += zamanli
-        k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
-        if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kap += TakipBindirme(k, t, it, W, H, cizelgeBas, ofsMs) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
-        logo?.let { kap += bindir(it) }
-        if (kap.isNotEmpty()) v += OverlayEffect(kap)
+        // Klibin kendi yazısı/takip yazısı klibe aittir (çıkış geçişinde klip ile birlikte kaybolur); zaman çizelgesi
+        // katmanları ve logo en üstte, geçişten etkilenmeden kalır.
+        val kendi = ArrayList<TextureOverlay>()
+        k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kendi += bindir(it) }
+        if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kendi += TakipBindirme(k, t, it, W, H, cizelgeBas, ofsMs) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
+        val ust = ArrayList<TextureOverlay>()
+        ust += zamanli
+        logo?.let { ust += bindir(it) }
+        if (tekTuval != null) {
+            if (kendi.isNotEmpty()) v += OverlayEffect(kendi)
+            v += tekTuval
+            if (ust.isNotEmpty()) v += OverlayEffect(ust)
+        } else {
+            val kap = ArrayList<TextureOverlay>()
+            kap += zamanli; kap += kendi
+            logo?.let { kap += bindir(it) }
+            if (kap.isNotEmpty()) v += OverlayEffect(kap)
+        }
         v += sonEtki
         val sesli = !k.foto && k.sesVar && !k.sessiz && !sesKapali
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
@@ -368,65 +375,6 @@ object Disa {
         if (k.foto) b.setFrameRate(fps)
         if (!k.foto && !sesli) b.setRemoveAudio(true)
         return b.build()
-    }
-
-    /** Geçiş parçası kompozisyonu (yalnız T ms): üstte giden klibin son T ms'si, altta gelen klibin (ya da kapanışın) ilk
-     *  T ms'si. İki dizi de tek öğeli, aynı uzunlukta, 0'dan başlar, boşluk yok — birleştiricinin en basit, kararlı hâli.
-     *  Logo ve zaman çizelgesi katmanları burada çizilmez; ana videoda parçanın üstüne bir kez konur (çift görünmez). */
-    fun gecisKompozisyonu(ctx: Context, p: Proje, i: Int, W: Int, H: Int, hdrKip: Int, fps: Int): Composition {
-        ZamanKipi.onizleme = false        // parça ayrı bir dışa aktarmadır: damgalar 0'dan başlar
-        val A = p.klipler[i]
-        val T = p.ortusme(i)
-        val tur = p.gecisAt(i).tur
-        val son = if (tur == "erime") listOf<Effect>(EriyenMaske(0L, T, T, -1L)) else emptyList()
-        // 3.22: parça YALNIZ GÖRÜNTÜ (ses yok, zorunlu ses izi yok). Media3'te resim + zorunlu ses izi iki dizide yarışa
-        // giriyordu (SequenceAssetLoader.onOutputFormat checkStateNotNull, cihaz kaydı 14.11 12:20). Geçişin sesi ana
-        // kompozisyonda ayrı ses dizileriyle verilir (bkz. kompozisyonKur, "geçiş sesleri").
-        val ust = parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, T, fps, 0L, son, sesKapali = true)
-        val alt = if (i + 1 < p.klipler.size) {
-            val B = p.klipler[i + 1]
-            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, 0L, T, fps, 0L, sesKapali = true)
-        } else {
-            val f = kapanisDosyasi(ctx, p, W, H, "kapanis_gecis")
-            val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T).build()
-            EditedMediaItem.Builder(mi).setFrameRate(fps)
-                .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)))).build()
-        }
-        val d0 = EditedMediaItemSequence.Builder(listOf(ust)).build()   // ilk dizi = üstte
-        val d1 = EditedMediaItemSequence.Builder(listOf(alt)).build()
-        return Composition.Builder(listOf(d0, d1)).setHdrMode(hdrKip)
-            .setVideoCompositorSettings(GecisBirlestirici(listOf(tur), listOf(longArrayOf(0L, T)), W, H)).build()
-    }
-
-    /** Yedek geçiş parçası (asıl parça bu telefonda işlenemezse): TEK dizi, iki öğe — A'nın son T ms'sinin ilk yarısı
-     *  karararak biter, B'nin ilk T ms'sinin ikinci yarısı açılarak başlar. Birleştirici yok (geçişsiz projelerdeki yol).
-     *  Parçanın ilk karesi yine A'nın, son karesi B'nin devamıdır; süre aynıdır, zaman çizelgesi kaymaz. */
-    fun gecisYedekKompozisyonu(ctx: Context, p: Proje, i: Int, W: Int, H: Int, hdrKip: Int, fps: Int): Composition {
-        ZamanKipi.onizleme = false
-        val A = p.klipler[i]
-        val T = p.ortusme(i)
-        val y1 = T / 2; val y2 = T - y1
-        fun sol(cikis: Boolean, sure: Long): List<Effect> {
-            val saat = Saat(0L)
-            return listOf(androidx.media3.effect.RgbMatrix { t, _ ->
-                val f = (saat.yerelMs(t).toFloat() / sure.coerceAtLeast(1)).coerceIn(0f, 1f)
-                val e = f * f * (3f - 2f * f)
-                val k = if (cikis) 1f - e else e
-                floatArrayOf(k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, 1f)
-            })
-        }
-        val ogeler = ArrayList<EditedMediaItem>()
-        ogeler += parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, y1, fps, 0L, sol(true, y1), sesKapali = true)
-        ogeler += if (i + 1 < p.klipler.size) {
-            val B = p.klipler[i + 1]
-            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, y1, y2, fps, 0L, sol(false, y2), sesKapali = true)
-        } else {
-            val f = kapanisDosyasi(ctx, p, W, H, "kapanis_gecis")
-            val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(y2).build()
-            EditedMediaItem.Builder(mi).setFrameRate(fps)
-                .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)) + sol(false, y2))).build()
-        }
-        return Composition.Builder(listOf(EditedMediaItemSequence.Builder(ogeler).build())).setHdrMode(hdrKip).build()
     }
 
     internal fun kodlayici(ctx: Context, kisa: Int, kalite: Float) = DefaultEncoderFactory.Builder(ctx)
@@ -441,12 +389,14 @@ object Disa {
     /** Fotoğrafta yavaş yakınlaşma (%8; dikey kişi fotoğrafında yüze doğru, bkz. Yuz). Zaman damgası klibin ilk karesinden ölçülür. */
     /** tamMs: klibin ekrandaki tam süresi (geçiş dahil), basMs: bu parçanın klip içindeki başlangıcı (kuyrukta tam − T).
      *  Hareket kapalı ve kadraj ortadaysa efekt eklenmez. */
-    private fun hareket(k: Klip, W: Int, H: Int, i: Int, tamMs: Long, basMs: Long, cizelgeBas: Long): MatrixTransformation? {
+    private fun hareket(k: Klip, W: Int, H: Int, i: Int, tamMs: Long, basMs: Long, cizelgeBas: Long, dogrudan: Boolean = false): MatrixTransformation? {
         val D = tamMs / 1000f
         if (!k.kenBurns) { val a = Yuz.an(k, W, H, 0f, i, D); if (Yuz.sabitMi(a)) return null; val m = Yuz.matris(a); return MatrixTransformation { m } }
         val saat = Saat(cizelgeBas)
+        // dogrudan = true: damga doğrudan klip içi zamandır (tek tuval geçişte gelen klip için; bkz. TekTuval.kt)
         return MatrixTransformation { t ->
-            val f = ((basMs + saat.yerelMs(t).toFloat()) / tamMs.coerceAtLeast(1)).coerceIn(0f, 1f)
+            val yerel = if (dogrudan) t / 1000f else saat.yerelMs(t).toFloat()
+            val f = ((basMs + yerel) / tamMs.coerceAtLeast(1)).coerceIn(0f, 1f)
             Yuz.matris(Yuz.an(k, W, H, f, i, D))
         }
     }
@@ -664,35 +614,8 @@ class DisaServisi : Service() {
             "${Disa.bitHizi(kisa, kalite) / 1000} kbps, müzik=${p.muzik != null}, seslendirme=${p.sesler.size}, boş=${Medya.mb(bos)}, tahmin=${Medya.mb(tahmin)}")
         p.klipler.forEach { Kayit.yaz("  ${it.tur} ${it.ad} ${Medya.mb(it.boyutBayt)} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ${it.basMs}-${it.sonMs}") }
         Kayit.yaz("  HDR yöntemi: " + if (hdrKip == Disa.HDR_SDR_GIBI) "SDR gibi oku (yedek)" else "çözücüde SDR'ye çevir")
-        // 3.20: önce üst üste binen geçişlerin kısa parçaları işlenir (önbellekte olan atlanır), sonra ana video tek dizi olarak
-        hazirlikIs = kapsam.launch {
-            try {
-                GecisHazir.hazirla(this@DisaServisi, p, W, H, hdrKip, kisa) { k, n ->
-                    durum.value = DisaDurum.Calisiyor(0, -1, "geçişler hazırlanıyor $k/$n")
-                    nm().notify(NO, bildirim("Geçişler hazırlanıyor $k/$n", 0, false))
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: GecisHatasi) {
-                val hdrVar = p.klipler.any { it.hdr }
-                if (hdrVar && hdrKip == Disa.HDR_COZUCU && (e.ad.contains("DECOD") || e.ad.contains("VIDEO_FRAME_PROCESSING"))) {
-                    Kayit.yaz("Geçiş parçasında HDR çözücü hatası → yedek yöntemle (HDR'yi SDR gibi oku) yeniden deneniyor")
-                    prefs().edit().clear().apply()
-                    durum.value = DisaDurum.Calisiyor(0, -1, "HDR uyumlu yöntemle yeniden deneniyor")
-                    hazirlikIs = null
-                    h.post { basla(pid, kisa, kalite, false, Disa.HDR_SDR_GIBI) }
-                    return@launch
-                }
-                hazirlikIs = null
-                hata(hataMetni(e.ad), e.message ?: e.ad); return@launch
-            } catch (e: Exception) {
-                Kayit.hata("geçiş parçaları", e)
-                hazirlikIs = null
-                hata("Geçişler hazırlanamadı.", e.message ?: e.toString()); return@launch
-            }
-            hazirlikIs = null
-            anaVideo(p, W, H, cikti, eski, tek)
-        }
+        // 3.32: geçişler ana videonun içinde tek tuvalde çizilir; önceden hazırlanan parça yok
+        anaVideo(p, W, H, cikti, eski, tek)
     }
 
     private var hazirlikIs: kotlinx.coroutines.Job? = null
@@ -831,8 +754,7 @@ class DisaServisi : Service() {
         }
         return DisaDurum.Tamam(uri.toString(), "Movies/Stüdyo/$ad", f.length(), r.durationMs, 0,
             listOfNotNull(
-                if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else null,
-                if (GecisHazir.yedekSayisi > 0) "${GecisHazir.yedekSayisi} geçiş yedek yöntemle (kısa kararıp açılarak) yapıldı. Hata kaydını paylaşırsan asıl yöntemi düzeltirim." else null
+                if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else null
             ).joinToString("\n"))
     }
 

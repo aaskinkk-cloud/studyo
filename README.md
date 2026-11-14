@@ -6,6 +6,16 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.20 (14.11.2026, deneme · `yerel-android` dalı): geçiş web Kareden Videoya yöntemiyle — tek görüntü dizisi
+**Test:** derlendi; cihaz testi bekleniyor.
+- **Belirti (Ahmet, 3.19):** geçişte göz kırpma sürüyor; klip sonlarında görüntü ve ses 1–2 sn geri sarılıp tekrar ediyor.
+- **Kök neden [Muhtemel]:** 3.12–3.19'da üst üste binen geçiş ana videoda **iki ayrı görüntü dizisiyle** (iki çözücü + Media3 çok girişli birleştirici) kuruluyordu. Birleştirici iki dizinin karelerini zaman damgasına göre eşler; dizide klip değişirken ya da boşluktan çıkarken eşleme kayınca kare atlanıyor ya da eski kareler yeniden geliyordu. 3.13–3.19 düzeltmeleri hep bu iki dizili yapının içindeydi; yapı kalınca sorun kalıyordu.
+- **Referans (web Kareden Videoya):** iki klip her karede **tek yerde** birleştirilir; geçiş, iki klibin yalnız örtüşen kısmıdır.
+- **Çözüm:** ana video artık **tek görüntü dizisi** (geçişsiz projelerde cihazda doğrulanan 3.1 yolu). Her geçiş, iki klibin örtüşen T ms'sinden kısa bir **geçiş parçası** olarak önceden işlenir (`GecisHazir`) ve dizide iki klibin arasına konur: `[A gövdesi][A→B geçiş parçası][B gövdesi]`. Parçanın ilk karesi A'nın, son karesi B'nin devamıdır (hareket, yüz kadrajı, klip yazısı, takip yazısı kesintisiz). Logo ve zaman çizelgesi katmanları parçanın üstüne ana videoda bir kez konur.
+- Parçalar önbellekte tutulur (`cache/gecis`, anahtar: iki klibin tüm ayarları + süre + tür + çözünürlük); klip değişmedikçe yeniden işlenmez. Dışa aktarmada önce "Geçişler hazırlanıyor k/n", ▶ önizlemede ilk oynatmada aynı iş 720p'de yapılır.
+- HDR klipte parça hazırlanamazsa dışa aktarma HDR yedek yöntemiyle kendiliğinden yeniden dener. Parça hazırlanırken Duraklat/İptal çalışır; hazırlanan parçalar saklanır.
+- Kaldırılan: 3.19'daki A/B dizi düzeni (`UstBirlestirici`, `UstBolum`).
+
 ## 3.19 (14.11.2026, deneme · `yerel-android` dalı): geçişte "göz kırpma" — A/B düzeni
 **Test:** derlendi; cihaz testi bekleniyor.
 - **Belirti (Ahmet):** geçişte göz kırpar gibi; **kaydedilen videoda da**. Demek ki sorun önizlemede değil, kompozisyonun kendisinde.

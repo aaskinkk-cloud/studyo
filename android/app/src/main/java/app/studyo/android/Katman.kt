@@ -187,10 +187,10 @@ object Katman {
 }
 
 /** Takip eden yazı bindirmesi (klibin kendi efektlerinde). */
-class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Katman.TakipGorsel, private val W: Int, private val H: Int, private val klipBasMs: Long, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
+class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Katman.TakipGorsel, private val W: Int, private val H: Int, private val klipBasMs: Long, private val ofsMs: Long = 0L, private val an: (Long) -> Yuz.An) : BitmapOverlay() {
     private val saat = Saat(klipBasMs)
     private fun yer(us: Long): Yerlesim? {
-        val yerel = saat.yerelMs(us)
+        val yerel = saat.yerelMs(us) + ofsMs      // ofsMs: bu parçanın klip içindeki başlangıcı (geçiş öncesi/sonrası parça)
         val p = Katman.takipKonum(t, k.basMs + yerel) ?: return null
         val (px, py) = Geometri.ciktiya(k, p.first, p.second, W, H, an(yerel))
         return Katman.takipYerlesimG(g, px, py, W, H)
@@ -242,32 +242,3 @@ class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, priva
     }
 }
 
-
-/** Üst dizideki bir klip: zaman çizelgesinde [bas, bas+sure); başında girisMs boyunca görünür olur, sonunda cikisMs boyunca kaybolur. */
-class UstBolum(val bas: Long, val sure: Long, val girisMs: Long, val girisTur: String, val cikisMs: Long, val cikisTur: String)
-
-/** A/B düzeni birleştiricisi: üst dizi (giriş 0) yalnız kendi klibi sırasında görünür; geçiş pencerelerinde solar/kayar/büyür. */
-class UstBirlestirici(private val bolumler: List<UstBolum>, private val W: Int, private val H: Int) : androidx.media3.common.VideoCompositorSettings {
-    override fun getOutputSize(inputSizes: MutableList<androidx.media3.common.util.Size>): androidx.media3.common.util.Size = androidx.media3.common.util.Size(W, H)
-    override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings {
-        if (inputId != 0) return StaticOverlaySettings.Builder().build()
-        val ms = presentationTimeUs / 1000
-        val b = bolumler.firstOrNull { ms >= it.bas && ms < it.bas + it.sure } ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        val y = ms - b.bas
-        if (b.girisMs > 0 && y < b.girisMs) {
-            val f = (y.toFloat() / b.girisMs).coerceIn(0f, 1f); val e = f * f * (3f - 2f * f)
-            return when (b.girisTur) {
-                "erime" -> StaticOverlaySettings.Builder().build()                     // saydamlık klibin kendi maskesinde
-                "kaydir" -> StaticOverlaySettings.Builder().setBackgroundFrameAnchor((1f - e).coerceIn(-1f, 1f), 0f).setOverlayFrameAnchor(-(1f - e).coerceIn(-1f, 1f), 0f).build()   // sağdan girer
-                else -> StaticOverlaySettings.Builder().setAlphaScale(e.coerceIn(0f, 1f)).build()
-            }
-        }
-        if (b.cikisMs > 0 && y >= b.sure - b.cikisMs) {
-            val f = ((y - (b.sure - b.cikisMs)).toFloat() / b.cikisMs).coerceIn(0f, 1f)
-            val a = Gecisler.ustKatman(b.cikisTur, f)
-            return StaticOverlaySettings.Builder().setAlphaScale(a.alfa.coerceIn(0f, 1f)).setBackgroundFrameAnchor(a.zx.coerceIn(-1f, 1f), 0f)
-                .setOverlayFrameAnchor(a.kx.coerceIn(-1f, 1f), 0f).setScale(a.olcek, a.olcek).build()
-        }
-        return StaticOverlaySettings.Builder().build()
-    }
-}

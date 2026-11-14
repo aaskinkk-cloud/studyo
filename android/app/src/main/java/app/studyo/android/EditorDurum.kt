@@ -200,6 +200,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     private var kompHazirlaniyor = false
     private var kompTikIs: Job? = null
     private var kompBekciIs: Job? = null
+    private var kompHazirlikIs: Job? = null
     private var kompHata = 0
     /** Üst üste iki kez açılamazsa bu oturumda standart önizleme kullanılır. */
     private var akiciKapali = false
@@ -226,9 +227,16 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
         kompHazirlaniyor = true
         kompAktif.value = true; kompGorunur.value = false; oynuyor.value = true
-        kapsam.launch {
+        kompHazirlikIs = kapsam.launch {
             val t0 = System.currentTimeMillis()
             val (w, h) = Disa.boyut(p.bicim, 720)
+            // 3.20: geçiş parçaları (dışa aktarmadakiyle aynı yöntem, 720p) — önbellekte olanlar anında geçer
+            val gHata = try {
+                GecisHazir.hazirla(ctx, p, w, h, Disa.HDR_COZUCU, 720) { k, n -> mesaj.value = "Geçişler hazırlanıyor $k/$n" }
+                null
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { Kayit.hata("akıcı önizleme geçiş", e); e }
+            if (!kompHazirlaniyor) { kompAktif.value = false; return@launch }
+            if (gHata != null) { kompHazirlaniyor = false; kompBasarisiz(bas, "geçiş parçası: ${gHata.message}"); return@launch }
             val comp = withContext(Dispatchers.Default) {
                 runCatching { Disa.kompozisyon(ctx, p, w, h, Disa.HDR_COZUCU, onizleme = true) }.onFailure { Kayit.hata("akıcı önizleme kur", it) }.getOrNull()
             }
@@ -317,6 +325,8 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     /** Kompozisyon değişti ya da ekran kapanıyor: akıcı oynatıcı bırakılır. */
     private fun kompSil() {
+        if (kompHazirlaniyor) kompHazirlikIs?.cancel()
+        kompHazirlikIs = null
         kompHazirlaniyor = false
         kompTikIs?.cancel(); kompBekciIs?.cancel()
         val cp = komp; komp = null

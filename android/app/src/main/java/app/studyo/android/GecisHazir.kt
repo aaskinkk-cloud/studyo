@@ -23,7 +23,11 @@ class GecisHatasi(val ad: String, mesaj: String) : Exception(mesaj)
  *  Ana video tek görüntü dizisi olarak kurulur; bu parçalar iki klibin arasına konur (bkz. Disa.kompozisyonKur).
  *  Anahtar, parçayı etkileyen her şeyi içerir: klip değişmedikçe parça yeniden işlenmez. */
 object GecisHazir {
-    private const val SURUM = "g320"
+    private const val SURUM = "g321"
+
+    /** Son hazırlıkta yedek yöntemle yapılan geçiş sayısı (kullanıcıya not olarak gösterilir). */
+    var yedekSayisi = 0
+        private set
 
     private fun dizin(ctx: Context): File = File(ctx.cacheDir, "gecis").apply { mkdirs() }
 
@@ -48,15 +52,30 @@ object GecisHazir {
         }
         val eksik = gerekli.filter { (_, f) -> !f.exists() || f.length() <= 0 }.keys.toList()
         if (eksik.isEmpty()) return
+        yedekSayisi = 0
         Kayit.yaz("Geçiş parçaları: ${eksik.size} parça hazırlanacak (${W}x$H, $fps fps)")
         for ((sira, i) in eksik.withIndex()) {
             ilerleme(sira + 1, eksik.size)
             val hedef = dosya(ctx, p, i, W, H, hdrKip, fps)
             val gecici = File(hedef.path + ".yarim")
             gecici.delete()
-            val comp = withContext(Dispatchers.Default) { Disa.gecisKompozisyonu(ctx, p, i, W, H, hdrKip, fps) }
+            val A = p.klipler[i]; val B = p.klipler.getOrNull(i + 1)
+            Kayit.yaz("  Geçiş ${i + 1}→${i + 2} hazırlanıyor: ${p.gecisAt(i).tur} ${p.ortusme(i)} ms · A=${A.tur} ${A.gen}x${A.yuk} ${A.kodek} hdr=${A.hdr} ses=${A.sesVar && !A.sessiz} · " +
+                (B?.let { "B=${it.tur} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ses=${it.sesVar && !it.sessiz}" } ?: "B=kapanış"))
             val t0 = System.currentTimeMillis()
-            calistir(ctx, comp, gecici, kisa)
+            try {
+                val comp = withContext(Dispatchers.Default) { Disa.gecisKompozisyonu(ctx, p, i, W, H, hdrKip, fps) }
+                calistir(ctx, comp, gecici, kisa)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
+                // Asıl parça işlenemedi: nedeni kayda yazılır, aynı geçiş tek dizili yedek yöntemle hazırlanır (video yine oluşur)
+                Kayit.yaz("  Geçiş ${i + 1}→${i + 2}: asıl yöntem başarısız (${e.message}) → yedek yöntem (kararıp açılma)")
+                gecici.delete()
+                val yedek = withContext(Dispatchers.Default) { Disa.gecisYedekKompozisyonu(ctx, p, i, W, H, hdrKip, fps) }
+                try { calistir(ctx, yedek, gecici, kisa) } catch (e2: kotlinx.coroutines.CancellationException) { throw e2 } catch (e2: Exception) {
+                    throw if (e is GecisHatasi) GecisHatasi(e.ad, "${e.message} · yedek: ${e2.message}") else e2
+                }
+                yedekSayisi++
+            }
             if (!gecici.exists() || gecici.length() <= 0) { gecici.delete(); throw GecisHatasi("BOS", "Geçiş parçası boş çıktı (${i + 1}→${i + 2})") }
             if (!gecici.renameTo(hedef)) { gecici.delete(); throw GecisHatasi("IO", "Geçiş parçası kaydedilemedi") }
             Kayit.yaz("  Geçiş ${i + 1}→${i + 2}: ${p.ortusme(i)} ms, ${p.gecisAt(i).tur}, ${System.currentTimeMillis() - t0} ms")
@@ -76,8 +95,12 @@ object GecisHazir {
                     override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
                         cikti.delete()
                         val ad = ExportException.getErrorCodeName(exportException.errorCode)
-                        Kayit.hata("Geçiş parçası $ad", exportException)
-                        if (dev.isActive) dev.resumeWithException(GecisHatasi(ad, "Geçiş hazırlanamadı: $ad"))
+                        // Asıl neden (cause) ayrıca yazılır: ExportException yığınının ilk satırları onu göstermiyordu
+                        var c: Throwable? = exportException.cause; var neden = ""
+                        while (c != null) { neden += " · ${c.javaClass.simpleName}: ${c.message}"; c = c.cause.takeIf { it !== c } }
+                        Kayit.yaz("HATA Geçiş parçası $ad$neden")
+                        Kayit.hata("Geçiş parçası nedeni", exportException.cause ?: exportException)
+                        if (dev.isActive) dev.resumeWithException(GecisHatasi(ad, "$ad$neden"))
                     }
                 }).build()
             dev.invokeOnCancellation { h.post { try { tr.cancel() } catch (_: Exception) {}; cikti.delete() } }

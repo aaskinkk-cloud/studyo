@@ -363,6 +363,37 @@ object Disa {
             .setVideoCompositorSettings(GecisBirlestirici(listOf(tur), listOf(longArrayOf(0L, T)), W, H)).build()
     }
 
+    /** Yedek geçiş parçası (asıl parça bu telefonda işlenemezse): TEK dizi, iki öğe — A'nın son T ms'sinin ilk yarısı
+     *  karararak biter, B'nin ilk T ms'sinin ikinci yarısı açılarak başlar. Birleştirici yok (geçişsiz projelerdeki yol).
+     *  Parçanın ilk karesi yine A'nın, son karesi B'nin devamıdır; süre aynıdır, zaman çizelgesi kaymaz. */
+    fun gecisYedekKompozisyonu(ctx: Context, p: Proje, i: Int, W: Int, H: Int, hdrKip: Int, fps: Int): Composition {
+        ZamanKipi.onizleme = false
+        val A = p.klipler[i]
+        val T = p.ortusme(i)
+        val y1 = T / 2; val y2 = T - y1
+        fun sol(cikis: Boolean, sure: Long): List<Effect> {
+            val saat = Saat(0L)
+            return listOf(androidx.media3.effect.RgbMatrix { t, _ ->
+                val f = (saat.yerelMs(t).toFloat() / sure.coerceAtLeast(1)).coerceIn(0f, 1f)
+                val e = f * f * (3f - 2f * f)
+                val k = if (cikis) 1f - e else e
+                floatArrayOf(k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, 1f)
+            })
+        }
+        val ogeler = ArrayList<EditedMediaItem>()
+        ogeler += parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, y1, fps, 0L, sol(true, y1))
+        ogeler += if (i + 1 < p.klipler.size) {
+            val B = p.klipler[i + 1]
+            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, y1, y2, fps, 0L, sol(false, y2))
+        } else {
+            val f = kapanisDosyasi(ctx, p, W, H, "kapanis_gecis")
+            val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(y2).build()
+            EditedMediaItem.Builder(mi).setFrameRate(fps)
+                .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)) + sol(false, y2))).build()
+        }
+        return Composition.Builder(listOf(EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build())).setHdrMode(hdrKip).build()
+    }
+
     internal fun kodlayici(ctx: Context, kisa: Int, kalite: Float) = DefaultEncoderFactory.Builder(ctx)
         .setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(bitHizi(kisa, kalite)).build())
         .setEnableFallback(true).build()
@@ -764,7 +795,10 @@ class DisaServisi : Service() {
             throw e
         }
         return DisaDurum.Tamam(uri.toString(), "Movies/Stüdyo/$ad", f.length(), r.durationMs, 0,
-            if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else "")
+            listOfNotNull(
+                if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else null,
+                if (GecisHazir.yedekSayisi > 0) "${GecisHazir.yedekSayisi} geçiş yedek yöntemle (kısa kararıp açılarak) yapıldı. Hata kaydını paylaşırsan asıl yöntemi düzeltirim." else null
+            ).joinToString("\n"))
     }
 
     private fun duraklat() {

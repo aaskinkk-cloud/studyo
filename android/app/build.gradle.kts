@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.20." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.21." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {

@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.21 (14.11.2026, deneme · `yerel-android` dalı): geçiş parçası hatası — neden kaydı + yedek yöntem
+- **Hata (Ahmet, 3.20):** "Geçiş hazırlanamadı: ERROR_CODE_FAILED_RUNTIME_CHECK". Bu kod Media3'te iç denetimde yakalanan her türlü çalışma hatasının ortak adıdır; asıl neden (cause) kayda yazılmıyordu, bu yüzden kök neden henüz bilinmiyor [Kesin].
+- Artık asıl neden zinciri hem hata kaydına hem hata ekranındaki ayrıntıya yazılır; her parça için A/B klibin türü, çözünürlüğü, kodeği, HDR ve ses durumu da kaydedilir.
+- Asıl yöntem (iki dizili, 0,7 sn) bir geçişte başarısız olursa o geçiş **yedek yöntemle** hazırlanır: tek dizi, A kararıp biter, B açılarak başlar (birleştirici yok). Video yine oluşur; kaç geçişin yedekle yapıldığı sonuç ekranında yazar.
+- Önbellek anahtarı yenilendi (g321).
+
 ## 3.20 (14.11.2026, deneme · `yerel-android` dalı): geçiş web Kareden Videoya yöntemiyle — tek görüntü dizisi
 **Test:** derlendi; cihaz testi bekleniyor.
 - **Belirti (Ahmet, 3.19):** geçişte göz kırpma sürüyor; klip sonlarında görüntü ve ses 1–2 sn geri sarılıp tekrar ediyor.

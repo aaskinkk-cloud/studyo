@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.37 (15.11.2026, deneme · `yerel-android` dalı): takılı kalan "Video oluşturuluyor" bildirimi
+- **Belirti (Ahmet, ekran görüntüsü 00:38):** video kaydedildiği hâlde bildirim panelinde "Video oluşturuluyor · Doğrulanıyor…" ve "Duraklat" kalıcı duruyor.
+- **Kök neden [Muhtemel]:** iş bitince ilerleme bildirimi hizmetten koparılıp (DETACH) aynı numarayla "bitti"ye güncelleniyordu. Android kısa sürede art arda gelen bildirim güncellemelerini sessizce düşürür; son güncelleme düşünce kaldırılamayan "sürüyor" bildirimi kalıyordu. Videoya etkisi yok [Kesin: kayıtta TAMAM, dosya doğrulandı].
+- **Çözüm:** ilerleme bildirimi hizmetle birlikte kaldırılır; sonuç ("Kaydedildi: …") ayrı numarayla 1 sn sonra gösterilir. Uygulama açılırken süren iş yoksa eski takılı bildirim temizlenir.
+- **Test:** cihazda: uygulamayı aç (eski bildirim gitmeli), bir video dışa aktar (bitince yalnız "Kaydedildi" kalmalı).
+
 ## 3.36 (15.11.2026, deneme · `yerel-android` dalı): ▶ ortadan başlatınca donma ve "göz kırpma"
 **Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Belirti (Ahmet, 3.35.61):** göz kırpma. Kayıtta iki kez "Akıcı önizleme ilerlemedi" (00:06:42, 00:16:01) → standart önizlemeye düşüş. Baştan başlatılan her oynatma sorunsuz.

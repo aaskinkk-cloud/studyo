@@ -456,6 +456,7 @@ class DisaServisi : Service() {
         var sonProje: String? = null
         private const val KANAL = "disa"
         private const val NO = 7
+        private const val NO_SONUC = 8
 
         fun baslat(ctx: Context, projeId: String, kisa: Int, kalite: Float) {
             sonProje = projeId
@@ -483,7 +484,11 @@ class DisaServisi : Service() {
         fun acilisKontrol(ctx: Context) {
             if (durum.value != DisaDurum.Bos) return
             val sp = ctx.getSharedPreferences("disa", 0)
-            val yol = sp.getString("yol", null) ?: return
+            val yol = sp.getString("yol", null) ?: run {
+                // süren ya da yarım iş yok: eski sürümlerden takılı kalmış "Video oluşturuluyor" bildirimi temizlenir (3.37)
+                try { ctx.getSystemService(NotificationManager::class.java)?.cancel(NO) } catch (_: Exception) {}
+                return
+            }
             sonProje = sp.getString("proje", null)
             if (sp.getBoolean("calisiyor", false)) {
                 File(yol).delete()
@@ -810,11 +815,17 @@ class DisaServisi : Service() {
     private fun bitir(goster: Boolean, metin: String?) {
         try { kilit?.let { if (it.isHeld) it.release() } } catch (_: Exception) {}
         kilit = null
+        // 3.37: kalıcı "Video oluşturuluyor / Doğrulanıyor…" bildirimi. KÖK NEDEN [Muhtemel]: iş bitince ilerleme bildirimi
+        // DETACH ile hizmetten koparılıp aynı numarayla "bitti" bildirimine güncelleniyordu; Android kısa sürede art arda gelen
+        // bildirim güncellemelerini sessizce düşürüyor (ilerleme + "Doğrulanıyor" + "bitti" birkaç saniye içinde). Son güncelleme
+        // düşünce kopmuş, kaldırılamayan "sürüyor" bildirimi kalıyordu. Artık ilerleme bildirimi hizmetle birlikte KALDIRILIR,
+        // sonuç ayrı numarayla 1 sn sonra gösterilir (düşse bile takılı bildirim kalmaz).
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        try { nm().cancel(NO) } catch (_: Exception) {}
         if (goster && metin != null) {
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
-            nm().notify(NO, bildirim(metin, 100, true))
-        } else {
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            val n = bildirim(metin, 100, true)
+            val yonetici = nm()
+            Handler(Looper.getMainLooper()).postDelayed({ try { yonetici.cancel(NO); yonetici.notify(NO_SONUC, n) } catch (_: Exception) {} }, 1000)
         }
         stopSelf()
     }

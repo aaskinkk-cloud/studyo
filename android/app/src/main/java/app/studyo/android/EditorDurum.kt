@@ -135,7 +135,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** Dışa aktarma sırasında donanım çözücüleri boşaltılır (büyük videolarda çakışmayı önler). */
-    fun onizlemeBirak() { kompSil(); player.pause(); player.stop(); muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
+    fun onizlemeBirak() { kompSil(); player.pause(); player.stop(); kuyrukPl.stop(); kuyrukAnahtar = null; muzikPl.stop(); sesPl.stop(); katmanPl.values.forEach { it.stop() } }
     fun onizlemeGeri() { listeKur(sira.value, 0); muzikKur() }
 
     private fun sesUygula() {
@@ -244,7 +244,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             kompHazirlaniyor = false
             if (comp == null) { kompBasarisiz(bas, "kompozisyon kurulamadı"); return@launch }
             try {
-                val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx)
+                val cp = androidx.media3.transformer.StudyoOynatici.isinmasiz(androidx.media3.transformer.CompositionPlayer.Builder(ctx))
                     .setVideoGraphFactory(androidx.media3.effect.MultipleInputVideoGraph.Factory()).build()
                 cp.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp && kompAktif.value) oynuyor.value = isPlaying }

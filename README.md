@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.23 (14.11.2026, deneme · `yerel-android` dalı): ▶'da uygulamanın çökmesi giderildi
+- **Cihaz kaydı (Ahmet, 12:35, 3.22 çökme kaydı):** `IllegalStateException: flush() is valid only at Executing states; currently at Released state` — `CompositionPlaybackThread`, `RendererHolder.disablePrewarming` → `MediaCodecRenderer.onDisabled`.
+- **Kök neden [Kesin]:** Media3 1.8.1 CompositionPlayer, sıradaki video klip için video oluşturucusunu önceden ısıtıyor (prewarming). 3.20'den beri dizide resim ↔ video (geçiş parçası) sık değiştiği için bu yol sürekli çalışıyor; ısıtılan oluşturucu kapatılırken serbest bırakılmış çözücüye `flush()` çağrılıyor ve oynatma iş parçacığında yakalanmayan hata uygulamayı kapatıyor.
+- **Çözüm:** akıcı önizlemede video ön ısıtması kapalı (`StudyoOynatici.isinmasiz`; Media3'teki ayar paket içi olduğu için `androidx.media3.transformer` paketinde küçük bir dosya). Dışa aktarma (Transformer) ön ısıtma kullanmaz, etkilenmez.
+- Dışa aktarma ekranına girerken geçiş önizleme oynatıcısı da durdurulur (çözücüler dışa aktarmaya kalır).
+
 ## 3.22 (14.11.2026, deneme · `yerel-android` dalı): geçiş parçası yalnız görüntü, geçiş sesi ayrı; çökme kaydı
 - **Cihaz kaydı (Ahmet, 12:20):** geçiş parçasında `IllegalStateException` — `SequenceAssetLoader.onOutputFormat` (`checkStateNotNull`), `ImageAssetLoader` üzerinden. **Kök neden [Muhtemel]:** parçada iki dizi vardı ve her ikisine "zorunlu ses izi" konmuştu; resim klibinde Media3 bu sahte ses izini, öbür dizi hazır olmadan istiyor ve boş dönünce durumu bozuluyor (aynı geçiş bir kez geçti, bir kez düştü = yarış). Videolu projedeki "Asset loader error" da ses tarafında olabilir [Tahmin].
 - **Çözüm:** geçiş parçası artık **yalnız görüntü** (ses izi yok, zorunlu ses yok). Geçiş süresince giden klibin son T ms'sinin ve gelen klibin ilk T ms'sinin sesi ana videoda iki ayrı **yalnız-ses dizisiyle** aynı anda çalar (müzik/seslendirmede yıllardır kullanılan yol). Önbellek anahtarı g322 (eski sesli parçalar yeniden işlenir).

@@ -241,7 +241,39 @@ object Disa {
         }
         val diziler = ArrayList<EditedMediaItemSequence>()
         diziler += EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build()
-        Kayit.yaz("  Diziler: tek görüntü dizisi, ${ogeler.size} öğe ($gecisAdet geçiş parçası)")
+        // ---- geçiş sesleri (3.22): parçalar yalnız görüntüdür; geçiş süresince giden klibin son T ms'sinin sesi (dizi 1) ve
+        // gelen klibin ilk T ms'sinin sesi (dizi 2) yalnız-ses dizileriyle aynı anda çalar (müzik/seslendirme ile aynı yol).
+        fun sesOge(k: Klip, bas: Long, son: Long): EditedMediaItem {
+            val mi = MediaItem.Builder().setUri(Uri.parse(k.uri))
+                .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(bas).setEndPositionMs(son).build()).build()
+            val ap: List<AudioProcessor> = if (k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
+            return EditedMediaItem.Builder(mi).setRemoveVideo(true).sureli(ctx, onizleme, k.uri, k.kaynakSureMs, son)
+                .setEffects(Effects(ap, listOf<Effect>())).build()
+        }
+        val sesA = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
+        val sesB = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
+        var imA = 0L; var imB = 0L; var adA = 0; var adB = 0
+        run {
+            var b0 = 0L
+            for (j in p.klipler.indices) {
+                val T = p.ortusme(j)
+                b0 += p.klipler[j].sureMs - T          // geçişin başladığı an (zaman çizelgesi)
+                if (T <= 0) continue
+                val A = p.klipler[j]
+                if (!A.foto && A.sesVar && !A.sessiz) {
+                    if (b0 > imA) sesA.addGap((b0 - imA) * 1000)
+                    sesA.addItem(sesOge(A, (A.sonMs - T).coerceAtLeast(A.basMs), A.sonMs)); imA = b0 + T; adA++
+                }
+                val B = p.klipler.getOrNull(j + 1)
+                if (B != null && !B.foto && B.sesVar && !B.sessiz) {
+                    if (b0 > imB) sesB.addGap((b0 - imB) * 1000)
+                    sesB.addItem(sesOge(B, B.basMs, (B.basMs + T).coerceAtMost(B.sonMs))); imB = b0 + T; adB++
+                }
+            }
+        }
+        if (adA > 0) diziler += sesA.build()
+        if (adB > 0) diziler += sesB.build()
+        Kayit.yaz("  Diziler: tek görüntü dizisi, ${ogeler.size} öğe ($gecisAdet geçiş parçası), geçiş sesi $adA+$adB")
         p.muzik?.let { m ->
             val mib = MediaItem.Builder().setUri(Uri.parse(m.uri))
             if (!m.dongu && m.sureMs > toplam)
@@ -312,7 +344,7 @@ object Disa {
     /** Klibin bir parçası: klip içinde ofsMs'den başlayan uzMs'lik kısım (tamMs: klibin ekrandaki tam süresi).
      *  Hareket/yüz kadrajı ve takip yazısı tam klibe göre hesaplanır → parçalar birbirinin kesintisiz devamıdır. */
     private fun parca(ctx: Context, onizleme: Boolean, k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>,
-                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList()): EditedMediaItem {
+                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList(), sesKapali: Boolean = false): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         val klipSon = (k.basMs + ofsMs + uzMs).coerceAtMost(k.sonMs)
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uzMs)
@@ -329,7 +361,7 @@ object Disa {
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
         v += sonEtki
-        val sesli = !k.foto && k.sesVar && !k.sessiz
+        val sesli = !k.foto && k.sesVar && !k.sessiz && !sesKapali
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
         if (!k.foto) b.sureli(ctx, onizleme, k.uri, k.kaynakSureMs, klipSon)
@@ -347,18 +379,21 @@ object Disa {
         val T = p.ortusme(i)
         val tur = p.gecisAt(i).tur
         val son = if (tur == "erime") listOf<Effect>(EriyenMaske(0L, T, T, -1L)) else emptyList()
-        val ust = parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, T, fps, 0L, son)
+        // 3.22: parça YALNIZ GÖRÜNTÜ (ses yok, zorunlu ses izi yok). Media3'te resim + zorunlu ses izi iki dizide yarışa
+        // giriyordu (SequenceAssetLoader.onOutputFormat checkStateNotNull, cihaz kaydı 14.11 12:20). Geçişin sesi ana
+        // kompozisyonda ayrı ses dizileriyle verilir (bkz. kompozisyonKur, "geçiş sesleri").
+        val ust = parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, T, fps, 0L, son, sesKapali = true)
         val alt = if (i + 1 < p.klipler.size) {
             val B = p.klipler[i + 1]
-            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, 0L, T, fps, 0L)
+            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, 0L, T, fps, 0L, sesKapali = true)
         } else {
             val f = kapanisDosyasi(ctx, p, W, H, "kapanis_gecis")
             val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T).build()
             EditedMediaItem.Builder(mi).setFrameRate(fps)
                 .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)))).build()
         }
-        val d0 = EditedMediaItemSequence.Builder(listOf(ust)).experimentalSetForceAudioTrack(true).build()   // ilk dizi = üstte
-        val d1 = EditedMediaItemSequence.Builder(listOf(alt)).experimentalSetForceAudioTrack(true).build()
+        val d0 = EditedMediaItemSequence.Builder(listOf(ust)).build()   // ilk dizi = üstte
+        val d1 = EditedMediaItemSequence.Builder(listOf(alt)).build()
         return Composition.Builder(listOf(d0, d1)).setHdrMode(hdrKip)
             .setVideoCompositorSettings(GecisBirlestirici(listOf(tur), listOf(longArrayOf(0L, T)), W, H)).build()
     }
@@ -381,17 +416,17 @@ object Disa {
             })
         }
         val ogeler = ArrayList<EditedMediaItem>()
-        ogeler += parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, y1, fps, 0L, sol(true, y1))
+        ogeler += parca(ctx, false, A, W, H, null, emptyList(), emptyList(), i, A.sureMs, A.sureMs - T, y1, fps, 0L, sol(true, y1), sesKapali = true)
         ogeler += if (i + 1 < p.klipler.size) {
             val B = p.klipler[i + 1]
-            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, y1, y2, fps, 0L, sol(false, y2))
+            parca(ctx, false, B, W, H, null, emptyList(), emptyList(), i + 1, B.sureMs, y1, y2, fps, 0L, sol(false, y2), sesKapali = true)
         } else {
             val f = kapanisDosyasi(ctx, p, W, H, "kapanis_gecis")
             val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(y2).build()
             EditedMediaItem.Builder(mi).setFrameRate(fps)
                 .setEffects(Effects(listOf(), listOf<Effect>(Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)) + sol(false, y2))).build()
         }
-        return Composition.Builder(listOf(EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build())).setHdrMode(hdrKip).build()
+        return Composition.Builder(listOf(EditedMediaItemSequence.Builder(ogeler).build())).setHdrMode(hdrKip).build()
     }
 
     internal fun kodlayici(ctx: Context, kisa: Int, kalite: Float) = DefaultEncoderFactory.Builder(ctx)

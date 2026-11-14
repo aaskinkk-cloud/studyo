@@ -37,9 +37,23 @@ object Depo {
     lateinit var app: Context
         private set
 
+    @Volatile private var cokmeKuruldu = false
+
     fun baslat(ctx: Context) {
         app = ctx.applicationContext
         Kayit.baslat(app)
+        // Çökme kaydı (3.22): uygulama kapanmadan önce nedeni hata kaydına yazılır
+        if (cokmeKuruldu) return
+        cokmeKuruldu = true
+        val onceki = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try {
+                var neden = ""; var c: Throwable? = e.cause
+                while (c != null) { neden += "\n  Neden: ${c.javaClass.name}: ${c.message}\n" + c.stackTraceToString().lines().take(12).joinToString("\n"); c = c.cause.takeIf { it !== c } }
+                Kayit.yaz("ÇÖKME [${t.name}] ${e.javaClass.name}: ${e.message}\n" + e.stackTraceToString().lines().take(30).joinToString("\n") + neden)
+            } catch (_: Throwable) {}
+            onceki?.uncaughtException(t, e)
+        }
     }
 
     fun dizin(ad: String) = File(app.filesDir, ad).apply { mkdirs() }

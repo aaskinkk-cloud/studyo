@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.22 (14.11.2026, deneme · `yerel-android` dalı): geçiş parçası yalnız görüntü, geçiş sesi ayrı; çökme kaydı
+- **Cihaz kaydı (Ahmet, 12:20):** geçiş parçasında `IllegalStateException` — `SequenceAssetLoader.onOutputFormat` (`checkStateNotNull`), `ImageAssetLoader` üzerinden. **Kök neden [Muhtemel]:** parçada iki dizi vardı ve her ikisine "zorunlu ses izi" konmuştu; resim klibinde Media3 bu sahte ses izini, öbür dizi hazır olmadan istiyor ve boş dönünce durumu bozuluyor (aynı geçiş bir kez geçti, bir kez düştü = yarış). Videolu projedeki "Asset loader error" da ses tarafında olabilir [Tahmin].
+- **Çözüm:** geçiş parçası artık **yalnız görüntü** (ses izi yok, zorunlu ses yok). Geçiş süresince giden klibin son T ms'sinin ve gelen klibin ilk T ms'sinin sesi ana videoda iki ayrı **yalnız-ses dizisiyle** aynı anda çalar (müzik/seslendirmede yıllardır kullanılan yol). Önbellek anahtarı g322 (eski sesli parçalar yeniden işlenir).
+- **Çökme kaydı:** uygulama beklenmedik biçimde kapanırsa nedeni artık hata kaydına "ÇÖKME" diye yazılır (önceden hiç yazılmıyordu; Ahmet'in "uygulama kapanıyor" bildirimi kayıtta görünmüyordu).
+
 ## 3.21 (14.11.2026, deneme · `yerel-android` dalı): geçiş parçası hatası — neden kaydı + yedek yöntem
 - **Hata (Ahmet, 3.20):** "Geçiş hazırlanamadı: ERROR_CODE_FAILED_RUNTIME_CHECK". Bu kod Media3'te iç denetimde yakalanan her türlü çalışma hatasının ortak adıdır; asıl neden (cause) kayda yazılmıyordu, bu yüzden kök neden henüz bilinmiyor [Kesin].
 - Artık asıl neden zinciri hem hata kaydına hem hata ekranındaki ayrıntıya yazılır; her parça için A/B klibin türü, çözünürlüğü, kodeği, HDR ve ses durumu da kaydedilir.

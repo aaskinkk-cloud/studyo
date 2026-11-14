@@ -23,7 +23,7 @@ class GecisHatasi(val ad: String, mesaj: String) : Exception(mesaj)
  *  Ana video tek görüntü dizisi olarak kurulur; bu parçalar iki klibin arasına konur (bkz. Disa.kompozisyonKur).
  *  Anahtar, parçayı etkileyen her şeyi içerir: klip değişmedikçe parça yeniden işlenmez. */
 object GecisHazir {
-    private const val SURUM = "g321"
+    private const val SURUM = "g322"
 
     /** Son hazırlıkta yedek yöntemle yapılan geçiş sayısı (kullanıcıya not olarak gösterilir). */
     var yedekSayisi = 0

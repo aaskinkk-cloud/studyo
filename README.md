@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.40 (15.11.2026, deneme · `yerel-android` dalı): önizleme fotoğraf renkleri kayıtla aynı
+**Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
+- **Belirti (Ahmet, 3.39):** klip "beyazla" başlıyor, ~1 sn sonra doygunluk geliyor. 3.38 dışa aktarma testinde bu yoktu (Ahmet: "parlama da renklenme olmadı").
+- **Kayıt (3.39.65):** hata yok; önizlemede ve iki 4K dışa aktarmada (Akış, Erime) bütün geçişler tam çizildi (24 kare). Kayıt rengi göremez.
+- **Kök neden [Muhtemel]:** Media3 fotoğrafı dışa aktarmada sRGB'ye çevirerek, ▶ önizlemede çevirmeden (Display P3 bitmap) açıyor. 3.38'de geçiş kodu önizlemede de çevirmiyordu, ama P3 bitmapin GPU'ya yükleniş yolu Media3'ünkinden farklı (bantlı `texSubImage2D` / tek `texImage2D`); önizlemede geçişteki fotoğrafla gövdesi arasında renk farkı kalması bununla açıklanabilir. Dışa aktarmada iki taraf da sRGB olduğu için 3.38'de düzelmişti.
+- **Çözüm:** ▶ önizlemenin fotoğraf çözücüsü de sRGB'ye çevirir (`srgbResimCozucu`); geçiş kodu her zaman sRGB açar. Önizleme, dışa aktarma ve geçiş fotoğrafı artık aynı renkte; P3 yükleme farkına yer kalmaz. Ek yararı: önizleme renkleri kaydedilen videoyla aynı.
+- **Cihaz testi (Ahmet):** ▶ önizlemede ve kaydedilen videoda ayrı ayrı bak; kaydedilen videoda kalırsa 720p gönder.
+
 ## 3.39 (15.11.2026, deneme · `yerel-android` dalı): akıcı geçişler — Hafif erime ve Akış
 **Test:** tür denetimi geçti; derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Ahmet (3.38 cihaz testi):** dışa aktarmada parlama da renklenme de olmadı.

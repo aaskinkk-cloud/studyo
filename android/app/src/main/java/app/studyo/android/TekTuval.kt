@@ -250,7 +250,7 @@ private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean,
         } else {
             val yol = t.resimYol ?: ""
             val boy = (maxOf(t.W, t.H) * 2).coerceIn(1280, 4096)
-            resim = ResimYukleyici { resimAc(File(yol), boy, srgb = !t.onizleme) }
+            resim = ResimYukleyici { resimAc(File(yol), boy, srgb = true) }   // 3.40: önizlemede de sRGB (aşağıya bakın)
         }
     }
 
@@ -259,7 +259,9 @@ private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean,
      *  penceresinin sonu = gelen fotoğrafı benim kodumdan Media3'ün devraldığı kare. Telefon fotoğrafları Display P3 renk
      *  profili taşıyor; Media3 dışa aktarmada fotoğrafı sRGB'ye ÇEVİREREK açıyor (DefaultAssetLoaderFactory:
      *  inPreferredColorSpace = SRGB), ▶ önizlemede ise çevirmeden (BitmapFactoryImageDecoder). Geçiş kodu her ikisinde de
-     *  çevirmeden açıyordu → dışa aktarmada geçişteki fotoğraf soluk, gövdesi canlı. Artık her biri kendi hattıyla aynı. */
+     *  çevirmeden açıyordu → dışa aktarmada geçişteki fotoğraf soluk, gövdesi canlı.
+     *  3.40: ▶ önizlemenin fotoğraf çözücüsü de sRGB'ye çevirir (EditorDurum.srgbResimCozucu) → önizleme, dışa aktarma ve
+     *  geçiş kodu fotoğrafı AYNI renkte açar; P3 bitmapin GPU'ya yüklenme biçimine bağlı fark kalmaz. */
     private fun resimAc(f: File, boy: Int, srgb: Boolean): Bitmap? {
         val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
         android.graphics.BitmapFactory.decodeFile(f.path, o)

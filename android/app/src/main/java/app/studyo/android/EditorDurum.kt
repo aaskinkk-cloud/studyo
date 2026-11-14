@@ -240,7 +240,9 @@ class EditorDurum(private val ctx: Context, id: String) {
             try {
                 // 3.32: dizide yalnız klipler var (geçiş parçası yok) → Media3'ün varsayılan yolu, cihaz kaydında parçasız
                 // projelerde her seferinde çalışan biçim. 3.20–3.31'deki çökme, diziye konan kısa mp4 parçalardan geliyordu.
-                val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx).build()
+                // 3.40: fotoğraflar dışa aktarmadaki gibi sRGB'ye çevrilerek açılır (Media3'ün önizleme çözücüsü çevirmiyordu;
+                // telefon fotoğrafları Display P3) → önizleme renkleri = kayıt renkleri = geçişteki renkler.
+                val cp = androidx.media3.transformer.CompositionPlayer.Builder(ctx).setImageDecoderFactory(srgbResimCozucu()).build()
                 cp.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) { if (komp === cp && kompAktif.value) oynuyor.value = isPlaying }
                     override fun onRenderedFirstFrame() { if (komp === cp) kompGorunur.value = true }
@@ -266,6 +268,21 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
         return true
     }
+
+    @Suppress("DEPRECATION")
+    private fun srgbResimCozucu(): androidx.media3.exoplayer.image.ImageDecoder.Factory =
+        androidx.media3.exoplayer.image.BitmapFactoryImageDecoder.Factory { veri, uz ->
+            val sinir = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeByteArray(veri, 0, uz, sinir)
+            var ss = 1
+            while (maxOf(sinir.outWidth, sinir.outHeight) / ss > 4096) ss *= 2
+            val o = android.graphics.BitmapFactory.Options().apply {
+                inSampleSize = ss
+                inPreferredColorSpace = android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB)
+            }
+            android.graphics.BitmapFactory.decodeByteArray(veri, 0, uz, o)
+                ?: throw androidx.media3.exoplayer.image.ImageDecoderException("Fotoğraf açılamadı")
+        }
 
     private fun kompOynat(cp: androidx.media3.transformer.CompositionPlayer, bas: Long, t0: Long) {
         kompAktif.value = true

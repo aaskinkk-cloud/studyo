@@ -87,12 +87,13 @@ object Erime {
 }
 
 /** Dışa aktarma: giden klibin kuyruğuna uygulanan erime maskesi (çıkış alfası; birleştirici alfaya göre karıştırır). */
-/** basMs ≥ 0: önizleme (damgalar kompozisyon zamanı, kuyruğun başlangıcı basMs). −1: dışa aktarma (ilk kare = başlangıç). */
-class EriyenMaske(private val sureMs: Long, private val basMs: Long = -1L) : GlEffect {
-    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = EriyenProgram(useHdr, sureMs, basMs)
+/** Üstteki klibin erimesi: ilk girisMs'de eriyerek GÖRÜNÜR (alfa = maske), son cikisMs'de eriyerek KAYBOLUR (alfa = 1 − maske).
+ *  basMs ≥ 0: önizleme (damgalar kompozisyon zamanı). −1: dışa aktarma (ilk kare = klibin başı). */
+class EriyenMaske(private val girisMs: Long, private val cikisMs: Long, private val sureMs: Long, private val basMs: Long = -1L) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = EriyenProgram(useHdr, girisMs, cikisMs, sureMs, basMs)
 }
 
-private class EriyenProgram(useHdr: Boolean, private val sureMs: Long, private val basMs: Long) : BaseGlShaderProgram(useHdr, 1) {
+private class EriyenProgram(useHdr: Boolean, private val girisMs: Long, private val cikisMs: Long, private val sureMs: Long, private val basMs: Long) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(VS, FS)
     private val doku: Int = Erime.dokuYukle()
     private var t0 = -1L
@@ -105,11 +106,15 @@ private class EriyenProgram(useHdr: Boolean, private val sureMs: Long, private v
 
     override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
         val yerelMs = if (basMs >= 0) presentationTimeUs / 1000f - basMs else { if (t0 < 0) t0 = presentationTimeUs; (presentationTimeUs - t0) / 1000f }
-        val k = (yerelMs / sureMs.coerceAtLeast(1)).coerceIn(0f, 1f)
+        // uEsik: maskenin eşiği; uTers = 1 → alfa = maske (giriş), 0 → alfa = 1 − maske (çıkış). Ortada tam görünür.
+        var esik = -1f; var ters = 0f
+        if (girisMs > 0 && yerelMs < girisMs) { esik = Erime.esik(yerelMs / girisMs); ters = 1f }
+        else if (cikisMs > 0 && yerelMs > sureMs - cikisMs) esik = Erime.esik((yerelMs - (sureMs - cikisMs)) / cikisMs)
         program.use()
         program.setSamplerTexIdUniform("uTexSampler", inputTexId, 0)
         program.setSamplerTexIdUniform("uGurultu", doku, 1)
-        program.setFloatUniform("uEsik", Erime.esik(k))
+        program.setFloatUniform("uEsik", esik)
+        program.setFloatUniform("uTers", ters)
         program.setFloatUniform("uYum", Erime.E)
         program.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -136,12 +141,14 @@ uniform sampler2D uTexSampler;
 uniform sampler2D uGurultu;
 uniform float uEsik;
 uniform float uYum;
+uniform float uTers;
 varying vec2 vTexSamplingCoord;
 void main() {
   vec4 c = texture2D(uTexSampler, vTexSamplingCoord);
   float n = texture2D(uGurultu, vec2(vTexSamplingCoord.x, 1.0 - vTexSamplingCoord.y)).r;
   float m = clamp((uEsik - n) / uYum, 0.0, 1.0);
-  gl_FragColor = vec4(c.rgb, c.a * (1.0 - m));
+  float a = mix(1.0 - m, m, uTers);
+  gl_FragColor = vec4(c.rgb, c.a * a);
 }
 """
     }

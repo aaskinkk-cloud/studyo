@@ -241,3 +241,33 @@ class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, priva
         return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((n.x * 2f - 1f).coerceIn(-1f, 1f), (1f - n.y * 2f).coerceIn(-1f, 1f)).setOverlayFrameAnchor(0f, 0f).setAlphaScale(a).build()
     }
 }
+
+
+/** Üst dizideki bir klip: zaman çizelgesinde [bas, bas+sure); başında girisMs boyunca görünür olur, sonunda cikisMs boyunca kaybolur. */
+class UstBolum(val bas: Long, val sure: Long, val girisMs: Long, val girisTur: String, val cikisMs: Long, val cikisTur: String)
+
+/** A/B düzeni birleştiricisi: üst dizi (giriş 0) yalnız kendi klibi sırasında görünür; geçiş pencerelerinde solar/kayar/büyür. */
+class UstBirlestirici(private val bolumler: List<UstBolum>, private val W: Int, private val H: Int) : androidx.media3.common.VideoCompositorSettings {
+    override fun getOutputSize(inputSizes: MutableList<androidx.media3.common.util.Size>): androidx.media3.common.util.Size = androidx.media3.common.util.Size(W, H)
+    override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings {
+        if (inputId != 0) return StaticOverlaySettings.Builder().build()
+        val ms = presentationTimeUs / 1000
+        val b = bolumler.firstOrNull { ms >= it.bas && ms < it.bas + it.sure } ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val y = ms - b.bas
+        if (b.girisMs > 0 && y < b.girisMs) {
+            val f = (y.toFloat() / b.girisMs).coerceIn(0f, 1f); val e = f * f * (3f - 2f * f)
+            return when (b.girisTur) {
+                "erime" -> StaticOverlaySettings.Builder().build()                     // saydamlık klibin kendi maskesinde
+                "kaydir" -> StaticOverlaySettings.Builder().setBackgroundFrameAnchor((1f - e).coerceIn(-1f, 1f), 0f).setOverlayFrameAnchor(-(1f - e).coerceIn(-1f, 1f), 0f).build()   // sağdan girer
+                else -> StaticOverlaySettings.Builder().setAlphaScale(e.coerceIn(0f, 1f)).build()
+            }
+        }
+        if (b.cikisMs > 0 && y >= b.sure - b.cikisMs) {
+            val f = ((y - (b.sure - b.cikisMs)).toFloat() / b.cikisMs).coerceIn(0f, 1f)
+            val a = Gecisler.ustKatman(b.cikisTur, f)
+            return StaticOverlaySettings.Builder().setAlphaScale(a.alfa.coerceIn(0f, 1f)).setBackgroundFrameAnchor(a.zx.coerceIn(-1f, 1f), 0f)
+                .setOverlayFrameAnchor(a.kx.coerceIn(-1f, 1f), 0f).setScale(a.olcek, a.olcek).build()
+        }
+        return StaticOverlaySettings.Builder().build()
+    }
+}

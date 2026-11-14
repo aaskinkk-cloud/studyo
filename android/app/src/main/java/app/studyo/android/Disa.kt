@@ -190,51 +190,63 @@ object Disa {
 
         val kapanisVar = p.kapanisMs > 0
         val n = p.klipler.size + if (kapanisVar) 1 else 0
-        val ogeler = ArrayList<EditedMediaItem>()
-        val baslar = ArrayList<Long>()
-        var bas = 0L
-        for (i in p.klipler.indices) {
-            val k = p.zKlip(i)
-            val gec = Gecisler.etkiler(p.gecisAt(i - 1), p.gecisAt(i), k.sureMs, i > 0, i < n - 1, i == 0 && p.gecis.siyahtanAc, bas)
-            baslar += bas
-            ogeler += oge(ctx, onizleme, k, W, H, logo, gec, katmanlar(bas, k.sureMs), i, p.klipler[i].sureMs, fps, bas)
-            bas += k.sureMs
-        }
-        if (kapanisVar) {
-            baslar += bas
-            val f = kapanisDosyasi(ctx, p, W, H, if (onizleme) "kapanis_akici" else "kapanis_cikis")
-            val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
-            val v = ArrayList<Effect>()
-            v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
-            v += Gecisler.etkiler(p.gecisAt(p.klipler.lastIndex), p.gecis, p.kapanisMs, n > 1, false, false, bas)
-            val kk = katmanlar(bas, p.kapanisMs)
-            if (kk.isNotEmpty()) v += OverlayEffect(kk)
-            ogeler += EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
-        }
         val toplam = p.toplamMs
         val diziler = ArrayList<EditedMediaItemSequence>()
 
-        // ---- üst üste binen geçiş: giden klibin devamı (ya da son karesi) üst katmanda solar/kayar ----
-        val pencereler = ArrayList<LongArray>()   // [başlangıç, süre]
-        val pencereTur = ArrayList<String>()
-        if (n >= 2) {
-            val ust = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceVideoTrack(true).experimentalSetForceAudioTrack(true)
-            var imlec = 0L
-            for ((i, b0, T) in Gecisler.pencereler(p)) {
-                val k = p.klipler.getOrNull(i) ?: continue
-                val tur = p.gecisAt(i).tur
-                val kuyruk = kuyrukOge(ctx, onizleme, k, T, W, H, logo, katmanlar(b0, T), i, fps, tur == "erime", b0) ?: continue
-                if (b0 > imlec) dolgu(ctx, ust, b0 - imlec, onizleme, fps, W, H)
-                ust.addItem(kuyruk)
-                pencereler += longArrayOf(b0, T); pencereTur += tur
-                imlec = b0 + T
+        // ---- A/B düzeni (3.19) ----
+        // KÖK NEDEN ("göz kırpma", kayıtta da): üst üste binen geçişte giden klip İKİYE bölünüyordu — gövdesi alt dizide,
+        // son T ms'si ("kuyruk") üst dizide ayrı bir çözücüyle. Pencerenin ilk karesinde alt dizi gelen klibe geçerken üst
+        // dizinin kuyruğu tam görünür olmak zorundaydı; bir karelik gecikme/uyuşmazlık = gelen klip bir an görünür (kırpma).
+        // ÇÖZÜM: klipler bölünmez. Üst üste binen her geçişte sıradaki klip öbür diziye konur (A/B). Üstteki klip ya
+        // görünmezken başlar (solarak girer) ya da görünmez olarak biter (solarak çıkar) → dizi değişimi hiç görünmez.
+        val bolumler = ArrayList<UstBolum>()
+        val ustB = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceVideoTrack(true).experimentalSetForceAudioTrack(true)
+        val abVar = p.klipler.indices.any { p.ortusme(it) > 0 }
+        val altB = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
+        if (abVar) altB.experimentalSetForceVideoTrack(true)     // geçiş yoksa 3.1'deki tek dizi yolu aynen
+        var ustImlec = 0L; var altImlec = 0L
+        var ustte = false                    // ilk öğe altta
+        var bas = 0L
+        for (j in 0 until n) {
+            val klipMi = j < p.klipler.size
+            val tam = if (klipMi) p.klipler[j].sureMs else p.kapanisMs
+            val tIn = if (j > 0) p.ortusme(j - 1) else 0L
+            val tOut = if (klipMi) p.ortusme(j) else 0L
+            if (tIn > 0) ustte = !ustte
+            val turIn = if (j > 0) p.gecisAt(j - 1).tur else "yok"
+            val turOut = if (klipMi) p.gecisAt(j).tur else "yok"
+            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, tam, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, bas)
+            val son = ArrayList<Effect>()
+            if (ustte && ((tIn > 0 && turIn == "erime") || (tOut > 0 && turOut == "erime")))
+                son += EriyenMaske(if (turIn == "erime") tIn else 0L, if (turOut == "erime") tOut else 0L, tam, if (onizleme) bas else -1L)
+            val madde = if (klipMi) oge(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(bas, tam), j, tam, fps, bas, son) else {
+                val f = kapanisDosyasi(ctx, p, W, H, if (onizleme) "kapanis_akici" else "kapanis_cikis")
+                val mi = MediaItem.Builder().setUri(Uri.fromFile(f)).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(p.kapanisMs).build()
+                val v = ArrayList<Effect>()
+                v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
+                v += gec
+                val kk = katmanlar(bas, p.kapanisMs)
+                if (kk.isNotEmpty()) v += OverlayEffect(kk)
+                v += son
+                EditedMediaItem.Builder(mi).setFrameRate(fps).setEffects(Effects(listOf(), v)).build()
             }
-            if (pencereler.isNotEmpty()) {
-                if (toplam > imlec) dolgu(ctx, ust, toplam - imlec, onizleme, fps, W, H)
-                diziler += ust.build()   // ilk dizi = birincil = en üstte çizilir
+            if (ustte) {
+                if (bas > ustImlec) dolgu(ctx, ustB, bas - ustImlec, onizleme, fps, W, H)
+                ustB.addItem(madde); ustImlec = bas + tam
+                bolumler += UstBolum(bas, tam, tIn, turIn, tOut, turOut)
+            } else {
+                if (bas > altImlec) dolgu(ctx, altB, bas - altImlec, onizleme, fps, W, H)
+                altB.addItem(madde); altImlec = bas + tam
             }
+            bas += tam - tOut
         }
-        diziler += EditedMediaItemSequence.Builder(ogeler).experimentalSetForceAudioTrack(true).build()
+        if (bolumler.isNotEmpty()) {
+            if (toplam > ustImlec) dolgu(ctx, ustB, toplam - ustImlec, onizleme, fps, W, H)
+            if (toplam > altImlec) dolgu(ctx, altB, toplam - altImlec, onizleme, fps, W, H)
+            diziler += ustB.build()      // ilk dizi = en üstte çizilir
+        }
+        diziler += altB.build()
+        Kayit.yaz("  Diziler: ${if (bolumler.isNotEmpty()) "A/B (üstte ${bolumler.size} klip)" else "tek"}")
         p.muzik?.let { m ->
             val mib = MediaItem.Builder().setUri(Uri.parse(m.uri))
             if (!m.dongu && m.sureMs > toplam)
@@ -300,39 +312,11 @@ object Disa {
             }
         }
         val cb = Composition.Builder(diziler).setHdrMode(hdrKip)
-        if (pencereler.isNotEmpty()) cb.setVideoCompositorSettings(GecisBirlestirici(pencereTur, pencereler, W, H))
+        if (bolumler.isNotEmpty()) cb.setVideoCompositorSettings(UstBirlestirici(bolumler, W, H))
         return cb.build()
     }
 
-    /** Giden klibin son T ms'si (gerçek görüntü ve sesi; HDR çevirisi tabandakiyle aynı) — gelen klibin üstünde solar.
-     *  3.2'de kırpılmış devam yoksa son kare JPEG olarak kullanılıyordu; telefonun kare çıkarıcısı HDR'yi farklı çevirdiği için
-     *  geçişte "parlama" oluyordu. Artık görüntü hep aynı çözücüden gelir. */
-    private fun kuyrukOge(ctx: Context, onizleme: Boolean, k: Klip, T: Long, W: Int, H: Int, logo: Yerlesim?, zamanli: List<TextureOverlay>, i: Int, fps: Int, erime: Boolean, b0: Long): EditedMediaItem? {
-        val v = ArrayList<Effect>()
-        val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
-        if (k.foto) {
-            mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(T)
-        } else {
-            mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs((k.sonMs - T).coerceAtLeast(k.basMs)).setEndPositionMs(k.sonMs).build())
-        }
-        hareket(k, W, H, i, k.sureMs, k.sureMs - T, b0)?.let { v += it }   // hareket geçiş boyunca sürer (durmaz, geri sıçramaz)
-        v += Presentation.createForWidthAndHeight(W, H, if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
-        val kap = ArrayList<TextureOverlay>()
-        kap += zamanli
-        k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kap += bindir(it) }
-        logo?.let { kap += bindir(it) }
-        if (kap.isNotEmpty()) v += OverlayEffect(kap)
-        if (erime) v += EriyenMaske(T, if (onizleme) b0 else -1L)          // web'deki "melt": giden klip gürültü maskesiyle eriyerek kaybolur
-        val sesli = !k.foto && k.sesVar && !k.sessiz
-        val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
-        val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))
-        if (!k.foto) b.sureli(ctx, onizleme, k.uri, k.kaynakSureMs, k.sonMs)
-        if (k.foto) b.setFrameRate(fps)
-        if (!sesli) b.setRemoveAudio(true)
-        return b.build()
-    }
-
-    private fun oge(ctx: Context, onizleme: Boolean, k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, i: Int, tamMs: Long, fps: Int, cizelgeBas: Long): EditedMediaItem {
+    private fun oge(ctx: Context, onizleme: Boolean, k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>, i: Int, tamMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList()): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(k.fotoSureMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs).setEndPositionMs(k.sonMs).build())
@@ -347,6 +331,7 @@ object Disa {
         if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kap += TakipBindirme(k, t, it, W, H, cizelgeBas) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
         logo?.let { kap += bindir(it) }
         if (kap.isNotEmpty()) v += OverlayEffect(kap)
+        v += sonEtki
         val sesli = !k.foto && k.sesVar && !k.sessiz
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))

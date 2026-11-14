@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.19 (14.11.2026, deneme · `yerel-android` dalı): geçişte "göz kırpma" — A/B düzeni
+**Test:** derlendi; cihaz testi bekleniyor.
+- **Belirti (Ahmet):** geçişte göz kırpar gibi; **kaydedilen videoda da**. Demek ki sorun önizlemede değil, kompozisyonun kendisinde.
+- **Kök neden [Muhtemel]:** üst üste binen geçişte giden klip ikiye bölünüyordu: gövdesi alt dizide, son T ms'si ("kuyruk") üst dizide ayrı çözücüyle. Pencerenin ilk karesinde alt dizi gelen klibe geçerken kuyruk tam görünür olmak zorundaydı; bir karelik gecikme = gelen klip bir an görünür.
+- **Çözüm:** klipler bölünmez. Her üst üste binen geçişte sıradaki klip öbür diziye konur (A/B). Üstteki klip görünmezken başlar (solarak/eriyerek girer) ya da görünmez olarak biter; dizi değişimi hiçbir zaman görünür bir karede olmaz. `UstBirlestirici`, `UstBolum`, `EriyenMaske(giriş, çıkış)`. Geçişsiz projelerde tek dizi yolu aynen.
+- Akıcı önizleme aynı kompozisyonu kullandığı için önizleme de aynı şekilde düzelir. (Duraklatılmış düzenleme önizlemesi eski yöntemle çizer.)
+
 ## 3.18 (14.11.2026, deneme · `yerel-android` dalı): dışa aktarma hatası düzeltildi
 - **Hata (Ahmet, 02:19):** "Görüntü işlenemedi · ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED · IllegalArgumentException".
 - **Kök neden [Kesin]:** 3.12'deki canlı "Abone ol" kartı soldan kayarak girerken bindirme çapası −1'in altına iniyordu; Media3 `StaticOverlaySettings` çapanın −1…1 aralığında olmasını şart koşar (`checkArgument`) → kartın göründüğü ilk karede dışa aktarma duruyordu. Önizleme Compose ile çizildiği için etkilenmiyordu.

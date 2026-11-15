@@ -70,6 +70,7 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje) {
     }
 
     p.katmanlar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
+    TumKatmanlar(vm, p)
 
     if (cikartmaAcik) AlertDialog(
         onDismissRequest = { cikartmaAcik = false },
@@ -136,7 +137,16 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
             SimgeDugme("basa", "Başı = şimdi", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = e && konum < o.sonMs - 300) { d { it.copy(basMs = konum.coerceAtLeast(0)) } }
             SimgeDugme("sonraki", "Sonu = şimdi", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = e && konum > o.basMs + 300) { d { it.copy(sonMs = konum.coerceAtMost(p.toplamMs)) } }
             SimgeDugme("oynat", "Başına git", Modifier.weight(1f), renk = tonRenk(2, "")) { vm.git(o.basMs) }
-            SimgeDugme("kadraj", "Tüm video", Modifier.weight(1f), renk = tonRenk(3, ""), etkin = e && o.tur != "ses") { d { it.copy(basMs = 0, sonMs = p.toplamMs) } }
+            SimgeDugme("kadraj", "Tüm video", Modifier.weight(1f), renk = tonRenk(3, ""), etkin = e) { d { vm.katmanAralik(it, "tum") } }
+        }
+        // otomatik baş/son (3.43): tek dokunuşla
+        Row(Modifier.fillMaxWidth()) {
+            SimgeDugme("klip", "Bu klip boyunca", Modifier.weight(1f), renk = tonRenk(4, ""), etkin = e) { d { vm.katmanAralik(it, "klip") } }
+            SimgeDugme("sonraki", "Şimdiden sona", Modifier.weight(1f), renk = tonRenk(5, ""), etkin = e) { d { vm.katmanAralik(it, "sona") } }
+            SimgeDugme("basa", "Baştan şimdiye", Modifier.weight(1f), renk = tonRenk(6, ""), etkin = e) { d { vm.katmanAralik(it, "basa") } }
+            if (o.tur == "ses") SimgeDugme(if (o.ses <= 0.001f) "sessiz" else "ses", if (o.ses <= 0.001f) "Sesi aç" else "Sessiz", Modifier.weight(1f), renk = tonRenk(7, ""), etkin = e) {
+                d { it.copy(ses = if (it.ses <= 0.001f) 1f else 0f) } }
+            else SimgeDugme("gorunum", if (o.gizli) "Göster" else "Gizle", Modifier.weight(1f), renk = tonRenk(7, ""), etkin = e) { d { it.copy(gizli = !it.gizli) } }
         }
 
         when (o.tur) {
@@ -256,5 +266,50 @@ private fun HazirYazilar(vm: EditorDurum) {
                 Text(h.ad, color = Renk.soluk, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
             }
         }
+    }
+}
+
+/** Tüm katmanlar (3.43): müzik ve her katman tek satırda — ses/opaklık düzeyi, kapat/aç, tek dokunuşla tüm video. */
+@Composable
+private fun TumKatmanlar(vm: EditorDurum, p: Proje) {
+    if (p.katmanlar.isEmpty() && p.muzik == null) return
+    Kart("Ses ve görünürlük · tümü") {
+        p.muzik?.let { m ->
+            HizliSatir("nota", "Müzik · ${m.ad.ifBlank { "parça" }}", Color(0xFF4CC38A), m.ses, 0f..1f, m.ses <= 0.001f, "Ses",
+                kapat = { vm.muzikDegis { it.copy(ses = if (it.ses <= 0.001f) 0.35f else 0f) } }, tum = null) { v -> vm.muzikDegis { it.copy(ses = v) } }
+        }
+        for (o in p.katmanlar.asReversed()) key(o.id) {
+            val ses = o.tur == "ses"
+            val ad = o.ad.ifBlank { o.metin.lineSequence().firstOrNull() ?: "" }.ifBlank { turAdi(o.tur) }
+            HizliSatir(turSimge(o.tur), ad, when (o.tur) { "metin" -> Color(0xFF7E57C2); "gorsel" -> Color(0xFF2EC5D3); "cikartma" -> Color(0xFFF5A524); "ses" -> Color(0xFF4CC38A); else -> Renk.soluk },
+                if (ses) o.ses else o.opaklik, if (ses) 0f..1.5f else 0.05f..1f, if (ses) o.ses <= 0.001f else o.gizli, if (ses) "Ses" else "Opaklık",
+                kapat = { vm.katmanDegis(o.id) { if (ses) it.copy(ses = if (it.ses <= 0.001f) 1f else 0f) else it.copy(gizli = !it.gizli) } },
+                tum = { vm.katmanDegis(o.id) { vm.katmanAralik(it, "tum") } }, kilitli = o.kilitli,
+                sec = { vm.seciliKatman.value = o.id }) { v -> vm.katmanDegis(o.id) { if (ses) it.copy(ses = v) else it.copy(opaklik = v) } }
+        }
+        if (p.katmanlar.size > 1) DugmeSirasi(
+            "Hepsi tüm video" to { vm.katmanHepsi { vm.katmanAralik(it, "tum") }; vm.mesaj.value = "Tüm katmanlar video boyunca" },
+            "Hepsi bu klipte" to { vm.katmanHepsi { vm.katmanAralik(it, "klip") }; vm.mesaj.value = "Tüm katmanlar bu klip boyunca" },
+        )
+    }
+}
+
+@Composable
+private fun HizliSatir(simge: String, ad: String, renk: Color, deger: Float, aralik: ClosedFloatingPointRange<Float>, kapali: Boolean, olcu: String,
+                       kapat: () -> Unit, tum: (() -> Unit)?, kilitli: Boolean = false, sec: (() -> Unit)? = null, bitti: (Float) -> Unit) {
+    var v by remember(deger) { mutableFloatStateOf(deger) }
+    Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f).then(if (sec != null) Modifier.clickable(onClick = sec) else Modifier), verticalAlignment = Alignment.CenterVertically) {
+                Simge(simge, renk, 16.dp); Spacer(Modifier.width(6.dp))
+                Text(ad, color = if (kapali) Renk.soluk else Renk.yazi, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text("$olcu %${(v * 100).roundToInt()}", color = Renk.soluk, fontSize = 11.sp)
+            }
+            if (tum != null) SimgeDugme("kadraj", "Tüm video", Modifier.width(60.dp), renk = tonRenk(3, ""), etkin = !kilitli, onClick = tum)
+            SimgeDugme(if (olcu == "Ses") (if (kapali) "sessiz" else "ses") else "gorunum",
+                if (olcu == "Ses") (if (kapali) "Aç" else "Kapat") else (if (kapali) "Göster" else "Gizle"), Modifier.width(56.dp),
+                renk = if (kapali) Renk.kirmizi else tonRenk(4, ""), etkin = !kilitli, onClick = kapat)
+        }
+        InceSlider(value = v, onValueChange = { v = it }, valueRange = aralik, enabled = !kilitli && !kapali, onValueChangeFinished = { bitti(v) })
     }
 }

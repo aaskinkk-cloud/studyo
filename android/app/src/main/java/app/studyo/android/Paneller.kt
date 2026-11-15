@@ -349,8 +349,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         val a = KatmanCizim.an(o, konum)
                         val secili = katmanPaneli && seciliK == o.id
                         if (a.alfa > 0.01f || (secili && !o.gizli && konum in o.basMs..o.sonMs)) {   // 3.42: süresi dışında hayalet kalmaz
-                            val x = g?.x ?: o.x; val y = (g?.y ?: o.y) + a.dy
-                            val sk = a.olcek * (g?.carpan ?: 1f); val aci = o.aci + (g?.aci ?: 0f)
+                            fun Float.ok(v: Float) = if (isNaN() || isInfinite()) v else this
+                            val x = (g?.x ?: o.x).ok(0.5f); val y = ((g?.y ?: o.y) + a.dy).ok(0.5f)
+                            val sk = (a.olcek * (g?.carpan ?: 1f)).ok(1f).coerceIn(0.01f, 20f); val aci = (o.aci + (g?.aci ?: 0f)).ok(0f)
                             val w = bm.width * olcek; val h = bm.height * olcek
                             val alfa = if (a.alfa > 0.01f) a.alfa.coerceIn(0f, 1f) else 0.35f
                             Image(bm.asImageBitmap(), null,
@@ -368,7 +369,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 vm.katmanDegis(g.id) { o ->
                     val (mn, mx) = if (o.tur == "metin") 0.02f to 0.3f else 0.03f to 1.5f
                     var aci = (o.aci + g.aci) % 360f; if (aci > 180f) aci -= 360f; if (aci < -180f) aci += 360f
-                    o.copy(x = g.x, y = g.y, olcek = (o.olcek * g.carpan).coerceIn(mn, mx), aci = aci)
+                    if (!g.x.isFinite() || !g.y.isFinite() || !g.carpan.isFinite() || !aci.isFinite()) o
+                    else o.copy(x = g.x, y = g.y, olcek = (o.olcek * g.carpan).coerceIn(mn, mx), aci = aci)
                 }
                 katGecici = null
             }
@@ -432,6 +434,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     .pointerInput(kSec?.id, kSec?.kilitli, olcek) {
                         if (kSec == null || kSec.kilitli) return@pointerInput
                         detectTransformGestures { _, pan, zoom, rot ->
+                            // 3.43: NaN/sonsuz hareket değerleri (çökme kaynağı) atlanır
+                            if (!zoom.isFinite() || !rot.isFinite() || !pan.x.isFinite() || !pan.y.isFinite() || zoom <= 0f) return@detectTransformGestures
                             val o = kSecG ?: return@detectTransformGestures
                             val g = katGecici?.takeIf { it.id == o.id } ?: KatmanGecici(o.id, o.x, o.y, 1f, 0f)
                             katGecici = g.copy(

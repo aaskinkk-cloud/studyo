@@ -26,7 +26,12 @@ import java.util.Collections
 /** Bir projenin düzenleme durumu + önizleme oynatıcıları (ExoPlayer). Ekran kapanınca kapat() çağrılır. */
 class EditorDurum(private val ctx: Context, id: String) {
     val kapsam = MainScope()
-    val proje = MutableStateFlow(Depo.yukle(id) ?: Proje(id = id).also { Depo.kaydet(it) })
+    val proje = MutableStateFlow((Depo.yukle(id) ?: Proje(id = id).also { Depo.kaydet(it) }).let { p ->
+        // 3.43: önceki sürümde bozuk (NaN) kaydedilmiş katman değerleri açılışta onarılır
+        fun Float.ok(v: Float) = if (isNaN() || isInfinite()) v else this
+        p.copy(katmanlar = p.katmanlar.map { o -> o.copy(x = o.x.ok(0.5f), y = o.y.ok(0.5f), olcek = o.olcek.ok(if (o.tur == "metin") 0.075f else 0.35f),
+            aci = o.aci.ok(0f), opaklik = o.opaklik.ok(1f), ses = o.ses.ok(1f), hiz = o.hiz.ok(1f)) })
+    })
     val secili = MutableStateFlow(0)
     val sira = MutableStateFlow(0)          // önizlemede oynayan klip
     val konum = MutableStateFlow(0L)        // zaman çizelgesi (ms)
@@ -662,7 +667,40 @@ class EditorDurum(private val ctx: Context, id: String) {
     private val katmanPl = HashMap<String, ExoPlayer>()
 
     fun katmanDegis(id: String, f: (KatmanOge) -> KatmanOge) =
-        guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.id == id) f(it) else it }) }
+        guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.id == id) katmanTemiz(runCatching { f(it) }.getOrDefault(it), p.toplamMs) else it }) }
+
+    /** Tüm katmanlar için aynı değişiklik (örn. hepsini tüm video boyunca). */
+    fun katmanHepsi(f: (KatmanOge) -> KatmanOge) =
+        guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.kilitli) it else katmanTemiz(runCatching { f(it) }.getOrDefault(it), p.toplamMs) }) }
+
+    /** Otomatik aralıklar (3.43): kaynak sesin yettiği kadarla sınırlı. tur: tum | klip | sona | basa */
+    fun katmanAralik(o: KatmanOge, tur: String): KatmanOge {
+        val p = proje.value; val T = p.toplamMs.coerceAtLeast(500)
+        val k = konum.value.coerceIn(0, T - 300)
+        val enUzun = if (o.tur == "ses" && o.kaynakSureMs > 0) ((o.kaynakSureMs - o.kaynakBasMs) / o.hiz.coerceAtLeast(0.25f)).toLong() else Long.MAX_VALUE
+        val (a, b) = when (tur) {
+            "klip" -> { val i = secili.value.coerceIn(0, (p.klipler.size - 1).coerceAtLeast(0)); val st = baslangic(i); st to st + p.zKlip(i).sureMs }
+            "sona" -> k to T
+            "basa" -> 0L to maxOf(k, 300L)
+            else -> 0L to T
+        }
+        return o.copy(basMs = a, sonMs = minOf(b, a + enUzun).coerceAtLeast(a + 300))
+    }
+
+    /** KÖK DÜZELTME (3.43): iki parmak hareketinde NaN/sonsuz değer (parmaklar aynı noktadan başlayınca) katmana yazılıp
+     *  çizimde roundToInt() ile uygulamayı çökertiyordu ve projeye kaydolup tekrar açılışta da çöküyordu. Her yazımda temizlenir. */
+    private fun katmanTemiz(o: KatmanOge, toplam: Long): KatmanOge {
+        fun Float.ok(v: Float) = if (isNaN() || isInfinite()) v else this
+        val (mn, mx) = when (o.tur) { "metin" -> 0.02f to 0.3f; "ses" -> 0f to 10f; else -> 0.03f to 1.5f }
+        val bas = o.basMs.coerceIn(0, (toplam - 300).coerceAtLeast(0))
+        return o.copy(
+            x = o.x.ok(0.5f).coerceIn(0f, 1f), y = o.y.ok(0.5f).coerceIn(0f, 1f),
+            olcek = o.olcek.ok(if (o.tur == "metin") 0.075f else 0.35f).coerceIn(mn, mx),
+            aci = o.aci.ok(0f).coerceIn(-360f, 360f), opaklik = o.opaklik.ok(1f).coerceIn(0f, 1f),
+            ses = o.ses.ok(1f).coerceIn(0f, 1.5f), hiz = o.hiz.ok(1f).coerceIn(0.25f, 4f),
+            basMs = bas, sonMs = o.sonMs.coerceIn(bas + 300, maxOf(toplam, bas + 300)),
+        )
+    }
 
     private fun katmanEkleOge(o: KatmanOge) {
         guncelle(yapi = false) { p -> p.copy(katmanlar = p.katmanlar + o) }
@@ -719,7 +757,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         kapsam.launch {
             val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
             if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
-            val (a, b) = yeniAralik(5000)
+            val a = 0L; val b = proje.value.toplamMs.coerceAtLeast(500)   // 3.43: logo varsayılan olarak tüm video boyunca
             katmanEkleOge(KatmanOge(tur = "gorsel", ad = "Logo · ${k.ad}", yol = f.path, olcek = 0.16f, x = 0.85f, y = 0.18f, basMs = a, sonMs = b))
         }
     }

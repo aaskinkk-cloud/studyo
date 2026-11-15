@@ -109,6 +109,7 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                 }
             } else {
             SimgeDugme("makas", "Böl", Modifier.width(62.dp), renk = tonRenk(0, ""), etkin = e) { ko?.let { vm.katmanBol(it.id) } }
+            SimgeDugme("kadraj", "Tüm video", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> vm.katmanAralik(o, "tum") } } }
             SimgeDugme("basa", "Başı=şimdi", Modifier.width(62.dp), renk = tonRenk(6, ""), etkin = e && konum < (ko?.sonMs ?: 0) - 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(basMs = konum.coerceAtLeast(0)) } } }
             SimgeDugme("sonraki", "Sonu=şimdi", Modifier.width(62.dp), renk = tonRenk(7, ""), etkin = e && konum > (ko?.basMs ?: Long.MAX_VALUE) + 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(sonMs = konum.coerceAtMost(toplam)) } } }
             SimgeDugme("cogalt", "Çoğalt", Modifier.width(62.dp), renk = tonRenk(1, ""), etkin = ko != null) { ko?.let { vm.katmanCogalt(it.id) } }

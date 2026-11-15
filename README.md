@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.43 (15.11.2026, deneme · `yerel-android` dalı): katman çökmesi, ses/görünürlük, otomatik baş-son
+- **Metni iki parmakla büyütürken çökme (kök düzeltme):** iki parmak hareketi bazen NaN/sonsuz değer üretiyor, bu katmana yazılıp çizimde `roundToInt()` uygulamayı çökertiyordu; projeye kaydolduğu için tekrar açılışta da çökebiliyordu. Hareket değerleri süzülür, her katman yazımında tüm sayılar temizlenip sınırlanır (`katmanTemiz`), açılışta bozuk kayıtlar onarılır. Değişiklik işlevindeki hata da yakalanır.
+- **Ses ve görünürlük · tümü kartı:** müzik ve her katman tek satırda — ses (müzik, ses katmanı) ya da opaklık (logo, görsel, yazı) kaydırıcısı, Kapat/Aç ya da Gizle/Göster, "Tüm video". Satır adına dokun = katmanı seç. Altta "Hepsi tüm video", "Hepsi bu klipte".
+- **Otomatik baş/son:** seçili katmanda "Tüm video" (artık ses katmanında da; ses kaynağı yettiği kadar), "Bu klip boyunca", "Şimdiden sona", "Baştan şimdiye", Sessiz/Gizle. Çizelge araç sırasına da "Tüm video" eklendi.
+- **Logo** eklenince varsayılan olarak tüm video boyunca kalır.
+
 ## 3.42 (15.11.2026, deneme · `yerel-android` dalı): takip yazısı bitişi, tasarımlı yazılar, klip şeridi önizlemeyle eşleşir
 - **Takip yazısı kendiliğinden biter:** izlenen nesne ≈0,7 sn bulunamazsa (sahne/nesne bitti) izleme orada durur, yazı son görüldüğü yerde kaybolur; klip bitince de biter. Bitiş elle de ayarlanır: "Bitiş" kaydırıcısı, "Bitiş: şu an", "Otomatik bitiş" (`Takip.sonMs`, -1 = otomatik).
 - **Yazılar artık altyazı gibi değil:** yeni metin stilleri — Başlık (kontur + vurgu çizgisi), Konum (iğne simgeli cam kart), Alt bant, Etiket (hap), Düz. 2. satır küçük alt satır olur; renk = vurgu rengi. Yeni yazı 3 sn kalır, kayarak girip solarak çıkar.

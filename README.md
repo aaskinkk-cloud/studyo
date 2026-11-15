@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.41 (15.11.2026, deneme · `yerel-android` dalı): Katmanlar çizelgesi ve önizlemede sürükleme
+- **Klip yarıda bitip arkası siyah görünüyordu (kök düzeltme):** uzun klip/katman/ses çubuğu ekrandan genişken Compose genişliği ekran genişliğine kırpıyordu. Artık yalnız ekranda görünen parça ölçülüp çiziliyor; kareler/ses dalgası gerçek başa göre diziliyor, kaydırınca birlikte kayıyor. Gizli katmanda büyük `graphicsLayer` yerine renk saydamlığı.
+- **Video klibi seçilince araçlar soluk kalıyordu:** Katmanlar çizelgesinde video klibine dokununca klip seçilir (beyaz çerçeve) ve aynı araç sırası klibe uygulanır: Böl · Çoğalt · Öne al · Sona al · Sessiz/Sesi aç · Bırak · Sil (onaylı). Katman seçilince araçlar yeniden katmana döner.
+- **Önizlemede görüntüyü sürükleyip kaydırma Katman bölümünde de çalışır** (katman seçili değilken; seçiliyse sürükleme katmanı taşır). Klip bölümündeki davranış aynı, kod ortak.
+
 ## 3.40 (15.11.2026, deneme · `yerel-android` dalı): önizleme fotoğraf renkleri kayıtla aynı
 **Test:** derleme GitHub Actions'ta; **cihaz testi bekleniyor.**
 - **Belirti (Ahmet, 3.39):** klip "beyazla" başlıyor, ~1 sn sonra doygunluk geliyor. 3.38 dışa aktarma testinde bu yoktu (Ahmet: "parlama da renklenme olmadı").

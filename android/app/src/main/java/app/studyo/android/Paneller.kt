@@ -386,6 +386,25 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
 
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
+            // önizlemede parmakla sürükle = klibi kadraj içinde kaydır (yalnız taşan kısım kadar). Klip ve Katman bölümünde ortak (3.41)
+            val kSonS by rememberUpdatedState(k)
+            val gwS = constraints.maxWidth.toFloat(); val ghS = constraints.maxHeight.toFloat()
+            val klipSurukle: Modifier = if (k == null || sira >= p.klipler.size) Modifier else Modifier
+                    .pointerInput(k.id, k.doldur, gwS, ghS) {
+                        detectDragGestures(
+                            onDragStart = { surKay = Offset(kSonS!!.kayX, kSonS!!.kayY) },
+                            onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
+                            onDragCancel = { surKay = null },
+                        ) { ch, d ->
+                            val ks = kSonS!!; val a = Yuz.an(ks, RW, RH, kbF, sira)
+                            if (!Yuz.kayabilir(a)) return@detectDragGestures
+                            ch.consume()
+                            val pxX = (a.s - a.vx) / a.vx * gwS / 2f; val pxY = (a.s - a.vy) / a.vy * ghS / 2f
+                            val o = surKay ?: Offset(ks.kayX, ks.kayY)
+                            surKay = Offset(if (pxX > 0.5f) (o.x + d.x / pxX).coerceIn(-1f, 1f) else o.x,
+                                if (pxY > 0.5f) (o.y + d.y / pxY).coerceIn(-1f, 1f) else o.y)
+                        }
+                    }
             if (takipSecim && k != null) {
                 Box(Modifier.fillMaxSize().background(Color(0x332EC5D3)).pointerInput(k.id) {
                     detectTapGestures { o -> Geometri.kaynaga(k, o.x / olcek, o.y / olcek, RW, RH, kbAn ?: Yuz.an(k, RW, RH, 0f))?.let { vm.takipNoktaSec(sira, it.first, it.second) } }
@@ -409,6 +428,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             vm.seciliKatman.value = bul?.id
                         }
                     }
+                    .then(if (kSec == null) klipSurukle else Modifier)
                     .pointerInput(kSec?.id, kSec?.kilitli, olcek) {
                         if (kSec == null || kSec.kilitli) return@pointerInput
                         detectTransformGestures { _, pan, zoom, rot ->
@@ -472,21 +492,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             vm.mesaj.value = "Yaklaşma buradan başlayacak"
                         },
                         onDoubleTap = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) }; vm.mesaj.value = "Kadraj ortalandı" }) }
-                    .pointerInput(k.id, k.doldur, gw, gh) {
-                        detectDragGestures(
-                            onDragStart = { surKay = Offset(kSon.kayX, kSon.kayY) },
-                            onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
-                            onDragCancel = { surKay = null },
-                        ) { ch, d ->
-                            val ks = kSon; val a = Yuz.an(ks, RW, RH, kbF, sira)
-                            if (!Yuz.kayabilir(a)) return@detectDragGestures
-                            ch.consume()
-                            val pxX = (a.s - a.vx) / a.vx * gw / 2f; val pxY = (a.s - a.vy) / a.vy * gh / 2f
-                            val o = surKay ?: Offset(ks.kayX, ks.kayY)
-                            surKay = Offset(if (pxX > 0.5f) (o.x + d.x / pxX).coerceIn(-1f, 1f) else o.x,
-                                if (pxY > 0.5f) (o.y + d.y / pxY).coerceIn(-1f, 1f) else o.y)
-                        }
-                    })
+                    .then(klipSurukle))
             }
         }
     }

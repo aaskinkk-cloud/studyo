@@ -75,7 +75,12 @@ data class Klip(
 }
 
 @Serializable
-data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.35f, val dongu: Boolean = true, val sureMs: Long = 0)
+data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.35f, val dongu: Boolean = true, val sureMs: Long = 0,
+    /** 3.46: videonun kendi sesi olan kliplerde müzik otomatik kısılır (önizleme ve dışa aktarma). */
+    val otoKis: Boolean = true)
+
+/** Otomatik kısmada müziğin inen oranı. */
+const val MUZIK_KIS = 0.35f
 
 @Serializable
 data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f)
@@ -179,6 +184,8 @@ data class KatmanOge(
     val ses: Float = 1f, val hiz: Float = 1f, val kaynakBasMs: Long = 0, val kaynakSureMs: Long = 0,
     /** metin stili (3.42): duz | baslik | konum | altbant | etiket. 2. satır (\n sonrası) stilli yazılarda küçük alt satırdır. */
     val stil: String = "duz",
+    /** 3.46: katmanın altyazısı — katmanın hemen altında çizilir, katmanla birlikte taşınır/büyür (altyapı). */
+    val altyazi: String = "",
 ) {
     val gorsel: Boolean get() = tur != "ses"
 }

@@ -82,6 +82,50 @@ object Disa {
     fun ciktiDizini(ctx: Context): File = ctx.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: ctx.filesDir
     fun bosAlan(ctx: Context): Long = try { StatFs(ciktiDizini(ctx).path).availableBytes } catch (e: Exception) { -1 }
 
+    /** 3.46: müzik — videonun kendi sesi olan klip aralıklarında otomatik kısılır (yumuşak geçişle). Önizleme bileşiminde
+     *  (sarma yapılabildiği için konum takibi güvenilmez) sabit ses kullanılır; önizlemede kısmayı oynatıcı yapar. */
+    private fun muzikIsleyici(p: Proje, m: Muzik, onizleme: Boolean): AudioProcessor {
+        if (!m.otoKis || onizleme) return sesIsleyici(m.ses)
+        val ar = ArrayList<LongArray>(); var bas = 0L
+        for (i in p.klipler.indices) {
+            val k = p.klipler[i]; val d = p.zKlip(i).sureMs
+            if (!k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f) ar += longArrayOf(bas * 1000, (bas + d) * 1000)
+            bas += d
+        }
+        return if (ar.isEmpty()) sesIsleyici(m.ses) else ZarfIsleyici(m.ses, MUZIK_KIS, ar)
+    }
+
+    /** Zaman aralıklı kazanç: işlenen örnek sayısından çıktı zamanını bulur (sıfırlanmaz; dışa aktarmada sarma yok, döngü de devam eder). */
+    private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>) : androidx.media3.common.audio.BaseAudioProcessor() {
+        private var kare = 0L; private var g = -1f
+        override fun onConfigure(f: androidx.media3.common.audio.AudioProcessor.AudioFormat): androidx.media3.common.audio.AudioProcessor.AudioFormat {
+            if (f.encoding != androidx.media3.common.C.ENCODING_PCM_16BIT && f.encoding != androidx.media3.common.C.ENCODING_PCM_FLOAT)
+                throw androidx.media3.common.audio.AudioProcessor.UnhandledAudioFormatException(f)
+            return f
+        }
+        override fun queueInput(inp: java.nio.ByteBuffer) {
+            val f = inputAudioFormat; val ch = f.channelCount.coerceAtLeast(1); val hz = f.sampleRate.coerceAtLeast(1)
+            val bayt = if (f.encoding == androidx.media3.common.C.ENCODING_PCM_FLOAT) 4 else 2
+            val n = inp.remaining() / (ch * bayt)
+            val out = replaceOutputBuffer(n * ch * bayt)
+            val yum = 1f / (0.25f * hz)     // ≈250 ms yumuşak geçiş
+            var ai = 0
+            for (i in 0 until n) {
+                val us = kare * 1_000_000L / hz
+                while (ai < ar.size && ar[ai][1] <= us) ai++
+                val hedef = kat * (if (ai < ar.size && us >= ar[ai][0]) kis else 1f)
+                if (g < 0f) g = hedef else g += (hedef - g) * yum.coerceAtMost(1f)
+                for (c in 0 until ch) {
+                    if (bayt == 4) out.putFloat(inp.float * g)
+                    else out.putShort((inp.short * g).toInt().coerceIn(-32768, 32767).toShort())
+                }
+                kare++
+            }
+            out.flip()
+        }
+        override fun onReset() { kare = 0L; g = -1f }
+    }
+
     private fun sesIsleyici(kat: Float) = ChannelMixingAudioProcessor().apply {
         putChannelMixingMatrix(ChannelMixingMatrix.createForConstantGain(1, 1).scaleBy(kat))
         putChannelMixingMatrix(ChannelMixingMatrix.createForConstantGain(2, 2).scaleBy(kat))
@@ -280,7 +324,7 @@ object Disa {
             if (!m.dongu && m.sureMs > toplam)
                 mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(toplam).build())
             val e = EditedMediaItem.Builder(mib.build()).setRemoveVideo(true).sureli(ctx, onizleme, m.uri, m.sureMs, if (!m.dongu && m.sureMs > toplam) toplam else 0L)
-                .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(m.ses)), listOf<Effect>())).build()
+                .setEffects(Effects(listOf<AudioProcessor>(muzikIsleyici(p, m, onizleme)), listOf<Effect>())).build()
             val mb = EditedMediaItemSequence.Builder(listOf(e)).setIsLooping(m.dongu)
             if (!m.dongu && m.sureMs in 1 until toplam) mb.addGap((toplam - m.sureMs) * 1000)     // kısa müzik: sonu sessizlik (3.36)
             diziler += mb.build()

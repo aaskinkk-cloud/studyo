@@ -211,7 +211,14 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                             val b0 = bas; bas += zk.sureMs
                             val x0 = xMs(b0); val x1 = xMs(b0 + zk.sureMs)
                             if (x1 < -50f || x0 > izGen + 50f) continue
-                            key(k.id) { KlipCubugu(i, k, x0, x1 - x0, izGen, klipSecili && i == secKlip && secK == null) {
+                            key(k.id) { KlipCubugu(i, k, x0, x1 - x0, izGen, klipSecili && i == secKlip && secK == null,
+                                tasi = { dx ->
+                                    // 3.46: basılı tut + sağa/sola sürükle = klibi taşı; bırakılan yerdeki klibin sırasına geçer
+                                    val hedefMs = (b0 + zk.sureMs / 2 + dx / pxMs).toLong().coerceIn(0, toplam - 1)
+                                    var t = 0L; var j = 0
+                                    while (j < p.klipler.size - 1 && t + p.zKlip(j).sureMs <= hedefMs) { t += p.zKlip(j).sureMs; j++ }
+                                    if (j != i) { vm.klipTasi(i, j); klipSecili = true; vm.mesaj.value = "Klip ${i + 1} → ${j + 1}. sıraya taşındı" }
+                                }) {
                                 vm.seciliKatman.value = null; vm.secili.value = i; klipSecili = true } }
                         }
                     }
@@ -220,6 +227,7 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                     for (d in 0 until n) {
                         val i = n - 1 - d
                         val o = p.katmanlar[i]
+                        if (o.gizli) continue     // 3.46: gizlenen katmanın satırı da gizlenir (geri açmak: "Ses ve görünürlük · tümü" › Göster)
                         key(o.id) {
                             IzSatiri(turSimgeC(o.tur), o.ad.ifBlank { o.metin }.ifBlank { "Katman" }, SATIR, katRenk(o.tur).copy(alpha = if (o.gizli) 0.4f else 1f),
                                 onClick = {
@@ -311,17 +319,26 @@ private fun gorunur(x: Float, w: Float, izGen: Float): Triple<Float, Float, Floa
 
 /** Video klibi: kareler yan yana, sıra numarası; dokun = seç (araç sırası klibe uygulanır). */
 @Composable
-private fun KlipCubugu(i: Int, k: Klip, x: Float, w: Float, izGen: Float, secili: Boolean, sec: () -> Unit) {
+private fun KlipCubugu(i: Int, k: Klip, x: Float, w: Float, izGen: Float, secili: Boolean, tasi: (Float) -> Unit = {}, sec: () -> Unit) {
+    var surDx by remember { mutableFloatStateOf(0f) }; var surIyor by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     val resim by produceState<ImageBitmap?>(null, k.uri, k.basMs) { value = Medya.kucukResim(ctx, k, 160)?.asImageBitmap() }
     val sekil = RoundedCornerShape(6.dp)
     val (vx, vw, kay) = gorunur(x, w.coerceAtLeast(6f), izGen)
     if (vw <= 0f) return
-    Box(Modifier.offset { IntOffset(vx.roundToInt(), 0) }.width(with(yog) { vw.toDp() }).fillMaxHeight()
+    Box(Modifier.offset { IntOffset((vx + surDx).roundToInt(), if (surIyor) -6 else 0) }.width(with(yog) { vw.toDp() }).fillMaxHeight()
+        .graphicsLayer { if (surIyor) { alpha = 0.85f; scaleY = 1.06f } }
         .padding(horizontal = 1.dp).clip(sekil).background(Color(0xFF243444))
-        .border(if (secili) 2.dp else 0.5.dp, if (secili) Color.White else Color(0x55FFFFFF), sekil)
-        .pointerInput(k.id) { detectTapGestures(onTap = { sec() }) }) {
+        .border(if (secili || surIyor) 2.dp else 0.5.dp, if (surIyor) Renk.turuncu else if (secili) Color.White else Color(0x55FFFFFF), sekil)
+        .pointerInput(k.id) { detectTapGestures(onTap = { sec() }) }
+        .pointerInput(k.id, i) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = { surIyor = true; surDx = 0f; sec() },
+                onDragEnd = { val d = surDx; surIyor = false; surDx = 0f; tasi(d) },
+                onDragCancel = { surIyor = false; surDx = 0f },
+            ) { ch, d -> ch.consume(); surDx += d.x }
+        }) {
         resim?.let { im ->
             Canvas(Modifier.fillMaxSize()) {
                 val h = size.height; val tw = (h * im.width / im.height.coerceAtLeast(1)).coerceAtLeast(8f)
@@ -586,6 +603,9 @@ private fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
                         SecimKarti(ad, "", o.stil == st, Modifier.width(72.dp), etkin = !o.kilitli, sira = j, simge = "metin") { vm.katmanDegis(o.id) { it.copy(stil = st) } }
                     }
                 }
+                var ay by remember(o.id) { mutableStateOf(o.altyazi) }
+                androidx.compose.material3.OutlinedTextField(ay, { ay = it; vm.katmanDegis(o.id) { k -> k.copy(altyazi = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp),
+                    label = { Text("Altyazı (yazının altında)") }, maxLines = 2, enabled = !o.kilitli)
                 Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
             }
         },

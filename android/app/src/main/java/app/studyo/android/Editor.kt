@@ -234,7 +234,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
 
             // ---- haplar + 5 bölüm ----
             val b = BOLUMLER.first { it.anahtar == bolum }
-            if (Duzen.yaziliMenu) {
+            if (b.haplar.size <= 1) {
+                // 3.46: tek alt başlıklı bölümde (Katman) alt başlık satırı gereksiz — gösterilmez
+            } else if (Duzen.yaziliMenu) {
                 // önceki yazılı haplar (⋯ menüsünden seçilebilir)
                 Row(
                     Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),

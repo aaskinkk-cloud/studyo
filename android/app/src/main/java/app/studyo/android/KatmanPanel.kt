@@ -149,6 +149,12 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
             SimgeDugme("oynat", "Başına git", Modifier.weight(1f), renk = tonRenk(2, "")) { vm.git(o.basMs) }
             SimgeDugme("kadraj", "Tüm video", Modifier.weight(1f), renk = tonRenk(3, ""), etkin = e) { d { vm.katmanAralik(it, "tum") } }
         }
+        // 3.46: katman altyazısı (katmanın altında, onunla birlikte taşınır)
+        if (o.tur != "ses") {
+            var ay by remember(o.id) { mutableStateOf(o.altyazi) }
+            OutlinedTextField(ay, { ay = it; d { k -> k.copy(altyazi = it) } }, enabled = e, label = { Text("Altyazı (katmanın altında)") },
+                maxLines = 2, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+        }
         // otomatik baş/son (3.43): tek dokunuşla
         Row(Modifier.fillMaxWidth()) {
             SimgeDugme("klip", "Bu klip boyunca", Modifier.weight(1f), renk = tonRenk(4, ""), etkin = e) { d { vm.katmanAralik(it, "klip") } }
@@ -287,6 +293,7 @@ private fun TumKatmanlar(vm: EditorDurum, p: Proje) {
         p.muzik?.let { m ->
             HizliSatir("nota", "Müzik · ${m.ad.ifBlank { "parça" }}", Color(0xFF4CC38A), m.ses, 0f..1f, m.ses <= 0.001f, "Ses",
                 kapat = { vm.muzikDegis { it.copy(ses = if (it.ses <= 0.001f) 0.35f else 0f) } }, tum = null) { v -> vm.muzikDegis { it.copy(ses = v) } }
+            AnahtarSatiri("Videoda ses varken müziği otomatik kıs", m.otoKis) { v -> vm.muzikDegis { it.copy(otoKis = v) } }
         }
         for (o in p.katmanlar.asReversed()) key(o.id) {
             val ses = o.tur == "ses"

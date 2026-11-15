@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.46 (15.11.2026, deneme · `yerel-android` dalı): sade Katman bölümü, klip taşıma, müzik otomatik kısma, katman altyazısı
+- **Gereksiz "Katmanlar" satırı kaldırıldı:** tek alt başlığı olan bölümde (Katman) alt menünün üstündeki alt başlık satırı artık gösterilmez.
+- **Çizelgede klibi parmakla taşı:** video klibine basılı tut, sağa/sola sürükle, bırak — bırakılan yerdeki sıraya geçer (sürüklerken klip turuncu çerçeveyle kalkar).
+- **Müzik otomatik kısılır:** kendi sesi olan (ve sesi açık) kliplerde müzik %35'e iner; önizlemede oynatıcı, dışa aktarmada yumuşak geçişli zarf işleyicisi (`ZarfIsleyici`) yapar. "Ses ve görünürlük · tümü" kartında aç/kapat (`Muzik.otoKis`, varsayılan açık).
+- **Gizlenen katmanın satırı da gizlenir;** geri açmak için "Ses ve görünürlük · tümü" › Göster.
+- **Katman altyazısı (altyapı):** her görsel katmanın (yazı, logo, görsel, çıkartma) altına altyazı yazılabilir; katman bitmapine eklendiği için katmanla birlikte taşınır, büyür ve dışa aktarılır. Seçili katman ayarlarında ve "Yazıyı düzenle" penceresinde (`KatmanOge.altyazi`).
+
 ## 3.45 (15.11.2026, deneme · `yerel-android` dalı): katmanları parmakla taşıma, sıradakine geçme, nesne kesme, doldur
 - **Önizlemede tek hareketle taşı:** katmanın (yazı, logo, görsel, çıkartma) üstüne bas ve hemen sürükle — önce seçmek gerekmez; dokunma alanı katmanın çevresinde genişletildi; iki parmak = büyüt/döndür; kısa dokunuş = seç (yazıysa düzenle); boş yerde sürükle = klibi kadrajda kaydır.
 - **Çizelgede sürükleyerek öne/arkaya:** katman çubuğunu yukarı sürükle = öne al, aşağı = arkaya gönder. Seçiliyken doğrudan, seçili değilken basılı tutup sürükle (yatay kaydırma çizelgeyi sarmaya devam eder).

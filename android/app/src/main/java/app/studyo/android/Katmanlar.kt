@@ -32,18 +32,40 @@ object KatmanCizim {
     val RENKLER = listOf(0xFFFFFFFF, 0xFF000000, 0xFFFFD400, 0xFFF5A524, 0xFFEF5350, 0xFF4CC38A, 0xFF2EC5D3, 0xFF7E57C2)
 
     /** Bitmapi etkileyen alanlar (değişince yeniden çizilir). Konum, açı, opaklık, zaman bitmapi değiştirmez. */
-    fun anahtar(o: KatmanOge): Int = listOf(o.tur, o.yol, o.metin, o.renk, o.kutu, o.olcek, o.stil, o.filtre, o.kirpL, o.kirpT, o.kirpR, o.kirpB).hashCode()
+    fun anahtar(o: KatmanOge): Int = listOf(o.tur, o.yol, o.metin, o.renk, o.kutu, o.olcek, o.stil, o.altyazi, o.filtre, o.kirpL, o.kirpT, o.kirpR, o.kirpB).hashCode()
 
     /** W×H çıktı karesi için katmanın bitmapi (ses katmanı ve boş metin için null). */
     fun bitmap(o: KatmanOge, W: Int, H: Int): Bitmap? = try {
-        when (o.tur) {
+        val b = when (o.tur) {
             "metin" -> metin(o, W, H)
             "cikartma" -> cikartma(o, W)
             "gorsel" -> gorsel(o, W)
             else -> null
         }
+        if (b != null && o.altyazi.isNotBlank()) altyaziEkle(b, o.altyazi, W, H) else b
     } catch (e: Throwable) {
         Kayit.hata("katman çizimi ${o.tur}", e); null
+    }
+
+    /** Katman altyazısı (3.46): katman bitmapinin altına ortalı, koyu yarı saydam kutulu yazı; tek bitmap olduğu için
+     *  önizleme, taşıma, büyütme ve dışa aktarma kendiliğinden birlikte çalışır. */
+    private fun altyaziEkle(b: Bitmap, yazi: String, W: Int, H: Int): Bitmap {
+        val px = min(W, H) * 0.038f
+        val p = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = px; color = 0xFFFFFFFF.toInt()
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
+        val enGen = maxOf(b.width, (W * 0.6f).toInt()).coerceAtMost(W)
+        val lay = StaticLayout.Builder.obtain(yazi, 0, yazi.length, p, (enGen - px).toInt().coerceAtLeast(10)).setAlignment(Layout.Alignment.ALIGN_CENTER).setMaxLines(3).build()
+        var lw = 1f; for (i in 0 until lay.lineCount) lw = max(lw, lay.getLineWidth(i))
+        val pad = px * 0.4f; val ara = px * 0.3f
+        val kw = lw + pad * 2; val kh = lay.height + pad * 2
+        val gw = max(b.width.toFloat(), kw); val gh = b.height + ara + kh
+        val out = Bitmap.createBitmap(gw.toInt().coerceAtLeast(2), gh.toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.drawBitmap(b, (gw - b.width) / 2f, 0f, null)
+        val y0 = b.height + ara; val x0 = (gw - kw) / 2f
+        c.drawRoundRect(RectF(x0, y0, x0 + kw, y0 + kh), pad, pad, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xB3000000.toInt() })
+        c.save(); c.translate(x0 + pad - ((enGen - px) - lw) / 2f, y0 + pad); lay.draw(c); c.restore()
+        return out
     }
 
     /** Stilli yazılar (3.42): altyazı görünümü yerine tasarımlı kartlar. Vurgu rengi = seçili renk (beyazsa turuncu). */

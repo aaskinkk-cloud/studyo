@@ -148,6 +148,13 @@ class EditorDurum(private val ctx: Context, id: String) {
     private fun sesUygula() {
         val k = proje.value.klipler.getOrNull(player.currentMediaItemIndex)
         player.volume = if (k == null || kaydediyor.value || k.sessiz) 0f else k.ses.coerceIn(0f, 1f)
+        proje.value.muzik?.let { muzikPl.volume = muzikSesi(it, k) }
+    }
+
+    /** 3.46: o anki klibin kendi sesi varsa (ve açıksa) müzik otomatik kısılır. */
+    private fun muzikSesi(m: Muzik, k: Klip? = proje.value.klipler.getOrNull(player.currentMediaItemIndex)): Float {
+        val kis = m.otoKis && k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f
+        return (m.ses * (if (kis) MUZIK_KIS else 1f)).coerceIn(0f, 1f)
     }
 
     fun git(ms: Long) {
@@ -382,7 +389,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (m == null) { muzikPl.clearMediaItems(); return }
         muzikPl.setMediaItem(MediaItem.fromUri(m.uri))
         muzikPl.repeatMode = if (m.dongu) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-        muzikPl.volume = m.ses.coerceIn(0f, 1f)
+        muzikPl.volume = muzikSesi(m)
         muzikPl.prepare()
     }
 
@@ -620,7 +627,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun muzikDegis(f: (Muzik) -> Muzik) {
         guncelle { p -> p.copy(muzik = p.muzik?.let(f)) }
         proje.value.muzik?.let {
-            muzikPl.volume = it.ses.coerceIn(0f, 1f)
+            muzikPl.volume = muzikSesi(it)
             muzikPl.repeatMode = if (it.dongu) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         }
     }

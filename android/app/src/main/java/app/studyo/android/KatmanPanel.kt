@@ -297,12 +297,12 @@ private fun TumKatmanlar(vm: EditorDurum, p: Proje) {
         }
         for (o in p.katmanlar.asReversed()) key(o.id) {
             val ses = o.tur == "ses"
-            val ad = o.ad.ifBlank { o.metin.lineSequence().firstOrNull() ?: "" }.ifBlank { turAdi(o.tur) }
+            val ad = (if (o.satirGizli) "◌ " else "") + o.ad.ifBlank { o.metin.lineSequence().firstOrNull() ?: "" }.ifBlank { turAdi(o.tur) }
             HizliSatir(turSimge(o.tur), ad, when (o.tur) { "metin" -> Color(0xFF7E57C2); "gorsel" -> Color(0xFF2EC5D3); "cikartma" -> Color(0xFFF5A524); "ses" -> Color(0xFF4CC38A); else -> Renk.soluk },
                 if (ses) o.ses else o.opaklik, if (ses) 0f..1.5f else 0.05f..1f, if (ses) o.ses <= 0.001f else o.gizli, if (ses) "Ses" else "Opaklık",
                 kapat = { vm.katmanDegis(o.id) { if (ses) it.copy(ses = if (it.ses <= 0.001f) 1f else 0f) else it.copy(gizli = !it.gizli) } },
                 tum = { vm.katmanDegis(o.id) { vm.katmanAralik(it, "tum") } }, kilitli = o.kilitli,
-                sec = { vm.seciliKatman.value = o.id }) { v -> vm.katmanDegis(o.id) { if (ses) it.copy(ses = v) else it.copy(opaklik = v) } }
+                sec = { vm.katmanDegis(o.id) { it.copy(satirGizli = false) }; vm.seciliKatman.value = o.id }) { v -> vm.katmanDegis(o.id) { if (ses) it.copy(ses = v) else it.copy(opaklik = v) } }
         }
         if (p.katmanlar.size > 1) DugmeSirasi(
             "Hepsi tüm video" to { vm.katmanHepsi { vm.katmanAralik(it, "tum") }; vm.mesaj.value = "Tüm katmanlar video boyunca" },

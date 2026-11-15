@@ -186,6 +186,8 @@ data class KatmanOge(
     val stil: String = "duz",
     /** 3.46: katmanın altyazısı — katmanın hemen altında çizilir, katmanla birlikte taşınır/büyür (altyapı). */
     val altyazi: String = "",
+    /** 3.47: yalnız çizelgede satırı gizle (videoda görünür/çalar). Gerçek gizleme `gizli`. */
+    val satirGizli: Boolean = false,
 ) {
     val gorsel: Boolean get() = tur != "ses"
 }

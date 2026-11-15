@@ -1264,13 +1264,37 @@ class EditorDurum(private val ctx: Context, id: String) {
         val sure = minOf(sureMs, k.sonMs - bas)
         val an = anlik()
         nesneIs?.cancel()
+        nesneIs = kapsam.launch { videodanKesIsle(k, bas, sure, an) }
+    }
+
+    /** 3.47: dışarıdan (galeriden) seçilen videodan hareketli nesne: videonun başından itibaren kesilir. */
+    fun videodanNesneDis(u: Uri, sureMs: Long) {
+        player.pause()
+        val an = anlik()
+        nesneIs?.cancel()
         nesneIs = kapsam.launch {
             nesneIlerleme.value = 0f
+            val (k, h) = withContext(Dispatchers.IO) { runCatching { klipHazirla(u) }.getOrElse { null to (it.message ?: "video açılamadı") } }
+            if (k == null || k.foto) { nesneIlerleme.value = null; uyari.value = h ?: "Bir video seç."; return@launch }
+            videodanKesIsle(k, k.basMs, minOf(sureMs, k.sonMs - k.basMs), an)
+        }
+    }
+
+    /** 3.47: ekrandaki (oynatıcının üstündeki) fotoğraf klibinden nesne kes. */
+    fun ekrandanNesne() {
+        val k = proje.value.klipler.getOrNull(player.currentMediaItemIndex)
+        if (k == null || !k.foto) { uyari.value = "Önizlemede bir fotoğraf klibine gel (videoysa \"Ekrandaki videodan\" kullan)."; return }
+        nesneEkle(Uri.parse(k.uri))
+    }
+
+    private suspend fun videodanKesIsle(k: Klip, bas: Long, sure: Long, an: Long) {
+        run {
+            nesneIlerleme.value = 0f
             val (n, hata) = try { Nesneci.videodanKes(ctx, k, bas, sure) { f -> nesneIlerleme.value = f } }
-                catch (e: kotlinx.coroutines.CancellationException) { nesneIlerleme.value = null; return@launch }
+                catch (e: kotlinx.coroutines.CancellationException) { nesneIlerleme.value = null; return }
                 catch (e: Exception) { null to (e.message ?: "bilinmeyen hata") }
             nesneIlerleme.value = null
-            if (n == null) { uyari.value = hata ?: "Nesne kesilemedi."; return@launch }
+            if (n == null) { uyari.value = hata ?: "Nesne kesilemedi."; return }
             val toplam = proje.value.toplamMs
             val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(toplam.coerceAtLeast(an + 500)))
             guncelle { it.copy(nesneler = it.nesneler + yeni) }

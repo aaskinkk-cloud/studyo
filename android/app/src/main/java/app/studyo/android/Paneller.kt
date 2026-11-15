@@ -1173,9 +1173,15 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
 @Composable
 fun PanelNesne(vm: EditorDurum, p: Proje) {
     val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.nesneEkle(it) } }
+    var dsn by remember { mutableFloatStateOf(5f) }
+    val videoSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.videodanNesneDis(it, (dsn * 1000).toLong()) } }
     val secili by vm.seciliNesne.collectAsState()
     Kart("Nesne kes · katman") {
-        Dugme("✂ Fotoğraftan nesne kes", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { sec.launch(arrayOf("image/*")) }
+        // 3.47: ekrandaki fotoğraftan ya da dışarıdan (galeri) fotoğraftan
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Dugme("✂ Ekrandaki fotoğraftan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.ekrandanNesne() }
+            Dugme("✂ Galeriden fotoğraf", Modifier.weight(1f)) { sec.launch(arrayOf("image/*")) }
+        }
         Not("Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
             "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
     }
@@ -1187,10 +1193,13 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
             LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
             Dugme("İptal", Modifier.fillMaxWidth()) { vm.nesneIptal() }
         } else {
-            var sn by remember { mutableFloatStateOf(5f) }
+            var sn by remember { mutableFloatStateOf(dsn) }
             Etiketli("Süre", String.format(TR, "%.0f sn", sn))
-            InceSlider(value = sn, onValueChange = { sn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
-            Dugme("✂ Bu andan itibaren kes", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
+            InceSlider(value = sn, onValueChange = { sn = it; dsn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Dugme("✂ Ekrandaki videodan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
+                Dugme("✂ Galeriden video", Modifier.weight(1f)) { videoSec.launch(arrayOf("video/*")) }
+            }
             Not("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
         }
     }

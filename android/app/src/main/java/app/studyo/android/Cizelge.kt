@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
@@ -88,6 +89,8 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         // ---- işlemler: tek yerde, tek sıra. Katman seçiliyse katmana, video klibi seçiliyse klibe uygulanır (seçim yoksa soluk) ----
         val ko = p.katmanlar.firstOrNull { it.id == secK }
         val ki = p.katmanlar.indexOfFirst { it.id == secK }
+        var gizliGoster by remember { mutableStateOf(false) }
+        val gizliSay = p.katmanlar.count { it.satirGizli }
         val secKlip by vm.secili.collectAsState()
         var klipSecili by remember { mutableStateOf(false) }
         LaunchedEffect(secK) { if (secK != null) klipSecili = false }
@@ -125,7 +128,11 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             SimgeDugme("cogalt", "Çoğalt", Modifier.width(62.dp), renk = tonRenk(1, ""), etkin = ko != null) { ko?.let { vm.katmanCogalt(it.id) } }
             SimgeDugme("yukle", "Öne al", Modifier.width(62.dp), renk = tonRenk(2, ""), etkin = e && ki < p.katmanlar.size - 1) { vm.katmanTasi(ki, ki + 1) }
             SimgeDugme("asagi", "Arkaya al", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = e && ki > 0) { vm.katmanTasi(ki, ki - 1) }
-            SimgeDugme("gorunum", if (ko?.gizli == true) "Göster" else "Gizle", Modifier.width(62.dp), renk = tonRenk(4, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(gizli = !o.gizli) } } }
+            SimgeDugme("gorunum", if (ko?.gizli == true) "Videoda göster" else "Videoda gizle", Modifier.width(62.dp), renk = tonRenk(4, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(gizli = !o.gizli) } } }
+            // 3.47: yalnız çizelgede satırı gizle — katman videoda görünür/çalar (geniş çalışma alanı için)
+            SimgeDugme("katman", if (ko?.satirGizli == true) "Satırı göster" else "Satırı gizle", Modifier.width(62.dp), renk = tonRenk(6, ""), etkin = ko != null) {
+                ko?.let { vm.katmanDegis(it.id) { o -> o.copy(satirGizli = !o.satirGizli) }; if (!it.satirGizli) { vm.seciliKatman.value = null; vm.mesaj.value = "Satır gizlendi · videoda görünmeye devam eder" } }
+            }
             SimgeDugme(if (ko?.kilitli == true) "uygula" else "kapat", if (ko?.kilitli == true) "Kilidi aç" else "Kilitle", Modifier.width(62.dp), renk = tonRenk(5, ""), etkin = ko != null) {
                 ko?.let { vm.katmanDegis(it.id) { o -> o.copy(kilitli = !o.kilitli) } }
             }
@@ -183,8 +190,11 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             Column(Modifier.fillMaxSize().then(alan)) {
                 // ---- cetvel ----
                 Row(Modifier.fillMaxWidth().height(CETVEL)) {
-                    Box(Modifier.width(ETIKET).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                        Text("Zaman", color = Renk.soluk, fontSize = 10.sp)
+                    // 3.47: köşe = gizli satırları göster/gizle (gizli satır varsa)
+                    Box(Modifier.width(ETIKET).fillMaxHeight().then(if (gizliSay > 0) Modifier.clickable { gizliGoster = !gizliGoster } else Modifier),
+                        contentAlignment = Alignment.Center) {
+                        if (gizliSay == 0) Text("Zaman", color = Renk.soluk, fontSize = 10.sp)
+                        else Text(if (gizliGoster) "◉ Gizle" else "◌ Gizli $gizliSay", color = Renk.turuncu, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Canvas(Modifier.weight(1f).fillMaxHeight()) {
                         val adimlar = longArrayOf(500, 1000, 2000, 5000, 10000, 15000, 30000, 60000, 120000, 300000)
@@ -227,9 +237,10 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                     for (d in 0 until n) {
                         val i = n - 1 - d
                         val o = p.katmanlar[i]
-                        if (o.gizli) continue     // 3.46: gizlenen katmanın satırı da gizlenir (geri açmak: "Ses ve görünürlük · tümü" › Göster)
+                        if (o.satirGizli && !gizliGoster) continue   // 3.47: yalnız çizelgede gizli satır (videoda görünür); "Zaman" köşesinden gösterilir
                         key(o.id) {
-                            IzSatiri(turSimgeC(o.tur), o.ad.ifBlank { o.metin }.ifBlank { "Katman" }, SATIR, katRenk(o.tur).copy(alpha = if (o.gizli) 0.4f else 1f),
+                            IzSatiri(turSimgeC(o.tur), (if (o.satirGizli) "◌ " else "") + o.ad.ifBlank { o.metin }.ifBlank { "Katman" }, SATIR, katRenk(o.tur).copy(alpha = if (o.gizli || o.satirGizli) 0.4f else 1f),
+                                tasi = if (o.kilitli) null else { adim -> vm.katmanTasi(i, (i - adim).coerceIn(0, n - 1)); vm.mesaj.value = if (adim < 0) "Öne alındı" else "Arkaya gönderildi" },
                                 onClick = {
                                     // 3.45: simgeye her dokunuşta aynı türdeki bir sonraki öğeye geçer (zamana göre), sahnesine gider
                                     val ayni = p.katmanlar.filter { it.tur == o.tur }.sortedBy { it.basMs }
@@ -297,9 +308,21 @@ private fun turSimgeC(t: String) = when (t) { "metin" -> "metin"; "gorsel" -> "k
 
 /** Bir iz satırı: solda simge + ad (sabit), sağda çubuklar (mutlak konumlu). */
 @Composable
-private fun IzSatiri(simge: String, ad: String, yuk: androidx.compose.ui.unit.Dp, renk: Color, onClick: () -> Unit, icerik: @Composable BoxScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().height(yuk).padding(vertical = 2.dp)) {
-        Row(Modifier.width(ETIKET).fillMaxHeight().background(Color(0xFF14191E)).clickable(onClick = onClick).padding(horizontal = 4.dp),
+private fun IzSatiri(simge: String, ad: String, yuk: androidx.compose.ui.unit.Dp, renk: Color, onClick: () -> Unit,
+                     tasi: ((Int) -> Unit)? = null, icerik: @Composable BoxScope.() -> Unit) {
+    // 3.47: satır başlığını yukarı/aşağı sürükle = katmanı öne/arkaya taşı (satır parmağı izler)
+    var dy by remember { mutableFloatStateOf(0f) }
+    val satirPx = with(LocalDensity.current) { yuk.toPx() }
+    Row(Modifier.fillMaxWidth().height(yuk).zIndex(if (dy != 0f) 1f else 0f).graphicsLayer { translationY = dy; if (dy != 0f) { shadowElevation = 12f } }
+        .background(if (dy != 0f) Color(0xFF22303C) else Color.Transparent).padding(vertical = 2.dp)) {
+        Row(Modifier.width(ETIKET).fillMaxHeight().background(Color(0xFF14191E)).clickable(onClick = onClick)
+            .then(if (tasi == null) Modifier else Modifier.pointerInput(tasi) {
+                detectVerticalDragGestures(
+                    onDragEnd = { val a = (dy / satirPx).roundToInt(); dy = 0f; if (a != 0) tasi(a) },
+                    onDragCancel = { dy = 0f },
+                ) { ch, d -> ch.consume(); dy += d }
+            })
+            .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Simge(simge, renk, 14.dp)
             Spacer(Modifier.width(3.dp))
@@ -558,6 +581,13 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             Simge("katman", Renk.turuncu, 18.dp)
             Spacer(Modifier.width(8.dp))
             Text("Katmanlar · ${p.katmanlar.size}", color = Renk.yazi, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            // 3.47: geri al / yinele (başlıkta)
+            val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
+            Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
+            Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
+            Spacer(Modifier.width(6.dp))
             Text(if (acik) "▾" else "▸", color = Renk.soluk, fontSize = 16.sp)
         }
         if (acik) {

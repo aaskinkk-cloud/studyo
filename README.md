@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.47 (15.11.2026, deneme · `yerel-android` dalı): iki tür gizleme, başlıktan taşıma, geri al, ekrandan nesne kesme
+- **İki tür gizleme:** "Videoda gizle" (katman videoda görünmez/çalmaz; satırı soluk durur) ve "Satırı gizle" (yalnız çizelgede gizlenir, videoda görünür/çalar — geniş çalışma alanı için; `KatmanOge.satirGizli`). 3.46'daki "gizlenince satır da kaybolur" davranışı bunun yerine geldi.
+- **Gizli satırları göster:** çizelgenin sol üst köşesi ("Zaman") gizli satır varsa "◌ Gizli N" olur; dokun = göster/gizle (gizli satırlar ◌ ile soluk). "Ses ve görünürlük · tümü" kartında satır adına dokunmak da satırı geri açar.
+- **Satır başlığından öne/arkaya:** katman satırının soldaki başlığını yukarı/aşağı sürükle — satır parmağı izler, bırakınca yukarı = öne, aşağı = arkaya.
+- **Geri al / Yinele** Katmanlar başlığında.
+- **Nesne kes:** "Ekrandaki fotoğraftan" (oynatıcının üstündeki fotoğraf klibi) · "Galeriden fotoğraf"; videoda "Ekrandaki videodan" (bu andan) · "Galeriden video" (baştan, seçilen süre kadar).
+
 ## 3.46 (15.11.2026, deneme · `yerel-android` dalı): sade Katman bölümü, klip taşıma, müzik otomatik kısma, katman altyazısı
 - **Gereksiz "Katmanlar" satırı kaldırıldı:** tek alt başlığı olan bölümde (Katman) alt menünün üstündeki alt başlık satırı artık gösterilmez.
 - **Çizelgede klibi parmakla taşı:** video klibine basılı tut, sağa/sola sürükle, bırak — bırakılan yerdeki sıraya geçer (sürüklerken klip turuncu çerçeveyle kalkar).

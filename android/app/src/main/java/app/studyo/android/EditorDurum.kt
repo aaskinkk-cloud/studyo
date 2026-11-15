@@ -154,7 +154,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** 3.46: o anki klibin kendi sesi varsa (ve açıksa) müzik otomatik kısılır. */
     private fun muzikSesi(m: Muzik, k: Klip? = proje.value.klipler.getOrNull(player.currentMediaItemIndex)): Float {
         val t = konum.value
-        val kis = m.otoKis && (k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f || proje.value.sesler.any { t in it.basMs..(it.basMs + it.sureMs) })
+        val kis = m.otoKis && (k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f || proje.value.sesler.any { t in it.basMs..(it.basMs + it.sureMs) }
+            || proje.value.katmanlar.any { it.tur == "ses" && !it.gizli && it.ses > 0.01f && t in it.basMs..it.sonMs })
         return (m.ses * (if (kis) MUZIK_KIS else 1f)).coerceIn(0f, 1f)
     }
 
@@ -701,6 +702,14 @@ class EditorDurum(private val ctx: Context, id: String) {
             "basaTasi" -> { val L = (o.sonMs - o.basMs).coerceAtLeast(300); o.copy(basMs = 0, sonMs = minOf(L, T)) }   // 3.45: süresi korunur, videonun başına taşınır
             else -> o.copy(basMs = 0, sonMs = minOf(o.sonMs, enUzun))
         }
+    }
+
+    /** 3.50: başı/sonu adım adım (± ms) — düğmelerle genişlet/daralt */
+    fun katmanUcKaydir(id: String, bas: Long, son: Long) = katmanDegis(id) { o ->
+        val T = proje.value.toplamMs
+        val yb = (o.basMs + bas).coerceIn(0, o.sonMs - 300)
+        val ys = (o.sonMs + son).coerceIn(yb + 300, T)
+        o.copy(basMs = yb, sonMs = ys, kaynakBasMs = if (o.tur == "ses") (o.kaynakBasMs + ((yb - o.basMs) * o.hiz).toLong()).coerceAtLeast(0) else o.kaynakBasMs)
     }
 
     /** Tüm katmanlar için aynı değişiklik (örn. hepsini tüm video boyunca). */

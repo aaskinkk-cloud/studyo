@@ -123,6 +123,19 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             } else {
             SimgeDugme("makas", "Böl", Modifier.width(62.dp), renk = tonRenk(0, ""), etkin = e) { ko?.let { vm.katmanBol(it.id) } }
             SimgeDugme("kadraj", "Tüm video", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> vm.katmanAralik(o, "tum") } } }
+            // 3.50: uçlar menüsü her zaman araç sırasında (çubuğun ucuna dokunmak da açar) + süreyi düğmeyle genişlet/daralt
+            Box {
+                var acUc by remember { mutableStateOf(false) }
+                SimgeDugme("sonraki", "Uçlar", Modifier.width(62.dp), renk = tonRenk(5, ""), etkin = e) { acUc = true }
+                androidx.compose.material3.DropdownMenu(expanded = acUc && ko != null, onDismissRequest = { acUc = false }, containerColor = Renk.kart) {
+                    listOf("klipBas" to "Klip başı  |‹", "videoBas" to "Video başı  |«", "klipSon" to "Klip sonu  ›|", "videoSon" to "Video sonu  »|", "basaTasi" to "Videonun başına taşı  |◀").forEach { (t, ad) ->
+                        androidx.compose.material3.DropdownMenuItem(text = { Text(ad, color = Renk.yazi) }, onClick = {
+                            ko?.let { vm.katmanDegis(it.id) { o -> vm.katmanUc(o, t) } }; if (t == "basaTasi") vm.git(0); acUc = false })
+                    }
+                }
+            }
+            SimgeDugme("eksi", "Kısalt", Modifier.width(62.dp), renk = tonRenk(6, ""), etkin = e) { ko?.let { vm.katmanUcKaydir(it.id, 0, -500) } }
+            SimgeDugme("ekle", "Uzat", Modifier.width(62.dp), renk = tonRenk(7, ""), etkin = e) { ko?.let { vm.katmanUcKaydir(it.id, 0, 500) } }
             SimgeDugme("basa", "Başı=şimdi", Modifier.width(62.dp), renk = tonRenk(6, ""), etkin = e && konum < (ko?.sonMs ?: 0) - 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(basMs = konum.coerceAtLeast(0)) } } }
             SimgeDugme("sonraki", "Sonu=şimdi", Modifier.width(62.dp), renk = tonRenk(7, ""), etkin = e && konum > (ko?.basMs ?: Long.MAX_VALUE) + 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(sonMs = konum.coerceAtMost(toplam)) } } }
             SimgeDugme("cogalt", "Çoğalt", Modifier.width(62.dp), renk = tonRenk(1, ""), etkin = ko != null) { ko?.let { vm.katmanCogalt(it.id) } }
@@ -412,8 +425,13 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
             .border(if (secili) 2.dp else 0.dp, if (secili) Color.White else Color.Transparent, sekil)
             .pointerInput(o.id, secili) { detectTapGestures(onTap = { t ->
                 // 3.44: seçili değilse seç; seçiliyse uçlara dokun = Klip/Video sonu (başı) menüsü, ortaya dokun = yazıyı düzenle
-                if (!secili) { vm.seciliKatman.value = o.id; return@detectTapGestures }
+                // 3.50: seçili değilken de uca dokunmak menüyü açar (tek dokunuş: seç + menü)
                 val g = t.x - kayG
+                if (!secili) {
+                    vm.seciliKatman.value = o.id
+                    if (!oG.kilitli) { if (g > gwG - ucPx * 1.6f) ucMenu = 1 else if (g < ucPx * 1.6f) ucMenu = -1 }
+                    return@detectTapGestures
+                }
                 when {
                     oG.kilitli -> {}
                     g > gwG - ucPx * 1.6f -> ucMenu = 1
@@ -641,7 +659,8 @@ private fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
                 var ay by remember(o.id) { mutableStateOf(o.altyazi) }
                 androidx.compose.material3.OutlinedTextField(ay, { ay = it; vm.katmanDegis(o.id) { k -> k.copy(altyazi = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp),
                     label = { Text("Altyazı (yazının altında)") }, maxLines = 2, enabled = !o.kilitli)
-                Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+                Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)} · ${sureOndalik(o.sonMs - o.basMs)}", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+                UcDugmeleri(vm, o)
             }
         },
         confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.katmanDuzenle.value = null }) { Text("Tamam", color = Renk.turuncu) } },
@@ -679,4 +698,19 @@ private fun SesDiyalog(vm: EditorDurum, p: Proje, acMuzik: () -> Unit) {
         },
         confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.sesPenceresi.value = null }) { Text("Tamam", color = Renk.turuncu) } },
     )
+}
+
+/** 3.50: başı ve sonu yarım saniyelik adımlarla — solda baş (◀ erken · ▶ geç), sağda son (◀ kısalt · ▶ uzat). */
+@Composable
+fun UcDugmeleri(vm: EditorDurum, o: KatmanOge) {
+    val e = !o.kilitli
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Baş", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.width(26.dp))
+        SimgeDugme("onceki", "−0,5", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = e) { vm.katmanUcKaydir(o.id, -500, 0) }
+        SimgeDugme("sonraki", "+0,5", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = e) { vm.katmanUcKaydir(o.id, 500, 0) }
+        Spacer(Modifier.width(8.dp))
+        Text("Son", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.width(26.dp))
+        SimgeDugme("onceki", "−0,5", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = e) { vm.katmanUcKaydir(o.id, 0, -500) }
+        SimgeDugme("sonraki", "+0,5", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = e) { vm.katmanUcKaydir(o.id, 0, 500) }
+    }
 }

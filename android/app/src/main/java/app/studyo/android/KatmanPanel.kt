@@ -155,6 +155,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
             OutlinedTextField(ay, { ay = it; d { k -> k.copy(altyazi = it) } }, enabled = e, label = { Text("Altyazı (katmanın altında)") },
                 maxLines = 2, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
         }
+        UcDugmeleri(vm, o)   // 3.50: baş/son ± 0,5 sn
         // otomatik baş/son (3.43): tek dokunuşla
         Row(Modifier.fillMaxWidth()) {
             SimgeDugme("klip", "Bu klip boyunca", Modifier.weight(1f), renk = tonRenk(4, ""), etkin = e) { d { vm.katmanAralik(it, "klip") } }

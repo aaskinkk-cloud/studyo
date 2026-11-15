@@ -94,11 +94,14 @@ object Disa {
             bas += d
         }
         for (s in p.sesler) ar += longArrayOf(s.basMs * 1000, (s.basMs + s.sureMs) * 1000)
+        // 3.50: eklenen ses katmanları (konuşma/ses dosyası) da müziği kısar
+        for (o in p.katmanlar) if (o.tur == "ses" && !o.gizli && o.ses > 0.01f) ar += longArrayOf(o.basMs * 1000, o.sonMs * 1000)
         if (ar.isEmpty()) return sesIsleyici(m.ses)
         // aralıkları sırala ve birleştir
         ar.sortBy { it[0] }
         val bir = ArrayList<LongArray>()
         for (a in ar) { val s0 = bir.lastOrNull(); if (s0 != null && a[0] <= s0[1]) s0[1] = maxOf(s0[1], a[1]) else bir += a.copyOf() }
+        Kayit.yaz("  Müzik otomatik kısma: ${bir.size} aralık " + bir.take(6).joinToString { "${it[0] / 1000}-${it[1] / 1000}" } + (if (onizleme) " (önizleme)" else ""))
         return ZarfIsleyici(m.ses, MUZIK_KIS, bir)
     }
 

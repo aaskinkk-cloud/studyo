@@ -148,11 +148,11 @@ object Takipci {
                     ilerleme(((t - basMs).toFloat() / (k.sonMs - basMs).coerceAtLeast(1)).coerceIn(0f, 1f))
                 }
             }
+            // nesne kaybolduysa kayıp kareler atılır: yazı son görüldüğü yerde biter
+            if (bitti() && sonIyi in 1 until sonuc.size) while (sonuc.size > sonIyi) sonuc.removeAt(sonuc.lastIndex)
         } finally {
             try { r.release() } catch (_: Exception) {}
         }
-        // nesne kaybolduysa kayıp kareler atılır: yazı son görüldüğü yerde biter
-        if (bitti() && sonIyi in 1 until sonuc.size) while (sonuc.size > sonIyi) sonuc.removeAt(sonuc.lastIndex)
         // titremeyi azalt: 5 karelik kayan ortalama
         if (sonuc.size < 5) sonuc else sonuc.indices.map { i ->
             val a = max(0, i - 2); val b = min(sonuc.lastIndex, i + 2)

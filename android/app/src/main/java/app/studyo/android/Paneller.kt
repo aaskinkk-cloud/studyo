@@ -2,6 +2,12 @@
 
 package app.studyo.android
 
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.foundation.gestures.calculateRotation
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
@@ -414,37 +420,67 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Text("Takip edilecek yere dokun", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.TopCenter).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 4.dp))
                 }
+            } else if (nesnePaneli && katmanPaneli && seciliNesne != null) {
+                // 3.45: Katman bölümünde kesilen nesne seçiliyse sürükle = nesneyi taşı
+                val id = seciliNesne!!
+                Box(Modifier.fillMaxSize().pointerInput(id, olcek) {
+                    detectDragGestures { ch, d ->
+                        ch.consume()
+                        vm.nesneDegis(id) { it.copy(x = (it.x + d.x / (olcek * RW)).coerceIn(0f, 1f), y = (it.y + d.y / (olcek * RH)).coerceIn(0f, 1f)) }
+                    }
+                })
             } else if (katmanPaneli) {
                 val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
-                val kSec = p.katmanlar.firstOrNull { it.id == seciliK }
-                val kSecG by rememberUpdatedState(kSec)
+                val payPx = with(yog) { 28.dp.toPx() } / olcek     // 3.45: dokunma alanı katmanın çevresinde genişletilir (küçük yazı kolay tutulur)
+                fun isabet(t: Offset): KatmanOge? {
+                    val px = t.x / olcek; val py = t.y / olcek
+                    return KatmanCizim.gorunenler(pG, konumG).firstOrNull { o ->
+                        val (bw, bh) = katBoyut[o.id] ?: return@firstOrNull false
+                        val sc = KatmanCizim.an(o, konumG).olcek.let { if (it.isFinite()) it else 1f }
+                        katmanIsabet(o, (bw * sc + payPx * 2).toInt(), (bh * sc + payPx * 2).toInt(), px, py, RW, RH)
+                    }
+                }
                 Box(Modifier.fillMaxSize()
+                    // 3.45: tek hareket — katmanın üstüne bas ve hemen sürükle (önce seçmek gerekmez); iki parmak = büyüt/döndür;
+                    // kısa dokunuş = seç (yazıysa düzenle); boş yere dokun = seçimi kaldır; boş yerde sürükle = klibi kadrajda kaydır
                     .pointerInput(olcek) {
-                        detectTapGestures { t ->
-                            val px = t.x / olcek; val py = t.y / olcek
-                            val bul = KatmanCizim.gorunenler(pG, konumG).firstOrNull { o ->
-                                val (bw, bh) = katBoyut[o.id] ?: return@firstOrNull false
-                                val s = KatmanCizim.an(o, konumG).olcek
-                                katmanIsabet(o, (bw * s).toInt(), (bh * s).toInt(), px, py, RW, RH)
+                        awaitEachGesture {
+                            val ilk = awaitFirstDown(requireUnconsumed = false)
+                            val hedef = isabet(ilk.position)
+                            var tasindi = false; var topPan = Offset.Zero
+                            if (hedef != null && !hedef.kilitli) {
+                                do {
+                                    val ev = awaitPointerEvent()
+                                    val zoom = ev.calculateZoom(); val pan = ev.calculatePan(); val rot = ev.calculateRotation()
+                                    if (!tasindi) {
+                                        topPan += pan
+                                        if (topPan.getDistance() > viewConfiguration.touchSlop || ev.changes.count { it.pressed } > 1) { tasindi = true; vm.seciliKatman.value = hedef.id }
+                                    }
+                                    if (tasindi && zoom.isFinite() && rot.isFinite() && pan.x.isFinite() && pan.y.isFinite() && zoom > 0f) {
+                                        val g = katGecici?.takeIf { it.id == hedef.id } ?: KatmanGecici(hedef.id, hedef.x, hedef.y, 1f, 0f)
+                                        katGecici = g.copy(
+                                            x = (g.x + pan.x / (olcek * RW)).coerceIn(0f, 1f), y = (g.y + pan.y / (olcek * RH)).coerceIn(0f, 1f),
+                                            carpan = (g.carpan * zoom).coerceIn(0.1f, 8f), aci = g.aci + rot,
+                                        )
+                                        ev.changes.forEach { if (it.positionChanged()) it.consume() }
+                                    }
+                                } while (ev.changes.any { it.pressed })
+                            } else {
+                                // boşta: yalnız dokunuşu izle (sürükleme klipSurukle'ye kalır)
+                                do {
+                                    val ev = awaitPointerEvent()
+                                    val c = ev.changes.firstOrNull() ?: break
+                                    topPan += c.position - c.previousPosition
+                                    if (topPan.getDistance() > viewConfiguration.touchSlop) tasindi = true
+                                } while (ev.changes.any { it.pressed })
                             }
-                            vm.seciliKatman.value = bul?.id
-                            if (bul?.tur == "metin") vm.katmanDuzenle.value = bul.id   // 3.44: ekrandaki yazıya dokun = hemen düzenle
+                            if (!tasindi) {
+                                vm.seciliKatman.value = hedef?.id
+                                if (hedef?.tur == "metin") vm.katmanDuzenle.value = hedef.id
+                            }
                         }
                     }
-                    .then(if (kSec == null) klipSurukle else Modifier)
-                    .pointerInput(kSec?.id, kSec?.kilitli, olcek) {
-                        if (kSec == null || kSec.kilitli) return@pointerInput
-                        detectTransformGestures { _, pan, zoom, rot ->
-                            // 3.43: NaN/sonsuz hareket değerleri (çökme kaynağı) atlanır
-                            if (!zoom.isFinite() || !rot.isFinite() || !pan.x.isFinite() || !pan.y.isFinite() || zoom <= 0f) return@detectTransformGestures
-                            val o = kSecG ?: return@detectTransformGestures
-                            val g = katGecici?.takeIf { it.id == o.id } ?: KatmanGecici(o.id, o.x, o.y, 1f, 0f)
-                            katGecici = g.copy(
-                                x = (g.x + pan.x / (olcek * RW)).coerceIn(0f, 1f), y = (g.y + pan.y / (olcek * RH)).coerceIn(0f, 1f),
-                                carpan = (g.carpan * zoom).coerceIn(0.1f, 8f), aci = g.aci + rot,
-                            )
-                        }
-                    })
+                    .then(klipSurukle))
             } else if (logoPaneli && logoY != null) {
                 val ly = logoY
                 Box(Modifier.fillMaxSize().pointerInput(ly, olcek) {

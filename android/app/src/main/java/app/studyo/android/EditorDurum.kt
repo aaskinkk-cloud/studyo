@@ -686,6 +686,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             "klipSon" -> { var b = sinir(o.basMs).second; if (b <= o.sonMs + 50 && b < T) b = sinir(b).second; o.copy(sonMs = minOf(b, o.basMs + enUzun)) }
             "videoSon" -> o.copy(sonMs = minOf(T, o.basMs + enUzun))
             "klipBas" -> { var a = sinir(o.basMs).first; if (a >= o.basMs - 50 && a > 0) a = sinir(a - 1).first; o.copy(basMs = a, sonMs = minOf(o.sonMs, a + enUzun)) }
+            "basaTasi" -> { val L = (o.sonMs - o.basMs).coerceAtLeast(300); o.copy(basMs = 0, sonMs = minOf(L, T)) }   // 3.45: süresi korunur, videonun başına taşınır
             else -> o.copy(basMs = 0, sonMs = minOf(o.sonMs, enUzun))
         }
     }

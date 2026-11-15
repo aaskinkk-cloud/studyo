@@ -170,7 +170,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
                 InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
             }
-            val nesneModu = panelAcik && bolum == "duzenle" && haplar["duzenle"] == "nesne"
+            val nesneModu = panelAcik && (bolum == "duzenle" && haplar["duzenle"] == "nesne" || bolum == "katman")   // 3.45: nesne kesme Katmanlar'da da
             // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
             val tamOran = run {
                 val oranV = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }

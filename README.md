@@ -6,6 +6,15 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.45 (15.11.2026, deneme · `yerel-android` dalı): katmanları parmakla taşıma, sıradakine geçme, nesne kesme, doldur
+- **Önizlemede tek hareketle taşı:** katmanın (yazı, logo, görsel, çıkartma) üstüne bas ve hemen sürükle — önce seçmek gerekmez; dokunma alanı katmanın çevresinde genişletildi; iki parmak = büyüt/döndür; kısa dokunuş = seç (yazıysa düzenle); boş yerde sürükle = klibi kadrajda kaydır.
+- **Çizelgede sürükleyerek öne/arkaya:** katman çubuğunu yukarı sürükle = öne al, aşağı = arkaya gönder. Seçiliyken doğrudan, seçili değilken basılı tutup sürükle (yatay kaydırma çizelgeyi sarmaya devam eder).
+- **Videonun başına taşı:** çubuğun ucuna dokununca açılan menüde (Klip sonu · Video sonu · Videonun başına taşı) — müzik/ses dahil tüm katmanlar; süre korunur.
+- **Simgeye her dokunuş = sıradaki öğe:** aynı türdeki katmanlar (yazılar, sesler, görseller…) arasında zamana göre sırayla geçer ve sahnesine gider; Klip yazısı, Takip yazısı ve Ses kaydı satırlarında da.
+- **Nesne kes Katmanlar'da:** fotoğraftan/videodan nesne kesme paneli Katmanlar sayfasında açılır kapanır kart olarak; önizlemede seçili nesne sürüklenir.
+- **Doldur / Sığdır:** araç sırasında oynatıcının üstündeki klibi tek dokunuşla kadraja doldurur, tekrar dokununca eski haline döner.
+- **Araç sırası görünümü:** "Alt alta" düğmesi ile tek satır (sağa kayar) ↔ alt alta satırlar; seçim hatırlanır.
+
 ## 3.44 (15.11.2026, deneme · `yerel-android` dalı): katmanlarda gezinme ve hızlı düzenleme
 - **Simgeye dokun = sahnesine git:** çizelgede soldaki katman simgesine/adına dokununca katman seçilir ve oynatıcı o katmanın başına gider (tüm katmanlar).
 - **Ekrandaki yazıya dokun:** hangi bölümde olursan ol, önizlemedeki katmana dokununca Katman bölümü açılır ve o katman seçilir; yazıysa "Yazıyı düzenle" penceresi açılır (metin + stil).

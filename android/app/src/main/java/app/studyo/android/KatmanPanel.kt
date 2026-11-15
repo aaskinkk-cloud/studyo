@@ -72,6 +72,15 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
 
     p.katmanlar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
     TumKatmanlar(vm, p)
+    // 3.45: fotoğraftan / videodan nesne kesme Katmanlar'da da (Düzenle › Nesne ile aynı panel)
+    var nesneAcik by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(p.nesneler.isNotEmpty()) }
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(Renk.kart).clickable { nesneAcik = !nesneAcik }.padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Simge("makas", Renk.turuncu, 16.dp); Spacer(Modifier.width(8.dp))
+        Text("Nesne kes · fotoğraf / video${if (p.nesneler.isNotEmpty()) " · ${p.nesneler.size}" else ""}", color = Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text(if (nesneAcik) "▾" else "▸", color = Renk.soluk)
+    }
+    if (nesneAcik) PanelNesne(vm, p)
 
     if (cikartmaAcik) AlertDialog(
         onDismissRequest = { cikartmaAcik = false },

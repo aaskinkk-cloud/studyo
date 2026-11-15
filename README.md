@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.49 (15.11.2026, deneme · `yerel-android` dalı): Renk ve ışık (HSL), altyazı toplu düzeltme, ince bant altyazı
+- **Görünüm › Renk (yeni):** parlaklık, kontrast, vurgular (sola = patlayan parlak alanları geri çeker), gölgeler, doygunluk, sıcaklık, ton; hazır ayarlar (Patlamayı azalt, Doğal, Canlı, Sıcak, Serin, Yeşili canlandır, Sıfırla); **HSL** — 8 renk bandı (kırmızı…pembe) için ton/doygunluk/ışık. Klip bazında, kart başlığındaki "tümüne uygula" ile bütün kliplere (`Klip.renk`, `RenkAyari.kt`).
+  - Tek dönüşüm fonksiyonu: dışa aktarma ve akıcı önizlemede 33³ 3B LUT (Media3 `SingleColorLut`), panelde önce/sonra görüntüsü (basılı tut = önce) aynı fonksiyonla — birebir aynı sonuç.
+- **Altyazı toplu düzelt:** tüm satırlar tek metin kutusunda (her satır bir altyazı, zamanlar korunur) — Kopyala → yapay zekâya düzelttir → Yapıştır → Uygula. Kelime zamanları satır süresine eşit dağıtılır.
+- **İnce siyah bant altyazı (yeni varsayılan):** boydan boya yarı saydam siyah bant, en altta kenara sıfır; "Altyazı görünümü"nden diğer stiller seçilebilir.
+
 ## 3.48 (15.11.2026, deneme · `yerel-android` dalı): müzik kısma kök düzeltmesi, ses penceresi, çoğalt sağa, dalga titremesi
 - **Konuşma varken müzik kısılmıyordu (kök neden):** oynatma akıcı önizlemede (CompositionPlayer) yapılıyor ve orada müzik sabit sesteydi; seslendirme (konuşma) aralıkları da hesaba katılmıyordu. Artık zarf işleyicisi önizlemede de çalışır (sarma anı `MuzikZarf` ile bildirilir), video sesi olan klipler + seslendirme aralıklarında müzik %35'e iner. Standart oynatıcı yolunda da her tikte uygulanır.
 - **Müzik çubuğu yanıp sönüyordu (kök neden):** dalga, çubuğun başından 3 px'te bir örnekleniyordu; kaydırınca örnek noktaları kayıyordu. Örnekleme artık kaynak zamanına sabit (tüm ses dalgaları).

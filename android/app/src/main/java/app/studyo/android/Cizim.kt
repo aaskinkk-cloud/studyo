@@ -223,6 +223,22 @@ object Cizim {
         if (metin.isBlank()) return null
         val k = min(W, H).toFloat()
         val boy = st.boyut * k
+        if (st.stil == "bant") {
+            // 3.49: boydan boya ince, yarı saydam siyah bant; altta kenara sıfır (üstte seçilirse üst kenara)
+            val p = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = boy; color = 0xFFFFFFFF.toInt()
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
+            val lay = android.text.StaticLayout.Builder.obtain(metin, 0, metin.length, p, (W * 0.92f).toInt()).setAlignment(android.text.Layout.Alignment.ALIGN_CENTER).setMaxLines(2).build()
+            val pad = (boy * 0.32f).toInt()
+            val bmp = Bitmap.createBitmap(W, lay.height + pad * 2, Bitmap.Config.ARGB_8888)
+            val c = android.graphics.Canvas(bmp)
+            c.drawColor(0x8C000000.toInt())
+            c.save(); c.translate(W * 0.04f, pad.toFloat()); lay.draw(c); c.restore()
+            return when (st.konum) {
+                "ust" -> Yerlesim(bmp, 0f, 1f, 0f, 1f)
+                "orta" -> Yerlesim(bmp, 0f, 0f, 0f, 0f)
+                else -> Yerlesim(bmp, 0f, -1f, 0f, -1f)
+            }
+        }
         val b = when (st.stil) {
             "kenarli" -> Blok(metin, boy, 0xFFFFFFFF.toInt(), kontur = boy * 0.16f, golge = null)
             "sari" -> Blok(metin, boy, 0xFFFFD400.toInt(), kontur = boy * 0.16f, golge = null)

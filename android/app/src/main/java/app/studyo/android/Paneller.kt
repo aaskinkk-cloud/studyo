@@ -2,6 +2,9 @@
 
 package app.studyo.android
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import kotlin.math.abs
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.foundation.gestures.calculateZoom
@@ -993,6 +996,19 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
                 "Kelime zamanları tutulur: “Kelime vurgulu” görünümde o an söylenen kelime renklenir. Elle yazdığın satırlar silinmez.")
         }
     }
+    // 3.49: tanıma hatalarını toplu düzelt — tümünü kopyala, bir yapay zekâya düzelttir, yapıştır ve uygula
+    if (p.altyazilar.isNotEmpty()) Kart("Toplu düzelt (kopyala · yapıştır)", baslangicAcik = false) {
+        val pano = androidx.compose.ui.platform.LocalClipboardManager.current
+        var metin by remember(p.altyazilar.size) { mutableStateOf(p.altyazilar.joinToString("\n") { it.metin.replace('\n', ' ') }) }
+        Not("Her satır bir altyazı kutusudur (zamanları korunur). \"Kopyala\" → bir yapay zekâya \"satır sayısını ve sırasını koruyarak yazım hatalarını düzelt\" de → düzeltilmiş metni kopyala → \"Yapıştır\" → \"Uygula\".")
+        OutlinedTextField(metin, { metin = it }, Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 260.dp).padding(top = 4.dp),
+            label = { Text("${metin.lines().count { it.isNotBlank() }} satır · ${p.altyazilar.size} altyazı") })
+        DugmeSirasi(
+            "Kopyala" to { pano.setText(androidx.compose.ui.text.AnnotatedString(metin)); vm.mesaj.value = "Altyazılar kopyalandı" },
+            "Yapıştır" to { pano.getText()?.text?.let { metin = it } ?: run { vm.mesaj.value = "Panoda metin yok" } },
+            "Uygula" to { vm.altyaziTopluYaz(metin) },
+        )
+    }
     Kart("Altyazı satırları (${p.altyazilar.size})") {
         DugmeSirasi("＋ Şu anda ekle" to { vm.altyaziEkle() }, "Her klibe satır" to { vm.altyaziHerKlibe() })
         DugmeSirasi("SRT yükle" to { yukle.launch(arrayOf("*/*")) }, "SRT kaydet" to { kaydet.launch(p.ad.take(40) + ".srt") },
@@ -1015,7 +1031,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
     val st = p.altyaziStil
     Kart("Altyazı görünümü") {
         AnahtarSatiri("Altyazıları videoya yaz", st.acik) { v -> vm.altyaziStilDegis { it.copy(acik = v) } }
-        Secenekler(listOf("kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı", "kisa" to "Kelime vurgulu"), st.stil, sutun = 2) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
+        Secenekler(listOf("bant" to "İnce siyah bant", "kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı", "kisa" to "Kelime vurgulu"), st.stil, sutun = 2) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
         if (st.stil == "kisa") Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(0xFFFFD400, 0xFF35E06B, 0xFF27D3FF, 0xFFFF5FA2, 0xFFFFFFFF).forEach { r ->
                 Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
@@ -1249,3 +1265,64 @@ fun Modifier.erimeMaskesi(aktif: Boolean, k: Float): Modifier = if (!aktif) this
             androidx.compose.ui.unit.IntOffset.Zero, androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
             blendMode = androidx.compose.ui.graphics.BlendMode.DstIn, filterQuality = androidx.compose.ui.graphics.FilterQuality.High)
     }
+
+// ===================================================== RENK (3.49) =====================================================
+
+/** Renk ve ışık: parlaklık, kontrast, doygunluk, sıcaklık, vurgular (patlamayı azalt), gölgeler, ton + 8 bantlı HSL.
+ *  Klip bazında; Kart'ın "tümüne uygula" düğmesiyle bütün kliplere. Önce/sonra görüntüsü dışa aktarmayla aynı dönüşüm. */
+@Composable
+fun PanelRenk(vm: EditorDurum, k: Klip) {
+    val ctx = LocalContext.current
+    val a = k.renk ?: RenkAyar()
+    fun d(f: (RenkAyar) -> RenkAyar) = vm.klipGuncelle { it.copy(renk = f(it.renk ?: RenkAyar()).takeIf { r -> !r.bos }) }
+    val kaynak by produceState<Bitmap?>(null, k.uri, k.basMs) { value = withContext(Dispatchers.IO) { Medya.kucukResim(ctx, k, 360) } }
+    val sonra by produceState<Bitmap?>(null, kaynak, a) { value = kaynak?.let { b -> withContext(Dispatchers.Default) { RenkLut.uygula(b, a) } } }
+    var once by remember { mutableStateOf(false) }
+    Kart("Renk ve ışık", hepsine = { vm.hepsine({ it.copy(renk = k.renk) }); vm.mesaj.value = "Renk ayarı tüm kliplere uygulandı" }) {
+        (if (once) kaynak else sonra ?: kaynak)?.let { b ->
+            Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black)
+                .pointerInput(Unit) { detectTapGestures(onPress = { once = true; tryAwaitRelease(); once = false }) }) {
+                Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                Text(if (once) "Önce" else "Sonra · basılı tut = önce", color = Color.White, fontSize = 11.sp,
+                    modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
+            }
+        }
+        // hazır ayarlar
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                "Patlamayı azalt" to RenkAyar(vurgular = -0.6f, golgeler = 0.15f, kontrast = -0.05f),
+                "Doğal" to RenkAyar(kontrast = 0.08f, doygunluk = 0.1f),
+                "Canlı" to RenkAyar(kontrast = 0.15f, doygunluk = 0.35f, vurgular = -0.2f),
+                "Sıcak" to RenkAyar(sicaklik = 0.4f, doygunluk = 0.1f),
+                "Serin" to RenkAyar(sicaklik = -0.35f),
+                "Yeşili canlandır" to RenkAyar(hslDoy = List(8) { if (it == 3 || it == 2) 0.35f else 0f }, hslIsik = List(8) { if (it == 3) 0.1f else 0f }),
+                "Sıfırla" to RenkAyar(),
+            ).forEachIndexed { j, (ad, r) -> SecimKarti(ad, "", a == r && !(ad == "Sıfırla" && !a.bos), Modifier.width(96.dp), sira = j, simge = "gorunum") { d { r } } }
+        }
+        Kaydirici("Parlaklık", a.parlaklik, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(parlaklik = v) } }
+        Kaydirici("Kontrast", a.kontrast, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(kontrast = v) } }
+        Kaydirici("Vurgular (patlamayı azalt: sola)", a.vurgular, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(vurgular = v) } }
+        Kaydirici("Gölgeler", a.golgeler, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(golgeler = v) } }
+        Kaydirici("Doygunluk", a.doygunluk, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(doygunluk = v) } }
+        Kaydirici("Sıcaklık", a.sicaklik, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(sicaklik = v) } }
+        Kaydirici("Ton (tüm renkler)", a.ton, -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(ton = v) } }
+    }
+    Kart("HSL · renk renk", baslangicAcik = false, hepsine = { vm.hepsine({ it.copy(renk = k.renk) }); vm.mesaj.value = "Renk ayarı tüm kliplere uygulandı" }) {
+        var b by remember { mutableIntStateOf(3) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            RenkLut.BANT_RENK.forEachIndexed { i, r ->
+                val degisti = abs(a.hslTon[i]) + abs(a.hslDoy[i]) + abs(a.hslIsik[i]) > 0.005f
+                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(r))
+                    .border(if (b == i) 3.dp else if (degisti) 1.5.dp else 0.dp, if (b == i) Color.White else Renk.turuncu, CircleShape).clickable { b = i })
+            }
+        }
+        Text(RenkLut.BANT_AD[b], color = Color(RenkLut.BANT_RENK[b]), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
+        fun L(l: List<Float>, v: Float) = l.toMutableList().also { it[b] = v }
+        key(b) {
+            Kaydirici("Ton", a.hslTon[b], -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(hslTon = L(it.hslTon, v)) } }
+            Kaydirici("Doygunluk", a.hslDoy[b], -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(hslDoy = L(it.hslDoy, v)) } }
+            Kaydirici("Işık", a.hslIsik[b], -1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> d { it.copy(hslIsik = L(it.hslIsik, v)) } }
+        }
+        Not("Ayarlar oynatırken önizlemede ve dışa aktarmada uygulanır; durağan önizleme yukarıdaki önce/sonra görüntüsündedir.")
+    }
+}

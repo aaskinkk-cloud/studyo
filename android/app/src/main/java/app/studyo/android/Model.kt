@@ -49,6 +49,8 @@ data class Klip(
     val hdr: Boolean = false,
     val sesVar: Boolean = true,
     val takip: Takip? = null,
+    /** 3.49: renk ve ışık ayarı (null = yok) */
+    val renk: RenkAyar? = null,
     /** Yüz (fotoğrafta): merkez 0…1 ve yüz yüksekliği (fotoğraf yüksekliğinin oranı). yuzB = 0 → yüz yok/bakılmadı. */
     val yuzX: Float = -1f, val yuzY: Float = -1f, val yuzB: Float = 0f, val yuzBakildi: Boolean = false,
     /** Yüze odaklan ve yaklaş (dikey kişi fotoğrafında yavaş yakınlaşma yüze doğru). */
@@ -126,7 +128,7 @@ data class Kelime(val basMs: Long, val sonMs: Long, val metin: String)
 data class Altyazi(val id: String = yeniId(), val basMs: Long, val sonMs: Long, val metin: String = "", val kelimeler: List<Kelime> = emptyList())
 
 @Serializable
-data class AltyaziStil(val acik: Boolean = true, val stil: String = "kutu", val boyut: Float = 0.05f, val konum: String = "alt", val vurgu: Long = 0xFFFFD400)   // kutu | kenarli | sari | kisa (o anki kelime renkli)
+data class AltyaziStil(val acik: Boolean = true, val stil: String = "bant", val boyut: Float = 0.05f, val konum: String = "alt", val vurgu: Long = 0xFFFFD400)   // kutu | kenarli | sari | kisa (o anki kelime renkli)
 
 @Serializable
 data class Kapak(

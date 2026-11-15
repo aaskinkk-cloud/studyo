@@ -80,7 +80,7 @@ private fun InceDugme(metin: String, renk: Color, etkin: Boolean = true, onClick
 
 private val HAP_SIMGE = mapOf(
     "klip" to "klip", "ekle" to "ekle", "nesne" to "katman", "bicim" to "bicim",
-    "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket",
+    "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket", "renk" to "gorunum",
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman",
@@ -89,7 +89,7 @@ private val HAP_SIMGE = mapOf(
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket", "renk" to "Renk")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),
@@ -223,7 +223,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
-                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip")
+                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip", "renk")
                     if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
                         Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
@@ -702,6 +702,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
             "klip" -> PanelKlip(vm, p, sec, k)
             "kadraj" -> PanelKadraj(vm, k)
             "hareket" -> PanelHareket(vm, k)
+            "renk" -> PanelRenk(vm, k)
             "klipses" -> PanelKlipSes(vm, k)
             "yazi" -> PanelYazi(vm, k)
             "takip" -> PanelTakip(vm, k)

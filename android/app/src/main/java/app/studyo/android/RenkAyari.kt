@@ -1,0 +1,103 @@
+package app.studyo.android
+
+import android.graphics.Bitmap
+import androidx.media3.effect.SingleColorLut
+import kotlinx.serialization.Serializable
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+
+/** 3.49: klip renk ve ışık ayarı. Hepsi -1…1, 0 = değişiklik yok. HSL: 8 renk bandı için ton / doygunluk / ışık. */
+@Serializable
+data class RenkAyar(
+    val parlaklik: Float = 0f, val kontrast: Float = 0f, val doygunluk: Float = 0f, val sicaklik: Float = 0f,
+    val vurgular: Float = 0f, val golgeler: Float = 0f, val ton: Float = 0f,
+    val hslTon: List<Float> = List(8) { 0f }, val hslDoy: List<Float> = List(8) { 0f }, val hslIsik: List<Float> = List(8) { 0f },
+) {
+    val bos: Boolean get() = listOf(parlaklik, kontrast, doygunluk, sicaklik, vurgular, golgeler, ton).all { abs(it) < 0.005f } &&
+        (hslTon + hslDoy + hslIsik).all { abs(it) < 0.005f }
+}
+
+/** Renk dönüşümü tek yerde: dışa aktarma/akıcı önizleme 3B LUT (Media3 SingleColorLut) ile, ayar panelindeki
+ *  önce/sonra görüntüsü aynı fonksiyonla piksel piksel — ikisi birebir aynı sonucu verir. */
+object RenkLut {
+    /** HSL bant merkezleri (derece): kırmızı, turuncu, sarı, yeşil, camgöbeği, mavi, mor, pembe */
+    val BANT = floatArrayOf(0f, 30f, 60f, 120f, 180f, 225f, 275f, 320f)
+    val BANT_RENK = longArrayOf(0xFFE53935, 0xFFFB8C00, 0xFFFDD835, 0xFF43A047, 0xFF00ACC1, 0xFF1E88E5, 0xFF8E24AA, 0xFFD81B60)
+    val BANT_AD = listOf("Kırmızı", "Turuncu", "Sarı", "Yeşil", "Camgöbeği", "Mavi", "Mor", "Pembe")
+
+    private fun ss(a: Float, b: Float, x: Float): Float { val t = ((x - a) / (b - a)).coerceIn(0f, 1f); return t * t * (3 - 2 * t) }
+
+    /** r,g,b 0…1 → ayarlanmış 0…1 (çıkış dizisine yazar) */
+    fun donustur(a: RenkAyar, r0: Float, g0: Float, b0: Float, o: FloatArray) {
+        var r = r0; var g = g0; var b = b0
+        // --- HSL (bant bazlı + genel ton) ---
+        val hslVar = abs(a.ton) > 0.005f || (a.hslTon + a.hslDoy + a.hslIsik).any { abs(it) > 0.005f }
+        if (hslVar) {
+            val mx = max(r, max(g, b)); val mn = min(r, min(g, b)); val l = (mx + mn) / 2f; val d = mx - mn
+            var h = 0f; var s = 0f
+            if (d > 1e-5f) {
+                s = if (l > 0.5f) d / (2f - mx - mn) else d / (mx + mn)
+                h = when (mx) { r -> ((g - b) / d + (if (g < b) 6f else 0f)); g -> ((b - r) / d + 2f); else -> ((r - g) / d + 4f) } * 60f
+            }
+            var hh = h + a.ton * 30f; var s2 = s; var l2 = l
+            for (i in 0 until 8) {
+                var dh = abs(h - BANT[i]); if (dh > 180f) dh = 360f - dh
+                val w = (1f - dh / 40f).coerceIn(0f, 1f) * min(1f, s * 3f)      // gri tonlar etkilenmez
+                if (w <= 0f) continue
+                hh += w * a.hslTon[i] * 25f
+                s2 *= 1f + w * a.hslDoy[i]
+                l2 += w * a.hslIsik[i] * 0.25f
+            }
+            hh = ((hh % 360f) + 360f) % 360f; s2 = s2.coerceIn(0f, 1f); l2 = l2.coerceIn(0f, 1f)
+            val q = if (l2 < 0.5f) l2 * (1 + s2) else l2 + s2 - l2 * s2; val p = 2 * l2 - q
+            fun t2(t0: Float): Float { var t = t0; if (t < 0) t += 1f; if (t > 1) t -= 1f
+                return when { t < 1f / 6 -> p + (q - p) * 6 * t; t < 0.5f -> q; t < 2f / 3 -> p + (q - p) * (2f / 3 - t) * 6; else -> p } }
+            val hn = hh / 360f
+            r = t2(hn + 1f / 3); g = t2(hn); b = t2(hn - 1f / 3)
+        }
+        // --- sıcaklık ---
+        r += a.sicaklik * 0.08f; b -= a.sicaklik * 0.08f
+        fun kanal(x0: Float): Float {
+            var x = x0.coerceIn(0f, 1f)
+            if (abs(a.parlaklik) > 0.005f) x = x.pow(1f - a.parlaklik * 0.5f)
+            x = (x - 0.5f) * (1f + a.kontrast * 0.8f) + 0.5f
+            x += a.vurgular * 0.35f * ss(0.45f, 1f, x)          // eksi = patlayan parlak alanları geri çeker
+            x += a.golgeler * 0.3f * (1f - ss(0f, 0.5f, x))
+            return x
+        }
+        r = kanal(r); g = kanal(g); b = kanal(b)
+        if (abs(a.doygunluk) > 0.005f) {
+            val y = 0.299f * r + 0.587f * g + 0.114f * b; val k = 1f + a.doygunluk
+            r = y + (r - y) * k; g = y + (g - y) * k; b = y + (b - y) * k
+        }
+        o[0] = r.coerceIn(0f, 1f); o[1] = g.coerceIn(0f, 1f); o[2] = b.coerceIn(0f, 1f)
+    }
+
+    private val onbellek = HashMap<RenkAyar, SingleColorLut>()
+
+    /** Media3 etkisi (33³ LUT). Aynı ayar için önbellekten. */
+    @Synchronized fun etki(a: RenkAyar): SingleColorLut = onbellek.getOrPut(a) {
+        val n = 33; val o = FloatArray(3)
+        val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
+            donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o)
+            (0xFF shl 24) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
+        } } }
+        if (onbellek.size > 40) onbellek.clear()
+        SingleColorLut.createFromCube(kup)
+    }
+
+    /** Önce/sonra görüntüsü için bitmap'e uygular (küçük görüntü). */
+    fun uygula(src: Bitmap, a: RenkAyar): Bitmap {
+        val w = src.width; val h = src.height
+        val px = IntArray(w * h); src.getPixels(px, 0, w, 0, 0, w, h)
+        val o = FloatArray(3)
+        for (i in px.indices) {
+            val c = px[i]
+            donustur(a, ((c shr 16) and 255) / 255f, ((c shr 8) and 255) / 255f, (c and 255) / 255f, o)
+            px[i] = (c and -0x1000000) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
+        }
+        return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+    }
+}

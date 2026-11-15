@@ -1030,6 +1030,20 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun altyaziDegis(id: String, f: (Altyazi) -> Altyazi) = guncelle { p -> p.copy(altyazilar = p.altyazilar.map { if (it.id == id) f(it) else it }.sortedBy { it.basMs }) }
     fun altyaziSil(id: String) = guncelle { p -> p.copy(altyazilar = p.altyazilar.filter { it.id != id }) }
     fun altyaziTumunuSil() = guncelle { it.copy(altyazilar = emptyList()) }
+
+    /** 3.49: toplu düzeltme — her satır sırayla bir altyazıya yazılır (zamanlar korunur); kelime zamanları satır süresine eşit dağıtılır. */
+    fun altyaziTopluYaz(metin: String) {
+        val satir = metin.replace("\r", "").split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+        val l = proje.value.altyazilar
+        if (satir.isEmpty() || l.isEmpty()) { uyari.value = "Yapıştırılacak satır ya da altyazı yok."; return }
+        guncelle { p -> p.copy(altyazilar = p.altyazilar.mapIndexed { i, a ->
+            val y = satir.getOrNull(i) ?: return@mapIndexed a
+            val k = y.split(Regex("\\s+")).filter { it.isNotEmpty() }
+            val d = ((a.sonMs - a.basMs) / k.size.coerceAtLeast(1)).coerceAtLeast(1)
+            a.copy(metin = y, kelimeler = if (a.kelimeler.isEmpty()) emptyList() else k.mapIndexed { j, w -> Kelime(a.basMs + j * d, a.basMs + (j + 1) * d, w) })
+        }) }
+        mesaj.value = if (satir.size == l.size) "${l.size} satır düzeltildi" else "Satır sayısı farklı: ${satir.size} yapıştırıldı, ${l.size} altyazı var — sırayla yazıldı"
+    }
     fun altyaziStilDegis(f: (AltyaziStil) -> AltyaziStil) = guncelle { it.copy(altyaziStil = f(it.altyaziStil)) }
 
     private fun srtZaman(ms: Long): String = String.format(java.util.Locale.US, "%02d:%02d:%02d,%03d", ms / 3600000, ms / 60000 % 60, ms / 1000 % 60, ms % 1000)

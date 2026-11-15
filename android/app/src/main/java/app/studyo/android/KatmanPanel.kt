@@ -292,7 +292,7 @@ private fun TumKatmanlar(vm: EditorDurum, p: Proje) {
     Kart("Ses ve görünürlük · tümü") {
         p.muzik?.let { m ->
             HizliSatir("nota", "Müzik · ${m.ad.ifBlank { "parça" }}", Color(0xFF4CC38A), m.ses, 0f..1f, m.ses <= 0.001f, "Ses",
-                kapat = { vm.muzikDegis { it.copy(ses = if (it.ses <= 0.001f) 0.35f else 0f) } }, tum = null) { v -> vm.muzikDegis { it.copy(ses = v) } }
+                kapat = { vm.muzikDegis { it.copy(ses = if (it.ses <= 0.001f) 0.5f else 0f) } }, tum = null) { v -> vm.muzikDegis { it.copy(ses = v) } }
             AnahtarSatiri("Videoda ses varken müziği otomatik kıs", m.otoKis) { v -> vm.muzikDegis { it.copy(otoKis = v) } }
         }
         for (o in p.katmanlar.asReversed()) key(o.id) {

@@ -82,20 +82,26 @@ object Disa {
     fun ciktiDizini(ctx: Context): File = ctx.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: ctx.filesDir
     fun bosAlan(ctx: Context): Long = try { StatFs(ciktiDizini(ctx).path).availableBytes } catch (e: Exception) { -1 }
 
-    /** 3.46: müzik — videonun kendi sesi olan klip aralıklarında otomatik kısılır (yumuşak geçişle). Önizleme bileşiminde
-     *  (sarma yapılabildiği için konum takibi güvenilmez) sabit ses kullanılır; önizlemede kısmayı oynatıcı yapar. */
-    private fun muzikIsleyici(p: Proje, m: Muzik, onizleme: Boolean): AudioProcessor {
-        if (!m.otoKis || onizleme) return sesIsleyici(m.ses)
+    /** 3.48: müzik — kendi sesi olan kliplerde ve seslendirme (konuşma) sırasında otomatik kısılır (yumuşak geçişle).
+     *  Önizleme (CompositionPlayer) için de geçerli: sarma (seek) anı [MuzikZarf] ile bildirilir, işleyici oradan sayar.
+     *  KÖK NEDEN (3.46'da kısmıyordu): önizleme bileşimi sabit ses kullanıyordu ve seslendirme aralıkları hiç hesaba katılmıyordu. */
+    private fun muzikIsleyici(p: Proje, m: Muzik, @Suppress("UNUSED_PARAMETER") onizleme: Boolean): AudioProcessor {
+        if (!m.otoKis) return sesIsleyici(m.ses)
         val ar = ArrayList<LongArray>(); var bas = 0L
         for (i in p.klipler.indices) {
             val k = p.klipler[i]; val d = p.zKlip(i).sureMs
             if (!k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f) ar += longArrayOf(bas * 1000, (bas + d) * 1000)
             bas += d
         }
-        return if (ar.isEmpty()) sesIsleyici(m.ses) else ZarfIsleyici(m.ses, MUZIK_KIS, ar)
+        for (s in p.sesler) ar += longArrayOf(s.basMs * 1000, (s.basMs + s.sureMs) * 1000)
+        if (ar.isEmpty()) return sesIsleyici(m.ses)
+        // aralıkları sırala ve birleştir
+        ar.sortBy { it[0] }
+        val bir = ArrayList<LongArray>()
+        for (a in ar) { val s0 = bir.lastOrNull(); if (s0 != null && a[0] <= s0[1]) s0[1] = maxOf(s0[1], a[1]) else bir += a.copyOf() }
+        return ZarfIsleyici(m.ses, MUZIK_KIS, bir)
     }
 
-    /** Zaman aralıklı kazanç: işlenen örnek sayısından çıktı zamanını bulur (sıfırlanmaz; dışa aktarmada sarma yok, döngü de devam eder). */
     private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>) : androidx.media3.common.audio.BaseAudioProcessor() {
         private var kare = 0L; private var g = -1f
         override fun onConfigure(f: androidx.media3.common.audio.AudioProcessor.AudioFormat): androidx.media3.common.audio.AudioProcessor.AudioFormat {
@@ -123,7 +129,12 @@ object Disa {
             }
             out.flip()
         }
-        override fun onReset() { kare = 0L; g = -1f }
+        private var surum = -1
+        override fun onFlush() {
+            // sarma olduysa çıktı zamanı oradan devam eder; döngü/öğe geçişindeki boşaltmada sayaç sürer
+            if (surum != MuzikZarf.surum) { surum = MuzikZarf.surum; kare = MuzikZarf.us * inputAudioFormat.sampleRate.coerceAtLeast(1) / 1_000_000L; g = -1f }
+        }
+        override fun onReset() { kare = 0L; g = -1f; surum = -1 }
     }
 
     private fun sesIsleyici(kat: Float) = ChannelMixingAudioProcessor().apply {
@@ -886,4 +897,11 @@ class DisaServisi : Service() {
         try { kilit?.let { if (it.isHeld) it.release() } } catch (_: Exception) {}
         super.onDestroy()
     }
+}
+
+/** 3.48: önizlemede sarma anı — müzik zarf işleyicisi boşaltıldığında (seek) çıktı zamanını buradan alır. Dışa aktarmada 0. */
+object MuzikZarf {
+    @Volatile var us = 0L
+    @Volatile var surum = 0
+    fun sar(ms: Long) { us = ms.coerceAtLeast(0) * 1000; surum++ }
 }

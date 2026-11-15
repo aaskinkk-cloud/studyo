@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.48 (15.11.2026, deneme · `yerel-android` dalı): müzik kısma kök düzeltmesi, ses penceresi, çoğalt sağa, dalga titremesi
+- **Konuşma varken müzik kısılmıyordu (kök neden):** oynatma akıcı önizlemede (CompositionPlayer) yapılıyor ve orada müzik sabit sesteydi; seslendirme (konuşma) aralıkları da hesaba katılmıyordu. Artık zarf işleyicisi önizlemede de çalışır (sarma anı `MuzikZarf` ile bildirilir), video sesi olan klipler + seslendirme aralıklarında müzik %35'e iner. Standart oynatıcı yolunda da her tikte uygulanır.
+- **Müzik çubuğu yanıp sönüyordu (kök neden):** dalga, çubuğun başından 3 px'te bir örnekleniyordu; kaydırınca örnek noktaları kayıyordu. Örnekleme artık kaynak zamanına sabit (tüm ses dalgaları).
+- **Müzik / ses çubuğuna dokun = ses penceresi:** düzey kaydırıcısı, Sesi kapat/aç, %50, otomatik kısma, "Müzik ayarları". Ses katmanında çubuğun ortası pencereyi, uçları Klip/Video sonu menüsünü açar.
+- **Varsayılan müzik sesi %50.**
+- **Çoğalt:** kopya orijinalin hemen sağına (bittiği yerden) aynı konumda eklenir, sırada hemen üstünde; ses kopyası kaldığı yerden devam eder.
+- **Kesilen nesne kendi klibinde kalır:** fotoğraftan/videodan kesilen nesnenin süresi bulunduğu klibin sonunda biter.
+
 ## 3.47 (15.11.2026, deneme · `yerel-android` dalı): iki tür gizleme, başlıktan taşıma, geri al, ekrandan nesne kesme
 - **İki tür gizleme:** "Videoda gizle" (katman videoda görünmez/çalmaz; satırı soluk durur) ve "Satırı gizle" (yalnız çizelgede gizlenir, videoda görünür/çalar — geniş çalışma alanı için; `KatmanOge.satirGizli`). 3.46'daki "gizlenince satır da kaybolur" davranışı bunun yerine geldi.
 - **Gizli satırları göster:** çizelgenin sol üst köşesi ("Zaman") gizli satır varsa "◌ Gizli N" olur; dokun = göster/gizle (gizli satırlar ◌ ile soluk). "Ses ve görünürlük · tümü" kartında satır adına dokunmak da satırı geri açar.

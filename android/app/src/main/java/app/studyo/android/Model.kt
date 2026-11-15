@@ -75,7 +75,7 @@ data class Klip(
 }
 
 @Serializable
-data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.35f, val dongu: Boolean = true, val sureMs: Long = 0,
+data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.5f, val dongu: Boolean = true, val sureMs: Long = 0,
     /** 3.46: videonun kendi sesi olan kliplerde müzik otomatik kısılır (önizleme ve dışa aktarma). */
     val otoKis: Boolean = true)
 

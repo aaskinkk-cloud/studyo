@@ -280,8 +280,8 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                     // ---- müzik ----
                     p.muzik?.let { m ->
                         val son = if (m.dongu || m.sureMs <= 0) p.toplamMs else minOf(m.sureMs, p.toplamMs)
-                        IzSatiri("nota", "Müzik", SATIR, Color(0xFF4CC38A), onClick = { vm.git(0); acMuzik() }) {
-                            SesCubugu(m.uri, m.ad, xMs(0), son * pxMs, izGen, Color(0xFF4CC38A), 0L, m.sureMs, 1f, pxMs, acMuzik)
+                        IzSatiri("nota", "Müzik", SATIR, Color(0xFF4CC38A), onClick = { vm.git(0); vm.sesPenceresi.value = "muzik" }) {
+                            SesCubugu(m.uri, m.ad, xMs(0), son * pxMs, izGen, Color(0xFF4CC38A), 0L, m.sureMs, 1f, pxMs) { vm.sesPenceresi.value = "muzik" }
                         }
                     }
                     // ---- seslendirme ----
@@ -419,6 +419,7 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
                     g > gwG - ucPx * 1.6f -> ucMenu = 1
                     g < ucPx * 1.6f -> ucMenu = -1
                     oG.tur == "metin" -> vm.katmanDuzenle.value = o.id
+                    oG.tur == "ses" -> vm.sesPenceresi.value = o.id     // 3.48: ses çubuğunun ortası = ses düzeyi
                     else -> ucMenu = 1
                 }
             }) }
@@ -537,9 +538,12 @@ private fun DalgaCiz(d: FloatArray, kaynakBas: Long, hiz: Float, renk: Color, do
     Canvas(Modifier.fillMaxSize()) {
         val h = size.height; val orta = h / 2f
         val adim = 3f
-        var xx = 0f
+        // KÖK DÜZELTME (3.48): örnekleme noktaları kaynak zamanına sabitlenir. Eskiden her karede çubuğun başından 3 px'te bir
+        // örnekleniyordu; kaydırınca örnek noktaları kayıp dalga her karede değişiyor, müzik çubuğu yanıp sönüyordu.
+        val faz = ((kaynakBas / hiz.coerceAtLeast(0.01f)) * pxMs) % adim
+        var xx = -faz
         while (xx < size.width) {
-            val ms = kaynakBas + (xx / pxMs * hiz).toLong()
+            val ms = kaynakBas + ((xx + faz) / pxMs * hiz).toLong() - (faz / pxMs * hiz).toLong()
             var j = (ms / Dalga.ADIM_MS).toInt()
             if (dongu && d.isNotEmpty()) j %= d.size
             val v = d.getOrNull(j) ?: 0f
@@ -572,6 +576,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         }
     }
     YaziDuzenleDiyalog(vm, p)
+    SesDiyalog(vm, p, acMuzik)
     val secKat by vm.seciliKatman.collectAsState(); val secNes by vm.seciliNesne.collectAsState()
     LaunchedEffect(secKat) { if (secKat != null) vm.seciliNesne.value = null }
     LaunchedEffect(secNes) { if (secNes != null) vm.seciliKatman.value = null }
@@ -640,5 +645,38 @@ private fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
             }
         },
         confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.katmanDuzenle.value = null }) { Text("Tamam", color = Renk.turuncu) } },
+    )
+}
+
+/** Ses düzeyi penceresi (3.48): müzik ya da ses katmanı — düzey, kapat/aç, otomatik kısma; uç işlemleri çubuğun uçlarında. */
+@Composable
+private fun SesDiyalog(vm: EditorDurum, p: Proje, acMuzik: () -> Unit) {
+    val id by vm.sesPenceresi.collectAsState()
+    val m = p.muzik.takeIf { id == "muzik" }
+    val o = p.katmanlar.firstOrNull { it.id == id && it.tur == "ses" }
+    if (m == null && o == null) return
+    val deger = m?.ses ?: o!!.ses
+    val tavan = if (m != null) 1f else 1.5f
+    var v by remember(id, deger) { mutableFloatStateOf(deger) }
+    fun yaz(x: Float) { if (m != null) vm.muzikDegis { it.copy(ses = x) } else vm.katmanDegis(o!!.id) { it.copy(ses = x) } }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { vm.sesPenceresi.value = null },
+        containerColor = Renk.kart,
+        title = { Text(if (m != null) "Müzik · ${m.ad.ifBlank { "parça" }}" else o!!.ad.ifBlank { "Ses" }, color = Renk.yazi, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        text = {
+            Column {
+                Text(if (v <= 0.001f) "Kapalı" else "Ses %${(v * 100).roundToInt()}", color = Renk.turuncu, fontWeight = FontWeight.SemiBold)
+                InceSlider(value = v, onValueChange = { v = it }, valueRange = 0f..tavan, onValueChangeFinished = { yaz(v) })
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Dugme(if (v <= 0.001f) "Sesi aç" else "Sesi kapat", Modifier.weight(1f)) { val x = if (v <= 0.001f) (if (m != null) 0.5f else 1f) else 0f; v = x; yaz(x) }
+                    Dugme("%50", Modifier.weight(1f)) { v = 0.5f; yaz(0.5f) }
+                }
+                if (m != null) {
+                    AnahtarSatiri("Konuşma / video sesi varken otomatik kıs", m.otoKis) { b -> vm.muzikDegis { it.copy(otoKis = b) } }
+                    androidx.compose.material3.TextButton(onClick = { vm.sesPenceresi.value = null; acMuzik() }) { Text("Müzik ayarları (değiştir, döngü…)", color = Renk.turkuaz) }
+                }
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.sesPenceresi.value = null }) { Text("Tamam", color = Renk.turuncu) } },
     )
 }

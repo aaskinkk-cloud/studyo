@@ -153,7 +153,8 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     /** 3.46: o anki klibin kendi sesi varsa (ve açıksa) müzik otomatik kısılır. */
     private fun muzikSesi(m: Muzik, k: Klip? = proje.value.klipler.getOrNull(player.currentMediaItemIndex)): Float {
-        val kis = m.otoKis && k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f
+        val t = konum.value
+        val kis = m.otoKis && (k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f || proje.value.sesler.any { t in it.basMs..(it.basMs + it.sureMs) })
         return (m.ses * (if (kis) MUZIK_KIS else 1f)).coerceIn(0f, 1f)
     }
 
@@ -186,6 +187,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 sfxTik(konum.value)
                 sesTakip()
                 katmanSesTik(konum.value)
+                proje.value.muzik?.let { muzikPl.volume = muzikSesi(it) }
                 delay(40)
             }
         }
@@ -301,6 +303,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     private fun kompOynat(cp: androidx.media3.transformer.CompositionPlayer, bas: Long, t0: Long) {
         kompAktif.value = true
         kompYuzey?.let { try { cp.setVideoSurfaceView(it) } catch (_: Exception) {} }
+        MuzikZarf.sar(bas)
         cp.seekTo(bas)
         if (cp.playbackState == Player.STATE_IDLE) cp.prepare()
         cp.play()
@@ -616,7 +619,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 runCatching {
                     try { ctx.contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
                     val ad = Medya.adBoyut(ctx, u).first
-                    Muzik(uri = u.toString(), ad = ad, sureMs = Medya.retrieverSure(ctx, u), ses = proje.value.muzik?.ses ?: 0.35f)
+                    Muzik(uri = u.toString(), ad = ad, sureMs = Medya.retrieverSure(ctx, u), ses = proje.value.muzik?.ses ?: 0.5f)
                 }
             }
             r.onSuccess { m -> guncelle { it.copy(muzik = m) }; muzikKur(); muzikHizala() }
@@ -678,6 +681,8 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     /** Hızlı yazı düzenleme penceresi açılacak katman (3.44) · katmanSayfasi artınca editör Katman bölümünü açar. */
     val katmanDuzenle = MutableStateFlow<String?>(null)
+    /** 3.48: ses düzeyi penceresi — "muzik" ya da ses katmanının kimliği */
+    val sesPenceresi = MutableStateFlow<String?>(null)
     val katmanSayfasi = MutableStateFlow(0)
 
     /** InShot tarzı uç seçimi (3.44): klipSon | videoSon | klipBas | videoBas. Klip sonu zaten seçiliyse bir sonraki klibin sonuna uzar. */
@@ -829,7 +834,11 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun katmanCogalt(id: String) {
         val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return
-        val y = o.copy(id = yeniId(), ad = o.ad + " (kopya)", x = (o.x + 0.04f).coerceAtMost(1f), y = (o.y + 0.04f).coerceAtMost(1f), kilitli = false)
+        // 3.48: kopya hemen sağına (orijinal bitince başlar), aynı yerde; sığmazsa üst üste biner (videonun sonu)
+        val T = proje.value.toplamMs; val L = o.sonMs - o.basMs
+        val yb = if (o.sonMs + 300 <= T) o.sonMs else o.basMs
+        val y = o.copy(id = yeniId(), ad = o.ad.removeSuffix(" (kopya)") + " (kopya)", basMs = yb, sonMs = minOf(yb + L, T), kilitli = false,
+            kaynakBasMs = if (o.tur == "ses" && yb == o.sonMs) o.kaynakBasMs + (L * o.hiz).toLong() else o.kaynakBasMs)
         guncelle { p -> val i = p.katmanlar.indexOfFirst { it.id == id }; p.copy(katmanlar = p.katmanlar.toMutableList().apply { add(i + 1, y) }) }
         seciliKatman.value = y.id
     }
@@ -1199,6 +1208,13 @@ class EditorDurum(private val ctx: Context, id: String) {
     // ---------- nesne katmanları ----------
     val seciliNesne = MutableStateFlow<String?>(null)
 
+    /** 3.48: ms anındaki klibin bitişi — kesilen nesne kendi klibinde kalır, sonrakine sarkmaz. */
+    private fun klipSonu(ms: Long): Long {
+        val p = proje.value; var b = 0L
+        for (i in p.klipler.indices) { b += p.zKlip(i).sureMs; if (ms < b) return b }
+        return p.toplamMs
+    }
+
     fun nesneEkle(u: Uri) {
         kapsam.launch {
             mesgul.value = "Nesne kesiliyor…"
@@ -1208,7 +1224,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             val p = proje.value
             val a = anlik().coerceIn(0, (p.toplamMs - 500).coerceAtLeast(0))
             val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
-            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(p.toplamMs.coerceAtLeast(a + 500)), orjYol = if (orj.exists()) orj.path else "")
+            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(klipSonu(a)).coerceAtLeast(a + 500), orjYol = if (orj.exists()) orj.path else "")
             guncelle { it.copy(nesneler = it.nesneler + n) }
             kaydetSimdi(false)
             seciliNesne.value = n.id
@@ -1296,7 +1312,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             nesneIlerleme.value = null
             if (n == null) { uyari.value = hata ?: "Nesne kesilemedi."; return }
             val toplam = proje.value.toplamMs
-            val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(toplam.coerceAtLeast(an + 500)))
+            val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(klipSonu(an)).coerceAtLeast(an + 500))
             guncelle { it.copy(nesneler = it.nesneler + yeni) }
             kaydetSimdi(false)
             seciliNesne.value = yeni.id

@@ -151,11 +151,22 @@ class EditorDurum(private val ctx: Context, id: String) {
         proje.value.muzik?.let { muzikPl.volume = muzikSesi(it, k) }
     }
 
+    /** 3.52: t anında videonun kendi sesi (açık) ya da seslendirme var mı */
+    private fun konusmaVar(t: Long): Boolean {
+        val p = proje.value; var b = 0L
+        for (i in p.klipler.indices) {
+            val d = p.zKlip(i).sureMs
+            if (t < b + d) { val k = p.klipler[i]; if (!k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f) return true; break }
+            b += d
+        }
+        return p.sesler.any { t in it.basMs..(it.basMs + it.sureMs) }
+    }
+
     /** 3.46: o anki klibin kendi sesi varsa (ve açıksa) müzik otomatik kısılır. */
     private fun muzikSesi(m: Muzik, k: Klip? = proje.value.klipler.getOrNull(player.currentMediaItemIndex)): Float {
         val t = konum.value
         val kis = m.otoKis && (k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f || proje.value.sesler.any { t in it.basMs..(it.basMs + it.sureMs) }
-            || proje.value.katmanlar.any { it.tur == "ses" && !it.gizli && it.ses > 0.01f && t in it.basMs..it.sonMs })
+            || proje.value.katmanlar.any { it.tur == "ses" && !it.otoKis && !it.gizli && it.ses > 0.01f && t in it.basMs..it.sonMs })
         return (m.ses * (if (kis) MUZIK_KIS else 1f)).coerceIn(0f, 1f)
     }
 
@@ -872,7 +883,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         for (o in aktif) {
             val pl = katmanPl.getOrPut(o.id) { ExoPlayer.Builder(ctx).build() }
             if (pl.currentMediaItem?.localConfiguration?.uri?.toString() != o.yol) { pl.setMediaItem(MediaItem.fromUri(o.yol)); pl.prepare() }
-            pl.volume = o.ses.coerceIn(0f, 1f)
+            pl.volume = (o.ses * (if (o.otoKis && konusmaVar(t)) MUZIK_KIS else 1f)).coerceIn(0f, 1f)   // 3.52: otomatik kısma
             val hiz = o.hiz.coerceIn(0.25f, 4f)
             if (pl.playbackParameters.speed != hiz) pl.setPlaybackSpeed(hiz)
             if (kaydediyor.value) { pl.pause(); continue }

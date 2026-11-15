@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.52 (15.11.2026, deneme · `yerel-android` dalı): katman olarak eklenen müzik de otomatik kısılır
+- **Kök neden:** otomatik kısma yalnız Ses › Müzik'teki ana müziğe uygulanıyordu; "Ses" katmanı olarak eklenen müzik her zaman aynı seviyede çalıyordu. Artık ses katmanları da videonun kendi sesi (açık) ya da seslendirme varken %35'e iner — önizlemede (katman oynatıcısı) ve dışa aktarmada (zarf işleyicisi, katmanın başlangıç zamanına göre `ofsUs`).
+- Ses penceresinde katman başına aç/kapat (`KatmanOge.otoKis`, varsayılan açık). Kapatılan ses katmanı (ör. konuşma kaydı) ise ana müziği kısar.
+
 ## 3.51 (15.11.2026, deneme · `yerel-android` dalı): eklenen müzikte (ses katmanı) menü geri geldi
 - 3.48'de ses katmanı çubuğunun ortasına dokunmak menü yerine ses penceresini açıyordu → menü "kaybolmuştu". Artık ses dahil tüm katmanlarda ortaya/uca dokunmak aynı tam menüyü açar: Klip başı · Video başı · Klip sonu · Video sonu · Videonun başına taşı (dokunulan uca göre sıralı); ses katmanında ayrıca "Ses düzeyi" (pencereyi açar).
 

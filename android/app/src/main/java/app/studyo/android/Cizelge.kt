@@ -691,6 +691,7 @@ private fun SesDiyalog(vm: EditorDurum, p: Proje, acMuzik: () -> Unit) {
                     Dugme(if (v <= 0.001f) "Sesi aç" else "Sesi kapat", Modifier.weight(1f)) { val x = if (v <= 0.001f) (if (m != null) 0.5f else 1f) else 0f; v = x; yaz(x) }
                     Dugme("%50", Modifier.weight(1f)) { v = 0.5f; yaz(0.5f) }
                 }
+                if (o != null) AnahtarSatiri("Videoda ses / konuşma varken otomatik kıs", o.otoKis) { b -> vm.katmanDegis(o.id) { it.copy(otoKis = b) } }
                 if (m != null) {
                     AnahtarSatiri("Konuşma / video sesi varken otomatik kıs", m.otoKis) { b -> vm.muzikDegis { it.copy(otoKis = b) } }
                     androidx.compose.material3.TextButton(onClick = { vm.sesPenceresi.value = null; acMuzik() }) { Text("Müzik ayarları (değiştir, döngü…)", color = Renk.turkuaz) }

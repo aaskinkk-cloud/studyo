@@ -190,6 +190,8 @@ data class KatmanOge(
     val altyazi: String = "",
     /** 3.47: yalnız çizelgede satırı gizle (videoda görünür/çalar). Gerçek gizleme `gizli`. */
     val satirGizli: Boolean = false,
+    /** 3.52: ses katmanı (müzik olarak eklenen) — videoda ses/konuşma varken otomatik kısılır */
+    val otoKis: Boolean = true,
 ) {
     val gorsel: Boolean get() = tur != "ses"
 }

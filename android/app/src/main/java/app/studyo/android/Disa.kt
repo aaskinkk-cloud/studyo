@@ -85,8 +85,16 @@ object Disa {
     /** 3.48: müzik — kendi sesi olan kliplerde ve seslendirme (konuşma) sırasında otomatik kısılır (yumuşak geçişle).
      *  Önizleme (CompositionPlayer) için de geçerli: sarma (seek) anı [MuzikZarf] ile bildirilir, işleyici oradan sayar.
      *  KÖK NEDEN (3.46'da kısmıyordu): önizleme bileşimi sabit ses kullanıyordu ve seslendirme aralıkları hiç hesaba katılmıyordu. */
-    private fun muzikIsleyici(p: Proje, m: Muzik, @Suppress("UNUSED_PARAMETER") onizleme: Boolean): AudioProcessor {
+    private fun muzikIsleyici(p: Proje, m: Muzik, onizleme: Boolean): AudioProcessor {
         if (!m.otoKis) return sesIsleyici(m.ses)
+        val bir = konusmaAraliklari(p, sesKatmanlari = true)
+        if (bir.isEmpty()) return sesIsleyici(m.ses)
+        Kayit.yaz("  Müzik otomatik kısma: ${bir.size} aralık " + bir.take(6).joinToString { "${it[0] / 1000}-${it[1] / 1000}" } + (if (onizleme) " (önizleme)" else ""))
+        return ZarfIsleyici(m.ses, MUZIK_KIS, bir)
+    }
+
+    /** Kısma aralıkları (çıktı zamanı, µs; sıralı ve birleşik): kendi sesi olan klipler + seslendirme (+ istenirse ses katmanları). */
+    fun konusmaAraliklari(p: Proje, sesKatmanlari: Boolean): List<LongArray> {
         val ar = ArrayList<LongArray>(); var bas = 0L
         for (i in p.klipler.indices) {
             val k = p.klipler[i]; val d = p.zKlip(i).sureMs
@@ -94,18 +102,15 @@ object Disa {
             bas += d
         }
         for (s in p.sesler) ar += longArrayOf(s.basMs * 1000, (s.basMs + s.sureMs) * 1000)
-        // 3.50: eklenen ses katmanları (konuşma/ses dosyası) da müziği kısar
-        for (o in p.katmanlar) if (o.tur == "ses" && !o.gizli && o.ses > 0.01f) ar += longArrayOf(o.basMs * 1000, o.sonMs * 1000)
-        if (ar.isEmpty()) return sesIsleyici(m.ses)
-        // aralıkları sırala ve birleştir
+        if (sesKatmanlari) for (o in p.katmanlar) if (o.tur == "ses" && !o.gizli && o.ses > 0.01f && !o.otoKis) ar += longArrayOf(o.basMs * 1000, o.sonMs * 1000)
         ar.sortBy { it[0] }
         val bir = ArrayList<LongArray>()
         for (a in ar) { val s0 = bir.lastOrNull(); if (s0 != null && a[0] <= s0[1]) s0[1] = maxOf(s0[1], a[1]) else bir += a.copyOf() }
-        Kayit.yaz("  Müzik otomatik kısma: ${bir.size} aralık " + bir.take(6).joinToString { "${it[0] / 1000}-${it[1] / 1000}" } + (if (onizleme) " (önizleme)" else ""))
-        return ZarfIsleyici(m.ses, MUZIK_KIS, bir)
+        return bir
     }
 
-    private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>) : androidx.media3.common.audio.BaseAudioProcessor() {
+    /** ofsUs: işleyicinin ilk örneğinin çıktı zamanı (ses katmanı başladığı an; müzik için 0). */
+    private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>, val ofsUs: Long = 0L) : androidx.media3.common.audio.BaseAudioProcessor() {
         private var kare = 0L; private var g = -1f
         override fun onConfigure(f: androidx.media3.common.audio.AudioProcessor.AudioFormat): androidx.media3.common.audio.AudioProcessor.AudioFormat {
             if (f.encoding != androidx.media3.common.C.ENCODING_PCM_16BIT && f.encoding != androidx.media3.common.C.ENCODING_PCM_FLOAT)
@@ -120,7 +125,7 @@ object Disa {
             val yum = 1f / (0.25f * hz)     // ≈250 ms yumuşak geçiş
             var ai = 0
             for (i in 0 until n) {
-                val us = kare * 1_000_000L / hz
+                val us = ofsUs + kare * 1_000_000L / hz
                 while (ai < ar.size && ar[ai][1] <= us) ai++
                 val hedef = kat * (if (ai < ar.size && us >= ar[ai][0]) kis else 1f)
                 if (g < 0f) g = hedef else g += (hedef - g) * yum.coerceAtMost(1f)
@@ -135,7 +140,7 @@ object Disa {
         private var surum = -1
         override fun onFlush() {
             // sarma olduysa çıktı zamanı oradan devam eder; döngü/öğe geçişindeki boşaltmada sayaç sürer
-            if (surum != MuzikZarf.surum) { surum = MuzikZarf.surum; kare = MuzikZarf.us * inputAudioFormat.sampleRate.coerceAtLeast(1) / 1_000_000L; g = -1f }
+            if (surum != MuzikZarf.surum) { surum = MuzikZarf.surum; kare = (MuzikZarf.us - ofsUs).coerceAtLeast(0) * inputAudioFormat.sampleRate.coerceAtLeast(1) / 1_000_000L; g = -1f }
         }
         override fun onReset() { kare = 0L; g = -1f; surum = -1 }
     }
@@ -374,7 +379,9 @@ object Disa {
                 .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(o.kaynakBasMs).setEndPositionMs(kaynakSon).build()).build()
             val ap = ArrayList<AudioProcessor>()
             if (hiz != 1f) ap += androidx.media3.common.audio.SpeedChangingAudioProcessor(SabitHiz(hiz))
-            ap += sesIsleyici(o.ses)
+            // 3.52: müzik olarak eklenen ses katmanı da videoda ses/konuşma varken otomatik kısılır
+            val kis = if (o.otoKis) konusmaAraliklari(p, sesKatmanlari = false) else emptyList()
+            ap += if (kis.isNotEmpty()) ZarfIsleyici(o.ses, MUZIK_KIS, kis, bas * 1000) else sesIsleyici(o.ses)
             val b = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
             if (bas > 0) b.addGap(bas * 1000)
             b.addItem(EditedMediaItem.Builder(mi).sureli(ctx, onizleme, o.yol, o.kaynakSureMs, kaynakSon).setEffects(Effects(ap, listOf<Effect>())).build())

@@ -110,6 +110,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     val mesgul by vm.mesgul.collectAsState()
     var bolum by rememberSaveable { mutableStateOf("duzenle") }
     var panelAcik by rememberSaveable { mutableStateOf(true) }
+    // 3.44: önizlemede bir katmana dokununca Katman bölümü açılır
+    val katmanIstek by vm.katmanSayfasi.collectAsState()
+    LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
 
@@ -959,7 +962,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
 private val RENKLER = listOf(0xFFFFFFFF to "Beyaz", 0xFFFFD54F to "Sarı", 0xFFF5A524 to "Turuncu", 0xFF2EC5D3 to "Turkuaz", 0xFF111111 to "Siyah")
 
 @Composable
-private fun PanelYazi(vm: EditorDurum, k: Klip) {
+fun PanelYazi(vm: EditorDurum, k: Klip) {
     val y = k.yazi ?: Yazi()
     Kart("Yazı (bu klipte)") {
         var metin by remember(k.id) { mutableStateOf(y.metin) }

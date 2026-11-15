@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.44 (15.11.2026, deneme · `yerel-android` dalı): katmanlarda gezinme ve hızlı düzenleme
+- **Simgeye dokun = sahnesine git:** çizelgede soldaki katman simgesine/adına dokununca katman seçilir ve oynatıcı o katmanın başına gider (tüm katmanlar).
+- **Ekrandaki yazıya dokun:** hangi bölümde olursan ol, önizlemedeki katmana dokununca Katman bölümü açılır ve o katman seçilir; yazıysa "Yazıyı düzenle" penceresi açılır (metin + stil).
+- **Yazı ekle → hemen düzenle:** eklenen yazı için düzenleme penceresi kendiliğinden açılır; çizelgede seçili yazı çubuğunun ortasına dokunmak da açar.
+- **Ekranda görünüp katmanlarda olmayan yazılar:** Klip yazısı ve Takip yazısı artık çizelgede kendi satırlarında; çubuğa dokun = o sahneye git ve ayar penceresi aç.
+- **Takip yazısı Katmanlar bölümünde:** "Katman ekle" sırasında "Takip yazısı" düğmesi (bu klip için takip paneli; nokta seçimi için pencere kapanır, önizlemeye dokunulur).
+- **Klip sonu / Video sonu (InShot tarzı):** seçili katman çubuğunun sağ ucuna dokun = Klip sonu · Video sonu; sol ucuna = Klip başı · Video başı. Klip sonu zaten seçiliyse bir sonraki klibin sonuna uzar.
+
 ## 3.43 (15.11.2026, deneme · `yerel-android` dalı): katman çökmesi, ses/görünürlük, otomatik baş-son
 - **Metni iki parmakla büyütürken çökme (kök düzeltme):** iki parmak hareketi bazen NaN/sonsuz değer üretiyor, bu katmana yazılıp çizimde `roundToInt()` uygulamayı çökertiyordu; projeye kaydolduğu için tekrar açılışta da çökebiliyordu. Hareket değerleri süzülür, her katman yazımında tüm sayılar temizlenip sınırlanır (`katmanTemiz`), açılışta bozuk kayıtlar onarılır. Değişiklik işlevindeki hata da yakalanır.
 - **Ses ve görünürlük · tümü kartı:** müzik ve her katman tek satırda — ses (müzik, ses katmanı) ya da opaklık (logo, görsel, yazı) kaydırıcısı, Kapat/Aç ya da Gizle/Göster, "Tüm video". Satır adına dokun = katmanı seç. Altta "Hepsi tüm video", "Hepsi bu klipte".

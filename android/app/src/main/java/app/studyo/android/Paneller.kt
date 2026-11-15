@@ -428,6 +428,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                 katmanIsabet(o, (bw * s).toInt(), (bh * s).toInt(), px, py, RW, RH)
                             }
                             vm.seciliKatman.value = bul?.id
+                            if (bul?.tur == "metin") vm.katmanDuzenle.value = bul.id   // 3.44: ekrandaki yazıya dokun = hemen düzenle
                         }
                     }
                     .then(if (kSec == null) klipSurukle else Modifier)
@@ -488,7 +489,18 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 Box(Modifier.fillMaxSize()
                     .pointerInput(k.id, hareketPaneli, olcek) { detectTapGestures(
                         onTap = { o ->
-                            if (!hareketPaneli) return@detectTapGestures
+                            if (!hareketPaneli) {
+                                // 3.44: ekrandaki katmana (yazı, logo…) dokun = Katman bölümünde o katman seçilir; yazıysa düzenleme açılır
+                                val px = o.x / olcek; val py = o.y / olcek; val km = vm.konum.value
+                                val bul = KatmanCizim.gorunenler(vm.proje.value, km).firstOrNull { ko ->
+                                    val (bw, bh) = katBoyut[ko.id] ?: return@firstOrNull false
+                                    val sc = KatmanCizim.an(ko, km).olcek
+                                    katmanIsabet(ko, (bw * sc).toInt(), (bh * sc).toInt(), px, py, RW, RH)
+                                } ?: return@detectTapGestures
+                                vm.seciliKatman.value = bul.id; vm.katmanSayfasi.value++
+                                if (bul.tur == "metin") vm.katmanDuzenle.value = bul.id
+                                return@detectTapGestures
+                            }
                             val ks = kSon
                             val kn = Geometri.kaynaga(ks, o.x / olcek, o.y / olcek, RW, RH, Yuz.an(ks, RW, RH, kbF, sira)) ?: return@detectTapGestures
                             vm.hepsine({ c -> if (c.id != ks.id) c else c.copy(odakSecX = kn.first, odakSecY = kn.second, kenBurns = true,

@@ -71,7 +71,7 @@ private fun akiciKonum(vm: EditorDurum): Long {
  *  1. satır videolar (kareler), altında her katman ayrı satır (üstteki = en üstteki katman), müzik ve seslendirme.
  *  Tek parmak yatay = sar · iki parmak = yakınlaştır · çubuğa dokun = seç · seçili çubuğu sürükle = taşı/başı-sonu/satır. */
 @Composable
-fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, modifier: Modifier) {
+fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, modifier: Modifier, acPanel: (String, Int) -> Unit = { _, _ -> }) {
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     val konum = akiciKonum(vm)
@@ -207,9 +207,34 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                         val o = p.katmanlar[i]
                         key(o.id) {
                             IzSatiri(turSimgeC(o.tur), o.ad.ifBlank { o.metin }.ifBlank { "Katman" }, SATIR, katRenk(o.tur).copy(alpha = if (o.gizli) 0.4f else 1f),
-                                onClick = { vm.seciliKatman.value = o.id }) {
+                                onClick = { vm.seciliKatman.value = o.id; if (konum !in o.basMs..o.sonMs) vm.git(o.basMs) }) {   // 3.44: simgeye dokun = katmanın sahnesine git
                                 KatmanCubugu(vm, o, i, n, xMs(o.basMs), (o.sonMs - o.basMs) * pxMs, o.id == secK, pxMs, toplam, izGen)
                             }
+                        }
+                    }
+                    // ---- klip yazıları ve takip yazıları (3.44): katman değiller ama ekranda görünürler; burada da bulunur ----
+                    val yaziK = p.klipler.indices.filter { p.klipler[it].yazi?.metin?.isNotBlank() == true }
+                    if (yaziK.isNotEmpty()) IzSatiri("metin", "Klip yazısı", SATIR, Color(0xFFB39DDB), onClick = { vm.sec(yaziK.first()); acPanel("yazi", yaziK.first()) }) {
+                        var bas = 0L
+                        for (i in p.klipler.indices) {
+                            val d = p.zKlip(i).sureMs; val b0 = bas; bas += d
+                            if (i !in yaziK) continue
+                            key("y" + p.klipler[i].id) {
+                                EkCubuk(p.klipler[i].yazi!!.metin.lineSequence().first(), xMs(b0), d * pxMs, izGen, Color(0xFFB39DDB)) { vm.sec(i); acPanel("yazi", i) }
+                            }
+                        }
+                    }
+                    val takipK = p.klipler.indices.filter { p.klipler[it].takip != null }
+                    if (takipK.isNotEmpty()) IzSatiri("takip", "Takip yazısı", SATIR, Color(0xFFF2C94C), onClick = { vm.sec(takipK.first()); acPanel("takip", takipK.first()) }) {
+                        var bas = 0L
+                        for (i in p.klipler.indices) {
+                            val zk = p.zKlip(i); val b0 = bas; bas += zk.sureMs
+                            val t = p.klipler[i].takip ?: continue
+                            val k = p.klipler[i]
+                            // kaynak zamanı → çizelge zamanı (hız 1 kabulüyle klip içi)
+                            val a = b0 + (t.basMs - k.basMs).coerceAtLeast(0)
+                            val son = b0 + (Katman.takipSon(t).coerceAtMost(k.sonMs) - k.basMs).coerceIn(0, zk.sureMs)
+                            key("t" + k.id) { EkCubuk(t.metin.ifBlank { "Takip" }, xMs(a), (son - a).coerceAtLeast(300) * pxMs, izGen, Color(0xFFF2C94C)) { vm.sec(i); vm.git(a); acPanel("takip", i) } }
                         }
                     }
                     // ---- müzik ----
@@ -315,13 +340,25 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
     val gx = x + sl; val gw = (w - sl + sr).coerceAtLeast(8f)
     val (vx, vw, kay) = gorunur(gx, gw, izGen)
     val kayG by rememberUpdatedState(kay); val gwG by rememberUpdatedState(gw)
+    var ucMenu by remember { mutableIntStateOf(0) }   // -1 baş menüsü · 1 son menüsü (3.44)
     if (vw <= 0f && gec == null) return
     val solGor = kay > -1f; val sagGor = vx + vw >= gx + gw - 1f
     Box(
         Modifier.offset { IntOffset(vx.roundToInt(), dy.roundToInt()) }.width(with(yog) { vw.coerceAtLeast(1f).toDp() }).fillMaxHeight()
             .clip(sekil).background(renk.copy(alpha = (if (secili) 0.85f else 0.55f) * (if (o.gizli) 0.5f else 1f)))
             .border(if (secili) 2.dp else 0.dp, if (secili) Color.White else Color.Transparent, sekil)
-            .pointerInput(o.id) { detectTapGestures(onTap = { vm.seciliKatman.value = o.id }) }
+            .pointerInput(o.id, secili) { detectTapGestures(onTap = { t ->
+                // 3.44: seçili değilse seç; seçiliyse uçlara dokun = Klip/Video sonu (başı) menüsü, ortaya dokun = yazıyı düzenle
+                if (!secili) { vm.seciliKatman.value = o.id; return@detectTapGestures }
+                val g = t.x - kayG
+                when {
+                    oG.kilitli -> {}
+                    g > gwG - ucPx * 1.6f -> ucMenu = 1
+                    g < ucPx * 1.6f -> ucMenu = -1
+                    oG.tur == "metin" -> vm.katmanDuzenle.value = o.id
+                    else -> ucMenu = 1
+                }
+            }) }
             .then(if (!secili || o.kilitli) Modifier else Modifier.pointerInput(o.id, w) {
                 var yan = 0
                 detectDragGestures(
@@ -380,6 +417,29 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
             if (sagGor) Box(Modifier.align(Alignment.CenterEnd).width(8.dp).fillMaxHeight().background(Color.White))
         }
         if (o.kilitli) Simge("kapat", Color.White, 12.dp, Modifier.align(Alignment.TopEnd).padding(2.dp))
+        Box(Modifier.align(if (ucMenu < 0) Alignment.BottomStart else Alignment.BottomEnd)) {
+            androidx.compose.material3.DropdownMenu(expanded = ucMenu != 0, onDismissRequest = { ucMenu = 0 }, containerColor = Renk.kart) {
+                val son = ucMenu > 0
+                fun sec(t: String) { vm.katmanDegis(o.id) { vm.katmanUc(it, t) }; ucMenu = 0 }
+                androidx.compose.material3.DropdownMenuItem(text = { Text(if (son) "Klip sonu" else "Klip başı", color = Renk.yazi) },
+                    trailingIcon = { Text(if (son) "›|" else "|‹", color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(if (son) "klipSon" else "klipBas") })
+                androidx.compose.material3.DropdownMenuItem(text = { Text(if (son) "Video sonu" else "Video başı", color = Renk.yazi) },
+                    trailingIcon = { Text(if (son) "»|" else "|«", color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(if (son) "videoSon" else "videoBas") })
+            }
+        }
+    }
+}
+
+/** Klip yazısı / takip yazısı çubuğu: dokun = o sahneye git ve düzenleme penceresini aç. */
+@Composable
+private fun EkCubuk(yazi: String, x: Float, w: Float, izGen: Float, renk: Color, ac: () -> Unit) {
+    val yog = LocalDensity.current
+    val (vx, vw, _) = gorunur(x, w.coerceAtLeast(6f), izGen)
+    if (vw <= 0f) return
+    Box(Modifier.offset { IntOffset(vx.roundToInt(), 0) }.width(with(yog) { vw.toDp() }).fillMaxHeight()
+        .clip(RoundedCornerShape(6.dp)).background(renk.copy(alpha = 0.5f)).clickable(onClick = ac)) {
+        Text(yazi, color = Color.White, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.align(Alignment.CenterStart).padding(horizontal = 8.dp))
     }
 }
 
@@ -427,6 +487,20 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     var acik by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+    var ekPanel by remember { mutableStateOf<Pair<String, Int>?>(null) }   // ("yazi"|"takip", klip sırası)
+    val takipSecimde by vm.takipSecimde.collectAsState()
+    LaunchedEffect(takipSecimde) { if (takipSecimde) ekPanel = null }      // nokta seçimi önizlemede yapılır
+    ekPanel?.let { (tur, i) ->
+        val k = p.klipler.getOrNull(i)
+        if (k == null) ekPanel = null
+        else androidx.compose.ui.window.Dialog(onDismissRequest = { ekPanel = null }) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(14.dp)).background(Renk.zemin).verticalScroll(rememberScrollState()).padding(8.dp)) {
+                if (tur == "takip") PanelTakip(vm, k) else PanelYazi(vm, k)
+                Dugme("Tamam", Modifier.fillMaxWidth().padding(top = 6.dp)) { ekPanel = null }
+            }
+        }
+    }
+    YaziDuzenleDiyalog(vm, p)
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().height(40.dp).background(Renk.kart).clickable { acik = !acik }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically) {
@@ -438,7 +512,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         if (acik) {
             if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
             else {
-                CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp))
+                CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp)) { tur, i -> ekPanel = tur to i }
                 Box(Modifier.fillMaxWidth().height(22.dp)
                     .pointerInput(Unit) {
                         detectVerticalDragGestures(onDragEnd = { Duzen.katmanYukKaydet(ctx) }) { ch, d ->
@@ -453,8 +527,34 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             }
         }
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-            PanelKatmanlar(vm, p)
+            PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value })
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+/** Hızlı yazı düzenleme (3.44): eklenince, çizelgede seçili yazıya ya da ekrandaki yazıya dokununca açılır. */
+@Composable
+private fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
+    val id by vm.katmanDuzenle.collectAsState()
+    val o = p.katmanlar.firstOrNull { it.id == id && it.tur == "metin" } ?: return
+    var m by remember(o.id) { mutableStateOf(o.metin) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { vm.katmanDuzenle.value = null },
+        containerColor = Renk.kart,
+        title = { Text("Yazıyı düzenle", color = Renk.yazi, fontSize = 16.sp) },
+        text = {
+            Column {
+                androidx.compose.material3.OutlinedTextField(m, { m = it; vm.katmanDegis(o.id) { k -> k.copy(metin = it) } }, Modifier.fillMaxWidth(),
+                    label = { Text("Yazı (2. satır = küçük alt satır)") }, maxLines = 3, enabled = !o.kilitli)
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
+                        SecimKarti(ad, "", o.stil == st, Modifier.width(72.dp), etkin = !o.kilitli, sira = j, simge = "metin") { vm.katmanDegis(o.id) { it.copy(stil = st) } }
+                    }
+                }
+                Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.katmanDuzenle.value = null }) { Text("Tamam", color = Renk.turuncu) } },
+    )
 }

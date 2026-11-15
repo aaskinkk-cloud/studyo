@@ -669,6 +669,27 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun katmanDegis(id: String, f: (KatmanOge) -> KatmanOge) =
         guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.id == id) katmanTemiz(runCatching { f(it) }.getOrDefault(it), p.toplamMs) else it }) }
 
+    /** Hızlı yazı düzenleme penceresi açılacak katman (3.44) · katmanSayfasi artınca editör Katman bölümünü açar. */
+    val katmanDuzenle = MutableStateFlow<String?>(null)
+    val katmanSayfasi = MutableStateFlow(0)
+
+    /** InShot tarzı uç seçimi (3.44): klipSon | videoSon | klipBas | videoBas. Klip sonu zaten seçiliyse bir sonraki klibin sonuna uzar. */
+    fun katmanUc(o: KatmanOge, tur: String): KatmanOge {
+        val p = proje.value; val T = p.toplamMs.coerceAtLeast(500)
+        fun sinir(ms: Long): Pair<Long, Long> {
+            var b = 0L
+            for (i in p.klipler.indices) { val d = p.zKlip(i).sureMs; if (ms < b + d) return b to b + d; b += d }
+            return b to T
+        }
+        val enUzun = if (o.tur == "ses" && o.kaynakSureMs > 0) ((o.kaynakSureMs - o.kaynakBasMs) / o.hiz.coerceAtLeast(0.25f)).toLong() else Long.MAX_VALUE
+        return when (tur) {
+            "klipSon" -> { var b = sinir(o.basMs).second; if (b <= o.sonMs + 50 && b < T) b = sinir(b).second; o.copy(sonMs = minOf(b, o.basMs + enUzun)) }
+            "videoSon" -> o.copy(sonMs = minOf(T, o.basMs + enUzun))
+            "klipBas" -> { var a = sinir(o.basMs).first; if (a >= o.basMs - 50 && a > 0) a = sinir(a - 1).first; o.copy(basMs = a, sonMs = minOf(o.sonMs, a + enUzun)) }
+            else -> o.copy(basMs = 0, sonMs = minOf(o.sonMs, enUzun))
+        }
+    }
+
     /** Tüm katmanlar için aynı değişiklik (örn. hepsini tüm video boyunca). */
     fun katmanHepsi(f: (KatmanOge) -> KatmanOge) =
         guncelle { p -> p.copy(katmanlar = p.katmanlar.map { if (it.kilitli) it else katmanTemiz(runCatching { f(it) }.getOrDefault(it), p.toplamMs) }) }
@@ -718,7 +739,9 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun katmanMetinEkle(stil: String = "baslik", metin: String = "Yazınız", sure: Long = 3000, x: Float = 0.5f, y: Float = 0.5f,
                         olcek: Float = 0.075f, anim: String = "kay", ad: String = "Yazı") {
         val (a, b) = yeniAralik(sure)
-        katmanEkleOge(KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b))
+        val o = KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b)
+        katmanEkleOge(o)
+        katmanDuzenle.value = o.id   // 3.44: eklenince yazı hemen düzenlenir
     }
 
     fun katmanCikartmaEkle(e: String) {

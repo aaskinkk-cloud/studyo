@@ -41,7 +41,7 @@ private fun turAdi(t: String) = when (t) { "metin" -> "Metin"; "gorsel" -> "Gör
 
 /** Katman bölümü: ekle · zaman çizelgesi (sıra, başlangıç/bitiş) · seçili katmanın ayarları. */
 @Composable
-fun PanelKatmanlar(vm: EditorDurum, p: Proje) {
+fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
     val gorselSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.katmanGorselEkle(it) }
     val sesSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.katmanSesEkle(it) } }
     var cikartmaAcik by remember { mutableStateOf(false) }
@@ -58,6 +58,7 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             val g = Modifier.width(68.dp)
             SimgeDugme("metin", "Yazı ekle", g, renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
+            SimgeDugme("takip", "Takip yazısı", g, renk = tonRenk(5, "")) { takipAc() }
             SimgeDugme("kapak", "Görsel", g, renk = tonRenk(1, "")) { gorselSec.launch(arrayOf("image/*")) }
             SimgeDugme("logo", "Logo", g, renk = tonRenk(2, "")) { logoAcik = true }
             SimgeDugme("yildiz", "Çıkartma", g, renk = tonRenk(3, "")) { cikartmaAcik = true }

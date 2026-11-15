@@ -6,6 +6,9 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.51 (15.11.2026, deneme · `yerel-android` dalı): eklenen müzikte (ses katmanı) menü geri geldi
+- 3.48'de ses katmanı çubuğunun ortasına dokunmak menü yerine ses penceresini açıyordu → menü "kaybolmuştu". Artık ses dahil tüm katmanlarda ortaya/uca dokunmak aynı tam menüyü açar: Klip başı · Video başı · Klip sonu · Video sonu · Videonun başına taşı (dokunulan uca göre sıralı); ses katmanında ayrıca "Ses düzeyi" (pencereyi açar).
+
 ## 3.50 (15.11.2026, deneme · `yerel-android` dalı): uç menüsü her yerde, süre düğmeleri, ses katmanı da müziği kısar
 - **Uçlar menüsü araç sırasında:** seçili katman için "Uçlar" düğmesi — Klip başı · Video başı · Klip sonu · Video sonu · Videonun başına taşı (her zaman erişilir). Çubuğun ucuna dokunmak da açar; artık seçili olmayan çubukta da tek dokunuşla (seç + menü).
 - **Süreyi düğmeyle genişlet/daralt:** araç sırasında "Kısalt / Uzat" (±0,5 sn); seçili katman ayarlarında ve "Yazıyı düzenle" penceresinde Baş −/+ ve Son −/+ (±0,5 sn) (`katmanUcKaydir`). Çubuğun uçlarını sürükleyerek ayarlama aynen duruyor.

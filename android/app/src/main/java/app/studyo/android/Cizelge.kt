@@ -437,8 +437,7 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
                     g > gwG - ucPx * 1.6f -> ucMenu = 1
                     g < ucPx * 1.6f -> ucMenu = -1
                     oG.tur == "metin" -> vm.katmanDuzenle.value = o.id
-                    oG.tur == "ses" -> vm.sesPenceresi.value = o.id     // 3.48: ses çubuğunun ortası = ses düzeyi
-                    else -> ucMenu = 1
+                    else -> ucMenu = 1        // 3.51: ses dahil ortaya dokun = menü (ses düzeyi de menüde)
                 }
             }) }
             .then(if (o.kilitli) Modifier else Modifier.pointerInput(o.id, w, secili) {
@@ -507,14 +506,16 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
         if (o.kilitli) Simge("kapat", Color.White, 12.dp, Modifier.align(Alignment.TopEnd).padding(2.dp))
         Box(Modifier.align(if (ucMenu < 0) Alignment.BottomStart else Alignment.BottomEnd)) {
             androidx.compose.material3.DropdownMenu(expanded = ucMenu != 0, onDismissRequest = { ucMenu = 0 }, containerColor = Renk.kart) {
-                val son = ucMenu > 0
-                fun sec(t: String) { vm.katmanDegis(o.id) { vm.katmanUc(it, t) }; ucMenu = 0 }
-                androidx.compose.material3.DropdownMenuItem(text = { Text(if (son) "Klip sonu" else "Klip başı", color = Renk.yazi) },
-                    trailingIcon = { Text(if (son) "›|" else "|‹", color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(if (son) "klipSon" else "klipBas") })
-                androidx.compose.material3.DropdownMenuItem(text = { Text(if (son) "Video sonu" else "Video başı", color = Renk.yazi) },
-                    trailingIcon = { Text(if (son) "»|" else "|«", color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(if (son) "videoSon" else "videoBas") })
-                androidx.compose.material3.DropdownMenuItem(text = { Text("Videonun başına taşı", color = Renk.yazi) },
-                    trailingIcon = { Text("|◀", color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec("basaTasi"); vm.git(0) })
+                // 3.51: tek, eksiksiz menü — dokunulan uca göre sıralanır (sağ uç: sonlar önce, sol uç: başlar önce); ses katmanında ses düzeyi
+                fun sec(t: String) { vm.katmanDegis(o.id) { vm.katmanUc(it, t) }; if (t == "basaTasi") vm.git(0); ucMenu = 0 }
+                val basl = listOf("klipBas" to ("Klip başı" to "|‹"), "videoBas" to ("Video başı" to "|«"))
+                val sonl = listOf("klipSon" to ("Klip sonu" to "›|"), "videoSon" to ("Video sonu" to "»|"))
+                (if (ucMenu < 0) basl + sonl else sonl + basl).plus("basaTasi" to ("Videonun başına taşı" to "|◀")).forEach { (t, ad) ->
+                    androidx.compose.material3.DropdownMenuItem(text = { Text(ad.first, color = Renk.yazi) },
+                        trailingIcon = { Text(ad.second, color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(t) })
+                }
+                if (o.tur == "ses") androidx.compose.material3.DropdownMenuItem(text = { Text(if (o.ses <= 0.001f) "Ses düzeyi · kapalı" else "Ses düzeyi · %${(o.ses * 100).roundToInt()}", color = Renk.yazi) },
+                    trailingIcon = { Simge(if (o.ses <= 0.001f) "sessiz" else "ses", Renk.turkuaz, 18.dp) }, onClick = { ucMenu = 0; vm.sesPenceresi.value = o.id })
             }
         }
     }

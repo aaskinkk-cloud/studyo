@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -91,29 +92,33 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         val kl = if (ko == null && klipSecili) p.klipler.getOrNull(secKlip) else null
         var silOnay by remember(secK, klipSecili, secKlip) { mutableStateOf(false) }
         val e = ko != null && !ko.kilitli
-        Row(Modifier.fillMaxWidth().height(50.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(50.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            // 3.42: yazı ekleme her zaman ilk sırada; sıra sağa kayar
+            SimgeDugme("metin", "Yazı ekle", Modifier.width(62.dp), renk = Renk.turuncu) { vm.katmanMetinEkle() }
             if (kl != null) {
                 val n = p.klipler.size
-                SimgeDugme("makas", "Böl", Modifier.weight(1f), renk = tonRenk(0, "")) { vm.klipBolSecili() }
-                SimgeDugme("cogalt", "Çoğalt", Modifier.weight(1f), renk = tonRenk(1, "")) { vm.klipCogalt() }
-                SimgeDugme("yukle", "Öne al", Modifier.weight(1f), renk = tonRenk(2, ""), etkin = secKlip > 0) { vm.tasi(-1) }
-                SimgeDugme("asagi", "Sona al", Modifier.weight(1f), renk = tonRenk(3, ""), etkin = secKlip < n - 1) { vm.tasi(1) }
-                SimgeDugme(if (kl.sessiz) "sessiz" else "ses", if (kl.sessiz) "Sesi aç" else "Sessiz", Modifier.weight(1f), renk = tonRenk(4, ""),
+                SimgeDugme("makas", "Böl", Modifier.width(62.dp), renk = tonRenk(0, "")) { vm.klipBolSecili() }
+                SimgeDugme("cogalt", "Çoğalt", Modifier.width(62.dp), renk = tonRenk(1, "")) { vm.klipCogalt() }
+                SimgeDugme("yukle", "Öne al", Modifier.width(62.dp), renk = tonRenk(2, ""), etkin = secKlip > 0) { vm.tasi(-1) }
+                SimgeDugme("asagi", "Sona al", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = secKlip < n - 1) { vm.tasi(1) }
+                SimgeDugme(if (kl.sessiz) "sessiz" else "ses", if (kl.sessiz) "Sesi aç" else "Sessiz", Modifier.width(62.dp), renk = tonRenk(4, ""),
                     etkin = !kl.foto && kl.sesVar) { vm.sesAcKapat() }
-                SimgeDugme("kapat", "Bırak", Modifier.weight(1f), renk = tonRenk(5, "")) { klipSecili = false }
-                SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = Renk.kirmizi) {
+                SimgeDugme("kapat", "Bırak", Modifier.width(62.dp), renk = tonRenk(5, "")) { klipSecili = false }
+                SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", Modifier.width(62.dp), renk = Renk.kirmizi) {
                     if (silOnay) { vm.klipSil(); silOnay = false; if (vm.proje.value.klipler.isEmpty()) klipSecili = false } else silOnay = true
                 }
             } else {
-            SimgeDugme("makas", "Böl", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = e) { ko?.let { vm.katmanBol(it.id) } }
-            SimgeDugme("cogalt", "Çoğalt", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = ko != null) { ko?.let { vm.katmanCogalt(it.id) } }
-            SimgeDugme("yukle", "Öne al", Modifier.weight(1f), renk = tonRenk(2, ""), etkin = e && ki < p.katmanlar.size - 1) { vm.katmanTasi(ki, ki + 1) }
-            SimgeDugme("asagi", "Arkaya al", Modifier.weight(1f), renk = tonRenk(3, ""), etkin = e && ki > 0) { vm.katmanTasi(ki, ki - 1) }
-            SimgeDugme("gorunum", if (ko?.gizli == true) "Göster" else "Gizle", Modifier.weight(1f), renk = tonRenk(4, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(gizli = !o.gizli) } } }
-            SimgeDugme(if (ko?.kilitli == true) "uygula" else "kapat", if (ko?.kilitli == true) "Kilidi aç" else "Kilitle", Modifier.weight(1f), renk = tonRenk(5, ""), etkin = ko != null) {
+            SimgeDugme("makas", "Böl", Modifier.width(62.dp), renk = tonRenk(0, ""), etkin = e) { ko?.let { vm.katmanBol(it.id) } }
+            SimgeDugme("basa", "Başı=şimdi", Modifier.width(62.dp), renk = tonRenk(6, ""), etkin = e && konum < (ko?.sonMs ?: 0) - 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(basMs = konum.coerceAtLeast(0)) } } }
+            SimgeDugme("sonraki", "Sonu=şimdi", Modifier.width(62.dp), renk = tonRenk(7, ""), etkin = e && konum > (ko?.basMs ?: Long.MAX_VALUE) + 300) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(sonMs = konum.coerceAtMost(toplam)) } } }
+            SimgeDugme("cogalt", "Çoğalt", Modifier.width(62.dp), renk = tonRenk(1, ""), etkin = ko != null) { ko?.let { vm.katmanCogalt(it.id) } }
+            SimgeDugme("yukle", "Öne al", Modifier.width(62.dp), renk = tonRenk(2, ""), etkin = e && ki < p.katmanlar.size - 1) { vm.katmanTasi(ki, ki + 1) }
+            SimgeDugme("asagi", "Arkaya al", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = e && ki > 0) { vm.katmanTasi(ki, ki - 1) }
+            SimgeDugme("gorunum", if (ko?.gizli == true) "Göster" else "Gizle", Modifier.width(62.dp), renk = tonRenk(4, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> o.copy(gizli = !o.gizli) } } }
+            SimgeDugme(if (ko?.kilitli == true) "uygula" else "kapat", if (ko?.kilitli == true) "Kilidi aç" else "Kilitle", Modifier.width(62.dp), renk = tonRenk(5, ""), etkin = ko != null) {
                 ko?.let { vm.katmanDegis(it.id) { o -> o.copy(kilitli = !o.kilitli) } }
             }
-            SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", Modifier.weight(1f), renk = Renk.kirmizi, etkin = e) {
+            SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", Modifier.width(62.dp), renk = Renk.kirmizi, etkin = e) {
                 if (silOnay) { ko?.let { vm.katmanSil(it.id) }; silOnay = false } else silOnay = true
             }
             }

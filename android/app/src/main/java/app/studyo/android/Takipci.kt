@@ -77,6 +77,10 @@ object Takipci {
             var sablon: FloatArray? = null
             var cx = 0; var cy = 0; var R = 10; var arama = 22
             var kayip = 0
+            var sonIyi = 0          // son başarıyla izlenen noktadan sonraki sıra
+            var kayipMs = 0L       // nesne kaç ms'dir bulunamıyor
+            var oncekiMs = -1L
+            fun bitti() = kayipMs >= 700   // ≈0,7 sn kayıp = nesne/sahne bitti → izleme orada biter (3.42)
 
             fun isle(b: Bitmap, ms: Long) {
                 val dondur = (b.height > b.width) != dikeyGoster && k.gen != k.yuk
@@ -86,7 +90,7 @@ object Takipci {
                     cx = (x * g.w).roundToInt().coerceIn(R + 1, g.w - R - 2)
                     cy = (y * g.h).roundToInt().coerceIn(R + 1, g.h - R - 2)
                     sablon = yama(g, cx, cy, R)
-                    sonuc += TakipNokta(ms, x, y)
+                    sonuc += TakipNokta(ms, x, y); sonIyi = sonuc.size; oncekiMs = ms
                     return
                 }
                 val s = sablon ?: return
@@ -104,11 +108,13 @@ object Takipci {
                 }
                 val ortFark = enIyi / ((2 * R + 1) * (2 * R + 1))
                 if (ortFark < 22f) {
-                    cx = bx; cy = by; kayip = 0
+                    cx = bx; cy = by; kayip = 0; kayipMs = 0
                     // şablonu yavaşça güncelle (dönme/ışık değişimine uyum)
                     yama(g, cx, cy, R)?.let { yeni -> for (i in s.indices) s[i] = s[i] * 0.85f + yeni[i] * 0.15f }
-                } else kayip++
+                } else { kayip++; if (oncekiMs >= 0) kayipMs += ms - oncekiMs }
+                oncekiMs = ms
                 sonuc += TakipNokta(ms, cx.toFloat() / g.w, cy.toFloat() / g.h)
+                if (kayip == 0) sonIyi = sonuc.size
             }
 
             if (Build.VERSION.SDK_INT >= 28 && sayi > 1) {
@@ -124,16 +130,17 @@ object Takipci {
                     val n = min(grup, i1 - i + 1)
                     val kareler = try { r.getFramesAtIndex(i, n, prm) } catch (e: Exception) { Kayit.hata("takip kareleri", e); emptyList() }
                     if (kareler.isEmpty()) break
-                    for ((j, b) in kareler.withIndex()) { isle(b, ((i + j) * 1000.0 / fps).toLong()); b.recycle() }
+                    for ((j, b) in kareler.withIndex()) { if (!bitti()) isle(b, ((i + j) * 1000.0 / fps).toLong()); b.recycle() }
                     i += n
+                    if (bitti()) break
                     ilerleme((i - i0).toFloat() / (i1 - i0 + 1))
                 }
             }
             if (sonuc.size < 2) {
                 // Yedek yol: zamanla kare al (yavaş ama her cihazda çalışır)
-                sonuc.clear(); sablon = null
+                sonuc.clear(); sablon = null; kayip = 0; kayipMs = 0; oncekiMs = -1; sonIyi = 0
                 var t = basMs
-                while (t <= k.sonMs) {
+                while (t <= k.sonMs && !bitti()) {
                     ensureActive()
                     val b = r.getFrameAtTime(t * 1000, MediaMetadataRetriever.OPTION_CLOSEST) ?: break
                     isle(b, t); b.recycle()
@@ -144,6 +151,8 @@ object Takipci {
         } finally {
             try { r.release() } catch (_: Exception) {}
         }
+        // nesne kaybolduysa kayıp kareler atılır: yazı son görüldüğü yerde biter
+        if (bitti() && sonIyi in 1 until sonuc.size) while (sonuc.size > sonIyi) sonuc.removeAt(sonuc.lastIndex)
         // titremeyi azalt: 5 karelik kayan ortalama
         if (sonuc.size < 5) sonuc else sonuc.indices.map { i ->
             val a = max(0, i - 2); val b = min(sonuc.lastIndex, i + 2)

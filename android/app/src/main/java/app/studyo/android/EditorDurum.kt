@@ -77,7 +77,9 @@ class EditorDurum(private val ctx: Context, id: String) {
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 sira.value = player.currentMediaItemIndex
-                if (player.isPlaying) secili.value = player.currentMediaItemIndex
+                // 3.42: seçili klip = oynatıcının üstündeki klip (izlerken ve sararken); klip şeridi buna göre kayar
+                val ix = player.currentMediaItemIndex
+                if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && ix in proje.value.klipler.indices) secili.value = ix
                 sesUygula()
             }
 
@@ -151,7 +153,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         var bulundu = false
         for (i in p.klipler.indices) {
             val d = p.zKlip(i).sureMs
-            if (t < d) { player.seekTo(i, t); bulundu = true; break }
+            if (t < d) { player.seekTo(i, t); secili.value = i; bulundu = true; break }
             t -= d
         }
         if (!bulundu) {
@@ -674,9 +676,11 @@ class EditorDurum(private val ctx: Context, id: String) {
         return a to minOf(T, a + sure).coerceAtLeast(a + 500)
     }
 
-    fun katmanMetinEkle() {
-        val (a, b) = yeniAralik(4000)
-        katmanEkleOge(KatmanOge(tur = "metin", ad = "Metin", metin = "Yazınız", olcek = 0.08f, kutu = true, basMs = a, sonMs = b))
+    /** Yazı katmanı (3.42): varsayılan stilli başlık, kısa süre (3 sn) ve belirgin bitiş (solarak çıkar). */
+    fun katmanMetinEkle(stil: String = "baslik", metin: String = "Yazınız", sure: Long = 3000, x: Float = 0.5f, y: Float = 0.5f,
+                        olcek: Float = 0.075f, anim: String = "kay", ad: String = "Yazı") {
+        val (a, b) = yeniAralik(sure)
+        katmanEkleOge(KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b))
     }
 
     fun katmanCikartmaEkle(e: String) {

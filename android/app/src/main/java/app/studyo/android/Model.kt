@@ -140,6 +140,8 @@ data class Takip(
     val basX: Float = 0.5f, val basY: Float = 0.5f, val basMs: Long = 0, val noktalar: List<TakipNokta> = emptyList(),
     /** kutu (klasik) | cagri (halka + eğik çizgi + yatay çizgi) | igne (dikey çizgi) | kose (dik açılı çizgi) */
     val stil: String = "cagri", val cizgiRenk: Long = 0xFFF2C94C,
+    /** Bitiş anı (kaynak ms). -1 = otomatik: izlemenin bittiği yer (nesne kaybolunca) ya da klip sonu. */
+    val sonMs: Long = -1,
 )
 
 /** Nesne katmanı: fotoğraftan kesilmiş saydam PNG; konum kare içinde 0…1 (merkez), genişlik karenin oranı, zaman çizelgesinde aralık. */
@@ -175,6 +177,8 @@ data class KatmanOge(
     val filtre: String = "yok",           // yok | sb | sepya | canli | soguk | sicak
     val kirpL: Float = 0f, val kirpT: Float = 0f, val kirpR: Float = 0f, val kirpB: Float = 0f,
     val ses: Float = 1f, val hiz: Float = 1f, val kaynakBasMs: Long = 0, val kaynakSureMs: Long = 0,
+    /** metin stili (3.42): duz | baslik | konum | altbant | etiket. 2. satır (\n sonrası) stilli yazılarda küçük alt satırdır. */
+    val stil: String = "duz",
 ) {
     val gorsel: Boolean get() = tur != "ses"
 }

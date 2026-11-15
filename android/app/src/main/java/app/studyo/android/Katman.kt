@@ -40,7 +40,7 @@ object Geometri {
 object Katman {
     /** Takip noktasının klip içi andaki konumu (kaynak karede 0…1); takip o andan önce başlamadıysa null. */
     fun takipKonum(t: Takip, ms: Long): Pair<Float, Float>? {
-        if (ms < t.basMs) return null
+        if (ms < t.basMs || ms > takipSon(t)) return null
         val n = t.noktalar
         if (n.isEmpty()) return t.basX to t.basY
         if (ms <= n.first().ms) return n.first().x to n.first().y
@@ -50,6 +50,13 @@ object Katman {
         val a = n[lo]; val b = n[hi]
         val f = if (b.ms == a.ms) 0f else (ms - a.ms).toFloat() / (b.ms - a.ms)
         return (a.x + (b.x - a.x) * f) to (a.y + (b.y - a.y) * f)
+    }
+
+    /** Takip yazısının bittiği an (kaynak ms): elle ayarlandıysa o, yoksa izlemenin son noktası. */
+    fun takipSon(t: Takip): Long = when {
+        t.sonMs >= 0 -> t.sonMs
+        t.noktalar.isNotEmpty() -> t.noktalar.last().ms
+        else -> Long.MAX_VALUE
     }
 
     fun takipYazisi(t: Takip, W: Int, H: Int): Bitmap? {

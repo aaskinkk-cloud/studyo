@@ -348,7 +348,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         val g = katGecici?.takeIf { it.id == o.id }
                         val a = KatmanCizim.an(o, konum)
                         val secili = katmanPaneli && seciliK == o.id
-                        if (a.alfa > 0.01f || (secili && !o.gizli)) {
+                        if (a.alfa > 0.01f || (secili && !o.gizli && konum in o.basMs..o.sonMs)) {   // 3.42: süresi dışında hayalet kalmaz
                             val x = g?.x ?: o.x; val y = (g?.y ?: o.y) + a.dy
                             val sk = a.olcek * (g?.carpan ?: 1f); val aci = o.aci + (g?.aci ?: 0f)
                             val w = bm.width * olcek; val h = bm.height * olcek
@@ -1056,7 +1056,7 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
             }
             secimde -> {
                 Text("Önizlemede takip edilecek yere dokun.", color = Renk.turkuaz, fontWeight = FontWeight.SemiBold)
-                Not("Yazı o andan klibin sonuna kadar noktayı izler. İstediğin ana önce oynatıcıdan gel.")
+                Not("Yazı o andan noktayı izler; nesne kaybolunca ya da klip bitince kendiliğinden biter. Bitişi sonra elle de ayarlayabilirsin.")
                 Dugme("Vazgeç", Modifier.fillMaxWidth().padding(top = 6.dp)) { vm.takipSecimde.value = false }
             }
             t == null -> {
@@ -1092,6 +1092,23 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
                                 .clickable { vm.takipDegis { it.copy(cizgiRenk = r) } })
                         }
                     }
+                }
+                // bitiş: otomatik (nesne kaybolunca / klip sonu) ya da elle (3.42)
+                if (!k.foto) {
+                    val bas = (t.basMs - k.basMs).coerceAtLeast(0) / 1000f
+                    val tavan = (k.sonMs - k.basMs) / 1000f
+                    val son = ((Katman.takipSon(t).coerceAtMost(k.sonMs) - k.basMs) / 1000f).coerceIn(bas, tavan)
+                    if (tavan - bas > 0.3f) Kaydirici(if (t.sonMs >= 0) "Bitiş (elle)" else "Bitiş (otomatik)", son, (bas + 0.2f).coerceAtMost(tavan)..tavan, { sureOndalik((it * 1000).toLong()) }) { v ->
+                        vm.takipDegis { it.copy(sonMs = k.basMs + (v * 1000).toLong()) }
+                    }
+                    DugmeSirasi(
+                        "Bitiş: şu an" to {
+                            val yerel = (vm.konum.value - vm.baslangic(vm.secili.value)).coerceAtLeast(0)
+                            val ms = k.basMs + yerel
+                            if (ms <= t.basMs + 200) vm.mesaj.value = "Bitiş, başlangıçtan sonra olmalı" else { vm.takipDegis { it.copy(sonMs = ms) }; vm.mesaj.value = "Yazı burada bitecek" }
+                        },
+                        "Otomatik bitiş" to { vm.takipDegis { it.copy(sonMs = -1) }; vm.mesaj.value = "Nesne kaybolunca biter" },
+                    )
                 }
                 DugmeSirasi("Noktayı yeniden seç" to { vm.player.pause(); vm.takipSecimde.value = true }, "Kaldır" to { vm.takipKaldir() })
             }

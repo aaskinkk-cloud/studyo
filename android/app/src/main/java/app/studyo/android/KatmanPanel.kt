@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -52,15 +54,19 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje) {
         return
     }
     Kart("Katman ekle") {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            SimgeDugme("metin", "Metin", Modifier.weight(1f), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
-            SimgeDugme("kapak", "Görsel", Modifier.weight(1f), renk = tonRenk(1, "")) { gorselSec.launch(arrayOf("image/*")) }
-            SimgeDugme("logo", "Logo", Modifier.weight(1f), renk = tonRenk(2, "")) { logoAcik = true }
-            SimgeDugme("yildiz", "Çıkartma", Modifier.weight(1f), renk = tonRenk(3, "")) { cikartmaAcik = true }
-            SimgeDugme("nota", "Ses", Modifier.weight(1f), renk = tonRenk(4, "")) { sesSec.launch(arrayOf("audio/*")) }
+        // tek sıra, sağa kayar
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            val g = Modifier.width(68.dp)
+            SimgeDugme("metin", "Yazı ekle", g, renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
+            SimgeDugme("kapak", "Görsel", g, renk = tonRenk(1, "")) { gorselSec.launch(arrayOf("image/*")) }
+            SimgeDugme("logo", "Logo", g, renk = tonRenk(2, "")) { logoAcik = true }
+            SimgeDugme("yildiz", "Çıkartma", g, renk = tonRenk(3, "")) { cikartmaAcik = true }
+            SimgeDugme("nota", "Ses", g, renk = tonRenk(4, "")) { sesSec.launch(arrayOf("audio/*")) }
         }
-        Text("Yeni katman oynatıcının bulunduğu andan başlar ve yukarıdaki çizelgede kendi satırına yerleşir. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.",
-            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
+        Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        HazirYazilar(vm)
+        Text("Yeni katman oynatıcının bulunduğu andan başlar, kısa süre kalır ve solarak biter; sonunu çizelgede ucundan çekerek ya da \"Sonu = şimdi\" ile ayarlarsın. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.",
+            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
     }
 
     p.katmanlar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
@@ -135,6 +141,11 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
 
         when (o.tur) {
             "metin" -> {
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
+                        SecimKarti(ad, "", o.stil == st, Modifier.width(76.dp), etkin = e, sira = j, simge = "metin") { d { it.copy(stil = st) } }
+                    }
+                }
                 var m by remember(o.id) { mutableStateOf(o.metin) }
                 OutlinedTextField(m, { m = it; d { k -> k.copy(metin = it) } }, enabled = e, label = { Text("Yazı") },
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
@@ -145,7 +156,8 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
                             .clickable(enabled = e) { d { it.copy(renk = r) } })
                     }
                 }
-                AnahtarSatiri("Arka kutu", o.kutu) { v -> if (e) d { it.copy(kutu = v) } }
+                if (o.stil == "duz") AnahtarSatiri("Arka kutu", o.kutu) { v -> if (e) d { it.copy(kutu = v) } }
+                else Text("2. satır (alt satır) küçük yazılır. Renk = vurgu rengi.", color = Renk.soluk, fontSize = 11.sp)
             }
             "ses" -> {
                 KatSlider("Ses seviyesi", o.ses, 0f..1.5f, { "%${(it * 100).roundToInt()}" }, e) { v -> d { it.copy(ses = v) } }
@@ -203,5 +215,46 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
             }
         }
 
+    }
+}
+
+/** Popüler yazı örnekleri (3.42): dokun = oynatıcının olduğu andan kısa süreli yazı ekle (sonra metni düzenlenir). */
+private data class HazirYazi(val ad: String, val stil: String, val metin: String, val x: Float, val y: Float, val olcek: Float, val sure: Long, val renk: Long)
+
+@Composable
+private fun HazirYazilar(vm: EditorDurum) {
+    val bugun = remember { java.text.SimpleDateFormat("d MMMM yyyy", java.util.Locale("tr")).format(java.util.Date()) }
+    val l = remember(bugun) { listOf(
+        HazirYazi("Konum", "konum", "Kabataş, Ordu\nKaradeniz", 0.3f, 0.84f, 0.055f, 3500, 0xFFF5A524),
+        HazirYazi("Başlık", "baslik", "Başlık yazın\n$bugun", 0.5f, 0.5f, 0.085f, 3000, 0xFFF5A524),
+        HazirYazi("Alt bant", "altbant", "Ad Soyad\nAçıklama", 0.3f, 0.82f, 0.055f, 4000, 0xFF2EC5D3),
+        HazirYazi("Etiket", "etiket", "Doğa", 0.18f, 0.14f, 0.05f, 3000, 0xFF86C06E),
+        HazirYazi("Tarih", "etiket", bugun, 0.78f, 0.12f, 0.045f, 3000, 0xFFFFFFFF),
+        HazirYazi("Yer adı", "konum", "Yayla yolu", 0.5f, 0.15f, 0.05f, 3000, 0xFFFF6B6B),
+    ) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        l.forEach { h ->
+            val v = Color(if (h.renk == 0xFFFFFFFFL) 0xFFF5A524 else h.renk)
+            val ilk = h.metin.substringBefore('\n')
+            Column(Modifier.width(96.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B242D)).border(0.5.dp, v.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                .clickable { vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, ad = h.ad).also { vm.katmanDegis(vm.seciliKatman.value ?: "") { it.copy(renk = h.renk) } } }
+                .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.fillMaxWidth().height(34.dp), contentAlignment = Alignment.Center) {
+                    when (h.stil) {
+                        "konum" -> Row(Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xD9121A22)).padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(7.dp).clip(CircleShape).background(v)); Spacer(Modifier.width(4.dp))
+                            Text(ilk, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        "altbant" -> Row(Modifier.height(18.dp)) { Box(Modifier.width(3.dp).fillMaxHeight().background(v))
+                            Text(ilk, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.background(Color(0xE6121A22)).padding(horizontal = 4.dp)) }
+                        "etiket" -> Text(ilk.uppercase(), color = Color(0xFF121A22), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(v).padding(horizontal = 7.dp, vertical = 2.dp))
+                        else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(ilk, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Box(Modifier.width(26.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(v)) }
+                    }
+                }
+                Text(h.ad, color = Renk.soluk, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
     }
 }

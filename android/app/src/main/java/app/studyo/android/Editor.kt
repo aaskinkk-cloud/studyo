@@ -461,7 +461,14 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     var gecisSecim by remember { mutableStateOf<Int?>(null) }
     gecisSecim?.let { i -> if (i < p.klipler.lastIndex) GecisSecimi(vm, p, i) { gecisSecim = null } }
     val durum = rememberLazyListState()
-    LaunchedEffect(sec) { if (sec in p.klipler.indices) durum.animateScrollToItem(sec) }
+    // 3.42: etkin klip (oynatıcının üstündeki) şeridin ortasına kayar — izlerken ve sararken önizlemeyle eşleşir
+    val yogS = LocalDensity.current
+    LaunchedEffect(sec) {
+        if (sec !in p.klipler.indices) return@LaunchedEffect
+        val vp = durum.layoutInfo.viewportSize.width
+        val kgPx = with(yogS) { (if (kucuk) 92.dp else 200.dp).toPx() }
+        durum.animateScrollToItem(sec, -((vp - kgPx) / 2f).toInt().coerceAtLeast(0))
+    }
     // 3.25 (Ahmet'in onayladığı taslak): seçili klip büyük; üstünde renkli küçük simgeler (ses, böl, çoğalt, sil) ve
     // kenarlarında sola/sağa taşı okları. Basılı tutup sürükleyerek de taşınır.
     val kw = if (kucuk) 92.dp else 112.dp

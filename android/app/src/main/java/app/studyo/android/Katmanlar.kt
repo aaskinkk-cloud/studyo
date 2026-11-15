@@ -32,7 +32,7 @@ object KatmanCizim {
     val RENKLER = listOf(0xFFFFFFFF, 0xFF000000, 0xFFFFD400, 0xFFF5A524, 0xFFEF5350, 0xFF4CC38A, 0xFF2EC5D3, 0xFF7E57C2)
 
     /** Bitmapi etkileyen alanlar (değişince yeniden çizilir). Konum, açı, opaklık, zaman bitmapi değiştirmez. */
-    fun anahtar(o: KatmanOge): Int = listOf(o.tur, o.yol, o.metin, o.renk, o.kutu, o.olcek, o.filtre, o.kirpL, o.kirpT, o.kirpR, o.kirpB).hashCode()
+    fun anahtar(o: KatmanOge): Int = listOf(o.tur, o.yol, o.metin, o.renk, o.kutu, o.olcek, o.stil, o.filtre, o.kirpL, o.kirpT, o.kirpR, o.kirpB).hashCode()
 
     /** W×H çıktı karesi için katmanın bitmapi (ses katmanı ve boş metin için null). */
     fun bitmap(o: KatmanOge, W: Int, H: Int): Bitmap? = try {
@@ -46,8 +46,97 @@ object KatmanCizim {
         Kayit.hata("katman çizimi ${o.tur}", e); null
     }
 
+    /** Stilli yazılar (3.42): altyazı görünümü yerine tasarımlı kartlar. Vurgu rengi = seçili renk (beyazsa turuncu). */
+    private fun stilliMetin(o: KatmanOge, W: Int, H: Int): Bitmap? {
+        val k = min(W, H).toFloat()
+        val px = (o.olcek * k).coerceAtLeast(8f)
+        val satirlar = o.metin.split('\n')
+        val ust = satirlar.first().let { if (o.stil == "etiket") it.uppercase() else it }
+        val alt = satirlar.drop(1).joinToString(" ").trim()
+        val vurgu = (if (o.renk == 0xFFFFFFFFL) 0xFFF5A524L else o.renk).toInt()
+        val kalin = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+        val ince = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+        val p1 = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = px; typeface = kalin; color = 0xFFFFFFFF.toInt() }
+        val p2 = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = px * 0.58f; typeface = ince; color = 0xE6FFFFFF.toInt() }
+        val enGen = W * 0.9f
+        fun kisalt(t: String, p: TextPaint) = android.text.TextUtils.ellipsize(t, p, enGen * 0.8f, android.text.TextUtils.TruncateAt.END).toString()
+        val u = kisalt(ust, p1); val a = if (alt.isEmpty()) "" else kisalt(alt, p2)
+        val w1 = p1.measureText(u); val w2 = if (a.isEmpty()) 0f else p2.measureText(a)
+        val f1 = p1.fontMetrics; val f2 = p2.fontMetrics
+        val h1 = f1.descent - f1.ascent; val h2 = if (a.isEmpty()) 0f else f2.descent - f2.ascent
+        val pad = px * 0.42f
+        val boya = Paint(Paint.ANTI_ALIAS_FLAG)
+        fun bmp(w: Float, h: Float) = Bitmap.createBitmap(w.toInt().coerceAtLeast(2), h.toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
+        return when (o.stil) {
+            "konum" -> {     // 📍 iğne simgesi + yer adı, koyu cam kart, solda vurgu
+                val ik = h1 * 0.9f
+                val icGen = maxOf(w1, w2)
+                val bw = pad + ik + pad * 0.6f + icGen + pad * 1.2f; val bh = pad * 2 + h1 + h2
+                val b = bmp(bw, bh); val c = Canvas(b)
+                boya.color = 0xD9121A22.toInt(); c.drawRoundRect(RectF(0f, 0f, bw, bh), bh * 0.5f, bh * 0.5f, boya)
+                // iğne: daire + alt uç
+                val cx = pad + ik / 2f; val cy = bh / 2f - ik * 0.12f; val r = ik * 0.36f
+                boya.color = vurgu
+                val yol = android.graphics.Path().apply {
+                    addCircle(cx, cy, r, android.graphics.Path.Direction.CW)
+                    moveTo(cx - r * 0.82f, cy + r * 0.55f); lineTo(cx, cy + r * 2.1f); lineTo(cx + r * 0.82f, cy + r * 0.55f); close()
+                }
+                c.drawPath(yol, boya)
+                boya.color = 0xFF121A22.toInt(); c.drawCircle(cx, cy, r * 0.42f, boya)
+                val tx = pad + ik + pad * 0.6f
+                c.drawText(u, tx, pad - f1.ascent, p1)
+                if (a.isNotEmpty()) c.drawText(a, tx, pad + h1 - f2.ascent, p2)
+                b
+            }
+            "altbant" -> {   // alt üçlü bant: solda vurgu çubuğu, üst satır koyu kartta, alt satır vurgu renginde
+                val cub = px * 0.22f
+                val g1 = w1 + pad * 2; val g2 = if (a.isEmpty()) 0f else w2 + pad * 2
+                val bw = cub + maxOf(g1, g2); val bh = h1 + pad * 1.2f + (if (a.isEmpty()) 0f else h2 + pad * 0.8f)
+                val b = bmp(bw, bh); val c = Canvas(b)
+                boya.color = vurgu; c.drawRect(0f, 0f, cub, bh, boya)
+                boya.color = 0xE6121A22.toInt(); c.drawRect(cub, 0f, cub + g1, h1 + pad * 1.2f, boya)
+                c.drawText(u, cub + pad, pad * 0.6f - f1.ascent, p1)
+                if (a.isNotEmpty()) {
+                    val y0 = h1 + pad * 1.2f
+                    boya.color = vurgu; c.drawRect(cub, y0, cub + g2, bh, boya)
+                    p2.color = 0xFF121A22.toInt(); p2.typeface = kalin
+                    c.drawText(a, cub + pad, y0 + pad * 0.4f - f2.ascent, p2)
+                }
+                b
+            }
+            "etiket" -> {    // hap biçimli etiket: vurgu zemin, koyu kalın yazı
+                p1.color = 0xFF121A22.toInt(); p1.letterSpacing = 0.06f
+                val ww = p1.measureText(u)
+                val bw = ww + pad * 2.4f; val bh = h1 + pad * 1.1f
+                val b = bmp(bw, bh); val c = Canvas(b)
+                boya.color = vurgu; c.drawRoundRect(RectF(0f, 0f, bw, bh), bh / 2f, bh / 2f, boya)
+                c.drawText(u, pad * 1.2f, pad * 0.55f - f1.ascent, p1)
+                b
+            }
+            else -> {        // baslik: büyük beyaz yazı, ince koyu kontur + yumuşak gölge, altında vurgu çizgisi
+                val cizgi = px * 0.14f
+                val bw = maxOf(w1, w2) + pad * 2; val bh = pad + h1 + cizgi * 2.4f + h2 + pad
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val y1 = pad - f1.ascent
+                val kontur = TextPaint(p1).apply { style = Paint.Style.STROKE; strokeWidth = px * 0.1f; color = 0xCC000000.toInt(); strokeJoin = Paint.Join.ROUND
+                    setShadowLayer(px * 0.18f, 0f, px * 0.06f, 0x99000000.toInt()) }
+                val x1 = (bw - w1) / 2f
+                c.drawText(u, x1, y1, kontur); c.drawText(u, x1, y1, p1)
+                val cy = pad + h1 + cizgi * 0.6f
+                boya.color = vurgu; val cw = minOf(w1, px * 3.2f)
+                c.drawRoundRect(RectF((bw - cw) / 2f, cy, (bw + cw) / 2f, cy + cizgi), cizgi / 2f, cizgi / 2f, boya)
+                if (a.isNotEmpty()) {
+                    p2.setShadowLayer(px * 0.12f, 0f, px * 0.04f, 0xCC000000.toInt())
+                    c.drawText(a, (bw - w2) / 2f, cy + cizgi * 1.8f - f2.ascent, p2)
+                }
+                b
+            }
+        }
+    }
+
     private fun metin(o: KatmanOge, W: Int, H: Int): Bitmap? {
         if (o.metin.isBlank()) return null
+        if (o.stil != "duz") return stilliMetin(o, W, H)
         val px = (o.olcek * min(W, H)).coerceAtLeast(8f)
         val p = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = o.renk.toInt(); textSize = px

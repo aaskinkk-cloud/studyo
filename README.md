@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.42 (15.11.2026, deneme · `yerel-android` dalı): takip yazısı bitişi, tasarımlı yazılar, klip şeridi önizlemeyle eşleşir
+- **Takip yazısı kendiliğinden biter:** izlenen nesne ≈0,7 sn bulunamazsa (sahne/nesne bitti) izleme orada durur, yazı son görüldüğü yerde kaybolur; klip bitince de biter. Bitiş elle de ayarlanır: "Bitiş" kaydırıcısı, "Bitiş: şu an", "Otomatik bitiş" (`Takip.sonMs`, -1 = otomatik).
+- **Yazılar artık altyazı gibi değil:** yeni metin stilleri — Başlık (kontur + vurgu çizgisi), Konum (iğne simgeli cam kart), Alt bant, Etiket (hap), Düz. 2. satır küçük alt satır olur; renk = vurgu rengi. Yeni yazı 3 sn kalır, kayarak girip solarak çıkar.
+- **Hazır yazılar:** Konum (Kabataş, Ordu), Başlık + tarih, Alt bant, Etiket, Tarih, Yer adı — dokununca oynatıcının olduğu andan eklenir.
+- **Sonu bitmeyen yazı düzeltmesi:** seçili katman süresi dışında önizlemede soluk "hayalet" olarak kalıyordu; artık yalnız kendi aralığında görünür.
+- **Katman araç sırası:** başta "Yazı ekle"; katman için "Başı=şimdi", "Sonu=şimdi" eklendi; sıra sağa kayar. Katman ekle satırı da sağa kayar.
+- **Düzenle › Klip:** seçili klip her zaman oynatıcının üstündeki klip (izlerken ve sararken); klip şeridi etkin klibi ortaya kaydırır.
+
 ## 3.41 (15.11.2026, deneme · `yerel-android` dalı): Katmanlar çizelgesi ve önizlemede sürükleme
 - **Klip yarıda bitip arkası siyah görünüyordu (kök düzeltme):** uzun klip/katman/ses çubuğu ekrandan genişken Compose genişliği ekran genişliğine kırpıyordu. Artık yalnız ekranda görünen parça ölçülüp çiziliyor; kareler/ses dalgası gerçek başa göre diziliyor, kaydırınca birlikte kayıyor. Gizli katmanda büyük `graphicsLayer` yerine renk saydamlığı.
 - **Video klibi seçilince araçlar soluk kalıyordu:** Katmanlar çizelgesinde video klibine dokununca klip seçilir (beyaz çerçeve) ve aynı araç sırası klibe uygulanır: Böl · Çoğalt · Öne al · Sona al · Sessiz/Sesi aç · Bırak · Sil (onaylı). Katman seçilince araçlar yeniden katmana döner.

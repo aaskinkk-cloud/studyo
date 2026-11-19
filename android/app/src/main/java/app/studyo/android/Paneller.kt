@@ -658,13 +658,14 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
         if (!g.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
         GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)
-        var bas by remember(p.id) { mutableStateOf(g.baslik) }
-        OutlinedTextField(bas, { bas = it; vm.girisDegis { gg -> gg.copy(baslik = it) } }, Modifier.fillMaxWidth().padding(top = 8.dp),
-            label = { Text("Başlık (satır bölmek için |)") }, maxLines = 2)
+        // 3.58: kısa metin düzenleyici — Enter = alt satır (| yazmaya gerek yok), A−/A+ = yazı boyutu
+        Spacer(Modifier.height(8.dp))
+        MetinEditoru(g.baslik, "Başlık", { y -> vm.girisDegis { it.copy(baslik = y) } },
+            boyut = g.olcek, boyutAralik = 0.6f..1.6f, boyutAdim = 0.1f, boyutDegis = { v -> vm.girisDegis { it.copy(olcek = v) } }, enCokSatir = 4)
         if (g.reels) {
-            var bant by remember(p.id) { mutableStateOf(g.bant) }
-            OutlinedTextField(bant, { bant = it; vm.girisDegis { gg -> gg.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
-                label = { Text(if (g.stil == "r_haber") "Tarih | konum (ör. 26 Eylül 2026|Kabataş, Ordu)" else "Vurgu bantları (| ile ayrı bant)") }, singleLine = true)
+            Spacer(Modifier.height(6.dp))
+            MetinEditoru(g.bant, if (g.stil == "r_haber") "Tarih ve konum (her satır ayrı kutu)" else "Vurgu bantları (her satır ayrı bant)",
+                { y -> vm.girisDegis { it.copy(bant = y) } }, enCokSatir = 3)
             Bolum("HAREKET")
             TonSecici(listOf(Triple("trend", "Trend", "sihir"), Triple("dus", "Düşerek", "asagi"), Triple("kay", "Kayarak", "sag"),
                 Triple("yuksel", "Yükselerek", "disa"), Triple("buyu", "Büyüyerek", "g_buyu")), g.hareket) { s -> vm.girisDegis { it.copy(hareket = s) } }
@@ -1112,57 +1113,95 @@ private val VURGULAR = listOf(0xFFFFD400 to "Sarı", 0xFFFF3B30 to "Kırmızı",
 
 @Composable
 fun PanelKapak(vm: EditorDurum, p: Proje) {
+    // 3.58: Kapak yeniden — Geçişler/Renk düzeni: üstte büyük kapak önizlemesi + Kaydet, altında görsel alt düğmeler
+    // (Kare · Yazı · Stil · Efekt), her biri kendi sayfası; stiller yazı yerine kapağın kendisiyle çizilmiş küçük resimler.
     val resim by vm.kapakResmi.collectAsState()
     val oneriler by vm.kapakOnerileri.collectAsState()
     val hazirlaniyor by vm.kapakOneriHazirlaniyor.collectAsState()
     LaunchedEffect(Unit) { vm.kapakCiz() }
     val kp = p.kapak
-    Kart("Kapak (küçük resim)") {
-        val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
-        Box(Modifier.fillMaxWidth(if (oran < 1f) 0.55f else 1f).align(Alignment.CenterHorizontally).aspectRatio(oran).clip(RoundedCornerShape(10.dp)).background(Color.Black)) {
+    val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
+    val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Box(Modifier.fillMaxWidth(if (oran < 1f) 0.5f else 1f).align(Alignment.CenterHorizontally).aspectRatio(oran).clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
             resim?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
         }
-        Spacer(Modifier.height(8.dp))
-        DugmeSirasi("Önizlemedeki kare" to { vm.kapakKareSec() }, (if (hazirlaniyor) "Hazırlanıyor…" else "Kapak önerileri") to { vm.kapakOneriHazirla() })
-        if (oneriler.isNotEmpty()) {
-            oneriler.chunked(3).forEach { sira ->
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    sira.forEach { (k, b) ->
-                        val on = k.kaynakUri == kp.kaynakUri && k.kaynakMs == kp.kaynakMs
-                        Image(b.asImageBitmap(), null, Modifier.weight(1f).aspectRatio(16f / 9f).clip(RoundedCornerShape(8.dp))
-                            .border(if (on) 3.dp else 0.dp, if (on) Renk.turuncu else Color.Transparent, RoundedCornerShape(8.dp))
-                            .clickable { vm.kapakOneriSec(k) }, contentScale = ContentScale.Crop)
-                    }
-                    repeat(3 - sira.size) { Spacer(Modifier.weight(1f)) }
-                }
-            }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)).background(Renk.turuncu).clickable { vm.kapakKaydet() }.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Simge("kaydet", Renk.turuncuM, 18.dp); Spacer(Modifier.width(6.dp))
+            Text("Kapağı JPG kaydet", color = Renk.turuncuM, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
     }
-    Kart("Kapak yazısı") {
-        var y by remember(p.id) { mutableStateOf(kp.yazi) }
-        OutlinedTextField(y, { y = it; vm.kapakDegis { k -> k.copy(yazi = it) } }, Modifier.fillMaxWidth(),
-            label = { Text("Yazı — vurgu için *yıldız* içine al, satır için |") }, maxLines = 3)
-        Secenekler(listOf("kalin" to "Kalın kenarlı", "kutulu" to "Kutulu", "bant" to "Renkli bant"), kp.stil) { s -> vm.kapakDegis { it.copy(stil = s) } }
-        Text("Reels stilleri (satır: |, bant: aşağıda)", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 4.dp))
-        Secenekler(Reels.STILLER, kp.stil) { s -> vm.kapakDegis { it.copy(stil = s) } }
-        if (kp.stil.startsWith("r_")) {
-            var bant by remember(p.id) { mutableStateOf(kp.bant) }
-            OutlinedTextField(bant, { bant = it; vm.kapakDegis { k -> k.copy(bant = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Bantlar (| ile ayrı bant)") }, singleLine = true)
-        }
-        Secenekler(listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta"), kp.konum) { s -> vm.kapakDegis { it.copy(konum = s) } }
-        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            VURGULAR.forEach { (r, _) ->
-                Box(Modifier.weight(1f).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color(r))
-                    .border(if (kp.vurgu == r) 2.dp else 0.dp, if (kp.vurgu == r) Color.White else Color.Transparent, RoundedCornerShape(9.dp))
-                    .clickable { vm.kapakDegis { it.copy(vurgu = r) } })
+    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("kare") }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AyarDugmesi("Kare", "kapak", TON[2], sekme == "kare", kp.kaynakUri.isNotEmpty()) { sekme = "kare" }
+        AyarDugmesi("Yazı", "metin", TON[0], sekme == "yazi", kp.yazi.isNotBlank()) { sekme = "yazi" }
+        AyarDugmesi("Stil", "sihir", TON[3], sekme == "stil", false) { sekme = "stil" }
+        AyarDugmesi("Efekt", "yildiz", TON[4], sekme == "efekt", kp.canli || kp.logo) { sekme = "efekt" }
+    }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+    Spacer(Modifier.height(8.dp))
+    when (sekme) {
+        "kare" -> {
+            Bolum("KAPAK KARESİ")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                YuvarlakSecim("Önizlemedeki kare", "kapak", turkuaz, false) { vm.kapakKareSec() }
+                YuvarlakSecim(if (hazirlaniyor) "Hazırlanıyor…" else "Öneriler", "sihir", turuncu, false) { vm.kapakOneriHazirla() }
             }
+            if (oneriler.isNotEmpty()) {
+                Bolum("ÖNERİLER · dokun = seç")
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(oneriler.size) { n ->
+                        val (k, b) = oneriler[n]
+                        val on = k.kaynakUri == kp.kaynakUri && k.kaynakMs == kp.kaynakMs
+                        Image(b.asImageBitmap(), null, Modifier.width(128.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp))
+                            .border(if (on) 2.5.dp else 0.5.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(10.dp))
+                            .clickable { vm.kapakOneriSec(k) }, contentScale = ContentScale.Crop)
+                    }
+                }
+            } else Not("Oynatıcıyı istediğin ana getirip \"Önizlemedeki kare\"ye dokun ya da \"Öneriler\" ile en canlı kareleri getir.")
         }
-        Kaydirici("Yazı boyutu", kp.boyut, 0.06f..0.18f, { "%${(it * 100).roundToInt()}" }) { v -> vm.kapakDegis { it.copy(boyut = v) } }
-        AnahtarSatiri("Renkleri canlandır, kenarları karart", kp.canli) { v -> vm.kapakDegis { it.copy(canli = v) } }
-        AnahtarSatiri("Logoyu kapağa koy", kp.logo) { v -> vm.kapakDegis { it.copy(logo = v) } }
-        Spacer(Modifier.height(6.dp))
-        Dugme("Kapağı JPG kaydet", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.kapakKaydet() }
-        Not("Kayıt yeri: Galeri › Pictures/Stüdyo. YouTube'a yüklerken “Küçük resim” olarak seç.")
+        "yazi" -> {
+            MetinEditoru(kp.yazi, "Kapak yazısı", { y -> vm.kapakDegis { it.copy(yazi = y) } }, vurguVar = true, vurguRenk = Color(kp.vurgu),
+                renkler = VURGULAR.map { it.first }, seciliRenk = kp.vurgu, renkSec = { r -> vm.kapakDegis { it.copy(vurgu = r) } },
+                boyut = kp.boyut, boyutAralik = 0.06f..0.18f, boyutDegis = { v -> vm.kapakDegis { it.copy(boyut = v) } })
+            if (kp.stil.startsWith("r_")) {
+                Spacer(Modifier.height(8.dp))
+                MetinEditoru(kp.bant, "Bantlar (her satır ayrı bant)", { y -> vm.kapakDegis { it.copy(bant = y) } }, enCokSatir = 3)
+            }
+            Bolum("YERİ")
+            KonumSecici(kp.konum, sari) { s -> vm.kapakDegis { it.copy(konum = s) } }
+        }
+        "stil" -> {
+            val kaynak by produceState<Bitmap?>(null, kp.kaynakUri, kp.kaynakMs) { value = vm.kapakKaynakKucuk() }
+            val ciz: (String, Int, Int) -> Bitmap? = { s, W, H -> Cizim.kapak(kp.copy(stil = s, yazi = kp.yazi.ifBlank { "Şefin *Doğası*" }), kaynak, p.logo, W, H) }
+            Bolum("KLASİK")
+            OnizlemeBandi(p, listOf("kalin" to "Kalın kenarlı", "kutulu" to "Kutulu", "bant" to "Renkli bant"), kp.stil, turuncu, Triple(kaynak, kp.copy(stil = ""), p.logo), ciz) { s -> vm.kapakDegis { it.copy(stil = s) } }
+            Bolum("REELS TARZI")
+            OnizlemeBandi(p, Reels.STILLER, kp.stil, pembe, Triple(kaynak, kp.copy(stil = ""), p.logo), ciz) { s -> vm.kapakDegis { it.copy(stil = s) } }
+        }
+        else -> {
+            Bolum("EFEKTLER · dokun = aç / kapat")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                YuvarlakSecim("Canlı renkler", "gorunum", yesil, kp.canli) { vm.kapakDegis { it.copy(canli = !it.canli) } }
+                YuvarlakSecim("Logo", "logo", turkuaz, kp.logo) { vm.kapakDegis { it.copy(logo = !it.logo) } }
+            }
+            Not("Canlı renkler: renkleri canlandırır, kenarları hafifçe karartır. Logo: projenin logosu kapağın köşesine konur.")
+        }
+    }
+    Not("Kayıt yeri: Galeri › Pictures/Stüdyo. YouTube'a yüklerken “Küçük resim” olarak seç.")
+}
+
+/** 3.58: Geçişler panelindeki gibi yuvarlak simgeli seçim (seçili/açık = beyaz halka + ✓). */
+@Composable
+internal fun YuvarlakSecim(ad: String, simge: String, ton: Color, on: Boolean, tik: () -> Unit) {
+    Column(Modifier.width(84.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = tik).padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(56.dp)) {
+            Box(Modifier.fillMaxSize().clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
+                .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) { Simge(simge, ton, 26.dp) }
+            if (on) OnayIsareti(Modifier.align(Alignment.TopEnd), 16.dp)
+        }
+        Text(ad, color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.padding(top = 4.dp))
     }
 }
 

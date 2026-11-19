@@ -109,6 +109,7 @@ data class Giris(
     val konum: String = "orta",          // reels yazılarının yeri: ust | orta | alt
     val efektSes: Boolean = true, val sesSeviye: Float = 0.6f,
     val boncuk: Boolean = false,         // ışıklı boncuklar (girişte süzülen ışık noktaları)
+    val olcek: Float = 1f,               // 3.58: yazı boyutu çarpanı (0,6…1,6)
 ) {
     val reels: Boolean get() = stil.startsWith("r_")
 }

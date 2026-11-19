@@ -89,7 +89,7 @@ private val HAP_SIMGE = mapOf(
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
@@ -294,19 +294,22 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
             }
             // ana bölümler: üstte beyaz simge, altta küçük gri yazı
-            Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).padding(vertical = 4.dp)) {
+            // 3.58: ana menü yana kayar (ferah, sıkışmaz); seçili bölüm hafif renkli zeminli
+            val anaKaydir = rememberScrollState()
+            Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(anaKaydir)
+                .padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 BOLUMLER.forEach { bb ->
                     val on = bb.anahtar == bolum
                     Column(
-                        Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable {
+                        Modifier.width(74.dp).clip(RoundedCornerShape(12.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.12f) else Color.Transparent).clickable {
                             bolum = bb.anahtar; panelAcik = true   // 3.53: ikinci dokunuş da aynı bölümde kalır
                         }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 22.dp)
-                        Spacer(Modifier.height(3.dp))
+                        Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 24.dp)
+                        Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                            Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                             if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
                         }
                     }
@@ -491,6 +494,9 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     // 3.53: klip resmindeki kırp simgesi → Kırp / Süre sayfası (Geçişler biçiminde)
     var kirpId by remember { mutableStateOf<String?>(null) }
     kirpId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> KirpSecimi(vm, p, kk) { kirpId = null } } ?: run { kirpId = null } }
+    // 3.58: Görünüm › Kadraj alt menüsü kaldırıldı — Sığdır/Doldur, tümüne uygula ve ortala klip resmindeki kadraj simgesinde
+    var kadrajId by remember { mutableStateOf<String?>(null) }
+    kadrajId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> KadrajSecimi(vm, p, kk) { kadrajId = null } } ?: run { kadrajId = null } }
     val durum = rememberLazyListState()
     // 3.42: etkin klip (oynatıcının üstündeki) şeridin ortasına kayar — izlerken ve sararken önizlemeyle eşleşir
     val yogS = LocalDensity.current
@@ -550,6 +556,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     Row(Modifier.align(Alignment.TopEnd).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (!k.foto && k.sesVar) SimgeDugmesi(if (k.sessiz) "sessiz" else "ses", 0xFF5DCAA5) { vm.sesAcKapat() }
                         SimgeDugmesi("kirp", 0xFFFAC775) { kirpId = k.id }
+                        SimgeDugmesi("kadraj", 0xFF97C459) { kadrajId = k.id }
                         SimgeDugmesi("makas", 0xFFF0997B) { vm.klipBolSecili() }
                         SimgeDugmesi("cogalt", 0xFF85B7EB) { vm.klipCogalt() }
                         val onay = silOnayId == k.id
@@ -701,6 +708,36 @@ private fun KirpSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) {
             }
             KlipSureKirp(vm, k)
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/** 3.58: Kadraj sayfası (Geçişler biçiminde): solda Tümüne, ortada başlık, sağda Tamam; Sığdır / Doldur yuvarlak simgeler.
+ *  Önce Görünüm › Kadraj alt menüsündeydi. Önizlemede sürükle = kaydır, çift dokun = ortala (değişmedi). */
+@Composable
+private fun KadrajSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = kapat, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart).padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Kadraj tüm kliplere uygulandı"; kapat() }.padding(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("cift", Renk.yazi, 26.dp); Text("Tümüne", color = Renk.soluk, fontSize = 10.5.sp)
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Kadraj", color = Renk.yazi.copy(alpha = 0.8f), fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Klip ${p.klipler.indexOfFirst { it.id == k.id } + 1}/${p.klipler.size}", color = Renk.soluk, fontSize = 11.sp)
+                }
+                Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { kapat() }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("uygula", Renk.yazi, 26.dp); Text("Tamam", color = Renk.soluk, fontSize = 10.5.sp)
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
+                YuvarlakSecim("Sığdır · tamamı görünür", "tuval", Color(TON[2]), !k.doldur) { vm.klipGuncelle { it.copy(doldur = false) } }
+                YuvarlakSecim("Doldur · kare dolar", "kadraj", Color(TON[1]), k.doldur) { vm.klipGuncelle { it.copy(doldur = true) } }
+                if (k.kayX != 0f || k.kayY != 0f) YuvarlakSecim("Ortala", "h_odak", Color(TON[3]), false) { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) } }
+            }
+            Text(if (k.doldur) "Önizlemede parmakla sürükle = kaydır · çift dokun = ortala" else "Kaydırmak için Doldur'u seç",
+                color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp, bottom = 6.dp))
         }
     }
 }

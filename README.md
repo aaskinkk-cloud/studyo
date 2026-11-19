@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.58 (20.11.2026, deneme · `yerel-android` dalı): Kapak yeniden, kısa metin düzenleyici, kayan ana menü, Kadraj klip simgesinde
+- **Görünüm › Kadraj kaldırıldı:** Düzenle › Klip'te aynısı yoktu (yalnız önizlemede sürükleme/çift dokunuş). Özellik kaybolmasın diye Sığdır/Doldur, Tümüne ve Ortala seçili klibin resmindeki kadraj simgesinden açılan Geçişler biçimli sayfaya taşındı.
+- **Kapak (Yayın):** üstte büyük kapak önizlemesi + "Kapağı JPG kaydet"; altında görsel alt düğmeler: Kare (önizlemedeki kare, öneriler yana kayan resimler) · Yazı (metin düzenleyici, vurgu rengi, boyut, yeri) · Stil (her stil kapağın kendisiyle çizilmiş küçük resim; Klasik + Reels bantları) · Efekt (Canlı renkler, Logo yuvarlak aç/kapa).
+- **Kısa metin düzenleyici (`MetinEditoru`):** Enter = alt satır / yeni blok (| yazmaya gerek yok, kayıtta | olarak saklanır); "B Kalın · vurgu" seçili kelimeyi vurgular (yıldız yazmaya gerek yok, kutuda yıldız görünmez, vurgu kalın ve renkli görünür); A−/A+ yazı boyutu; renk daireleri. Kapak yazısı/bantları ve Giriş başlığı/bantlarında.
+- **Giriş başlığı yazı boyutu (yeni):** `Giris.olcek` 0,6–1,6 (klasik ve Reels kutuları).
+- **Ana menü:** yana kayar, düğmeler geniş (74 dp), büyük simge; seçili bölüm hafif renkli zeminli.
+
 ## 3.57 (20.11.2026, deneme · `yerel-android` dalı): Varsayılan ayarlar Geçişler düzeninde, belirgin Gizle/Göster düğmesi
 - **Görünüm › Şablon › Varsayılan:** maddeler artık sıkışmıyor — Geçişler paneli gibi yuvarlak simgeler, yana (sağa/sola) kayar; seçili maddede beyaz halka + ✓, altta kısa açıklama.
 - **Gizle/Göster:** bölüm başlıklarındaki küçük ▴/▾ işareti yerine renk tonlu çerçeveli hap (ok + "Gizle"/"Göster", `GizleGosterDugmesi`). Aynı düğme Katmanlar başlığında, Nesne kes satırında ve Düzenle › Klip'teki şerit gizle/göster'de de kullanılıyor.

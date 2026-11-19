@@ -1151,6 +1151,14 @@ class EditorDurum(private val ctx: Context, id: String) {
         return if (kp.kaynakFoto) Medya.ornekleCoz(File(u.path ?: ""), 1920) else Medya.kareTam(ctx, u, kp.kaynakMs, 1920)
     }
 
+    /** 3.58: Kapak › Stil önizlemeleri için küçük kaynak kare (seçili kapak karesi; yoksa null = degrade zemin). */
+    suspend fun kapakKaynakKucuk(): android.graphics.Bitmap? = withContext(Dispatchers.IO) {
+        runCatching { kapakKaynak(proje.value.kapak)?.let { b ->
+            val o = 480f / maxOf(b.width, b.height)
+            if (o < 1f) android.graphics.Bitmap.createScaledBitmap(b, (b.width * o).toInt().coerceAtLeast(1), (b.height * o).toInt().coerceAtLeast(1), true) else b
+        } }.getOrNull()
+    }
+
     fun kapakCiz() {
         kapakIs?.cancel()
         kapakIs = kapsam.launch {

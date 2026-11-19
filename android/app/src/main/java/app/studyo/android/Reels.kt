@@ -120,9 +120,9 @@ object Reels {
     private fun dolu(renk: Int, r: Float = 0f): (Canvas, RectF) -> Unit = { c, rc -> c.drawRoundRect(rc, r, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = renk }) }
 
     /** Başlık satırlarını ve bantları stile göre şeritlere çevirir (yukarıdan aşağı). */
-    fun bitmapler(stil: String, baslik: String, bant: String, W: Int, H: Int): List<Bitmap> {
+    fun bitmapler(stil: String, baslik: String, bant: String, W: Int, H: Int, olcek: Float = 1f): List<Bitmap> {
         val k = min(W, H).toFloat()
-        val boy = k * 0.062f
+        val boy = k * 0.062f * olcek.coerceIn(0.5f, 2f)
         val en = (W * 0.86f).toInt()
         val satirlar = baslik.split('|').map { it.trim() }.filter { it.isNotEmpty() }
         val bantlar = bant.split('|').map { it.trim() }.filter { it.isNotEmpty() }
@@ -265,7 +265,7 @@ object Reels {
 
     /** Giriş için şeritler: sola hizalı blok, seçilen konumda; her şerit 160 ms arayla gelir. */
     fun seritler(g: Giris, W: Int, H: Int): List<Serit> {
-        val b = bitmapler(g.stil, g.baslik, g.bant, W, H)
+        val b = bitmapler(g.stil, g.baslik, g.bant, W, H, g.olcek)
         if (b.isEmpty()) return emptyList()
         val ara = min(W, H) * 0.012f
         val topH = b.sumOf { it.height.toDouble() }.toFloat() + ara * (b.size - 1)

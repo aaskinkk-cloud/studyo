@@ -98,7 +98,7 @@ object Cizim {
     // ---------------- Giriş başlığı ----------------
     fun giris(g: Giris, W: Int, H: Int): Yerlesim? {
         if (!g.acik) return null
-        val k = min(W, H).toFloat()
+        val k = min(W, H).toFloat() * g.olcek.coerceIn(0.5f, 2f)   // 3.58: yazı boyutu
         val bas = g.baslik.replace("|", "\n").trim()
         val alt = g.alt.trim()
         val en = (W * 0.88f).toInt()

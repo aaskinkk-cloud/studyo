@@ -139,7 +139,7 @@ fun OnayIsareti(modifier: Modifier = Modifier, boy: androidx.compose.ui.unit.Dp 
     Box(modifier.size(boy).clip(CircleShape).background(Color(0xFF1D9E75)), contentAlignment = Alignment.Center) { Simge("uygula", Color.White, boy * 0.7f) }
 
 @Composable
-private fun AyarDugmesi(ad: String, simge: String, renk: Long, secili: Boolean, degisti: Boolean, tik: () -> Unit) {
+internal fun AyarDugmesi(ad: String, simge: String, renk: Long, secili: Boolean, degisti: Boolean, tik: () -> Unit) {
     Column(Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = tik).padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(46.dp)) {
             Box(Modifier.fillMaxSize().clip(CircleShape).background(if (secili) Color.Transparent else Renk.kart2)

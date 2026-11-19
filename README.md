@@ -6,6 +6,9 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.54 (19.11.2026, deneme · `yerel-android` dalı): Görünüm › Şablon alt sayfalara bölündü
+- Şablon'daki beş kart artık tek sayfada alt alta yığılmıyor. Renk bölümündeki gibi yatay alt düğmeler var: Paketler (Biçim + hazır paketler) · Giriş · Abone · Kapanış · Varsayılan; her biri kendi sayfasında açılıyor. Giriş, Abone ve Kapanış açıkken düğmede ✓ görünüyor. İçerik ve ayarlar değişmedi. Eski yazılı menü görünümü (⋯) aynen duruyor.
+
 ## 3.53 (19.11.2026, deneme · `yerel-android` dalı): ferah menü düzeni, Renk ana bölümü, ortak yazı, ✓ işareti
 - **Gezinme hatası (kök neden):** açık bir bölüme ya da alt düğmeye ikinci kez dokunmak paneli kapatıyordu; kapalı panel Düzenle › Klip görünümünü gösterdiği için ör. Renk'e ikinci dokunuş Klip'e gidiyordu. Artık her düğme her zaman yalnız kendi bölümünü açar (panel Geri tuşuyla kapanır).
 - **Renk ana bölümü (alt çubukta, Görünüm'den çıktı):** üstte sabit Geçişler biçimli başlık (Tümüne · Renk ✓ · Sıfırla), önce/sonra görüntüsü ve yatay kayan ayar düğmeleri; her ayar kendi sayfasında (− kaydırıcı +, Sıfırla). Ayarlar: Hazır · Parlaklık · Kontrast · Vurgular · **Beyazlar (yeni)** · Gölgeler · **Keskinlik (yeni)** · Doygunluk · Sıcaklık · Ton · HSL. Aşağı kaydırınca önizleme ve düğmeler yerinde kalır (`RenkBolumu.kt`).

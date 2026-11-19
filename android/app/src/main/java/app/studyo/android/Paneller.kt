@@ -598,7 +598,17 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
 @Composable
 private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
     val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
-    Kart("Hazır paketler", ton = turuncu) {
+    // 3.54: seçenekler tek sayfada yığılmasın — Renk bölümündeki gibi yatay alt düğmeler, her biri kendi sayfası (✓ = özellik açık)
+    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("paket") }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AyarDugmesi("Paketler", "sihir", TON[3], sekme == "paket", false) { sekme = "paket" }
+        AyarDugmesi("Giriş", "baslik", TON[0], sekme == "giris", p.giris.acik) { sekme = "giris" }
+        AyarDugmesi("Abone", "zil", TON[4], sekme == "abone", p.hatirlatici.acik) { sekme = "abone" }
+        AyarDugmesi("Kapanış", "kalp", TON[2], sekme == "kapanis", p.kapanis.acik) { sekme = "kapanis" }
+        AyarDugmesi("Varsayılan", "uygula", TON[1], sekme == "varsayilan", false) { sekme = "varsayilan" }
+    }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+    if (sekme == "paket") Kart("Hazır paketler", ton = turuncu) {
         // 3.53: Biçim (önce Düzenle › Klip'te) paketlerin ilk satırı
         Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         BicimSatiri(vm, p)
@@ -609,7 +619,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
         Not("Giriş, geçiş, abone ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
     }
     val g = p.giris
-    Kart("Giriş başlığı", ton = sari, anahtar = g.acik, anahtarDegis = { v -> vm.girisDegis { it.copy(acik = v) } }) {
+    if (sekme == "giris") Kart("Giriş başlığı", ton = sari, anahtar = g.acik, anahtarDegis = { v -> vm.girisDegis { it.copy(acik = v) } }) {
         if (!g.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
         GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)
@@ -643,7 +653,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
         TonKaydirici("Ekranda", g.sureMs / 1000f, 2f..8f, 0.5f, sari, { String.format(TR, "%.1f sn", it) }) { v -> vm.girisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
     }
     val h = p.hatirlatici
-    Kart("Abone hatırlatıcı", ton = pembe, anahtar = h.acik, anahtarDegis = { v -> vm.hatirlaticiDegis { it.copy(acik = v) } }) {
+    if (sekme == "abone") Kart("Abone hatırlatıcı", ton = pembe, anahtar = h.acik, anahtarDegis = { v -> vm.hatirlaticiDegis { it.copy(acik = v) } }) {
         if (!h.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         OnizlemeBandi(p, listOf("kart" to "Koyu hap", "klasik" to "Kırmızı bant"), h.stil, pembe, h.copy(stil = "") to p.logo,
             { s, W, H -> Cizim.hatirlatici(h.copy(acik = true, stil = s), W, H, p.logo, p.kapanis.kanal)?.let { yerlesimBmp(it, W, H) } }) { s -> vm.hatirlaticiDegis { it.copy(stil = s) } }
@@ -658,7 +668,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
         TonKaydirici("Zamanı", h.anOran, 0.1f..0.9f, 0.05f, pembe, { "%${(it * 100).roundToInt()}" }) { v -> vm.hatirlaticiDegis { it.copy(anOran = v) } }
     }
     val kp = p.kapanis
-    Kart("Kapanış", ton = turkuaz, anahtar = kp.acik, anahtarDegis = { v -> vm.kapanisDegis { it.copy(acik = v) } }) {
+    if (sekme == "kapanis") Kart("Kapanış", ton = turkuaz, anahtar = kp.acik, anahtarDegis = { v -> vm.kapanisDegis { it.copy(acik = v) } }) {
         if (!kp.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         OnizlemeBandi(p, listOf("cam" to "Cam kartlar", "cta" to "Renkli haplar", "sade" to "Sade"), kp.stil, turkuaz, kp.copy(stil = "") to p.logo,
             { s, W, H -> Cizim.kapanis(kp.copy(acik = true, stil = s), p.logo, W, H, null) }) { s -> vm.kapanisDegis { it.copy(stil = s) } }
@@ -668,7 +678,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
         OutlinedTextField(yz, { yz = it; vm.kapanisDegis(false) { k -> k.copy(yazi = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp), label = { Text("Yazı") }, singleLine = true)
         TonKaydirici("Süre", kp.sureMs / 1000f, 2f..8f, 0.5f, turkuaz, { String.format(TR, "%.1f sn", it) }) { v -> vm.kapanisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
     }
-    Kart("Varsayılan ayarlar", ton = yesil) { VarsayilanSayfa(vm) }
+    if (sekme == "varsayilan") Kart("Varsayılan ayarlar", ton = yesil) { VarsayilanSayfa(vm) }
 }
 
 @Composable

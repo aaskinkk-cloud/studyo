@@ -998,7 +998,19 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
     var silOnay by remember { mutableStateOf(false) }
     val oto by vm.altyaziIlerleme.collectAsState()
     var kaynak by remember { mutableStateOf(if (p.sesler.isNotEmpty()) "ses" else "klip") }
-    Kart("Otomatik altyazı") {
+    // 3.55: dört kart tek sayfada yığılmasın — alt düğmeler (✓ = o bölümde içerik/ayar var)
+    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(if (p.altyazilar.isEmpty()) "oto" else "satir") }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AyarDugmesi("Otomatik", "sihir", TON[3], sekme == "oto", false) { sekme = "oto" }
+        AyarDugmesi("Satırlar", "altyazi", TON[0], sekme == "satir", p.altyazilar.isNotEmpty()) { sekme = "satir" }
+        AyarDugmesi("Toplu düzelt", "degistir", TON[4], sekme == "duzelt", false) { sekme = "duzelt" }
+        AyarDugmesi("Görünüm", "gorunum", TON[2], sekme == "gorunum", false) { sekme = "gorunum" }
+    }
+    var oncekiSay by remember { mutableIntStateOf(p.altyazilar.size) }
+    LaunchedEffect(p.altyazilar.size) { if (oncekiSay == 0 && p.altyazilar.isNotEmpty() && sekme == "oto") sekme = "satir"; oncekiSay = p.altyazilar.size }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+    if (sekme == "duzelt" && p.altyazilar.isEmpty()) Not("Önce altyazı oluştur ya da SRT yükle; sonra bütün satırları burada tek metin olarak düzeltebilirsin.")
+    if (sekme == "oto") Kart("Otomatik altyazı") {
         val o = oto
         if (o != null) {
             Text("${o.first} · %${(o.second * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
@@ -1012,7 +1024,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
         }
     }
     // 3.49: tanıma hatalarını toplu düzelt — tümünü kopyala, bir yapay zekâya düzelttir, yapıştır ve uygula
-    if (p.altyazilar.isNotEmpty()) Kart("Toplu düzelt (kopyala · yapıştır)", baslangicAcik = false) {
+    if (sekme == "duzelt" && p.altyazilar.isNotEmpty()) Kart("Toplu düzelt (kopyala · yapıştır)") {
         val pano = androidx.compose.ui.platform.LocalClipboardManager.current
         var metin by remember(p.altyazilar.size) { mutableStateOf(p.altyazilar.joinToString("\n") { it.metin.replace('\n', ' ') }) }
         Not("Her satır bir altyazı kutusudur (zamanları korunur). \"Kopyala\" → bir yapay zekâya \"satır sayısını ve sırasını koruyarak yazım hatalarını düzelt\" de → düzeltilmiş metni kopyala → \"Yapıştır\" → \"Uygula\".")
@@ -1024,7 +1036,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
             "Uygula" to { vm.altyaziTopluYaz(metin) },
         )
     }
-    Kart("Altyazı satırları (${p.altyazilar.size})") {
+    if (sekme == "satir") Kart("Altyazı satırları (${p.altyazilar.size})") {
         DugmeSirasi("＋ Şu anda ekle" to { vm.altyaziEkle() }, "Her klibe satır" to { vm.altyaziHerKlibe() })
         DugmeSirasi("SRT yükle" to { yukle.launch(arrayOf("*/*")) }, "SRT kaydet" to { kaydet.launch(p.ad.take(40) + ".srt") },
             (if (silOnay) "Emin misin?" else "Tümünü sil") to { if (silOnay) { vm.altyaziTumunuSil(); silOnay = false } else silOnay = true })
@@ -1044,7 +1056,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
         }
     }
     val st = p.altyaziStil
-    Kart("Altyazı görünümü") {
+    if (sekme == "gorunum") Kart("Altyazı görünümü") {
         AnahtarSatiri("Altyazıları videoya yaz", st.acik) { v -> vm.altyaziStilDegis { it.copy(acik = v) } }
         Secenekler(listOf("bant" to "İnce siyah bant", "kutu" to "Koyu kutu", "kenarli" to "Kenarlı", "sari" to "Sarı kenarlı", "kisa" to "Kelime vurgulu"), st.stil, sutun = 2) { s -> vm.altyaziStilDegis { it.copy(stil = s) } }
         if (st.stil == "kisa") Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

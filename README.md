@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.55 (19.11.2026, deneme · `yerel-android` dalı): logo varsayılan ayarlarda, Altyazı alt sayfalara bölündü
+- **Varsayılan ayarlar › Logo (yeni madde):** uygulanınca projede logo yoksa son kullanılan kütüphane logosu (yoksa en yeni eklenen) sol üst · %14 · opaklık %70 olarak eklenir; logo varsa konumu/boyutu/opaklığı bu varsayılana döner. Kütüphane boşsa uyarı verir. Eski kayıtlı varsayılan seçimine "Logo" bir kez kendiliğinden eklenir (istenirse kapatılır). Son kullanılan logo `ayar/sonLogo`'da tutulur.
+- **Metin › Altyazı:** dört kart tek sayfada yığılmıyor — alt düğmeler: Otomatik · Satırlar · Toplu düzelt · Görünüm (Satırlar'da altyazı varken ✓). Otomatik altyazı bitince Satırlar'a geçer. İçerik değişmedi.
+
 ## 3.54 (19.11.2026, deneme · `yerel-android` dalı): Görünüm › Şablon alt sayfalara bölündü
 - Şablon'daki beş kart artık tek sayfada alt alta yığılmıyor. Renk bölümündeki gibi yatay alt düğmeler var: Paketler (Biçim + hazır paketler) · Giriş · Abone · Kapanış · Varsayılan; her biri kendi sayfasında açılıyor. Giriş, Abone ve Kapanış açıkken düğmede ✓ görünüyor. İçerik ve ayarlar değişmedi. Eski yazılı menü görünümü (⋯) aynen duruyor.
 

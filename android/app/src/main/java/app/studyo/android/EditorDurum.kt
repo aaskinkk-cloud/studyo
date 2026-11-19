@@ -677,6 +677,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
             if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
             guncelle { p -> p.copy(logo = (p.logo ?: Logo(yol = "")).copy(yol = f.path, kutupId = k.id)) }
+            Varsayilan.sonLogoYaz(ctx, k.id)
             mesaj.value = "Logo: ${k.ad}"
         }
     }
@@ -1022,9 +1023,26 @@ class EditorDurum(private val ctx: Context, id: String) {
                     kapanis = if ("kapanis" in sec) p.kapanis.copy(acik = true, stil = "cam", sureMs = 5000, yazi = "İzlediğin için teşekkürler!") else p.kapanis,
                 )
             }
+            // 3.55: logo varsayılanı — logo yoksa son kullanılan (yoksa en yeni) kütüphane logosu eklenir; konum/boyut/opaklık varsayılana döner
+            var logoNotu = ""
+            if ("logo" in sec) {
+                val mevcut = proje.value.logo
+                if (mevcut == null) {
+                    val f = withContext(Dispatchers.IO) {
+                        runCatching {
+                            LogoKutup.yukle()
+                            val l = LogoKutup.ogeler.value
+                            val k = l.firstOrNull { it.id == Varsayilan.sonLogo(ctx) } ?: l.maxByOrNull { it.eklenme }
+                            k?.let { kk -> LogoKutup.projeKopyasi(kk)?.let { kk to it } }
+                        }.onFailure { Kayit.hata("varsayılan logo", it) }.getOrNull()
+                    }
+                    if (f != null) guncelle { p -> p.copy(logo = Logo(yol = f.second.path, kutupId = f.first.id)) }
+                    else logoNotu = " · logo kütüphanesi boş (Yayın › Logo'dan ekle)"
+                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = "solUst", boyut = 0.14f, opaklik = 0.7f, x = -1f, y = -1f)) }
+            }
             mesgul.value = null
             val yuzSay = proje.value.klipler.count { it.yuzEtkin }
-            mesaj.value = "Varsayılan ayarlar uygulandı" + (if (bicimDegisti) " · biçim YouTube 16:9" else "") + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
+            mesaj.value = "Varsayılan ayarlar uygulandı" + logoNotu + (if (bicimDegisti) " · biçim YouTube 16:9" else "") + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
         }
     }
 

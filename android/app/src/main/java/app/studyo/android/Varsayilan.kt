@@ -17,9 +17,23 @@ object Varsayilan {
         listOf("giris", "Giriş başlığı", "baslik", "Renkli kutular · tarih · konum"),
         listOf("abone", "Abone ol", "zil", "Kanalıma abone ol · zili aç"),
         listOf("kapanis", "Kapanış", "kalp", "Cam kartlar · teşekkür"),
+        listOf("logo", "Logo", "logo", "Sol üst · %14 · %70 · son kullanılan"),   // 3.55
     )
-    fun secili(ctx: Context): Set<String> =
-        ctx.getSharedPreferences("ayar", 0).getStringSet("varsayilan", null)?.toSet() ?: MADDELER.map { it[0] }.toSet()
+    /** Sonradan eklenen maddeler: eski kayıtlı seçime bir kez eklenir (kullanıcı sonra kapatabilir). */
+    private val YENI_MADDELER = listOf("logo")
+    fun secili(ctx: Context): Set<String> {
+        val ay = ctx.getSharedPreferences("ayar", 0)
+        val kayitli = ay.getStringSet("varsayilan", null)?.toSet() ?: return MADDELER.map { it[0] }.toSet()
+        val bilinen = ay.getStringSet("varsayilanBilinen", null)?.toSet() ?: emptySet()
+        val eksik = YENI_MADDELER.filter { it !in bilinen }
+        if (eksik.isEmpty()) return kayitli
+        val s = kayitli + eksik
+        ay.edit().putStringSet("varsayilan", s).putStringSet("varsayilanBilinen", bilinen + YENI_MADDELER).apply()
+        return s
+    }
+    /** Varsayılan logo: en son projeye uygulanan kütüphane logosu (yoksa en yeni eklenen). */
+    fun sonLogo(ctx: Context): String? = ctx.getSharedPreferences("ayar", 0).getString("sonLogo", null)
+    fun sonLogoYaz(ctx: Context, id: String) = ctx.getSharedPreferences("ayar", 0).edit().putString("sonLogo", id).apply()
     fun degistir(ctx: Context, anahtar: String) {
         val s = secili(ctx).toMutableSet(); if (!s.add(anahtar)) s.remove(anahtar)
         ctx.getSharedPreferences("ayar", 0).edit().putStringSet("varsayilan", s).apply()

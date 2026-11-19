@@ -83,15 +83,17 @@ private val HAP_SIMGE = mapOf(
     "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket", "renk" to "gorunum",
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
-    "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman",
+    "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz",
 )
 
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
+    // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)
+    Bolum("efekt", "Efekt", "sihir", listOf("filtre" to "Filtre", "efekt" to "Efekt", "gecis" to "Geçiş")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),
@@ -115,7 +117,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     // 3.44: önizlemede bir katmana dokununca Katman bölümü açılır
     val katmanIstek by vm.katmanSayfasi.collectAsState()
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
@@ -195,7 +197,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && bolum == "katman", hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
-                    renkPaneli = panelAcik && bolum == "renk")
+                    renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"))
                 if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
@@ -240,7 +242,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
-                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "takip")
+                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "takip", "filtre", "efekt")
                     if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
                         Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
@@ -763,6 +765,8 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "logo" -> PanelLogoKutup(vm, p)
         "sablon" -> PanelSablon(vm, p)
         "gecis" -> PanelGecis(vm, p)
+        "filtre" -> PanelFiltre(vm, p, sec)   // 3.59
+        "efekt" -> PanelEfekt(vm, p, sec)     // 3.59
         "altyazi" -> PanelAltyazi(vm, p)
         "kapak" -> PanelKapak(vm, p)
         "nesne" -> PanelNesne(vm, p)

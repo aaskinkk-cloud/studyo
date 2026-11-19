@@ -83,6 +83,47 @@ object RenkLut {
     /** Renk dönüşümü var mı (keskinlik LUT'a girmez). */
     fun lutVar(a: RenkAyar): Boolean = !a.copy(keskinlik = 0f).bos
 
+    /** 3.59: filtreler (Efekt › Filtre). o: renk ayarından çıkan değer; güç kadar karıştırılır. */
+    val FILTRELER = listOf("sinematik" to "Sinematik", "altin" to "Altın saat", "vintage" to "Vintage", "sb" to "Siyah-beyaz", "serin" to "Serin mat")
+    fun filtrele(tur: String, guc: Float, o: FloatArray) {
+        if (tur == "yok" || guc <= 0.001f) return
+        val r = o[0]; val g = o[1]; val b = o[2]
+        val y = 0.299f * r + 0.587f * g + 0.114f * b
+        var fr: Float; var fg: Float; var fb: Float
+        when (tur) {
+            "sinematik" -> {   // gölgeler camgöbeği, aydınlıklar turuncu, hafif kontrast
+                val t = ss(0.15f, 0.85f, y)
+                fr = r + (1f - t) * -0.06f + t * 0.08f; fg = g + (1f - t) * 0.02f + t * 0.02f; fb = b + (1f - t) * 0.08f + t * -0.08f
+                fr = (fr - 0.5f) * 1.12f + 0.5f; fg = (fg - 0.5f) * 1.12f + 0.5f; fb = (fb - 0.5f) * 1.12f + 0.5f
+            }
+            "altin" -> { fr = r * 1.08f + 0.04f; fg = g * 1.02f + 0.02f; fb = b * 0.86f; val yy = 0.299f * fr + 0.587f * fg + 0.114f * fb
+                fr = yy + (fr - yy) * 1.15f; fg = yy + (fg - yy) * 1.15f; fb = yy + (fb - yy) * 1.15f }
+            "vintage" -> { fr = y + (r - y) * 0.65f; fg = y + (g - y) * 0.65f; fb = y + (b - y) * 0.65f
+                fr = 0.08f + fr * 0.86f + 0.04f; fg = 0.07f + fg * 0.86f + 0.02f; fb = 0.06f + fb * 0.80f }
+            "sb" -> { val v = ((y - 0.5f) * 1.12f + 0.5f); fr = v; fg = v; fb = v }
+            else -> { fr = y + (r - y) * 0.85f; fg = y + (g - y) * 0.85f; fb = y + (b - y) * 0.85f   // serin mat
+                fr = 0.06f + fr * 0.88f - 0.03f; fg = 0.06f + fg * 0.88f; fb = 0.06f + fb * 0.88f + 0.05f }
+        }
+        val k = guc.coerceIn(0f, 1f)
+        o[0] = (r + (fr - r) * k).coerceIn(0f, 1f); o[1] = (g + (fg - g) * k).coerceIn(0f, 1f); o[2] = (b + (fb - b) * k).coerceIn(0f, 1f)
+    }
+
+    private val onbellekF = HashMap<Triple<RenkAyar, String, Float>, SingleColorLut>()
+    /** 3.59: renk ayarı + filtre tek LUT'ta. */
+    @Synchronized fun etki(a0: RenkAyar, filtre: String, guc: Float): SingleColorLut {
+        if (filtre == "yok" || guc <= 0.001f) return etki(a0)
+        val a = a0.copy(keskinlik = 0f)
+        return onbellekF.getOrPut(Triple(a, filtre, guc)) {
+            val n = 33; val o = FloatArray(3)
+            val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
+                donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o); filtrele(filtre, guc, o)
+                (0xFF shl 24) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
+            } } }
+            if (onbellekF.size > 40) onbellekF.clear()
+            SingleColorLut.createFromCube(kup)
+        }
+    }
+
     @Synchronized fun etki(a0: RenkAyar): SingleColorLut { val a = a0.copy(keskinlik = 0f); return onbellek.getOrPut(a) {
         val n = 33; val o = FloatArray(3)
         val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
@@ -94,13 +135,14 @@ object RenkLut {
     } }
 
     /** Önce/sonra görüntüsü için bitmap'e uygular (küçük görüntü). */
-    fun uygula(src: Bitmap, a: RenkAyar): Bitmap {
+    fun uygula(src: Bitmap, a: RenkAyar, filtre: String = "yok", guc: Float = 0f): Bitmap {
         val w = src.width; val h = src.height
         val px = IntArray(w * h); src.getPixels(px, 0, w, 0, 0, w, h)
         val o = FloatArray(3)
         for (i in px.indices) {
             val c = px[i]
             donustur(a, ((c shr 16) and 255) / 255f, ((c shr 8) and 255) / 255f, (c and 255) / 255f, o)
+            filtrele(filtre, guc, o)
             px[i] = (c and -0x1000000) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
         }
         if (a.keskinlik > 0.005f) keskinlestir(px, w, h, a.keskinlik)

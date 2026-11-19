@@ -276,7 +276,7 @@ object Disa {
             val tOut = if (klipMi) p.ortusme(j) else 0L
             val ogeBas = bas + tIn                              // öğenin zaman çizelgesindeki başlangıcı
             val uz = (tam - tIn).coerceAtLeast(40)              // gövde + çıkış geçişi (T)
-            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas)
+            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas, W, H)
             val tekTuval: Effect? = if (tOut > 0) {
                 val B = p.klipler.getOrNull(j + 1)
                 val etk = ArrayList<androidx.media3.effect.GlMatrixTransformation>()
@@ -418,11 +418,15 @@ object Disa {
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uzMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs + ofsMs).setEndPositionMs(klipSon).build())
         val v = ArrayList<Effect>()
-        k.renk?.takeIf { RenkLut.lutVar(it) }?.let { v += RenkLut.etki(it) }        // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır)
+        // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır) · 3.59: filtre aynı LUT'ta
+        val filtreVar = k.filtre != "yok" && k.filtreGuc > 0.001f
+        if (filtreVar) v += RenkLut.etki(k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+        else k.renk?.takeIf { RenkLut.lutVar(it) }?.let { v += RenkLut.etki(it) }
         hareket(k, W, H, i, tamMs, ofsMs, cizelgeBas)?.let { v += it }   // akıllı kadraj + otomatik hareket
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         k.renk?.keskinlik?.takeIf { it > 0.005f }?.let { v += KeskinEtki(it) }   // 3.53: çıkış çözünürlüğünde keskinleştirme
+        if (k.efekt != "yok" && k.efektGuc > 0.001f) v += EfektEtki(k.efekt, k.efektGuc)   // 3.59: efekt (vinyet, gren, sinema, parıltı, VHS)
         v += gecis
         // Klibin kendi yazısı/takip yazısı klibe aittir (çıkış geçişinde klip ile birlikte kaybolur); zaman çizelgesi
         // katmanları ve logo en üstte, geçişten etkilenmeden kalır.

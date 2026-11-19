@@ -552,8 +552,12 @@ class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Al
 
 /** Geçişler: klibin başında/sonunda kararma, beyaz parlama ya da yakınlaşma. Son klibin sonu asla karartılmaz. */
 object Gecisler {
-    class An(val renk: Float, val beyaz: Boolean, val olcek: Float)
+    /** 3.59: aci (derece), bulanik/silme/sizma (0…1) ve giris (geçiş klibin başında mı) yeni kenar geçişleri için. */
+    class An(val renk: Float, val beyaz: Boolean, val olcek: Float, val aci: Float = 0f, val bulanik: Float = 0f, val silme: Float = 0f,
+             val sizma: Float = 0f, val giris: Boolean = false)
     private val YOK = An(0f, false, 1f)
+    /** 3.59: popüler kenar geçişleri (üst üste binmez; klip sınırında). */
+    val YENI_KENAR = setOf("dondur", "bulanik", "silme", "dalis", "sizma")
     /** Doğrusal rampa yerine yumuşak eğri: başta ve sonda hız sıfıra iner, ani kırılma (titreme hissi) olmaz. */
     private fun yumusak(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
@@ -561,20 +565,26 @@ object Gecisler {
      *  Üst üste binen türler (erime/çapraz/kaydırma/büyüme) burada değil, iki dizi ile yapılır. */
     fun hesapla(gG: Gecis, gC: Gecis, yerel: Long, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean): An {
         if (siyahtan && yerel < 900) return An(yumusak(1f - yerel / 900f), false, 1f)
-        var k = 0f; var tur = "yok"
+        var k = 0f; var tur = "yok"; var gir = false
         if (giris && !gG.cakisma && gG.tur != "yok") {
             val L = (gG.sureMs / 2).coerceAtLeast(100)
-            if (yerel < L) { val kk = 1f - yerel.toFloat() / L; if (kk > k) { k = kk; tur = gG.tur } }
+            if (yerel < L) { val kk = 1f - yerel.toFloat() / L; if (kk > k) { k = kk; tur = gG.tur; gir = true } }
         }
         if (cikis && !gC.cakisma && gC.tur != "yok") {
             val L = (gC.sureMs / 2).coerceAtLeast(100)
-            if (yerel > sure - L) { val kk = (yerel - (sure - L)).toFloat() / L; if (kk > k) { k = kk; tur = gC.tur } }
+            if (yerel > sure - L) { val kk = (yerel - (sure - L)).toFloat() / L; if (kk > k) { k = kk; tur = gC.tur; gir = false } }
         }
         k = yumusak(k.coerceIn(0f, 1f))
         return when (tur) {
             "siyah" -> An(k, false, 1f)
             "beyaz" -> An(k, true, 1f)
             "yakin" -> An(k * k * 0.7f, true, 1f + 0.35f * k)
+            // 3.59: popüler geçişler
+            "dondur" -> An(k * 0.45f, false, 1f + 0.6f * k, aci = (if (gir) -1f else 1f) * 100f * k, giris = gir)
+            "dalis" -> An(k * k * 0.55f, false, 1f + 0.9f * k, giris = gir)
+            "bulanik" -> An(k * 0.12f, true, 1f + 0.05f * k, bulanik = k, giris = gir)
+            "silme" -> An(0f, false, 1f, silme = k, giris = gir)
+            "sizma" -> An(k * 0.2f, true, 1f, sizma = k, giris = gir)
             else -> YOK
         }
     }
@@ -616,7 +626,7 @@ object Gecisler {
         return YOK
     }
 
-    fun etkiler(gG: Gecis, gC: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L): List<Effect> {
+    fun etkiler(gG: Gecis, gC: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L, W: Int = 16, H: Int = 9): List<Effect> {
         val tekG = giris && !gG.cakisma && gG.tur != "yok"; val tekC = cikis && !gC.cakisma && gC.tur != "yok"
         if (!tekG && !tekC && !siyahtan) return emptyList()
         val saat = Saat(basMs)
@@ -627,12 +637,20 @@ object Gecisler {
             val o = if (a.beyaz) a.renk else 0f
             floatArrayOf(s, 0f, 0f, 0f, 0f, s, 0f, 0f, 0f, 0f, s, 0f, o, o, o, 1f)
         }
-        if ((tekG && gG.tur == "yakin") || (tekC && gC.tur == "yakin")) {
+        val olcekli = setOf("yakin", "dondur", "dalis", "bulanik")
+        if ((tekG && gG.tur in olcekli) || (tekC && gC.tur in olcekli)) {
             val saat2 = Saat(basMs)
+            val w = W.toFloat().coerceAtLeast(1f); val h = H.toFloat().coerceAtLeast(1f)
             e += MatrixTransformation { t ->
                 val a = hesapla(gG, gC, saat2.yerelMs(t), sure, giris, cikis, siyahtan)
-                Matrix().apply { setScale(a.olcek, a.olcek) }
+                // 3.59: döndürme piksel uzayında (en-boy oranı bozulmaz): NDC → piksel → döndür → NDC
+                Matrix().apply { setScale(w, h); postRotate(a.aci); postScale(1f / w, 1f / h); postScale(a.olcek, a.olcek) }
             }
+        }
+        val glKenar = setOf("bulanik", "silme", "sizma")
+        if ((tekG && gG.tur in glKenar) || (tekC && gC.tur in glKenar)) {
+            val saat3 = Saat(basMs)
+            e += KenarEtki { t -> hesapla(gG, gC, saat3.yerelMs(t), sure, giris, cikis, siyahtan) }
         }
         return e
     }

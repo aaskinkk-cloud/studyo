@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.59 (20.11.2026, deneme · `yerel-android` dalı): Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli)
+- **Yeni ana bölüm Efekt** (Renk'in yanında): üç alt sayfa; Geçiş Görünüm'den buraya taşındı (tek yerde). Küçük resimler yalnız üstteki videonun o anki karesinden üretilir; dokun = uygula (durağanken sonuç ana önizlemede, basılı tut = önce), Yok = kaldır, Tümüne = bütün klipler, Güç kaydırıcısı.
+- **Filtre (5):** Sinematik, Altın saat, Vintage, Siyah-beyaz, Serin mat — renk ayarıyla aynı 3B LUT'ta (`RenkLut.filtrele`, `Klip.filtre/filtreGuc`), dışa aktarma ve önizleme aynı.
+- **Efekt (5):** Vinyet, Film greni (kareden kareye değişir), Sinema şeritleri, Parıltı, Retro VHS — çıkış çözünürlüğünde GL (`Efekt.kt`, `EfektEtki`); küçük resim/durağan önizleme aynı formülün işlemci karşılığı (`Efektler.uygula`). `Klip.efekt/efektGuc`.
+- **Geçiş › Popüler (5):** Döndür, Bulanık, Silme, Dalış, Işık sızması — üst üste binen geçiş motoruna dokunmadan, Siyahtan/Parlama/Yakınlaşma gibi klip sınırında (giden klibin sonu + gelen klibin başı, `Gecisler.hesapla`). Dışa aktarma: döndürme/dalış `MatrixTransformation` (piksel uzayında döndürme), bulanık/silme/sızma `KenarEtki` (GL); önizleme aynı değerlerle (bulanıklık Android 12+). Geçişler panelinde kategori hapları: Popüler · Temel · Akıcı · Işık ve hareket.
+- Görünüm artık: Şablon · Hareket.
+
 ## 3.58 (20.11.2026, deneme · `yerel-android` dalı): Kapak yeniden, kısa metin düzenleyici, kayan ana menü, Kadraj klip simgesinde
 - **Görünüm › Kadraj kaldırıldı:** Düzenle › Klip'te aynısı yoktu (yalnız önizlemede sürükleme/çift dokunuş). Özellik kaybolmasın diye Sığdır/Doldur, Tümüne ve Ortala seçili klibin resmindeki kadraj simgesinden açılan Geçişler biçimli sayfaya taşındı.
 - **Kapak (Yayın):** üstte büyük kapak önizlemesi + "Kapağı JPG kaydet"; altında görsel alt düğmeler: Kare (önizlemedeki kare, öneriler yana kayan resimler) · Yazı (metin düzenleyici, vurgu rengi, boyut, yeri) · Stil (her stil kapağın kendisiyle çizilmiş küçük resim; Klasik + Reels bantları) · Efekt (Canlı renkler, Logo yuvarlak aç/kapa).

@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
@@ -177,13 +178,15 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         val kb = kbAn?.s ?: 1f
                         scaleX = kb * an.olcek; scaleY = kb * an.olcek
                         translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
-                    },
+                        rotationZ = an.aci   // 3.59: Döndür geçişi
+                    }.then(if (an.bulanik > 0.01f) Modifier.blur((24f * an.bulanik).dp) else Modifier),   // 3.59: Bulanık geçişi (Android 12+)
                 )
             }
             // 3.56: Renk bölümünde ayarın sonucu doğrudan ana önizlemede (durağanken). Önceden durağan oynatıcı ham görüntüyü gösterdiği için
             // Renk sayfasında ayrı bir önce/sonra kutusu gerekiyordu; o kutu kaldırıldı. Oynarken akıcı önizleme rengi zaten uygular.
             // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
-            if (renkPaneli && !oynuyorAkis && k != null && k.renk?.bos == false) {
+            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f))
+            if (renkPaneli && !oynuyorAkis && k != null && goruntuAyari) {
                 val ctxR = LocalContext.current
                 val kaynakMs = if (k.foto) 0L else k.basMs + vm.player.currentPosition.coerceAtLeast(0)
                 val ham by produceState<Bitmap?>(null, k.id, k.uri, kaynakMs) {
@@ -194,7 +197,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         }.getOrNull()
                     }
                 }
-                val ayarli by produceState<Bitmap?>(null, ham, k.renk) { value = ham?.let { b -> k.renk?.let { r -> withContext(Dispatchers.Default) { RenkLut.uygula(b, r) } } } }
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc) {
+                    value = ham?.let { b -> withContext(Dispatchers.Default) { Efektler.uygula(RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc), k.efekt, k.efektGuc) } }
+                }
                 var onceGoster by remember { mutableStateOf(false) }
                 (if (onceGoster) ham else ayarli)?.let { bm ->
                     Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) },
@@ -210,6 +215,17 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
             if (an.renk > 0f) Box(Modifier.fillMaxSize().background((if (an.beyaz) Color.White else Color.Black).copy(alpha = an.renk.coerceIn(0f, 1f))))
+            // 3.59: Silme ve Işık sızması geçişleri (dışa aktarmadaki KenarEtki ile aynı biçim)
+            if (an.silme > 0.001f) {
+                val yum = 0.04f
+                val duraklar: Array<Pair<Float, Color>> = if (an.giris)
+                    arrayOf(0f to Color.Transparent, (1f - an.silme - yum).coerceIn(0f, 1f) to Color.Transparent, (1f - an.silme + yum).coerceIn(0f, 1f) to Color.Black, 1f to Color.Black)
+                else arrayOf(0f to Color.Black, (an.silme - yum).coerceIn(0f, 1f) to Color.Black, (an.silme + yum).coerceIn(0f, 1f) to Color.Transparent, 1f to Color.Transparent)
+                Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(*duraklar)))
+            }
+            if (an.sizma > 0.001f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = an.sizma.coerceIn(0f, 1f) }.background(Brush.radialGradient(
+                listOf(Color(0xE6FFA040), Color(0x66FF6A00), Color.Transparent), center = Offset(0.15f * constraints.maxWidth, 0.2f * constraints.maxHeight),
+                radius = 1.1f * maxOf(constraints.maxWidth, constraints.maxHeight))))
 
             // üst üste binen geçiş: giden klibin son karesi üstte solar/kayar (çıktıda giden klibin devamı oynar)
             val pencereler = remember(p.klipler, p.gecis, p.kapanis) { Gecisler.pencereler(p) }
@@ -939,6 +955,9 @@ private fun girisOrnek(g: Giris, W: Int, H: Int): Bitmap? {
     return o
 }
 
+/** 3.59: popüler geçişler (klip sınırında, önizlemeli küçük resimlerle). */
+private val GECIS_POPULER = listOf("dondur" to "Döndür", "bulanik" to "Bulanık", "silme" to "Silme", "dalis" to "Dalış", "sizma" to "Işık sızması")
+
 /** Geçiş türleri (3.25): (anahtar, ad, simge, renk). Üst üste binenler TEMEL'de, klip sınırındakiler IŞIK VE HAREKET'te. */
 private val GECIS_TEMEL = listOf(
     Triple("yok", "Yok", "g_yok") to 0xFFE6EDF3, Triple("erime", "Erime", "g_erime") to 0xFFF5A524,
@@ -996,7 +1015,27 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
                 textAlign = TextAlign.End, modifier = Modifier.width(56.dp))
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
-        listOf("TEMEL" to GECIS_TEMEL, "AKICI" to GECIS_AKICI, "IŞIK VE HAREKET" to GECIS_ISIK).forEach { (baslik, liste) ->
+        // 3.59: kategori hapları (Popüler · Temel · Akıcı · Işık); Popüler'de küçük resimler üstteki videonun o anki karesinden
+        var kategori by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(if (sec in GECIS_POPULER.map { it.first }) "pop" else if (sec == "yok" || GECIS_TEMEL.any { it.first.first == sec }) "temel" else if (GECIS_AKICI.any { it.first.first == sec }) "akici" else if (GECIS_ISIK.any { it.first.first == sec }) "isik" else "pop") }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("pop" to "Popüler", "temel" to "Temel", "akici" to "Akıcı", "isik" to "Işık ve hareket").forEach { (kk, ad) ->
+                val on = kategori == kk
+                Text(ad, color = if (on) Renk.turuncuM else Renk.soluk, fontSize = 12.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(if (on) Renk.turuncu else Color.Transparent)
+                        .border(1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(14.dp)).clickable { kategori = kk }.padding(horizontal = 12.dp, vertical = 5.dp))
+            }
+        }
+        if (kategori == "pop") {
+            val secK by vm.secili.collectAsState()
+            val kare = AnlikKare(vm, p, if (ara != null) ara else secK)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OnizlemeKarti("Yok", sec == "yok", Renk.turuncu, { kare }, kare) { uygula("yok") }
+                GECIS_POPULER.forEach { (t, ad) ->
+                    OnizlemeKarti(ad, sec == t, Renk.turuncu, { kare?.let { Efektler.gecisOrnek(it, t) } }, kare to t) { uygula(t) }
+                }
+            }
+        }
+        listOf(Triple("temel", "TEMEL", GECIS_TEMEL), Triple("akici", "AKICI", GECIS_AKICI), Triple("isik", "IŞIK VE HAREKET", GECIS_ISIK)).filter { it.first == kategori }.forEach { (_, baslik, liste) ->
             Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = if (liste.size >= 4) Arrangement.SpaceBetween else Arrangement.spacedBy(14.dp)) {
                 liste.forEach { (t, renk) ->
@@ -1011,7 +1050,8 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
                 }
             }
         }
-        Text(if (sec == "akis") "Giden kare hafifçe yaklaşırken gelen kare yumuşakça yerine oturur; ortada solma yok, kesme hissi vermez."
+        Text(if (sec in Gecisler.YENI_KENAR) "Klip sınırında uygulanır: giden klip sonunda, gelen klip başında; süreyi yukarıdan ayarla. Denemek için oynatıcıyı iki klibin birleştiği yerin hemen öncesine getirip oynat."
+            else if (sec == "akis") "Giden kare hafifçe yaklaşırken gelen kare yumuşakça yerine oturur; ortada solma yok, kesme hissi vermez."
             else if (sec == "hafif") "Sakin, yumuşak kenarlı bir erime; dokusu Erime'den hafif."
             else if (Gecis(sec).cakisma) "İki klip geçiş süresince birlikte oynar; giden klip gelenin üstünde kaybolur."
             else if (sec == "yok") "Klipler doğrudan kesilerek birleşir." else "Geçiş her klip sınırında uygulanır; videonun sonu karartılmaz.",

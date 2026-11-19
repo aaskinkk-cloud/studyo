@@ -51,6 +51,9 @@ data class Klip(
     val takip: Takip? = null,
     /** 3.49: renk ve ışık ayarı (null = yok) */
     val renk: RenkAyar? = null,
+    /** 3.59: filtre (LUT) ve efekt (GL), klip bazında. "yok" = kapalı; güç 0…1. */
+    val filtre: String = "yok", val filtreGuc: Float = 0.8f,
+    val efekt: String = "yok", val efektGuc: Float = 0.7f,
     /** Yüz (fotoğrafta): merkez 0…1 ve yüz yüksekliği (fotoğraf yüksekliğinin oranı). yuzB = 0 → yüz yok/bakılmadı. */
     val yuzX: Float = -1f, val yuzY: Float = -1f, val yuzB: Float = 0f, val yuzBakildi: Boolean = false,
     /** Yüze odaklan ve yaklaş (dikey kişi fotoğrafında yavaş yakınlaşma yüze doğru). */

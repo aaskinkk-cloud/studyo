@@ -696,6 +696,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** 3.48: ses düzeyi penceresi — "muzik" ya da ses katmanının kimliği */
     val sesPenceresi = MutableStateFlow<String?>(null)
     val katmanSayfasi = MutableStateFlow(0)
+    /** 3.53: Hazır paketler › Boş proje — editör ekranı ayarlar (yeni boş projeyi açar). */
+    var bosProjeAc: (String) -> Unit = {}
 
     /** InShot tarzı uç seçimi (3.44): klipSon | videoSon | klipBas | videoBas. Klip sonu zaten seçiliyse bir sonraki klibin sonuna uzar. */
     fun katmanUc(o: KatmanOge, tur: String): KatmanOge {
@@ -775,6 +777,20 @@ class EditorDurum(private val ctx: Context, id: String) {
         val o = KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b)
         katmanEkleOge(o)
         katmanDuzenle.value = o.id   // 3.44: eklenince yazı hemen düzenlenir
+    }
+
+    /** 3.53: eski klip yazısını (Klip.yazi) aynı görünümle yazı katmanına taşır; tek geri alma adımı. */
+    fun klipYazisiniKatmanaTasi(i: Int) {
+        val p0 = proje.value
+        val k = p0.klipler.getOrNull(i) ?: return
+        val y = k.yazi?.takeIf { it.metin.isNotBlank() } ?: return
+        val bas = baslangic(i); val son = bas + p0.zKlip(i).sureMs
+        val yy = when (y.konum) { "ust" -> 0.12f; "orta" -> 0.5f; else -> 0.88f }
+        val o = KatmanOge(tur = "metin", ad = "Yazı", metin = y.metin, renk = y.renk, kutu = y.kutu, olcek = y.boyut, stil = "duz", anim = "solma",
+            y = yy, basMs = bas, sonMs = son.coerceAtLeast(bas + 500))
+        guncelle(yapi = true) { p -> p.copy(klipler = p.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(yazi = null) else kk }, katmanlar = p.katmanlar + o) }
+        seciliKatman.value = o.id
+        mesaj.value = "Yazı katmana taşındı"
     }
 
     fun katmanCikartmaEkle(e: String) {

@@ -13,9 +13,10 @@ import kotlin.math.pow
 data class RenkAyar(
     val parlaklik: Float = 0f, val kontrast: Float = 0f, val doygunluk: Float = 0f, val sicaklik: Float = 0f,
     val vurgular: Float = 0f, val golgeler: Float = 0f, val ton: Float = 0f,
+    val beyazlar: Float = 0f, val keskinlik: Float = 0f,   // 3.53: beyaz alanlar (eksi = azalt) · keskinlik 0…1 (GL keskinleştirme, LUT dışı)
     val hslTon: List<Float> = List(8) { 0f }, val hslDoy: List<Float> = List(8) { 0f }, val hslIsik: List<Float> = List(8) { 0f },
 ) {
-    val bos: Boolean get() = listOf(parlaklik, kontrast, doygunluk, sicaklik, vurgular, golgeler, ton).all { abs(it) < 0.005f } &&
+    val bos: Boolean get() = listOf(parlaklik, kontrast, doygunluk, sicaklik, vurgular, golgeler, ton, beyazlar, keskinlik).all { abs(it) < 0.005f } &&
         (hslTon + hslDoy + hslIsik).all { abs(it) < 0.005f }
 }
 
@@ -65,6 +66,7 @@ object RenkLut {
             x = (x - 0.5f) * (1f + a.kontrast * 0.8f) + 0.5f
             x += a.vurgular * 0.35f * ss(0.45f, 1f, x)          // eksi = patlayan parlak alanları geri çeker
             x += a.golgeler * 0.3f * (1f - ss(0f, 0.5f, x))
+            x += a.beyazlar * 0.25f * ss(0.7f, 1f, x)            // 3.53: yalnız en parlak (beyaz) alanlar
             return x
         }
         r = kanal(r); g = kanal(g); b = kanal(b)
@@ -78,7 +80,10 @@ object RenkLut {
     private val onbellek = HashMap<RenkAyar, SingleColorLut>()
 
     /** Media3 etkisi (33³ LUT). Aynı ayar için önbellekten. */
-    @Synchronized fun etki(a: RenkAyar): SingleColorLut = onbellek.getOrPut(a) {
+    /** Renk dönüşümü var mı (keskinlik LUT'a girmez). */
+    fun lutVar(a: RenkAyar): Boolean = !a.copy(keskinlik = 0f).bos
+
+    @Synchronized fun etki(a0: RenkAyar): SingleColorLut { val a = a0.copy(keskinlik = 0f); return onbellek.getOrPut(a) {
         val n = 33; val o = FloatArray(3)
         val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
             donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o)
@@ -86,7 +91,7 @@ object RenkLut {
         } } }
         if (onbellek.size > 40) onbellek.clear()
         SingleColorLut.createFromCube(kup)
-    }
+    } }
 
     /** Önce/sonra görüntüsü için bitmap'e uygular (küçük görüntü). */
     fun uygula(src: Bitmap, a: RenkAyar): Bitmap {
@@ -98,6 +103,23 @@ object RenkLut {
             donustur(a, ((c shr 16) and 255) / 255f, ((c shr 8) and 255) / 255f, (c and 255) / 255f, o)
             px[i] = (c and -0x1000000) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
         }
+        if (a.keskinlik > 0.005f) keskinlestir(px, w, h, a.keskinlik)
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+    }
+
+    /** 3.53: önce/sonra görüntüsü için keskinleştirme — Keskinlik GL etkisiyle aynı formül (4 komşu, güç = k · 1,6). */
+    private fun keskinlestir(px: IntArray, w: Int, h: Int, k: Float) {
+        val s = px.copyOf(); val g = k * 1.6f
+        for (y in 1 until h - 1) for (x in 1 until w - 1) {
+            val i = y * w + x; val c = s[i]
+            var o = c and -0x1000000
+            for (sh in intArrayOf(16, 8, 0)) {
+                val m = (c shr sh) and 255
+                val kom = ((s[i - 1] shr sh) and 255) + ((s[i + 1] shr sh) and 255) + ((s[i - w] shr sh) and 255) + ((s[i + w] shr sh) and 255)
+                val v = (m + g * (m - kom / 4f)).toInt().coerceIn(0, 255)
+                o = o or (v shl sh)
+            }
+            px[i] = o
+        }
     }
 }

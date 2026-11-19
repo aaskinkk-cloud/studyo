@@ -89,7 +89,9 @@ private val HAP_SIMGE = mapOf(
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket", "renk" to "Renk")),
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "gecis" to "Geçiş", "kadraj" to "Kadraj", "hareket" to "Hareket")),
+    // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
+    Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),
@@ -113,8 +115,21 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     // 3.44: önizlemede bir katmana dokununca Katman bölümü açılır
     val katmanIstek by vm.katmanSayfasi.collectAsState()
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
+    // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
+    val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
+    var oncekiP by remember(id) { mutableStateOf<Proje?>(null) }
+    LaunchedEffect(p) {
+        val o = oncekiP; oncekiP = p
+        if (o != null && panelAcik && o.copy(guncelleme = 0L) != p.copy(guncelleme = 0L)) {
+            degisen[bolum] = true; haplar[bolum]?.let { degisen["$bolum/$it"] = true }
+        }
+    }
+    vm.bosProjeAc = { bicim ->
+        val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
+        Depo.kaydet(y); ac(y.id)
+    }
 
     val ekleSecici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.ekle(it) }
     val ekle = { ekleSecici.launch(arrayOf("video/*", "image/*")) }
@@ -199,7 +214,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (Duzen.yaziliMenu) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
-                if (bolum == "katman" && panelAcik) {
+                if (bolum == "renk" && panelAcik) {
+                    // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
+                    KlipSeridi(vm, p, sec, ekle, kucuk = true)
+                    Box(Modifier.fillMaxWidth().weight(1f)) { RenkBolumu(vm, p, sec) }
+                } else if (bolum == "katman" && panelAcik) {
                     KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
                 } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip")) {
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
@@ -215,15 +234,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                                 Text(if (Duzen.seritGizli) "Göster" else "Gizle", color = Color(TON[2]), fontSize = 11.5.sp, modifier = Modifier.padding(start = 5.dp))
                             }
                         }
-                        if (!Duzen.seritGizli) KlipSeridi(vm, p, sec, ekle)
-                        KlipAyar(vm, p, p.klipler.getOrNull(sec), sec, ekle) { bicim ->
-                            val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
-                            Depo.kaydet(y); ac(y.id)
-                        }
+                        // 3.53: "Kırp ve ekle" kartı kalktı — kırpma/süre klip resmindeki ✂ simgesinde, Biçim Görünüm › Şablon › Hazır paketler'de
+                        if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle)
+                        if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+                        else if (!Duzen.seritGizli) Text("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.", color = Renk.soluk, fontSize = 11.5.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                     }
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
-                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "yazi", "takip", "renk")
+                    val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "takip")
                     if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
                         Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
@@ -259,15 +279,18 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         val renk = Color(ALT_RENK[sira % ALT_RENK.size])
                         Column(
                             Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable {
+                                // 3.53: ikinci dokunuş paneli kapatmaz (kapalı panel Düzenle › Klip görünümünü açıyordu) — her düğme yalnız kendi bölümünü açar
                                 if (k == "disa") disaAcik = true
-                                else if (on) panelAcik = false
                                 else { haplar[bolum] = k; panelAcik = true }
                             }.padding(vertical = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Simge(HAP_SIMGE[k] ?: "ekle", if (on) renk else renk.copy(alpha = 0.7f), 22.dp)
                             Spacer(Modifier.height(3.dp))
-                            Text(ad, color = if (on) renk else renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(ad, color = if (on) renk else renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                                if (degisen["$bolum/$k"] == true) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
+                            }
                             Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (on) renk else Color.Transparent))
                         }
                     }
@@ -279,13 +302,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     val on = bb.anahtar == bolum
                     Column(
                         Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable {
-                            if (bb.anahtar == bolum && panelAcik) panelAcik = false else { bolum = bb.anahtar; panelAcik = true }
+                            bolum = bb.anahtar; panelAcik = true   // 3.53: ikinci dokunuş da aynı bölümde kalır
                         }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 22.dp)
                         Spacer(Modifier.height(3.dp))
-                        Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                            if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
+                        }
                     }
                 }
             }
@@ -465,6 +491,9 @@ private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
 private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false) {
     var gecisSecim by remember { mutableStateOf<Int?>(null) }
     gecisSecim?.let { i -> if (i < p.klipler.lastIndex) GecisSecimi(vm, p, i) { gecisSecim = null } }
+    // 3.53: klip resmindeki kırp simgesi → Kırp / Süre sayfası (Geçişler biçiminde)
+    var kirpId by remember { mutableStateOf<String?>(null) }
+    kirpId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> KirpSecimi(vm, p, kk) { kirpId = null } } ?: run { kirpId = null } }
     val durum = rememberLazyListState()
     // 3.42: etkin klip (oynatıcının üstündeki) şeridin ortasına kayar — izlerken ve sararken önizlemeyle eşleşir
     val yogS = LocalDensity.current
@@ -523,6 +552,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     // renkli küçük simgeler: ses · böl · çoğalt · sil
                     Row(Modifier.align(Alignment.TopEnd).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (!k.foto && k.sesVar) SimgeDugmesi(if (k.sessiz) "sessiz" else "ses", 0xFF5DCAA5) { vm.sesAcKapat() }
+                        SimgeDugmesi("kirp", 0xFFFAC775) { kirpId = k.id }
                         SimgeDugmesi("makas", 0xFFF0997B) { vm.klipBolSecili() }
                         SimgeDugmesi("cogalt", 0xFF85B7EB) { vm.klipCogalt() }
                         val onay = silOnayId == k.id
@@ -595,25 +625,11 @@ private fun BolumKarti(baslik: String, ton: Color, sag: String = "", icerik: @Co
     }
 }
 
+/** 3.53: Biçim satırı (YouTube · Reels · Kare · Boş proje) — Görünüm › Şablon › Hazır paketler'in ilk satırı. Önce Düzenle › Klip'teydi. */
 @Composable
-private fun KlipAyar(vm: EditorDurum, p: Proje, k: Klip?, sec: Int, ekle: () -> Unit, bosProje: (String) -> Unit) {
-    val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
-    // KLİP: süre/kırpma + Ekle
-    BolumKarti(if (k != null) "KLİP ${sec + 1}/${p.klipler.size} · ${if (k.foto) "Fotoğraf" else "Video"}" else "KLİP", turuncu, k?.ad ?: "") {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                if (k != null) KlipSureKirp(vm, k)
-                else Text("Video ya da fotoğraf ekleyerek başla", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
-            }
-            Column(Modifier.padding(start = 10.dp, top = 6.dp).clip(RoundedCornerShape(14.dp)).clickable { ekle() }.padding(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(46.dp).clip(CircleShape).background(turuncu), contentAlignment = Alignment.Center) { Simge("ekle", Renk.turuncuM, 24.dp) }
-                Text("Ekle", color = turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
-            }
-        }
-    }
-    // BİÇİM: yuvarlak simgeler (Geçişler paneli gibi), seçili beyaz halkalı
-    BolumKarti("BİÇİM", sari, when (p.bicim) { "9:16" -> "Reels · dikey"; "1:1" -> "Kare"; else -> "YouTube · yatay" }) {
+fun BicimSatiri(vm: EditorDurum, p: Proje) {
+    val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val pembe = Color(TON[4])
+    val bosProje = vm.bosProjeAc
         Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             listOf(Triple("16:9", "YouTube", sari), Triple("9:16", "Reels", turkuaz), Triple("1:1", "Kare", yesil)).forEach { (b, ad, ton) ->
                 val on = p.bicim == b
@@ -636,7 +652,6 @@ private fun KlipAyar(vm: EditorDurum, p: Proje, k: Klip?, sec: Int, ekle: () -> 
                 Text("YouTube · ayarsız", color = pembe.copy(alpha = 0.8f), fontSize = 9.5.sp, maxLines = 1)
             }
         }
-    }
 }
 
 @Composable
@@ -671,6 +686,28 @@ private fun KlipSureKirp(vm: EditorDurum, k: Klip) {
 private fun SimgeDugmesi(ad: String, renk: Long, zemin: Color = Color(0xB3000000), tik: () -> Unit) =
     Box(Modifier.size(28.dp).clip(CircleShape).background(zemin).clickable { tik() }, contentAlignment = Alignment.Center) { Simge(ad, Color(renk), 16.dp) }
 
+/** 3.53: Kırp / Süre sayfası — Geçişler paneli biçiminde (ortada başlık, sağda Tamam). Önce Düzenle › Klip'teki "Kırp ve ekle" kartındaydı. */
+@Composable
+private fun KirpSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = kapat, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart).padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(48.dp))
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(if (k.foto) "Süre" else "Kırp", color = Renk.yazi.copy(alpha = 0.8f), fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Klip ${p.klipler.indexOfFirst { it.id == k.id } + 1}/${p.klipler.size} · ${if (k.foto) "Fotoğraf" else "Video"}", color = Renk.soluk, fontSize = 11.sp)
+                }
+                Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { kapat() }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("uygula", Renk.yazi, 26.dp)
+                    Text("Tamam", color = Renk.soluk, fontSize = 10.5.sp)
+                }
+            }
+            KlipSureKirp(vm, k)
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
 /** Klipler arasındaki geçiş simgesinden açılan Geçişler paneli (3.25, Ahmet'in görseli). */
 @Composable
 private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
@@ -704,7 +741,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
             "hareket" -> PanelHareket(vm, k)
             "renk" -> PanelRenk(vm, k)
             "klipses" -> PanelKlipSes(vm, k)
-            "yazi" -> PanelYazi(vm, k)
+            "yazi" -> YaziSayfasi(vm, p, sec)   // 3.53: Katman › Yazı ekle ile ortak
             "takip" -> PanelTakip(vm, k)
             else -> Text("Bölüm: $bolum", color = Renk.soluk)
         }

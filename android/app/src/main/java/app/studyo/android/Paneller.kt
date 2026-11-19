@@ -599,6 +599,11 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
 private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
     val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
     Kart("Hazır paketler", ton = turuncu) {
+        // 3.53: Biçim (önce Düzenle › Klip'te) paketlerin ilk satırı
+        Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        BicimSatiri(vm, p)
+        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
+        Text("Paket", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 4.dp))
         TonSecici(listOf(Triple("youtube", "YouTube", "oynat"), Triple("reels", "Reels", "yildiz"), Triple("sinema", "Sinema", "kadraj")), "", ilkSira = 3,
             alt = listOf("alt bant · parlama · kapanış", "renkli bant · yakınlaşma", "sinematik · siyahtan")) { vm.paketUygula(it) }
         Not("Giriş, geçiş, abone ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")

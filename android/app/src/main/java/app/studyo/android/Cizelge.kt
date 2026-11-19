@@ -589,7 +589,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         if (k == null) ekPanel = null
         else androidx.compose.ui.window.Dialog(onDismissRequest = { ekPanel = null }) {
             Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).clip(RoundedCornerShape(14.dp)).background(Renk.zemin).verticalScroll(rememberScrollState()).padding(8.dp)) {
-                if (tur == "takip") PanelTakip(vm, k) else PanelYazi(vm, k)
+                if (tur == "takip") PanelTakip(vm, k) else EskiKlipYazisi(vm, k, i)   // 3.53: yazılar tek veri (katman); eski klip yazısı taşınır
                 Dugme("Tamam", Modifier.fillMaxWidth().padding(top = 6.dp)) { ekPanel = null }
             }
         }

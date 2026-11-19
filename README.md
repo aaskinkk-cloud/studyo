@@ -6,6 +6,17 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.53 (19.11.2026, deneme · `yerel-android` dalı): ferah menü düzeni, Renk ana bölümü, ortak yazı, ✓ işareti
+- **Gezinme hatası (kök neden):** açık bir bölüme ya da alt düğmeye ikinci kez dokunmak paneli kapatıyordu; kapalı panel Düzenle › Klip görünümünü gösterdiği için ör. Renk'e ikinci dokunuş Klip'e gidiyordu. Artık her düğme her zaman yalnız kendi bölümünü açar (panel Geri tuşuyla kapanır).
+- **Renk ana bölümü (alt çubukta, Görünüm'den çıktı):** üstte sabit Geçişler biçimli başlık (Tümüne · Renk ✓ · Sıfırla), önce/sonra görüntüsü ve yatay kayan ayar düğmeleri; her ayar kendi sayfasında (− kaydırıcı +, Sıfırla). Ayarlar: Hazır · Parlaklık · Kontrast · Vurgular · **Beyazlar (yeni)** · Gölgeler · **Keskinlik (yeni)** · Doygunluk · Sıcaklık · Ton · HSL. Aşağı kaydırınca önizleme ve düğmeler yerinde kalır (`RenkBolumu.kt`).
+  - Beyazlar: LUT içinde, yalnız en parlak alanlar. Keskinlik: LUT'a giremez → çıkış çözünürlüğünde GL keskinleştirme (`Keskin.kt`, `KeskinEtki`); önce/sonra görüntüsü aynı formülle. Eski projeler değişmez (yeni alanlar 0).
+- **✓ işareti:** bir menüde ayar değişince alt menü adının ve ana bölüm adının yanında yeşil ✓ (bu düzenleme oturumunda); Renk düğmelerinde değeri 0 olmayan ayarda kalıcı ✓.
+- **Düzenle › Klip:** "Kırp ve ekle" kartı kalktı. Kırp (video) / Süre (fotoğraf) seçili klibin üstündeki kırp simgesinden açılan Geçişler biçimli sayfada. Ekleme şeritteki +'da.
+- **Biçim** (YouTube · Reels · Kare · Boş proje) → Görünüm › Şablon › Hazır paketler'in ilk satırı.
+- **Ortak yazı:** Metin › Yazı ile Katman › Yazı ekle aynı veriyi (yazı katmanları) ve aynı ayarları kullanır; ayrı yazı sayfası yok. Eski klip yazıları (`Klip.yazi`) silinmez, görünmeye devam eder; "Yazı katmanına taşı" ile tek dokunuşta katmana geçer (`klipYazisiniKatmanaTasi`).
+- **Logo varsayılanı:** sol üst · %14 · opaklık %70 (yalnız yeni eklenen logolar; kayıtlı projelerdeki logo ayarı korunur).
+- Rafa kalkan: Kapak › yapay zekâyla başlık/açıklama/etiket üretimi.
+
 ## 3.52 (15.11.2026, deneme · `yerel-android` dalı): katman olarak eklenen müzik de otomatik kısılır
 - **Kök neden:** otomatik kısma yalnız Ses › Müzik'teki ana müziğe uygulanıyordu; "Ses" katmanı olarak eklenen müzik her zaman aynı seviyede çalıyordu. Artık ses katmanları da videonun kendi sesi (açık) ya da seslendirme varken %35'e iner — önizlemede (katman oynatıcısı) ve dışa aktarmada (zarf işleyicisi, katmanın başlangıç zamanına göre `ofsUs`).
 - Ses penceresinde katman başına aç/kapat (`KatmanOge.otoKis`, varsayılan açık). Kapatılan ses katmanı (ör. konuşma kaydı) ise ana müziği kısar.

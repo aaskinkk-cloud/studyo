@@ -418,10 +418,11 @@ object Disa {
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uzMs)
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs + ofsMs).setEndPositionMs(klipSon).build())
         val v = ArrayList<Effect>()
-        k.renk?.takeIf { !it.bos }?.let { v += RenkLut.etki(it) }        // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır)
+        k.renk?.takeIf { RenkLut.lutVar(it) }?.let { v += RenkLut.etki(it) }        // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır)
         hareket(k, W, H, i, tamMs, ofsMs, cizelgeBas)?.let { v += it }   // akıllı kadraj + otomatik hareket
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
+        k.renk?.keskinlik?.takeIf { it > 0.005f }?.let { v += KeskinEtki(it) }   // 3.53: çıkış çözünürlüğünde keskinleştirme
         v += gecis
         // Klibin kendi yazısı/takip yazısı klibe aittir (çıkış geçişinde klip ile birlikte kaybolur); zaman çizelgesi
         // katmanları ve logo en üstte, geçişten etkilenmeden kalır.

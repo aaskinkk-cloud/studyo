@@ -331,3 +331,56 @@ private fun HizliSatir(simge: String, ad: String, renk: Color, deger: Float, ara
         InceSlider(value = v, onValueChange = { v = it }, valueRange = aralik, enabled = !kilitli && !kapali, onValueChangeFinished = { bitti(v) })
     }
 }
+
+/** 3.53: Metin › Yazı — Katman › Yazı ekle ile ORTAK veri (yazı katmanları) ve aynı ayarlar. İki ayrı yazı sayfası yok:
+ *  buradan eklenen yazı Katmanlar çizelgesinde de görünür, oradan eklenen burada. Eski klip yazısı (Klip.yazi) silinmez;
+ *  istenirse tek dokunuşla yazı katmanına taşınır. */
+@Composable
+fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int) {
+    val secId by vm.seciliKatman.collectAsState()
+    val konum by vm.konum.collectAsState()
+    val duzenle by vm.katmanDuzenle.collectAsState()
+    LaunchedEffect(duzenle) { if (duzenle != null) vm.katmanDuzenle.value = null }   // bu sayfada ayarlar zaten açık; açılır pencere gerekmez
+    if (p.klipler.isEmpty()) {
+        Text("Önce en az bir klip ekle; yazılar videonun üstüne yerleşir.", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(16.dp)); return
+    }
+    val yazilar = p.katmanlar.filter { it.tur == "metin" }
+    Kart("Yazı ekle") {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SimgeDugme("metin", "Yazı ekle", Modifier.width(72.dp), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
+            Text("Yazı oynatıcının bulunduğu andan başlar. Katman › Yazı ekle ile aynı yazıdır.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+        }
+        Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        HazirYazilar(vm)
+    }
+    yazilar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
+    if (yazilar.isNotEmpty()) Kart("Videodaki yazılar (${yazilar.size})") {
+        for (o in yazilar) key(o.id) {
+            val secili = o.id == secId
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp))
+                .background(if (secili) Renk.kart2 else Color.Transparent)
+                .clickable { vm.seciliKatman.value = o.id; vm.git(o.basMs) }.padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Simge("metin", if (secili) Renk.turuncu else Renk.soluk, 16.dp)
+                Text(o.metin.lineSequence().firstOrNull()?.ifBlank { null } ?: "Yazı", color = if (o.gizli) Renk.soluk else Renk.yazi, fontSize = 13.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 11.sp)
+            }
+        }
+    }
+    p.klipler.getOrNull(sec)?.let { k -> EskiKlipYazisi(vm, k, sec) }
+}
+
+/** 3.53: eski "klip yazısı" (3.4 öncesi veri) — görünmeye devam eder; yazı katmanına taşınabilir ya da kaldırılabilir. */
+@Composable
+fun EskiKlipYazisi(vm: EditorDurum, k: Klip, i: Int) {
+    val y = k.yazi?.takeIf { it.metin.isNotBlank() } ?: return
+    Kart("Bu klibin eski yazısı") {
+        Text(y.metin, color = Renk.yazi, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text("Bu yazı eski biçimde klibe bağlı. Yazı katmanına taşıyınca diğer yazılar gibi düzenlenir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
+        DugmeSirasi(
+            "Yazı katmanına taşı" to { vm.klipYazisiniKatmanaTasi(i) },
+            "Kaldır" to { vm.klipGuncelle { it.copy(yazi = null) } },
+        )
+    }
+}

@@ -17,6 +17,14 @@ import androidx.compose.foundation.layout.size
 object Simgeler {
     private val cizgi = mapOf(
         "geri" to "M19 12H5M12 19l-7-7 7-7",
+        // 3.53: Renk bölümü ve Kırp
+        "palet" to "M12 3a9 9 0 0 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",
+        "r_palet" to "M12 3a9 9 0 0 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",
+        "r_beyaz" to "M3 17h18M5 13l3-6 3 4 2-3 4 5M16 5h.01",
+        "r_keskin" to "M12 3l9 16H3zM12 9v5M12 17h.01",
+        "r_damla" to "M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z",
+        "r_termo" to "M10 4a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0zM12 9v7",
+        "kirp" to "M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14",
         "g_hafif" to "M3 15c3-3 5-3 8 0s5 3 8 0M5 9c2-2 4-2 6 0s4 2 6 0",
         "g_akis" to "M3 12c3-5 6-5 9 0s6 5 9 0M16 8l4 4-4 4",
         "h_yakin" to "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M21 21l-5-5M8 11h6M11 8v6",

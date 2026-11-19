@@ -54,6 +54,8 @@ data class Klip(
     /** 3.59: filtre (LUT) ve efekt (GL), klip bazında. "yok" = kapalı; güç 0…1. */
     val filtre: String = "yok", val filtreGuc: Float = 0.8f,
     val efekt: String = "yok", val efektGuc: Float = 0.7f,
+    /** 3.61: arka plan bulanıklığı (ekrandan nesne kesilince kendiliğinden; 0 = yok, 0…1). */
+    val arkaBulanik: Float = 0f,
     /** Yüz (fotoğrafta): merkez 0…1 ve yüz yüksekliği (fotoğraf yüksekliğinin oranı). yuzB = 0 → yüz yok/bakılmadı. */
     val yuzX: Float = -1f, val yuzY: Float = -1f, val yuzB: Float = 0f, val yuzBakildi: Boolean = false,
     /** Yüze odaklan ve yaklaş (dikey kişi fotoğrafında yavaş yakınlaşma yüze doğru). */

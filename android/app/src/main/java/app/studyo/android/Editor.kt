@@ -83,7 +83,7 @@ private val HAP_SIMGE = mapOf(
     "sablon" to "sihir", "gecis" to "gecis", "kadraj" to "kadraj", "hareket" to "hareket", "renk" to "gorunum",
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
-    "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz",
+    "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
 )
 
 private val BOLUMLER = listOf(
@@ -97,7 +97,7 @@ private val BOLUMLER = listOf(
     Bolum("ses", "Ses", "nota", listOf("klipses" to "Klip sesi", "muzik" to "Müzik", "seslendirme" to "Seslendirme")),
     Bolum("metin", "Metin", "metin", listOf("yazi" to "Yazı", "takip" to "Takip", "altyazi" to "Altyazı")),
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),
-    Bolum("yayin", "Yayın", "yildiz", listOf("logo" to "Logo", "kapak" to "Kapak", "disa" to "Dışa aktar")),
+    Bolum("yayin", "Yayın", "yildiz", listOf("logo" to "Logo", "kapak" to "Kapak", "ayarlar" to "Ayarlar", "disa" to "Dışa aktar")),   // 3.61: Ayarlar
 )
 
 @Composable
@@ -119,6 +119,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
+    var altMod by rememberSaveable { mutableStateOf(false) }   // 3.61: alt menüler ana menünün yerinde
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
     var oncekiP by remember(id) { mutableStateOf<Proje?>(null) }
@@ -141,7 +142,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         DisaEkrani(vm) { disaAcik = false }
         return
     }
-    BackHandler { if (panelAcik) panelAcik = false else cik() }
+    BackHandler { if (altMod && panelAcik) altMod = false else if (panelAcik) panelAcik = false else cik() }
 
     LaunchedEffect(mesaj) { if (mesaj != null) { delay(2200); vm.mesaj.value = null } }
 
@@ -251,68 +252,64 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
             }
 
-            // ---- haplar + 5 bölüm ----
+            // ---- 3.61: alt menüler + ana menü (Ahmet'in isteği) ----
+            // Ana menüde bir bölüme dokununca alttaki ana menü kaybolur, yerine o bölümün alt menüleri gelir; başta Geri.
+            // Geri: ana menü geri gelir, alt menüler bir üst satıra çıkar. Renk'in ayar düğmeleri (Parlaklık, Kontrast…) de bu satırlarda.
             val b = BOLUMLER.first { it.anahtar == bolum }
-            if (b.haplar.size <= 1) {
-                // 3.46: tek alt başlıklı bölümde (Katman) alt başlık satırı gereksiz — gösterilmez
-            } else if (Duzen.yaziliMenu) {
-                // önceki yazılı haplar (⋯ menüsünden seçilebilir)
-                Row(
-                    Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    b.haplar.forEach { (k, ad) ->
-                        HapEski(ad, panelAcik && haplar[bolum] == k) {
-                            if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
-                        }
-                    }
-                }
-            } else {
-                // alt başlıklar: üstte renkli çizim simge, altta küçük ince yazı
-                Row(
-                    Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    b.haplar.forEachIndexed { sira, (k, ad) ->
-                        val on = panelAcik && haplar[bolum] == k
-                        val renk = Color(ALT_RENK[sira % ALT_RENK.size])
-                        Column(
-                            Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable {
-                                // 3.53: ikinci dokunuş paneli kapatmaz (kapalı panel Düzenle › Klip görünümünü açıyordu) — her düğme yalnız kendi bölümünü açar
-                                if (k == "disa") disaAcik = true
-                                else { haplar[bolum] = k; panelAcik = true }
-                            }.padding(vertical = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Simge(HAP_SIMGE[k] ?: "ekle", if (on) renk else renk.copy(alpha = 0.7f), 22.dp)
-                            Spacer(Modifier.height(3.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(ad, color = if (on) renk else renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
-                                if (degisen["$bolum/$k"] == true) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
-                            }
-                            Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (on) renk else Color.Transparent))
-                        }
-                    }
+            val renkSekme by vm.renkSekme.collectAsState()
+            val altlar: List<AltOge> = if (bolum == "renk") {
+                val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
+                RENK_SEKMELERI.map { t -> AltOge(t.ad, t.simge, Color(t.renk), panelAcik && renkSekme == t.anahtar, renkSekmeDegisti(ra, t.anahtar)) { vm.renkSekme.value = t.anahtar; panelAcik = true } }
+            } else b.haplar.mapIndexed { sira, (k, ad) ->
+                AltOge(ad, HAP_SIMGE[k] ?: "ekle", Color(ALT_RENK[sira % ALT_RENK.size]), panelAcik && haplar[bolum] == k, degisen["$bolum/$k"] == true) {
+                    if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
                 }
             }
-            // ana bölümler: üstte beyaz simge, altta küçük gri yazı
-            // 3.58: ana menü yana kayar (ferah, sıkışmaz); seçili bölüm hafif renkli zeminli
-            val anaKaydir = rememberScrollState()
-            Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(anaKaydir)
-                .padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                BOLUMLER.forEach { bb ->
-                    val on = bb.anahtar == bolum
-                    Column(
-                        Modifier.width(74.dp).clip(RoundedCornerShape(12.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.12f) else Color.Transparent).clickable {
-                            bolum = bb.anahtar; panelAcik = true   // 3.53: ikinci dokunuş da aynı bölümde kalır
-                        }.padding(vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 24.dp)
-                        Spacer(Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
-                            if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
+            if (altMod && panelAcik) {
+                // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
+                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart).clickable { altMod = false }.padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Simge("geri", Renk.turuncu, 22.dp); Spacer(Modifier.height(3.dp))
+                        Text("Geri", color = Renk.turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text(b.ad, color = Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
+                    }
+                    Box(Modifier.padding(horizontal = 4.dp).width(1.dp).height(40.dp).background(Renk.cizgi))
+                    altlar.forEach { AltDugme(it) }
+                }
+            } else {
+                if (altlar.size > 1 || bolum == "renk") {
+                    if (Duzen.yaziliMenu && bolum != "renk") {
+                        // önceki yazılı haplar (⋯ menüsünden seçilebilir)
+                        Row(Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            b.haplar.forEach { (k, ad) -> HapEski(ad, panelAcik && haplar[bolum] == k) { if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true } } }
+                        }
+                    } else {
+                        // alt menüler ana menünün hemen üstünde (Renk dahil)
+                        Row(Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)) { altlar.forEach { AltDugme(it) } }
+                    }
+                }
+                // ana bölümler (yana kayar); dokununca alt menü modu açılır
+                val anaKaydir = rememberScrollState()
+                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(anaKaydir)
+                    .padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BOLUMLER.forEach { bb ->
+                        val on = bb.anahtar == bolum
+                        Column(
+                            Modifier.width(74.dp).clip(RoundedCornerShape(12.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.12f) else Color.Transparent).clickable {
+                                bolum = bb.anahtar; panelAcik = true; altMod = true
+                            }.padding(vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Simge(bb.simge, if (on) Renk.turuncu else Renk.yazi, 24.dp)
+                            Spacer(Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(bb.ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                                if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
+                            }
                         }
                     }
                 }
@@ -766,6 +763,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "sablon" -> PanelSablon(vm, p)
         "gecis" -> PanelGecis(vm, p)
         "filtre" -> PanelFiltre(vm, p, sec)   // 3.59
+        "ayarlar" -> PanelAyarlar(vm, p, sec)   // 3.61
         "efekt" -> PanelEfekt(vm, p, sec)     // 3.59
         "altyazi" -> PanelAltyazi(vm, p)
         "kapak" -> PanelKapak(vm, p)
@@ -968,6 +966,23 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
 @Composable
 private fun PanelMuzik(vm: EditorDurum, p: Proje) {
     val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.muzikSec(it) } }
+    // 3.61: yerleşik müzikler (uygulamada üretilir, telifsiz; silip kursan da vardır) + konuya göre otomatik
+    val uretiyor by vm.muzikUretiliyor.collectAsState()
+    Kart("Hazır müzikler") {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Renk.turuncu.copy(alpha = 0.14f)).border(1.dp, Renk.turuncu.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+            .clickable(enabled = !uretiyor && p.klipler.isNotEmpty()) { vm.otomatikMuzik() }.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Simge("sihir", Renk.turuncu, 18.dp); Spacer(Modifier.width(6.dp))
+            Text(if (uretiyor) "Müzik hazırlanıyor…" else "Konuya göre otomatik seç", color = Renk.turuncu, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            MuzikSentez.TURLER.forEach { t ->
+                YuvarlakSecim(t.ad, t.simge, Color(t.renk), p.muzik?.ad == "Hazır müzik · ${t.ad}") { if (!uretiyor) vm.hazirMuzik(t.anahtar) }
+            }
+        }
+        Text("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Sakin, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.",
+            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+    }
     Kart("Arka plan müziği") {
         val m = p.muzik
         if (m == null) {
@@ -1077,3 +1092,21 @@ fun PanelYazi(vm: EditorDurum, k: Klip) {
     }
 }
 
+
+
+/** 3.61: alt menü düğmesi (ana menü satırında ya da onun üstünde): renkli çizim simge + küçük yazı, seçiliyse nokta, ayar değiştiyse ✓. */
+class AltOge(val ad: String, val simge: String, val renk: Color, val secili: Boolean, val isaret: Boolean, val tik: () -> Unit)
+
+@Composable
+private fun AltDugme(o: AltOge) {
+    Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp)
+        Spacer(Modifier.height(3.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(o.ad, color = if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+            if (o.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
+        }
+        Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (o.secili) o.renk else Color.Transparent))
+    }
+}

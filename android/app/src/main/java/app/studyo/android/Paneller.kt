@@ -185,8 +185,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // 3.56: Renk bölümünde ayarın sonucu doğrudan ana önizlemede (durağanken). Önceden durağan oynatıcı ham görüntüyü gösterdiği için
             // Renk sayfasında ayrı bir önce/sonra kutusu gerekiyordu; o kutu kaldırıldı. Oynarken akıcı önizleme rengi zaten uygular.
             // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
-            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f))
-            if (renkPaneli && !oynuyorAkis && k != null && goruntuAyari) {
+            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f)
+            // 3.61: arka planı bulanık klip durağanken her bölümde bulanık görünür (kesilen nesne önünde)
+            if ((renkPaneli || (k?.arkaBulanik ?: 0f) > 0.01f) && !oynuyorAkis && k != null && goruntuAyari) {
                 val ctxR = LocalContext.current
                 val kaynakMs = if (k.foto) 0L else k.basMs + vm.player.currentPosition.coerceAtLeast(0)
                 val ham by produceState<Bitmap?>(null, k.id, k.uri, kaynakMs) {
@@ -197,19 +198,19 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         }.getOrNull()
                     }
                 }
-                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc) {
-                    value = ham?.let { b -> withContext(Dispatchers.Default) { Efektler.uygula(RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc), k.efekt, k.efektGuc) } }
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik) {
+                    value = ham?.let { b -> withContext(Dispatchers.Default) { Efektler.uygula(Efektler.bulaniklastir(RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc), k.arkaBulanik), k.efekt, k.efektGuc) } }
                 }
                 var onceGoster by remember { mutableStateOf(false) }
                 (if (onceGoster) ham else ayarli)?.let { bm ->
-                    Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) },
+                    Box(Modifier.fillMaxSize().background(Color.Black).then(if (renkPaneli) Modifier.pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) } else Modifier),
                         contentAlignment = Alignment.Center) {
                         Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(kbAn), gorunumYuk(kbAn)).graphicsLayer {
                             val kb = kbAn?.s ?: 1f
                             scaleX = kb * an.olcek; scaleY = kb * an.olcek
                             translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
                         }, contentScale = ContentScale.Fit)
-                        Text(if (onceGoster) "Önce" else "Basılı tut = önce", color = Color.White, fontSize = 11.sp,
+                        if (renkPaneli) Text(if (onceGoster) "Önce" else "Basılı tut = önce", color = Color.White, fontSize = 11.sp,
                             modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
@@ -1339,6 +1340,12 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
             Dugme("✂ Ekrandaki fotoğraftan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.ekrandanNesne() }
             Dugme("✂ Galeriden fotoğraf", Modifier.weight(1f)) { sec.launch(arrayOf("image/*")) }
         }
+        // 3.61: arka plan bulanıklığı (seçili klip)
+        val sk by vm.secili.collectAsState()
+        p.klipler.getOrNull(sk)?.let { kk ->
+            TonKaydirici("Arka plan", kk.arkaBulanik, 0f..1f, 0.05f, Color(TON[2]), { if (it < 0.01f) "yok" else "%${(it * 100).roundToInt()}" }) { v -> vm.klipGuncelle { it.copy(arkaBulanik = v) } }
+        }
+        Not("Ekrandaki fotoğraftan kesince arka plan kendiliğinden bulanıklaşır, nesne tam yerinde ön plana katman olarak gelir (nesnenin oturması için o klibin hareketi kapanır). ")
         Not("Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
             "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
     }

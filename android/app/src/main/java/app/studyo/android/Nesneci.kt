@@ -46,7 +46,8 @@ object Nesneci {
 
 
     /** @return kesilmiş nesnenin PNG dosyası ya da hata metni */
-    suspend fun kes(ctx: Context, uri: Uri): Pair<File?, String?> {
+    /** alanCikti: verilirse nesnenin fotoğraftaki yeri 0…1 olarak yazılır (x, y, genişlik, yükseklik) — 3.61 ekrandan kesme yerleşimi. */
+    suspend fun kes(ctx: Context, uri: Uri, alanCikti: FloatArray? = null): Pair<File?, String?> {
         val hazir = withContext(Dispatchers.IO) { Medya.fotoHazirla(ctx, uri, 2048) } ?: return null to "Fotoğraf açılamadı."
         val b = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(hazir.first.path).also { hazir.first.delete() } } ?: return null to "Fotoğraf okunamadı."
         val ayirici = SubjectSegmentation.getClient(SubjectSegmenterOptions.Builder().enableForegroundBitmap().build())
@@ -63,6 +64,7 @@ object Nesneci {
             val on = sonuc.foregroundBitmap ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
             val alan = withContext(Dispatchers.Default) { saydamKirpAlan(on) } ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
             val kirp = Bitmap.createBitmap(on, alan[0], alan[1], alan[2], alan[3])
+            alanCikti?.let { o -> if (o.size >= 4) { o[0] = alan[0].toFloat() / on.width; o[1] = alan[1].toFloat() / on.height; o[2] = alan[2].toFloat() / on.width; o[3] = alan[3].toFloat() / on.height } }
             val ad = yeniId()
             val f = File(Depo.dizin("nesne"), "$ad.png")
             withContext(Dispatchers.IO) {

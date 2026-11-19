@@ -48,6 +48,11 @@ object LogoKutup {
             yaz(l)
         }
         l = l.filter { File(it.yol).exists() }
+        val y = yerlesikleriAl(l); if (y.size != l.size) { l = y; yaz(l) }
+        // yedekten gelen ama listede olmayan logo dosyaları da kütüphaneye
+        val bilinen = l.map { File(it.yol).name }.toSet()
+        val yetim = Depo.dizin("logolar").listFiles()?.filter { it.isFile && it.name.endsWith(".png") && it.name !in bilinen } ?: emptyList()
+        if (yetim.isNotEmpty()) { l = l + yetim.mapIndexed { i, f -> LogoKaydi(id = f.nameWithoutExtension, ad = "Logo ${l.size + i + 1}", yol = f.path) }; yaz(l) }
         ogeler.value = l
         yuklendi = true
     }
@@ -69,12 +74,33 @@ object LogoKutup {
         ogeler.value = l
     }
 
+    /** 3.61: yedekten geri yüklemeden sonra listeyi yeniden okur. */
+    @Synchronized fun yenidenYukle() { yuklendi = false; yukle() }
+
+    /** 3.61: yerleşik logolar (APK içinde assets/logolar/*.png) — kütüphane ilk kez kurulurken eklenir (silip kursan da gelir). */
+    private fun yerlesikleriAl(l: List<LogoKaydi>): List<LogoKaydi> {
+        val ay = Depo.app.getSharedPreferences("ayar", 0)
+        if (ay.getBoolean("yerlesikLogoAlindi", false)) return l
+        val adlar = try { Depo.app.assets.list("logolar")?.filter { it.endsWith(".png", true) } ?: emptyList() } catch (_: Exception) { emptyList() }
+        val yeni = ArrayList(l)
+        for (ad in adlar) try {
+            val id = "yerlesik_" + ad.substringBeforeLast('.')
+            if (yeni.any { it.id == id }) continue
+            val hedef = File(Depo.dizin("logolar"), "$id.png")
+            Depo.app.assets.open("logolar/$ad").use { i -> hedef.outputStream().use { i.copyTo(it) } }
+            yeni += LogoKaydi(id = id, ad = ad.substringBeforeLast('.').take(40), yol = hedef.path, eklenme = 0L)
+        } catch (e: Exception) { Kayit.hata("yerleşik logo", e) }
+        ay.edit().putBoolean("yerlesikLogoAlindi", true).apply()
+        return yeni
+    }
+
     /** f: logolar klasörüne yazılmış PNG. */
     @Synchronized
     fun ekle(f: File, ad: String): LogoKaydi {
         yukle()
         val k = LogoKaydi(ad = ad.substringBeforeLast('.').ifBlank { "Logo" }.take(40), yol = f.path)
         yaz(ogeler.value + k)
+        Ayarlar.otoYedek(Depo.app)   // 3.61
         return k
     }
 

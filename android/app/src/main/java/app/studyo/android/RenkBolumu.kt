@@ -63,6 +63,15 @@ private val RENK_HAZIR = listOf(
 
 private fun hslDegisti(a: RenkAyar) = (a.hslTon + a.hslDoy + a.hslIsik).any { abs(it) > 0.005f }
 
+/** 3.61: Renk alt menüsü (ana menü satırında / üstünde): Hazır · ayarlar · HSL. */
+class RenkSekme(val anahtar: String, val ad: String, val simge: String, val renk: Long)
+val RENK_SEKMELERI: List<RenkSekme> = listOf(RenkSekme("hazir", "Hazır", "sihir", 0xFFFAC775)) +
+    RENK_AYARLARI.map { RenkSekme(it.anahtar, it.ad, it.simge, it.renk) } + RenkSekme("hsl", "HSL", "r_palet", 0xFF97C459)
+fun renkSekmeDegisti(a: RenkAyar, k: String): Boolean = when (k) {
+    "hazir" -> false; "hsl" -> hslDegisti(a)
+    else -> RENK_AYARLARI.firstOrNull { it.anahtar == k }?.let { abs(it.al(a)) > 0.005f } ?: false
+}
+
 @Composable
 fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
     val k = p.klipler.getOrNull(sec)
@@ -71,7 +80,7 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
     }
     val a = k.renk ?: RenkAyar()
     fun d(f: (RenkAyar) -> RenkAyar) = vm.klipGuncelle { it.copy(renk = f(it.renk ?: RenkAyar()).takeIf { r -> !r.bos }) }
-    var ayar by rememberSaveable { mutableStateOf("hazir") }
+    val ayar by vm.renkSekme.collectAsState()   // 3.61: ayar düğmeleri alttaki menü satırında
 
     Column(Modifier.fillMaxSize()) {
         // ---- sabit üst: başlık (Geçişler biçimi) ----
@@ -94,12 +103,6 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
             }
         }
         // 3.56: ayrı önce/sonra kutusu kaldırıldı — sonuç doğrudan ana önizlemede (basılı tut = önce)
-        // ---- sabit üst: ayar düğmeleri (yatay kayar) ----
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            AyarDugmesi("Hazır", "sihir", 0xFFFAC775, ayar == "hazir", false) { ayar = "hazir" }
-            RENK_AYARLARI.forEach { t -> AyarDugmesi(t.ad, t.simge, t.renk, ayar == t.anahtar, abs(t.al(a)) > 0.005f) { ayar = t.anahtar } }
-            AyarDugmesi("HSL", "r_palet", 0xFF97C459, ayar == "hsl", hslDegisti(a)) { ayar = "hsl" }
-        }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
         // ---- kayan alt: seçili ayarın sayfası ----
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 10.dp)) {

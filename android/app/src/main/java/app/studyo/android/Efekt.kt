@@ -60,6 +60,15 @@ object Efektler {
         return Bitmap.createBitmap(o, w, h, Bitmap.Config.ARGB_8888)
     }
 
+    /** 3.61: arka plan bulanıklığı (durağan önizleme): küçült-büyüt (GL'deki Gauss'a yakın). */
+    fun bulaniklastir(src: Bitmap, guc: Float): Bitmap {
+        if (guc <= 0.01f) return src
+        val olc = (1f / (1f + guc * 14f)).coerceIn(0.04f, 1f)
+        val k = Bitmap.createScaledBitmap(src, max(1, (src.width * olc).toInt()), max(1, (src.height * olc).toInt()), true)
+        val k2 = Bitmap.createScaledBitmap(k, max(1, k.width / 2), max(1, k.height / 2), true)
+        return Bitmap.createScaledBitmap(Bitmap.createScaledBitmap(k2, k.width, k.height, true), src.width, src.height, true)
+    }
+
     /** Geçiş önizleme küçük resmi (k = 0,5 anı): yeni kenar geçişlerinin görünümü. */
     fun gecisOrnek(src: Bitmap, tur: String): Bitmap {
         val w = src.width; val h = src.height
@@ -84,6 +93,44 @@ object Efektler {
             else -> c.drawBitmap(src, 0f, 0f, p)
         }
         return b
+    }
+}
+
+/** 3.61: arka plan bulanıklığı — iki geçişli (yatay + dikey) Gauss; yarıçap = güç × kısa kenarın %2,5'i. */
+class BulanikEtki(private val guc: Float, private val yatay: Boolean) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = BulanikProgram(useHdr, guc, yatay)
+}
+
+private class BulanikProgram(useHdr: Boolean, private val guc: Float, private val yatay: Boolean) : BaseGlShaderProgram(useHdr, 1) {
+    private val program = GlProgram(KENAR_VS, FS)
+    private var gen = 1; private var yuk = 1
+    init { program.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE) }
+    override fun configure(inputWidth: Int, inputHeight: Int): Size { gen = inputWidth.coerceAtLeast(1); yuk = inputHeight.coerceAtLeast(1); return Size(inputWidth, inputHeight) }
+    override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
+        val r = guc.coerceIn(0f, 1f) * min(gen, yuk) * 0.025f
+        program.use()
+        program.setSamplerTexIdUniform("uTexSampler", inputTexId, 0)
+        program.setFloatsUniform("uAdim", if (yatay) floatArrayOf(r / 4f / gen, 0f) else floatArrayOf(0f, r / 4f / yuk))
+        program.bindAttributesAndUniforms()
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+    }
+    override fun release() { super.release(); try { program.delete() } catch (_: Exception) {} }
+    companion object {
+        const val FS = """
+precision highp float;
+uniform sampler2D uTexSampler;
+uniform vec2 uAdim;
+varying vec2 vTexSamplingCoord;
+void main() {
+  vec2 t = vTexSamplingCoord;
+  vec4 s = texture2D(uTexSampler, t) * 0.1585;
+  s += (texture2D(uTexSampler, t + uAdim) + texture2D(uTexSampler, t - uAdim)) * 0.1465;
+  s += (texture2D(uTexSampler, t + uAdim * 2.0) + texture2D(uTexSampler, t - uAdim * 2.0)) * 0.1162;
+  s += (texture2D(uTexSampler, t + uAdim * 3.0) + texture2D(uTexSampler, t - uAdim * 3.0)) * 0.0791;
+  s += (texture2D(uTexSampler, t + uAdim * 4.0) + texture2D(uTexSampler, t - uAdim * 4.0)) * 0.0463;
+  gl_FragColor = vec4(s.rgb / 0.9347, 1.0);
+}
+"""
     }
 }
 

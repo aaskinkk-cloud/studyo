@@ -158,6 +158,16 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
     val disadaki = if (disa is DisaDurum.Calisiyor || disa is DisaDurum.Dogrulaniyor) DisaServisi.sonProje else null
     BackHandler(enabled = secim != null || arsivde) { if (secim != null) secim = null else arsivde = false }
     LaunchedEffect(arsivde) { secim = null }
+    // 3.61: uygulama silinip yeniden kurulunca ayarları ve logoları yedekten geri yükleme (⋯ menüsünde ve boş listede)
+    val ctxY = LocalContext.current
+    val geriYukle = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { u ->
+        if (u != null) Thread {
+            val r = runCatching { Ayarlar.yedekOku(ctxY, u) }
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(ctxY, r.fold({ "Yedek geri yüklendi ($it logo). Uygulamayı kapatıp yeniden aç." }, { "Geri yüklenemedi: ${it.message}" }), android.widget.Toast.LENGTH_LONG).show()
+            }
+        }.start()
+    }
 
     Column(Modifier.fillMaxSize().background(Renk.zemin)) {
         Row(
@@ -174,6 +184,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                 TextButton(onClick = { menu = true }) { Text("⋯", color = Renk.yazi, fontSize = 24.sp) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Hata kaydını paylaş") }, onClick = { menu = false; kayitPaylas(ctx) })
+                    DropdownMenuItem(text = { Text("Yedekten geri yükle (ayarlar, logolar)") }, onClick = { menu = false; geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) })
                     DropdownMenuItem(text = { Text(if (Renk.gunduz) "Gece teması" else "Gündüz teması") }, onClick = { menu = false; Renk.degistir(ctx) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
@@ -229,12 +240,15 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                     Box(Modifier.fillMaxWidth().padding(top = 4.dp).height(0.6.dp).background(Renk.cizgi))
                 }
             }
-            if (gorunen.isEmpty()) item {
+            if (gorunen.isEmpty()) item { Column {
                 Text(
                     if (arsivde) "Arşiv boş."
                     else "Henüz video projesi yok. “Yeni video” ile başla. Web Stüdyo'daki eski projeler “Fotoğraf + önceki Stüdyo” içinde duruyor.",
                     color = Renk.soluk, fontSize = 13.sp)
-            }
+                if (!arsivde && projeler.isEmpty()) TextButton(onClick = { geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }) {
+                    Text("Uygulamayı yeniden mi kurdun? Yedekten geri yükle", color = Renk.turuncu, fontSize = 13.sp)
+                }
+            } }
             items(gorunen, key = { it.id }) { p ->
                 val s = secim
                 ProjeKarti(p,

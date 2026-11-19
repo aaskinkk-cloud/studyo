@@ -16,7 +16,8 @@ import kotlin.math.roundToInt
 /** Videoda bir noktayı kare kare izler (şablon eşleme, ışık değişimine dayanıklı). Video belleğe alınmaz:
  *  kareler küçük gruplar halinde çözülür, 256 piksel genişliğe küçültülüp gri tona çevrilir. */
 object Takipci {
-    private const val GEN = 256
+    // 3.61: daha duyarlı takip — 400 piksel (önce 256), kaba→ince arama, alt piksel konum, daha az gecikmeli yumuşatma
+    private const val GEN = 400
 
     private class Gri(val w: Int, val h: Int, val v: FloatArray)
 
@@ -75,7 +76,8 @@ object Takipci {
             val sure = k.kaynakSureMs.coerceAtLeast(1)
             val dikeyGoster = k.yuk > k.gen
             var sablon: FloatArray? = null
-            var cx = 0; var cy = 0; var R = 10; var arama = 22
+            var cx = 0; var cy = 0; var R = 10; var arama = 34
+            var fx = 0f; var fy = 0f   // alt piksel konum
             var kayip = 0
             var sonIyi = 0          // son başarıyla izlenen noktadan sonraki sıra
             var kayipMs = 0L       // nesne kaç ms'dir bulunamıyor
@@ -86,9 +88,10 @@ object Takipci {
                 val dondur = (b.height > b.width) != dikeyGoster && k.gen != k.yuk
                 val g = griYap(b, donus, dondur)
                 if (sablon == null) {
-                    R = (g.w * 0.045f).roundToInt().coerceIn(6, 14)
+                    R = (g.w * 0.045f).roundToInt().coerceIn(8, 20)
                     cx = (x * g.w).roundToInt().coerceIn(R + 1, g.w - R - 2)
                     cy = (y * g.h).roundToInt().coerceIn(R + 1, g.h - R - 2)
+                    fx = cx.toFloat(); fy = cy.toFloat()
                     sablon = yama(g, cx, cy, R)
                     sonuc += TakipNokta(ms, x, y); sonIyi = sonuc.size; oncekiMs = ms
                     return
@@ -96,24 +99,39 @@ object Takipci {
                 val s = sablon ?: return
                 var enIyi = Float.MAX_VALUE; var bx = cx; var by = cy
                 val a = if (kayip > 0) arama * 2 else arama
+                // kaba arama (2 piksel adım) …
                 var yy = max(R, cy - a)
                 while (yy <= min(g.h - R - 1, cy + a)) {
                     var xx = max(R, cx - a)
                     while (xx <= min(g.w - R - 1, cx + a)) {
                         val f = fark(g, s, xx, yy, R, enIyi)
                         if (f < enIyi) { enIyi = f; bx = xx; by = yy }
-                        xx++
+                        xx += 2
                     }
-                    yy++
+                    yy += 2
+                }
+                // … ardından en iyi noktanın çevresinde 1 piksel adımla ince arama
+                val kx0 = bx; val ky0 = by
+                for (dy in -2..2) for (dx in -2..2) {
+                    val xx = kx0 + dx; val y2 = ky0 + dy
+                    if (xx < R || y2 < R || xx > g.w - R - 1 || y2 > g.h - R - 1) continue
+                    val f = fark(g, s, xx, y2, R, enIyi)
+                    if (f < enIyi) { enIyi = f; bx = xx; by = y2 }
                 }
                 val ortFark = enIyi / ((2 * R + 1) * (2 * R + 1))
-                if (ortFark < 22f) {
+                if (ortFark < 26f) {
                     cx = bx; cy = by; kayip = 0; kayipMs = 0
-                    // şablonu yavaşça güncelle (dönme/ışık değişimine uyum)
-                    yama(g, cx, cy, R)?.let { yeni -> for (i in s.indices) s[i] = s[i] * 0.85f + yeni[i] * 0.15f }
+                    // alt piksel: komşu farklara parabol uydur
+                    fun f0(xx: Int, y2: Int) = if (xx < R || y2 < R || xx > g.w - R - 1 || y2 > g.h - R - 1) Float.NaN else fark(g, s, xx, y2, R, Float.MAX_VALUE)
+                    val c0 = enIyi; val l = f0(cx - 1, cy); val r2 = f0(cx + 1, cy); val u = f0(cx, cy - 1); val d = f0(cx, cy + 1)
+                    val ox = if (!l.isNaN() && !r2.isNaN() && (l + r2 - 2 * c0) > 1e-3f) (0.5f * (l - r2) / (l + r2 - 2 * c0)).coerceIn(-0.5f, 0.5f) else 0f
+                    val oy = if (!u.isNaN() && !d.isNaN() && (u + d - 2 * c0) > 1e-3f) (0.5f * (u - d) / (u + d - 2 * c0)).coerceIn(-0.5f, 0.5f) else 0f
+                    fx = cx + ox; fy = cy + oy
+                    // şablonu güncelle (dönme/ışık değişimine uyum) — biraz daha hızlı uyum
+                    yama(g, cx, cy, R)?.let { yeni -> for (i in s.indices) s[i] = s[i] * 0.8f + yeni[i] * 0.2f }
                 } else { kayip++; if (oncekiMs >= 0) kayipMs += ms - oncekiMs }
                 oncekiMs = ms
-                sonuc += TakipNokta(ms, cx.toFloat() / g.w, cy.toFloat() / g.h)
+                sonuc += TakipNokta(ms, fx / g.w, fy / g.h)
                 if (kayip == 0) sonIyi = sonuc.size
             }
 
@@ -153,9 +171,9 @@ object Takipci {
         } finally {
             try { r.release() } catch (_: Exception) {}
         }
-        // titremeyi azalt: 5 karelik kayan ortalama
-        if (sonuc.size < 5) sonuc else sonuc.indices.map { i ->
-            val a = max(0, i - 2); val b = min(sonuc.lastIndex, i + 2)
+        // titremeyi azalt: 3 karelik kayan ortalama (3.61: önce 5 — yazı nesnenin gerisinde kalıyordu)
+        if (sonuc.size < 3) sonuc else sonuc.indices.map { i ->
+            val a = max(0, i - 1); val b = min(sonuc.lastIndex, i + 1)
             var sx = 0f; var sy = 0f
             for (j in a..b) { sx += sonuc[j].x; sy += sonuc[j].y }
             TakipNokta(sonuc[i].ms, sx / (b - a + 1), sy / (b - a + 1))

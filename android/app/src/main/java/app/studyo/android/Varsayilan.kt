@@ -18,9 +18,10 @@ object Varsayilan {
         listOf("abone", "Abone ol", "zil", "Kanalıma abone ol · zili aç"),
         listOf("kapanis", "Kapanış", "kalp", "Cam kartlar · teşekkür"),
         listOf("logo", "Logo", "logo", "Sol üst · %14 · %70 · son kullanılan"),   // 3.55
+        listOf("muzik", "Müzik", "nota", "Konuya göre yerleşik müzik"),   // 3.61
     )
     /** Sonradan eklenen maddeler: eski kayıtlı seçime bir kez eklenir (kullanıcı sonra kapatabilir). */
-    private val YENI_MADDELER = listOf("logo")
+    private val YENI_MADDELER = listOf("logo", "muzik")
     fun secili(ctx: Context): Set<String> {
         val ay = ctx.getSharedPreferences("ayar", 0)
         val kayitli = ay.getStringSet("varsayilan", null)?.toSet() ?: return MADDELER.map { it[0] }.toSet()

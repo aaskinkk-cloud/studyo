@@ -584,6 +584,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 sec(s)
                 mesaj.value = "${yeni.size} klip eklendi"
                 if (ilkEkleme && !proje.value.bos) varsayilanUygula()   // ilk seçimde giriş, abone ol, kapanış ve YouTube 16:9 da gelir
+                else if (!proje.value.bos && proje.value.muzik?.ad?.startsWith("Hazır müzik") == true) hazirMuzikYenile()   // video uzadı: müzik de uzasın
             }
             if (sorunlar.isNotEmpty()) uyari.value = "Eklenemeyenler:\n\n" + sorunlar.joinToString("\n\n")
         }
@@ -636,6 +637,43 @@ class EditorDurum(private val ctx: Context, id: String) {
             }
             r.onSuccess { m -> guncelle { it.copy(muzik = m) }; muzikKur(); muzikHizala() }
                 .onFailure { uyari.value = "Müzik eklenemedi: ${it.message}" }
+        }
+    }
+
+    /** 3.61: yerleşik müzik (uygulamada üretilir, telifsiz). Video süresi kadar (+3 sn); klasik olmayanlar döngüye uygun. */
+    val muzikUretiliyor = MutableStateFlow(false)
+    fun hazirMuzik(anahtar: String) {
+        if (muzikUretiliyor.value) return
+        kapsam.launch {
+            muzikUretiliyor.value = true
+            val t = MuzikSentez.tur(anahtar)
+            val sn = (proje.value.toplamMs / 1000 + 3).toInt()
+            val r = withContext(Dispatchers.Default) { runCatching { MuzikSentez.dosya(ctx, anahtar, sn) } }
+            muzikUretiliyor.value = false
+            r.onSuccess { f ->
+                val m = Muzik(uri = Uri.fromFile(f).toString(), ad = "Hazır müzik · ${t.ad}", ses = proje.value.muzik?.ses ?: 0.5f, dongu = !t.klasik,
+                    sureMs = Medya.retrieverSure(ctx, Uri.fromFile(f)))
+                guncelle { it.copy(muzik = m) }; muzikKur(); muzikHizala()
+                mesaj.value = "Müzik: ${t.ad}"
+            }.onFailure { Kayit.hata("müzik üret", it); uyari.value = "Müzik üretilemedi: ${it.message}" }
+        }
+    }
+    /** 3.61: hazır müzik video uzayınca yeniden üretilir (aynı tür). */
+    private fun hazirMuzikYenile() {
+        val m = proje.value.muzik ?: return
+        val anahtar = MuzikSentez.TURLER.firstOrNull { m.ad == "Hazır müzik · ${it.ad}" }?.anahtar ?: return
+        if (m.sureMs >= proje.value.toplamMs + 1000) return
+        hazirMuzik(anahtar)
+    }
+
+    /** 3.61: konuya göre (ML Kit görüntü etiketleme) müzik türü seçip ekler. */
+    fun otomatikMuzik() {
+        if (muzikUretiliyor.value) return
+        kapsam.launch {
+            muzikUretiliyor.value = true
+            val tur = runCatching { MuzikSecici.konudanTur(ctx, proje.value) }.getOrDefault("calm")
+            muzikUretiliyor.value = false
+            hazirMuzik(tur)
         }
     }
 
@@ -697,6 +735,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** 3.48: ses düzeyi penceresi — "muzik" ya da ses katmanının kimliği */
     val sesPenceresi = MutableStateFlow<String?>(null)
     val katmanSayfasi = MutableStateFlow(0)
+    /** 3.61: Renk bölümünde seçili ayar (alt menü satırı ile Renk sayfası ortak). */
+    val renkSekme = MutableStateFlow("hazir")
     /** 3.53: Hazır paketler › Boş proje — editör ekranı ayarlar (yeni boş projeyi açar). */
     var bosProjeAc: (String) -> Unit = {}
 
@@ -1023,6 +1063,20 @@ class EditorDurum(private val ctx: Context, id: String) {
                     kapanis = if ("kapanis" in sec) p.kapanis.copy(acik = true, stil = "cam", sureMs = 5000, yazi = "İzlediğin için teşekkürler!") else p.kapanis,
                 )
             }
+            // 3.61: Yayın › Ayarlar'da saklanan son ayarlar varsa onlar uygulanır (stil, geçiş, logo yeri, kapak, altyazı, renk/filtre/efekt)
+            val sk = Ayarlar.sakli(ctx)
+            if (sk != null) guncelle(true) { p ->
+                p.copy(
+                    gecis = sk.gecis,
+                    giris = if ("giris" in sec) p.giris.copy(stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
+                        efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs) else p.giris,
+                    hatirlatici = if ("abone" in sec) sk.hatirlatici.copy(acik = true) else p.hatirlatici,
+                    kapanis = if ("kapanis" in sec) sk.kapanis.copy(acik = true) else p.kapanis,
+                    altyaziStil = sk.altyaziStil,
+                    kapak = p.kapak.copy(stil = sk.kapak.stil, konum = sk.kapak.konum, vurgu = sk.kapak.vurgu, boyut = sk.kapak.boyut, canli = sk.kapak.canli, logo = sk.kapak.logo),
+                    klipler = p.klipler.map { k -> k.copy(renk = sk.renk ?: k.renk, filtre = sk.filtre, filtreGuc = sk.filtreGuc, efekt = sk.efekt, efektGuc = sk.efektGuc) },
+                )
+            }
             // 3.55: logo varsayılanı — logo yoksa son kullanılan (yoksa en yeni) kütüphane logosu eklenir; konum/boyut/opaklık varsayılana döner
             var logoNotu = ""
             if ("logo" in sec) {
@@ -1032,14 +1086,15 @@ class EditorDurum(private val ctx: Context, id: String) {
                         runCatching {
                             LogoKutup.yukle()
                             val l = LogoKutup.ogeler.value
-                            val k = l.firstOrNull { it.id == Varsayilan.sonLogo(ctx) } ?: l.maxByOrNull { it.eklenme }
+                            val k = l.firstOrNull { it.id == sk?.logo?.kutupId } ?: l.firstOrNull { it.id == Varsayilan.sonLogo(ctx) } ?: l.maxByOrNull { it.eklenme }
                             k?.let { kk -> LogoKutup.projeKopyasi(kk)?.let { kk to it } }
                         }.onFailure { Kayit.hata("varsayılan logo", it) }.getOrNull()
                     }
-                    if (f != null) guncelle { p -> p.copy(logo = Logo(yol = f.second.path, kutupId = f.first.id)) }
+                    if (f != null) guncelle { p -> p.copy(logo = (sk?.logo?.copy(x = -1f, y = -1f) ?: Logo(yol = "")).copy(yol = f.second.path, kutupId = f.first.id)) }
                     else logoNotu = " · logo kütüphanesi boş (Yayın › Logo'dan ekle)"
-                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = "solUst", boyut = 0.14f, opaklik = 0.7f, x = -1f, y = -1f)) }
+                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = sk?.logo?.konum ?: "solUst", boyut = sk?.logo?.boyut ?: 0.14f, opaklik = sk?.logo?.opaklik ?: 0.7f, x = -1f, y = -1f)) }
             }
+            if ("muzik" in sec && proje.value.muzik == null) { val mt = sk?.muzikTur; if (mt != null) hazirMuzik(mt) else otomatikMuzik() }   // 3.61: saklı tür ya da konuya göre
             mesgul.value = null
             val yuzSay = proje.value.klipler.count { it.yuzEtkin }
             mesaj.value = "Varsayılan ayarlar uygulandı" + logoNotu + (if (bicimDegisti) " · biçim YouTube 16:9" else "") + if ("yuz" in sec && yuzSay > 0) " · $yuzSay fotoğrafta yüze yaklaşılıyor" else ""
@@ -1373,10 +1428,37 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** 3.47: ekrandaki (oynatıcının üstündeki) fotoğraf klibinden nesne kes. */
+    /** 3.61: ekrandaki fotoğraftan kesme — arka plan kendiliğinden bulanık, kesilen nesne tam yerinde ön plan katmanı.
+     *  Nesne ile arka planın üst üste oturması için bu klibin otomatik hareketi kapatılır (hareket ederse nesne kayardı). */
     fun ekrandanNesne() {
-        val k = proje.value.klipler.getOrNull(player.currentMediaItemIndex)
-        if (k == null || !k.foto) { uyari.value = "Önizlemede bir fotoğraf klibine gel (videoysa \"Ekrandaki videodan\" kullan)."; return }
-        nesneEkle(Uri.parse(k.uri))
+        val i = player.currentMediaItemIndex
+        val k0 = proje.value.klipler.getOrNull(i)
+        if (k0 == null || !k0.foto) { uyari.value = "Önizlemede bir fotoğraf klibine gel (videoysa \"Ekrandaki videodan\" kullan)."; return }
+        kapsam.launch {
+            mesgul.value = "Nesne kesiliyor…"
+            val alan = FloatArray(4)
+            val (f, hata) = try { Nesneci.kes(ctx, Uri.parse(k0.uri), alan) } catch (e: Exception) { Kayit.hata("nesne", e); null to (e.message ?: "bilinmeyen hata") }
+            mesgul.value = null
+            if (f == null) { uyari.value = hata ?: "Nesne kesilemedi."; return@launch }
+            val p = proje.value
+            val k = (p.klipler.getOrNull(i) ?: k0).copy(kenBurns = false)
+            val (RW, RH) = Disa.boyut(p.bicim, 1080)
+            val a = Yuz.an(k, RW, RH, 0f, i)
+            // fotoğrafın karedeki yeri (önizleme ve dışa aktarmadaki yerleşimle aynı hesap)
+            val gw = RW / a.vx * a.s; val gh = RH / a.vy * a.s
+            val cx = RW / 2f + a.tx * (RW / a.vx) / 2f; val cy = RH / 2f - a.ty * (RH / a.vy) / 2f
+            val ux = alan[0] + alan[2] / 2f; val uy = alan[1] + alan[3] / 2f
+            val nx = (cx + (ux - 0.5f) * gw) / RW; val ny = (cy + (uy - 0.5f) * gh) / RH
+            val olc = (alan[2] * gw / RW).coerceIn(0.02f, 3f)
+            val bas = baslangic(i); val son = bas + p.zKlip(i).sureMs
+            val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
+            val n = Nesne(yol = f.path, x = nx, y = ny, olcek = olc, basMs = bas, sonMs = son.coerceAtLeast(bas + 500), golge = false, orjYol = if (orj.exists()) orj.path else "")
+            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(kenBurns = false, arkaBulanik = if (kk.arkaBulanik > 0.01f) kk.arkaBulanik else 0.6f) else kk },
+                nesneler = pp.nesneler + n) }
+            kaydetSimdi(false)
+            seciliNesne.value = n.id
+            mesaj.value = "Nesne ön planda · arka plan bulanık (bu klibin hareketi kapatıldı)"
+        }
     }
 
     private suspend fun videodanKesIsle(k: Klip, bas: Long, sure: Long, an: Long) {

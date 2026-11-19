@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.60 (20.11.2026, deneme · `yerel-android` dalı): giriş başlıkları profesyonel — web Kareden Videoya çizimi birebir
+- **Kök neden:** başlıklar Anton dışında telefonun sistem yazısıyla (Roboto Black), gevşek iç boşluklarla, gölgesiz kutularla ve basitleştirilmiş süslerle çiziliyordu. Web Kareden Videoya ise Barlow Condensed, Montserrat, Anton, Archivo, Bebas Neue ve Playfair Display kullanıyor.
+- **Yazı tipleri uygulamaya gömüldü** (SIL OFL, ücretsiz, internetsiz; `res/font`, lisanslar `android/lisanslar/YAZI_TIPLERI.txt`).
+- **Reels stilleri (12):** web `drawReels` geometrisi birebir (`BaslikCizim.kt` › `ReelsCiz`): ölçüler, iç boşluklar, gölgeler, tırnak/ünlem/köşe süsleri, yazı sığdırma (satır ve genişliğe göre küçültme). Her parça kendi yerinde ayrı bitmap; 130 ms arayla gelir, süs parçaları (tırnak, ünlem, etiket, köşe) büyüyerek, satırlar sırayla iki yandan kayarak; çıkış geldiği yöne. Renkli kutular (Stüdyo'ya özgü) yeni yazı tipleri ve gölgelerle. Alt/üst konumda blok karenin dışına taşmaz.
+- **Klasik stiller (6):** web `drawIntroBody` son karesi (`KlasikCiz`): Sinematik (Playfair, siyah bantlar, turuncu çizgili alt yazı), Alt bant (Archivo, turuncu şerit), Kutulu (Archivo, sol turuncu çizgi, son satır altın), Renkli bant (Anton renkli kutular), Neon (Bebas Neue, pembe ışıma), Sade (Bebas Neue, ince çerçeve).
+- **Kapak:** Reels kapakları aynı çizimle; klasik kapak yazıları Montserrat 900 / Archivo 800.
+- Önceki çizim kodu (`Reels.bitmapler`, `seritlerEski`) karşılaştırma için duruyor.
+
 ## 3.59 (20.11.2026, deneme · `yerel-android` dalı): Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli)
 - **Yeni ana bölüm Efekt** (Renk'in yanında): üç alt sayfa; Geçiş Görünüm'den buraya taşındı (tek yerde). Küçük resimler yalnız üstteki videonun o anki karesinden üretilir; dokun = uygula (durağanken sonuç ana önizlemede, basılı tut = önce), Yok = kaldır, Tümüne = bütün klipler, Güç kaydırıcısı.
 - **Filtre (5):** Sinematik, Altın saat, Vintage, Siyah-beyaz, Serin mat — renk ayarıyla aynı 3B LUT'ta (`RenkLut.filtrele`, `Klip.filtre/filtreGuc`), dışa aktarma ve önizleme aynı.

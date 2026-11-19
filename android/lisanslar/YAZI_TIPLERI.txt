@@ -1,0 +1,8 @@
+Stüdyo'nun giriş başlıklarında kullanılan yazı tipleri (android/app/src/main/res/font):
+- Barlow Condensed (600/700/800) — Jeremy Tribby, SIL Open Font License 1.1
+- Montserrat (600/700/800/900, 900 italik) — Julieta Ulanovsky, SIL Open Font License 1.1
+- Anton — Vernon Adams, SIL Open Font License 1.1
+- Archivo (600/800) — Omnibus-Type, SIL Open Font License 1.1
+- Bebas Neue — Dharma Type, SIL Open Font License 1.1
+- Playfair Display (700) — Claus Eggers Sørensen, SIL Open Font License 1.1
+Kaynak: Google Fonts (@expo-google-fonts paketleri). Ücretsiz; uygulama içinde gömülü, internet gerekmez.

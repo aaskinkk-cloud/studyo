@@ -37,11 +37,12 @@ class Blok(
 )
 
 object Cizim {
-    private val AGIR: Typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
+    // 3.60: kalın yazılar Montserrat 900 / Archivo 800 (önce sistem yazısı)
+    private val AGIR: Typeface get() = Yazilar.mont900
 
     private fun boya(b: Blok): TextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = b.renk; textSize = b.boy; letterSpacing = b.aralik
-        typeface = if (b.agir) AGIR else if (b.kalin) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
+        typeface = if (b.agir) AGIR else if (b.kalin) Yazilar.archivo800 else Typeface.DEFAULT
         when {
             b.parilti != null -> setShadowLayer(b.boy * 0.35f, 0f, 0f, b.parilti)
             b.golge != null && b.zemin == null -> setShadowLayer(b.boy * 0.10f, 0f, b.boy * 0.05f, b.golge)
@@ -98,6 +99,8 @@ object Cizim {
     // ---------------- Giriş başlığı ----------------
     fun giris(g: Giris, W: Int, H: Int): Yerlesim? {
         if (!g.acik) return null
+        // 3.60: klasik stiller web Kareden Videoya'daki çizimle (KlasikCiz, profesyonel yazı tipleri); önceki çizim aşağıda duruyor
+        if (!g.stil.startsWith("r_")) return KlasikCiz.ciz(g, W, H)?.let { Yerlesim(it, 0f, 0f, 0f, 0f) }
         val k = min(W, H).toFloat() * g.olcek.coerceIn(0.5f, 2f)   // 3.58: yazı boyutu
         val bas = g.baslik.replace("|", "\n").trim()
         val alt = g.alt.trim()
@@ -452,11 +455,8 @@ object Cizim {
         val boy = kp.boyut * k
         val vurgu = kp.vurgu.toInt()
         if (kp.stil.startsWith("r_")) {
-            Reels.statik(kp.stil, kp.yazi, kp.bant, W, H)?.let { t ->
-                val m = k * 0.06f
-                val y = when (kp.konum) { "ust" -> m; "orta" -> (H - t.height) / 2f; else -> H - t.height - m }
-                c.drawBitmap(t, W * 0.06f, y, null)
-            }
+            // 3.60: Reels kapakları da girişle aynı profesyonel çizim (kendi yerinde)
+            ReelsCiz.tumunuCiz(c, ReelsCiz.ogeler(kp.stil, kp.yazi, kp.bant, W, H, kp.boyut / 0.11f, when (kp.konum) { "ust" -> 0.3f; "orta" -> 0.5f; else -> 0.68f }))
             if (kp.logo) yuvarlakLogo(logo, (k * 0.16f).toInt())?.let { lg -> c.drawBitmap(lg, W - lg.width - k * 0.04f, k * 0.04f, null) }
             return b
         }

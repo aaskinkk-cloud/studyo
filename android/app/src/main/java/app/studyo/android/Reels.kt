@@ -25,7 +25,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /** Reels tarzı şerit: bitmap + hedef merkez (OpenGL -1…1) + sıra gecikmesi. */
-class Serit(val bmp: Bitmap, val cx: Float, val cy: Float, val gecikmeMs: Long)
+class Serit(val bmp: Bitmap, val cx: Float, val cy: Float, val gecikmeMs: Long, val yon: Int = -1, val pop: Boolean = false)
 
 /** Bir andaki konum: Yerlesim ile aynı anlam + ölçek. */
 class AnKonum(val zx: Float, val zy: Float, val kx: Float, val ky: Float, val olcek: Float, val alfa: Float) {
@@ -264,7 +264,15 @@ object Reels {
     }
 
     /** Giriş için şeritler: sola hizalı blok, seçilen konumda; her şerit 160 ms arayla gelir. */
-    fun seritler(g: Giris, W: Int, H: Int): List<Serit> {
+    /** 3.60: konum → dikey merkez (BaslikCizim). */
+    fun cyOran(konum: String): Float = when (konum) { "ust" -> 0.3f; "alt" -> 0.7f; else -> -1f }
+
+    /** 3.60: web Kareden Videoya'daki gibi çizilen parçalar (BaslikCizim.ReelsCiz); her parça kendi yerinde, 130 ms arayla. */
+    fun seritler(g: Giris, W: Int, H: Int): List<Serit> =
+        ReelsCiz.seritler(ReelsCiz.ogeler(g.stil, g.baslik, g.bant, W, H, g.olcek, cyOran(g.konum)), W, H)
+
+    /** Önceki (3.59 ve öncesi) sola hizalı şerit dizilimi — kullanılmıyor, karşılaştırma için duruyor. */
+    fun seritlerEski(g: Giris, W: Int, H: Int): List<Serit> {
         val b = bitmapler(g.stil, g.baslik, g.bant, W, H, g.olcek)
         if (b.isEmpty()) return emptyList()
         val ara = min(W, H) * 0.012f
@@ -303,17 +311,24 @@ object Reels {
         val fg = ((ms - gir).toFloat() / GIRIS_MS).coerceIn(0f, 1f)
         val fc = if (ms > cik) ((ms - cik).toFloat() / CIKIS_MS).coerceIn(0f, 1f) else 0f
         val e = yumusat(fg)
-        if (fc > 0f) {   // çıkış: sağa kayarak
+        if (fc > 0f) {   // çıkış: geldiği yöne kayarak
             val c = fc * fc
-            return AnKonum(s.cx + (1f - s.cx) * c, s.cy, -c, 0f, 1f, 1f - fc * 0.3f)
+            return if (s.yon > 0) AnKonum(s.cx + (1f - s.cx) * c, s.cy, -c, 0f, 1f, 1f - fc * 0.3f)
+            else AnKonum(s.cx + (-1f - s.cx) * c, s.cy, c, 0f, 1f, 1f - fc * 0.3f)
         }
+        // 3.60: süs parçaları (tırnak, ünlem, köşe, etiket) büyüyerek gelir — web'deki "pop"
+        if (s.pop && hareket != "dus" && hareket != "yuksel") {
+            val sc = if (fg < 0.7f) yumusat(fg / 0.7f) * 1.08f else 1.08f - 0.08f * ((fg - 0.7f) / 0.3f)
+            return AnKonum(s.cx, s.cy, 0f, 0f, sc.coerceAtLeast(0.01f), min(1f, fg * 3f))
+        }
+        val yon = if (s.yon > 0) 1f else -1f
         return when (hareket) {
             "dus" -> { val z = if (fg < 1f) (1f - e) else 0f; AnKonum(s.cx, s.cy + (1f - s.cy) * z, 0f, -z, 1f, 1f) }
             "yuksel" -> { val z = 1f - e; AnKonum(s.cx, s.cy + (-1f - s.cy) * z, 0f, z, 1f, min(1f, fg * 2f)) }
             "buyu" -> { val sc = if (fg < 0.7f) yumusat(fg / 0.7f) * 1.08f else 1.08f - 0.08f * ((fg - 0.7f) / 0.3f); AnKonum(s.cx, s.cy, 0f, 0f, sc.coerceAtLeast(0.01f), min(1f, fg * 3f)) }
-            "trend" -> { val z = 1f - e; val as1 = if (fg in 0.6f..1f) 0.04f * sin((fg - 0.6f) / 0.4f * PI.toFloat()) else 0f
-                AnKonum((s.cx + (-1f - s.cx) * z + as1).coerceIn(-1f, 1f), s.cy, z, 0f, 1f + 0.1f * z, 1f) }
-            else -> { val z = 1f - e; AnKonum(s.cx + (-1f - s.cx) * z, s.cy, z, 0f, 1f, 1f) }   // kay
+            "trend" -> { val z = 1f - e; val as1 = if (fg in 0.6f..1f) -yon * 0.04f * sin((fg - 0.6f) / 0.4f * PI.toFloat()) else 0f
+                AnKonum((s.cx + (yon - s.cx) * z + as1).coerceIn(-1f, 1f), s.cy, -yon * z, 0f, 1f + 0.1f * z, 1f) }
+            else -> { val z = 1f - e; AnKonum(s.cx + (yon - s.cx) * z, s.cy, -yon * z, 0f, 1f, 1f) }   // kay
         }
     }
 
@@ -321,7 +336,7 @@ object Reels {
     fun sesAnlari(g: Giris, seritSayisi: Int, a: Long, b: Long): List<Pair<Long, String>> {
         if (!g.efektSes || seritSayisi == 0) return emptyList()
         val tur = when (g.hareket) { "dus" -> "tok"; "buyu" -> "pop"; else -> "vuus" }
-        return (0 until seritSayisi).map { (a + it * 160L) to tur } + ((b - CIKIS_MS) to "vuus")
+        return (0 until seritSayisi).map { (a + 60L + it * 130L) to tur } + ((b - CIKIS_MS) to "vuus")
     }
 }
 

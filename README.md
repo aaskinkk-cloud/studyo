@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.56 (19.11.2026, deneme · `yerel-android` dalı): Renk sonucu ana önizlemede, ara kutu kaldırıldı
+- **Kök neden:** durağan oynatıcı ham görüntüyü gösterdiği için Renk sayfasında ayrı bir önce/sonra kutusu vardı; üstteki önizleme ve klip şeridiyle birlikte gereksiz yer kaplıyordu. Artık Renk bölümündeyken ayarlı kare doğrudan ana önizlemede, oynatıcı görüntüsünün tam üstünde (aynı kadraj/hareket yerleşimi) gösterilir; videoda o anki kare (`Medya.kareTam`), fotoğrafta fotoğrafın kendisi. Önizlemeye basılı tut = önce. Oynarken akıcı önizleme rengi zaten uygular.
+- Renk sayfası: başlık + ayar düğmeleri + seçili ayar; ara kutu yok.
+
 ## 3.55 (19.11.2026, deneme · `yerel-android` dalı): logo varsayılan ayarlarda, Altyazı alt sayfalara bölündü
 - **Varsayılan ayarlar › Logo (yeni madde):** uygulanınca projede logo yoksa son kullanılan kütüphane logosu (yoksa en yeni eklenen) sol üst · %14 · opaklık %70 olarak eklenir; logo varsa konumu/boyutu/opaklığı bu varsayılana döner. Kütüphane boşsa uyarı verir. Eski kayıtlı varsayılan seçimine "Logo" bir kez kendiliğinden eklenir (istenirse kapatılır). Son kullanılan logo `ayar/sonLogo`'da tutulur.
 - **Metin › Altyazı:** dört kart tek sayfada yığılmıyor — alt düğmeler: Otomatik · Satırlar · Toplu düzelt · Görünüm (Satırlar'da altyazı varken ✓). Otomatik altyazı bitince Satırlar'a geçer. İçerik değişmedi.

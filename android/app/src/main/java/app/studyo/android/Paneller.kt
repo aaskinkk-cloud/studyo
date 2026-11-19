@@ -103,7 +103,7 @@ private fun Not(m: String) = Text(m, color = Renk.soluk, fontSize = 12.5.sp, mod
 
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
-fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false, hareketPaneli: Boolean = false) {
+fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false, hareketPaneli: Boolean = false, renkPaneli: Boolean = false) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
     val konumAkis by vm.konum.collectAsState()
@@ -179,6 +179,35 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
                     },
                 )
+            }
+            // 3.56: Renk bölümünde ayarın sonucu doğrudan ana önizlemede (durağanken). Önceden durağan oynatıcı ham görüntüyü gösterdiği için
+            // Renk sayfasında ayrı bir önce/sonra kutusu gerekiyordu; o kutu kaldırıldı. Oynarken akıcı önizleme rengi zaten uygular.
+            // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
+            if (renkPaneli && !oynuyorAkis && k != null && k.renk?.bos == false) {
+                val ctxR = LocalContext.current
+                val kaynakMs = if (k.foto) 0L else k.basMs + vm.player.currentPosition.coerceAtLeast(0)
+                val ham by produceState<Bitmap?>(null, k.id, k.uri, kaynakMs) {
+                    value = withContext(Dispatchers.IO) {
+                        runCatching {
+                            if (k.foto) Medya.ornekleCoz(java.io.File(android.net.Uri.parse(k.uri).path ?: ""), 1080)
+                            else Medya.kareTam(ctxR, android.net.Uri.parse(k.uri), kaynakMs, 1080)
+                        }.getOrNull()
+                    }
+                }
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk) { value = ham?.let { b -> k.renk?.let { r -> withContext(Dispatchers.Default) { RenkLut.uygula(b, r) } } } }
+                var onceGoster by remember { mutableStateOf(false) }
+                (if (onceGoster) ham else ayarli)?.let { bm ->
+                    Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) },
+                        contentAlignment = Alignment.Center) {
+                        Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(kbAn), gorunumYuk(kbAn)).graphicsLayer {
+                            val kb = kbAn?.s ?: 1f
+                            scaleX = kb * an.olcek; scaleY = kb * an.olcek
+                            translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
+                        }, contentScale = ContentScale.Fit)
+                        Text(if (onceGoster) "Önce" else "Basılı tut = önce", color = Color.White, fontSize = 11.sp,
+                            modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
             }
             if (an.renk > 0f) Box(Modifier.fillMaxSize().background((if (an.beyaz) Color.White else Color.Black).copy(alpha = an.renk.coerceIn(0f, 1f))))
 

@@ -33,8 +33,8 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** 3.53: Renk ana bölümü (Ahmet'in onayladığı taslak). Üstte sabit: Geçişler biçiminde başlık (Tümüne · Renk ✓ · Sıfırla),
- *  önce/sonra görüntüsü ve yatay kayan ayar düğmeleri. Altta yalnız seçili ayarın sayfası kayar.
+/** 3.53: Renk ana bölümü. Üstte sabit: Geçişler biçiminde başlık (Tümüne · Renk ✓ · Sıfırla) ve yatay kayan ayar düğmeleri
+ *  (3.56: önce/sonra kutusu kalktı; sonuç ana önizlemede görünür, önizlemeye basılı tut = önce). Altta yalnız seçili ayarın sayfası kayar.
  *  Veri değişmedi: klip.renk (RenkAyar); dışa aktarma ve önizleme aynı dönüşümü kullanır. */
 private data class RenkAyarTanim(val anahtar: String, val ad: String, val simge: String, val renk: Long,
                                  val al: (RenkAyar) -> Float, val yaz: (RenkAyar, Float) -> RenkAyar, val enAz: Float = -1f, val aciklama: String = "")
@@ -69,13 +69,9 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
     if (k == null) {
         Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp)); return
     }
-    val ctx = LocalContext.current
     val a = k.renk ?: RenkAyar()
     fun d(f: (RenkAyar) -> RenkAyar) = vm.klipGuncelle { it.copy(renk = f(it.renk ?: RenkAyar()).takeIf { r -> !r.bos }) }
     var ayar by rememberSaveable { mutableStateOf("hazir") }
-    val kaynak by produceState<Bitmap?>(null, k.uri, k.basMs) { value = withContext(Dispatchers.IO) { Medya.kucukResim(ctx, k, 360) } }
-    val sonra by produceState<Bitmap?>(null, kaynak, a) { value = kaynak?.let { b -> withContext(Dispatchers.Default) { RenkLut.uygula(b, a) } } }
-    var once by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         // ---- sabit üst: başlık (Geçişler biçimi) ----
@@ -97,13 +93,7 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
                 Simge("gerial", if (a.bos) Renk.soluk.copy(alpha = 0.4f) else Renk.yazi, 22.dp); Text("Sıfırla", color = Renk.soluk, fontSize = 10.5.sp)
             }
         }
-        // ---- sabit üst: önce/sonra ----
-        Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(118.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black)
-            .pointerInput(Unit) { detectTapGestures(onPress = { once = true; tryAwaitRelease(); once = false }) }) {
-            (if (once) kaynak else sonra ?: kaynak)?.let { b -> Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
-            Text(if (once) "Önce" else "Sonra · basılı tut = önce", color = Color.White, fontSize = 11.sp,
-                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
-        }
+        // 3.56: ayrı önce/sonra kutusu kaldırıldı — sonuç doğrudan ana önizlemede (basılı tut = önce)
         // ---- sabit üst: ayar düğmeleri (yatay kayar) ----
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             AyarDugmesi("Hazır", "sihir", 0xFFFAC775, ayar == "hazir", false) { ayar = "hazir" }
@@ -125,7 +115,7 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
                             if (satir.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
-                    Text("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Ayarlar oynatırken önizlemede ve dışa aktarmada uygulanır.",
+                    Text("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Sonuç üstteki önizlemede görünür; önizlemeye basılı tutunca ayarsız hâli görünür.",
                         color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
                 }
             }

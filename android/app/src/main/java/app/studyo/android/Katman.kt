@@ -205,7 +205,7 @@ class TakipBindirme(private val k: Klip, private val t: Takip, private val g: Ka
     override fun getBitmap(presentationTimeUs: Long): Bitmap = yer(presentationTimeUs)?.bmp ?: g.sag
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val y = yer(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky).build()
+        return y.ayar(StaticOverlaySettings.Builder(), W, H).build()
     }
 }
 

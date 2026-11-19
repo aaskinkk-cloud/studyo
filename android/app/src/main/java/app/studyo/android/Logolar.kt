@@ -83,12 +83,14 @@ object LogoKutup {
         if (ay.getBoolean("yerlesikLogoAlindi", false)) return l
         val adlar = try { Depo.app.assets.list("logolar")?.filter { it.endsWith(".png", true) } ?: emptyList() } catch (_: Exception) { emptyList() }
         val yeni = ArrayList(l)
+        val varOlan = l.map { ozet(File(it.yol)) }.toSet()
         for (ad in adlar) try {
             val id = "yerlesik_" + ad.substringBeforeLast('.')
             if (yeni.any { it.id == id }) continue
             val hedef = File(Depo.dizin("logolar"), "$id.png")
             Depo.app.assets.open("logolar/$ad").use { i -> hedef.outputStream().use { i.copyTo(it) } }
-            yeni += LogoKaydi(id = id, ad = ad.substringBeforeLast('.').take(40), yol = hedef.path, eklenme = 0L)
+            if (ozet(hedef) in varOlan) { hedef.delete(); continue }   // aynı logo kütüphanede zaten var
+            yeni += LogoKaydi(id = id, ad = ad.substringBeforeLast('.').replace('_', ' ').take(40), yol = hedef.path, eklenme = 0L)
         } catch (e: Exception) { Kayit.hata("yerleşik logo", e) }
         ay.edit().putBoolean("yerlesikLogoAlindi", true).apply()
         return yeni

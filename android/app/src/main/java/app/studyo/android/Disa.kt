@@ -237,7 +237,7 @@ object Disa {
         fun katmanlar(bas: Long, sure: Long): List<TextureOverlay> {
             val ek = ArrayList<TextureOverlay>()
             val son = bas + sure
-            for ((y, a, b) in zamanli) if (a < son && b > bas) ek += ZamanliBindirme(y, bas, a, b)
+            for ((y, a, b) in zamanli) if (a < son && b > bas) ek += ZamanliBindirme(y, bas, a, b, W, H)
             if (seritler.isNotEmpty() && gA < son && gB > bas) for (sr in seritler) ek += ReelsBindirme(sr, p.giris.hareket, bas, gA, gB)
             if (p.giris.acik && p.giris.boncuk && gA < son && gB > bas) ek += BoncukBindirme(bas, gA, gB, W, H)
             for (ns in p.nesneler) if (ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)
@@ -432,11 +432,11 @@ object Disa {
         // Klibin kendi yazısı/takip yazısı klibe aittir (çıkış geçişinde klip ile birlikte kaybolur); zaman çizelgesi
         // katmanları ve logo en üstte, geçişten etkilenmeden kalır.
         val kendi = ArrayList<TextureOverlay>()
-        k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kendi += bindir(it) }
+        k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kendi += bindir(it, W, H) }
         if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kendi += TakipBindirme(k, t, it, W, H, cizelgeBas, ofsMs) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
         val ust = ArrayList<TextureOverlay>()
         ust += zamanli
-        logo?.let { ust += bindir(it) }
+        logo?.let { ust += bindir(it, W, H) }
         if (tekTuval != null) {
             if (kendi.isNotEmpty()) v += OverlayEffect(kendi)
             v += tekTuval
@@ -444,7 +444,7 @@ object Disa {
         } else {
             val kap = ArrayList<TextureOverlay>()
             kap += zamanli; kap += kendi
-            logo?.let { kap += bindir(it) }
+            logo?.let { kap += bindir(it, W, H) }
             if (kap.isNotEmpty()) v += OverlayEffect(kap)
         }
         v += sonEtki
@@ -461,9 +461,9 @@ object Disa {
         .setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(bitHizi(kisa, kalite)).build())
         .setEnableFallback(true).build()
 
-    private fun bindir(y: Yerlesim): TextureOverlay = BitmapOverlay.createStaticBitmapOverlay(
+    private fun bindir(y: Yerlesim, W: Int, H: Int): TextureOverlay = BitmapOverlay.createStaticBitmapOverlay(
         y.bmp,
-        StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky).setAlphaScale(y.alfa).build()
+        y.ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(y.alfa).build()
     )
 
     /** Fotoğrafta yavaş yakınlaşma (%8; dikey kişi fotoğrafında yüze doğru, bkz. Yuz). Zaman damgası klibin ilk karesinden ölçülür. */

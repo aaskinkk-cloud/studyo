@@ -516,13 +516,12 @@ object ZamanKipi {
 }
 
 /** Zaman çizelgesinde belli aralıkta görünen bindirme (her klibe ayrı örnek). */
-class ZamanliBindirme(private val y: Yerlesim, private val klipBasMs: Long, private val a: Long, private val b: Long) : BitmapOverlay() {
+class ZamanliBindirme(private val y: Yerlesim, private val klipBasMs: Long, private val a: Long, private val b: Long, private val W: Int, private val H: Int) : BitmapOverlay() {
     private val saat = Saat(klipBasMs)
     override fun getBitmap(presentationTimeUs: Long): Bitmap = y.bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = klipBasMs + saat.yerelMs(presentationTimeUs)
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky)
-            .setAlphaScale(y.alfa * Zaman.solma(ms, a, b)).build()
+        return y.ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(y.alfa * Zaman.solma(ms, a, b)).build()
     }
 }
 
@@ -546,7 +545,7 @@ class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Al
         guncelle(presentationTimeUs)
         val y = simdiki
         return if (y == null) StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        else StaticOverlaySettings.Builder().setBackgroundFrameAnchor(y.zx, y.zy).setOverlayFrameAnchor(y.kx, y.ky).build()
+        else y.ayar(StaticOverlaySettings.Builder(), W, H).build()
     }
 }
 

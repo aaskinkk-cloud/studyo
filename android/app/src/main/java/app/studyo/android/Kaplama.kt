@@ -18,6 +18,15 @@ import kotlin.math.min
 /** Kare üstüne bindirilen görüntü. Konumlar OpenGL koordinatıdır (-1…1, y yukarı) — Media3 ile aynı.
  *  Önizleme de dışa aktarma da AYNI bitmapi ve AYNI hesabı kullanır (ne görürsen o çıkar). */
 class Yerlesim(val bmp: Bitmap, val zx: Float, val zy: Float, val kx: Float, val ky: Float, val alfa: Float = 1f) {
+    /** 3.62: Media3 çapaları −1…1 dışına çıkamaz (çıkarsa dışa aktarma IllegalArgumentException ile durur — ekrandan kesilen
+     *  nesne kenara yakınken oluyordu). Arka plan çapası sınıra çekilir, aradaki fark bindirmenin kendi çapasına aktarılır:
+     *  bitmap piksel olarak AYNI yerde kalır. W, H: kare boyutu. */
+    fun ayar(b: androidx.media3.effect.StaticOverlaySettings.Builder, W: Int, H: Int): androidx.media3.effect.StaticOverlaySettings.Builder {
+        val zx2 = zx.coerceIn(-1f, 1f); val zy2 = zy.coerceIn(-1f, 1f)
+        val kx2 = (kx + (zx2 - zx) * W / bmp.width.coerceAtLeast(1)).coerceIn(-1f, 1f)
+        val ky2 = (ky + (zy2 - zy) * H / bmp.height.coerceAtLeast(1)).coerceIn(-1f, 1f)
+        return b.setBackgroundFrameAnchor(zx2, zy2).setOverlayFrameAnchor(kx2, ky2)
+    }
     /** W×H karede bitmapin sol-üst köşesi (piksel). */
     fun solUst(W: Int, H: Int): Pair<Float, Float> {
         val px = (zx + 1f) / 2f * W

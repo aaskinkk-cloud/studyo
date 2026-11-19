@@ -34,7 +34,9 @@ object Nesneci {
         val w = b.width; val h = b.height
         val px = IntArray(w * h); b.getPixels(px, 0, w, 0, 0, w, h)
         var x0 = w; var y0 = h; var x1 = -1; var y1 = -1
-        for (y in 0 until h) for (x in 0 until w) if ((px[y * w + x] ushr 24) > 12) {
+        // 3.62: eşik 12 → 110. ML Kit ön plan bitmapinde arka planda da çok düşük saydamlıklı pikseller kalıyor; eşik düşükken
+        // kırpım bütün fotoğraf oluyordu (1536x2048) ve nesne tüm kareyi kaplayıp arka plan bulanıklığını örtüyordu.
+        for (y in 0 until h) for (x in 0 until w) if ((px[y * w + x] ushr 24) > 110) {
             if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
         }
         if (x1 < x0 || y1 < y0) return null
@@ -63,7 +65,13 @@ object Nesneci {
             }
             val on = sonuc.foregroundBitmap ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
             val alan = withContext(Dispatchers.Default) { saydamKirpAlan(on) } ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
-            val kirp = Bitmap.createBitmap(on, alan[0], alan[1], alan[2], alan[3])
+            val kirp0 = Bitmap.createBitmap(on, alan[0], alan[1], alan[2], alan[3])
+            // 3.62: çok düşük saydamlıklı arka plan kalıntısı (bulanık arka planın önünde sis gibi görünür) temizlenir
+            val kirp = kirp0.copy(Bitmap.Config.ARGB_8888, true).also { kb ->
+                val kp = IntArray(kb.width * kb.height); kb.getPixels(kp, 0, kb.width, 0, 0, kb.width, kb.height)
+                for (i in kp.indices) if ((kp[i] ushr 24) < 48) kp[i] = 0
+                kb.setPixels(kp, 0, kb.width, 0, 0, kb.width, kb.height)
+            }
             alanCikti?.let { o -> if (o.size >= 4) { o[0] = alan[0].toFloat() / on.width; o[1] = alan[1].toFloat() / on.height; o[2] = alan[2].toFloat() / on.width; o[3] = alan[3].toFloat() / on.height } }
             val ad = yeniId()
             val f = File(Depo.dizin("nesne"), "$ad.png")

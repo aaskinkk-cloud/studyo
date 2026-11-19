@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.62 (20.11.2026, deneme · `yerel-android` dalı): dışa aktarma çökmesi giderildi, nesne kesme düzeltildi, yerleşik logo
+- **Kök neden (cihaz kaydı 3.61.89):** ekrandan kesilen nesne karenin kenarına taşınca bindirme çapası −1…1 dışına çıkıyor, Media3 `IllegalArgumentException` veriyordu → akıcı önizleme yeniden kuruluyor (görüntü titreyip kararıyordu) ve dışa aktarma duruyordu. `Yerlesim.ayar()`: arka plan çapası sınıra çekilir, fark bindirmenin kendi çapasına aktarılır (bitmap aynı yerde kalır); bütün bindirmelerde (zamanlı, logo, klip yazısı, altyazı, takip).
+- **Nesne kesme:** saydamlık eşiği 12 → 110 (kırpım bütün fotoğraf oluyor, nesne kareyi kaplayıp bulanık arka planı örtüyordu); düşük saydamlıklı arka plan kalıntısı temizlenir.
+- **Yerleşik logo:** "Şefin Doğası" logosu APK'ya gömüldü (`assets/logolar`); uygulama ilk açılışta (silip kursan da) kütüphaneye ekler, aynısı zaten varsa eklemez.
+
 ## 3.61 (20.11.2026, deneme · `yerel-android` dalı): alt menü düzeni, yerleşik müzikler, arka planı bulanık nesne kesme, ayarları sakla / yedekle, daha duyarlı takip
 - **Alt menüler ana menünün yerinde:** ana menüde bir bölüme dokununca alttaki ana menü kaybolur, yerine o bölümün alt menüleri gelir (başta Geri). Geri: ana menü döner, alt menüler bir üst satıra çıkar. Renk'in ayar düğmeleri (Hazır, Parlaklık, Kontrast… HSL) de bu satırlarda — Renk düğmesinin hemen üstünde (önce panelin tepesindeydi). Tüm bölümlerde aynı.
 - **Ekrandaki fotoğraftan nesne kesme:** arka plan kendiliğinden bulanıklaşır, kesilen nesne fotoğraftaki yerinde ve boyutunda ön plana katman olarak gelir. Nesnenin oturması için o klibin otomatik hareketi kapanır. Arka plan bulanıklığı: Düzenle › Nesne'de kaydırıcı (`Klip.arkaBulanik`; dışa aktarma iki geçişli Gauss GL `BulanikEtki`, durağan önizleme aynı görünüm).

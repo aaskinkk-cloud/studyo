@@ -591,21 +591,27 @@ private fun VarsayilanSayfa(vm: EditorDurum) {
     val ctx = LocalContext.current
     var sec by remember { mutableStateOf(Varsayilan.secili(ctx)) }
     val mesgul by vm.mesgul.collectAsState()
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    // 3.57: Geçişler paneli düzeni — yuvarlak simgeler, yana kayar (sıkışmaz); seçili = beyaz halka + ✓, dokun = dahil et / çıkar
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Varsayilan.MADDELER.forEachIndexed { i, m ->
             val on = m[0] in sec
             val ton = tonRenk(i, m[1])
-            val r = if (on) ton else Renk.soluk.copy(alpha = 0.45f)
-            Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { Varsayilan.degistir(ctx, m[0]); sec = Varsayilan.secili(ctx) }
-                .padding(vertical = 6.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Simge(m[2], r, 22.dp)
-                Text(m[1], color = r, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center,
-                    maxLines = 2, lineHeight = 12.sp, modifier = Modifier.padding(top = 3.dp))
-                Text(m[3], color = Renk.soluk.copy(alpha = if (on) 0.9f else 0.5f), fontSize = 9.sp, textAlign = TextAlign.Center, lineHeight = 10.5.sp, maxLines = 3)
-                Box(Modifier.padding(top = 3.dp).size(4.dp).clip(CircleShape).background(if (on) ton else Color.Transparent))
+            Column(Modifier.width(86.dp).clip(RoundedCornerShape(12.dp)).clickable { Varsayilan.degistir(ctx, m[0]); sec = Varsayilan.secili(ctx) }
+                .padding(vertical = 4.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(56.dp)) {
+                    Box(Modifier.fillMaxSize().clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
+                        .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
+                        Simge(m[2], if (on) ton else ton.copy(alpha = 0.45f), 26.dp)
+                    }
+                    if (on) OnayIsareti(Modifier.align(Alignment.TopEnd), 16.dp)
+                }
+                Text(m[1], color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.padding(top = 5.dp))
+                Text(m[3], color = Renk.soluk.copy(alpha = if (on) 0.9f else 0.5f), fontSize = 9.5.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 3)
             }
         }
     }
+    Text("Dokun = dahil et / çıkar · yana kaydır", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
     Spacer(Modifier.height(6.dp))
     val etkin = sec.isNotEmpty() && mesgul == null
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, Renk.turuncu.copy(alpha = if (etkin) 0.85f else 0.3f), RoundedCornerShape(12.dp))

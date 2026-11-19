@@ -612,7 +612,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
                 Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
             Spacer(Modifier.width(6.dp))
-            Text(if (acik) "▾" else "▸", color = Renk.soluk, fontSize = 16.sp)
+            GizleGosterDugmesi(acik, Renk.turuncu) { acik = !acik }   // 3.57
         }
         if (acik) {
             if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))

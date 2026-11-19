@@ -229,11 +229,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         val ctxS = LocalContext.current
                         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(if (Duzen.seritGizli) "Klipler gizli · ${p.klipler.size} klip" else "Klipler", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                            Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { Duzen.seritDegis(ctxS) }.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Simge(if (Duzen.seritGizli) "goz" else "gozkapali", Color(TON[2]), 18.dp)
-                                Text(if (Duzen.seritGizli) "Göster" else "Gizle", color = Color(TON[2]), fontSize = 11.5.sp, modifier = Modifier.padding(start = 5.dp))
-                            }
+                            GizleGosterDugmesi(!Duzen.seritGizli, Color(TON[2])) { Duzen.seritDegis(ctxS) }   // 3.57: bölüm başlıklarıyla aynı belirgin düğme
                         }
                         // 3.53: "Kırp ve ekle" kartı kalktı — kırpma/süre klip resmindeki ✂ simgesinde, Biçim Görünüm › Şablon › Hazır paketler'de
                         if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle)

@@ -162,9 +162,21 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? =
             // ✓ sağda: yalnız bu klip (seçim zaten bu klibe uygulanır) — onaylar ve kartı kapatır
             if (buna != null) Box(Modifier.padding(end = 4.dp).size(30.dp).clip(CircleShape).clickable { buna(); acik = false }, contentAlignment = Alignment.Center) {
                 Simge("uygula", Color(TON[2]), 20.dp) }
-            Text(if (acik) "▴" else "▾", color = Renk.soluk, fontSize = 16.sp)
+            GizleGosterDugmesi(acik, vurgu) { acik = !acik }   // 3.57: belirgin düğme (önce yalnız küçük ▴/▾ işareti vardı)
         }
         if (acik) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), content = icerik)
+    }
+}
+
+/** 3.57: bölüm başlıklarındaki gizle/göster düğmesi — renk tonlu çerçeveli hap, ok + yazı ("Gizle" / "Göster"). */
+@Composable
+fun GizleGosterDugmesi(acik: Boolean, ton: Color, tik: () -> Unit) {
+    val sekil = RoundedCornerShape(14.dp)
+    Row(Modifier.height(28.dp).clip(sekil).background(ton.copy(alpha = if (acik) 0.10f else 0.20f)).border(1.dp, ton.copy(alpha = 0.7f), sekil)
+        .clickable(onClick = tik).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Simge(if (acik) "h_yukari" else "h_asagi", ton, 14.dp)
+        Spacer(Modifier.width(4.dp))
+        Text(if (acik) "Gizle" else "Göster", color = ton, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 

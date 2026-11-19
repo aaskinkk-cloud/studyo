@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.57 (20.11.2026, deneme · `yerel-android` dalı): Varsayılan ayarlar Geçişler düzeninde, belirgin Gizle/Göster düğmesi
+- **Görünüm › Şablon › Varsayılan:** maddeler artık sıkışmıyor — Geçişler paneli gibi yuvarlak simgeler, yana (sağa/sola) kayar; seçili maddede beyaz halka + ✓, altta kısa açıklama.
+- **Gizle/Göster:** bölüm başlıklarındaki küçük ▴/▾ işareti yerine renk tonlu çerçeveli hap (ok + "Gizle"/"Göster", `GizleGosterDugmesi`). Aynı düğme Katmanlar başlığında, Nesne kes satırında ve Düzenle › Klip'teki şerit gizle/göster'de de kullanılıyor.
+
 ## 3.56 (19.11.2026, deneme · `yerel-android` dalı): Renk sonucu ana önizlemede, ara kutu kaldırıldı
 - **Kök neden:** durağan oynatıcı ham görüntüyü gösterdiği için Renk sayfasında ayrı bir önce/sonra kutusu vardı; üstteki önizleme ve klip şeridiyle birlikte gereksiz yer kaplıyordu. Artık Renk bölümündeyken ayarlı kare doğrudan ana önizlemede, oynatıcı görüntüsünün tam üstünde (aynı kadraj/hareket yerleşimi) gösterilir; videoda o anki kare (`Medya.kareTam`), fotoğrafta fotoğrafın kendisi. Önizlemeye basılı tut = önce. Oynarken akıcı önizleme rengi zaten uygular.
 - Renk sayfası: başlık + ayar düğmeleri + seçili ayar; ara kutu yok.

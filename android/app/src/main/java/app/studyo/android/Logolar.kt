@@ -77,7 +77,7 @@ object LogoKutup {
     /** 3.61: yedekten geri yüklemeden sonra listeyi yeniden okur. */
     @Synchronized fun yenidenYukle() { yuklendi = false; yukle() }
 
-    /** 3.61: yerleşik logolar (APK içinde assets/logolar/*.png) — kütüphane ilk kez kurulurken eklenir (silip kursan da gelir). */
+    /** 3.61: yerleşik logolar (APK içinde assets/logolar klasöründeki PNG dosyaları) — kütüphane ilk kez kurulurken eklenir (silip kursan da gelir). */
     private fun yerlesikleriAl(l: List<LogoKaydi>): List<LogoKaydi> {
         val ay = Depo.app.getSharedPreferences("ayar", 0)
         if (ay.getBoolean("yerlesikLogoAlindi", false)) return l

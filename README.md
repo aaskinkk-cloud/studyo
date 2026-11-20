@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.73 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.73 (20.11.2026, deneme · `yerel-android` dalı): Televizyonda izle (Google TV / Chromecast)
+- **YouTube'a yüklemeden TV'de tam ekran:** dışa aktarma bitince "TV'de izle"; Projeler ekranında dışa aktarılmış videosu olan projede TV simgesi (ve ⋯ › Televizyonda izle).
+- **Nasıl:** Google Cast (ücretsiz Varsayılan medya alıcısı; hesap, ücret, internet kotası yok). Telefon videoyu ev Wi-Fi'ında kendi küçük sunucusundan verir (yalnız o video, rastgele adres, ileri/geri sarma desteği); Google TV / Chromecast doğrudan telefondan okur. Telefon ve TV aynı Wi-Fi'da olmalı.
+- **Pencere:** aynı ağdaki TV'ler listelenir → dokun = bağlan ve oynat. Bağlıyken oynat/duraklat, −10/+10 sn, sarma çubuğu, bağlantıyı kes. Pencere kapansa da TV oynamaya devam eder (Stüdyo açık kalmalı).
+- Her projenin son dışa aktarılan videosu hatırlanır (galeriden silinmişse TV açamaz).
+- Kod: `TvYayin.kt` (yerel HTTP sunucusu + Cast penceresi), `CastAyar` (manifestte OPTIONS_PROVIDER), bağımlılıklar play-services-cast-framework 21.5.0, androidx.mediarouter 1.7.0.
 
 ## 3.72 (20.11.2026, deneme · `yerel-android` dalı): ince üst çubuk, kontroller videonun üstünde, ekranda yazı düzenleme, estetik nesne kesme
 - **Üst çubuk (siyah-beyaz tema):** 34 dp'ye indi. "Kaydet" ve "Dışa aktar" artık düğme değil, küçük yazı (Dışa aktar beyaz, kalın).

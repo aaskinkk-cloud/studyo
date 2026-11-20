@@ -802,6 +802,7 @@ class DisaServisi : Service() {
                 prefs().edit().clear().apply()
                 durum.value = t.copy(sn = sn)
                 Kayit.yaz("TAMAM ${t.ad} ${Medya.mb(t.boyut)} ${t.sureMs} ms, ${sn} sn sürdü")
+                proje?.id?.let { TvYayin.ciktiKaydet(this@DisaServisi, it, t.uri, t.ad) }   // 3.73: Projeler ekranında "Televizyonda izle"
                 bitir(true, "Kaydedildi: ${t.ad}")
             }.onFailure { e ->
                 Kayit.hata("Kaydetme/doğrulama", e)

@@ -112,9 +112,12 @@ fun DisaEkrani(vm: EditorDurum, kapat: () -> Unit) {
                         val i = Intent(Intent.ACTION_SEND).setType("video/mp4").putExtra(Intent.EXTRA_STREAM, Uri.parse(s.uri)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         ctx.startActivity(Intent.createChooser(i, "Videoyu paylaş"))
                     }
-                    if (Duzen.yaziliMenu) DugmeSirasi("▶ Oynat" to oynat, "Paylaş" to paylas, "Yeni" to { DisaServisi.durum.value = DisaDurum.Bos })
-                    else TonSecici(listOf(Triple("oynat", "Oynat", "oynat"), Triple("paylas", "Paylaş", "disa"), Triple("yeni", "Yeni", "ekle")), "", ilkSira = 1) { k ->
-                        when (k) { "oynat" -> oynat(); "paylas" -> paylas(); else -> DisaServisi.durum.value = DisaDurum.Bos }
+                    // 3.73: Televizyonda izle (Google TV / Chromecast) — YouTube'a yüklemeden, ev Wi-Fi'ı üzerinden
+                    var tvAcik by remember { mutableStateOf(false) }
+                    if (tvAcik) TvPenceresi(s.uri, s.ad) { tvAcik = false }
+                    if (Duzen.yaziliMenu) DugmeSirasi("▶ Oynat" to oynat, "TV'de izle" to { tvAcik = true }, "Paylaş" to paylas, "Yeni" to { DisaServisi.durum.value = DisaDurum.Bos })
+                    else TonSecici(listOf(Triple("oynat", "Oynat", "oynat"), Triple("tv", "TV'de izle", "tv"), Triple("paylas", "Paylaş", "disa"), Triple("yeni", "Yeni", "ekle")), "", ilkSira = 1) { k ->
+                        when (k) { "oynat" -> oynat(); "tv" -> tvAcik = true; "paylas" -> paylas(); else -> DisaServisi.durum.value = DisaDurum.Bos }
                     }
                 }
                 is DisaDurum.Hata -> Kart("Hata") {

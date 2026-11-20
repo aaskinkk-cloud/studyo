@@ -151,6 +151,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
     var secim by remember { mutableStateOf<Set<String>?>(null) }      // null: seçim kipi kapalı
     var arsivde by remember { mutableStateOf(false) }
     var topluSilOnay by remember { mutableStateOf(false) }
+    var tvVideo by remember { mutableStateOf<Pair<String, String>?>(null) }
     val gorunen = projeler.filter { it.arsiv == arsivde }
     val arsivSayisi = projeler.count { it.arsiv }
     val seciliProjeler = secim?.let { s -> gorunen.filter { it.id in s } } ?: emptyList()
@@ -261,11 +262,14 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                     sil = { silinecek = p },
                     arsivle = { Depo.arsivle(listOf(p), !p.arsiv); projeler = Depo.listele() },
                     secimde = s != null, secili = s?.contains(p.id) == true,
-                    uzunBas = { secim = (s ?: emptySet()) + p.id })
+                    uzunBas = { secim = (s ?: emptySet()) + p.id },
+                    tv = remember(p.id, disa) { TvYayin.cikti(ctxY, p.id) }?.let { c -> { tvVideo = c } })
             }
         }
     }
 
+    // 3.73: Televizyonda izle (projenin son dışa aktarılan videosu)
+    tvVideo?.let { (u, ad) -> TvPenceresi(u, ad) { tvVideo = null } }
     if (topluSilOnay) {
         val silinecekler = seciliProjeler.filter { it.id != disadaki }
         val atlanan = seciliProjeler.size - silinecekler.size
@@ -330,7 +334,7 @@ fun DisaSerit(d: DisaDurum, onClick: () -> Unit) {
 @Composable
 fun ProjeKarti(
     p: Proje, ac: () -> Unit, cogalt: () -> Unit, adDegistir: () -> Unit, sil: () -> Unit, arsivle: () -> Unit,
-    secimde: Boolean, secili: Boolean, uzunBas: () -> Unit,
+    secimde: Boolean, secili: Boolean, uzunBas: () -> Unit, tv: (() -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
     val sekil = RoundedCornerShape(14.dp)
@@ -355,10 +359,13 @@ fun ProjeKarti(
             Text("${p.klipler.size} klip · ${sureYaz(p.toplamMs)} · ${p.bicim}", color = Renk.soluk, fontSize = 12.5.sp)
             Text(SimpleDateFormat("d MMM yyyy HH:mm", TR).format(Date(p.guncelleme)), color = Renk.soluk, fontSize = 12.sp)
         }
+        // 3.73: dışa aktarılmış videosu olan projede TV simgesi (dokun = televizyonda izle)
+        if (!secimde && tv != null) Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClick = tv), contentAlignment = Alignment.Center) { Simge("tv", Renk.turuncu, 22.dp) }
         if (!secimde) Box {
             TextButton(onClick = { menu = true }) { Text("⋯", color = Renk.yazi, fontSize = 22.sp) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text("Aç") }, onClick = { menu = false; ac() })
+                if (tv != null) DropdownMenuItem(text = { Text("Televizyonda izle") }, onClick = { menu = false; tv() })
                 DropdownMenuItem(text = { Text("Çoğalt") }, onClick = { menu = false; cogalt() })
                 DropdownMenuItem(text = { Text("Adını değiştir") }, onClick = { menu = false; adDegistir() })
                 DropdownMenuItem(text = { Text(if (p.arsiv) "Arşivden çıkar" else "Arşivle") }, onClick = { menu = false; arsivle() })

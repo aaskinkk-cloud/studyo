@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.72." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.73." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {
@@ -57,4 +57,7 @@ dependencies {
     // Otomatik altyazı: Vosk (Apache-2.0), çevrimdışı konuşma tanıma; Türkçe model uygulama içinden bir kez iner
     implementation("net.java.dev.jna:jna:5.13.0@aar")
     implementation("com.alphacephei:vosk-android:0.3.47@aar")
+    // 3.73: Televizyonda izle — Google Cast (ücretsiz Varsayılan medya alıcısı; Google TV / Chromecast)
+    implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
+    implementation("androidx.mediarouter:mediarouter:1.7.0")
 }

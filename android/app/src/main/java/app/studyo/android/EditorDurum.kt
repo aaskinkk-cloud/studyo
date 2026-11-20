@@ -1010,6 +1010,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** Seçilen geçişi bütün klip aralarına uygular (klip başına seçimler temizlenir). */
     fun gecisHepsine(tur: String) = guncelle(true) { p -> p.copy(gecis = p.gecis.copy(tur = tur), klipler = p.klipler.map { it.copy(gecis = null) }) }
     fun girisDegis(f: (Giris) -> Giris) = guncelle { it.copy(giris = f(it.giris)) }
+    /** 3.69: Görünüm › Şablon'un açık alt sayfası (klip kartındaki Giriş simgesine çift dokununca "giris" açılır). */
+    val sablonSekme = MutableStateFlow("paket")
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
     private var yapiIs: Job? = null
     /** Kapanış kartı yazısı değişince kart görüntüsü yeniden çizilir; yazarken her harfte değil, 700 ms durunca. */

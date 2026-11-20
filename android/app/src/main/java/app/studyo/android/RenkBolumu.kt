@@ -64,6 +64,12 @@ private val RENK_HAZIR = listOf(
     "Yeşili canlandır" to RenkAyar(hslDoy = List(8) { if (it == 3 || it == 2) 0.35f else 0f }, hslIsik = List(8) { if (it == 3) 0.1f else 0f }),
 )
 
+/** 3.69: hazır ayarların simgesi ve rengi. */
+private val HAZIR_SIMGE = mapOf(
+    "Patlamayı azalt" to ("r_beyaz" to 0xFFF1EFE8), "Doğal" to ("palet" to 0xFF97C459), "Canlı" to ("r_damla" to 0xFFED93B1),
+    "Net" to ("r_keskin" to 0xFF5DCAA5), "Sıcak" to ("r_termo" to 0xFFF0997B), "Serin" to ("r_termo" to 0xFF85B7EB), "Yeşili canlandır" to ("r_palet" to 0xFF86C06E),
+)
+
 private fun hslDegisti(a: RenkAyar) = (a.hslTon + a.hslDoy + a.hslIsik).any { abs(it) > 0.005f }
 
 /** 3.61: Renk alt menüsü (ana menü satırında / üstünde): Hazır · ayarlar · HSL. */
@@ -115,10 +121,12 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
                 ayar == "hsl" -> HslSayfasi(a) { f -> d(f) }
                 else -> {
                     Text("Hazır ayarlar", color = Renk.soluk, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    RENK_HAZIR.chunked(2).forEachIndexed { s, satir ->
-                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            satir.forEachIndexed { j, (ad, r) -> SecimKarti(ad, "", a == r, Modifier.weight(1f), sira = s * 2 + j, simge = "gorunum") { d { r } } }
-                            if (satir.size == 1) Spacer(Modifier.weight(1f))
+                    // 3.69: hazır ayarlar yatay, yuvarlak simgeli (Geçişler biçimi; yana kayar); "Yok" = ayarları sıfırla
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        YuvarlakSecim("Yok", "kapat", Renk.soluk, a.bos) { d { RenkAyar() } }
+                        RENK_HAZIR.forEach { (ad, r) ->
+                            val (sm, rr) = HAZIR_SIMGE[ad] ?: ("gorunum" to 0xFFFAC775)
+                            YuvarlakSecim(ad, sm, Color(rr), a == r) { d { r } }
                         }
                     }
                     Text("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Sonuç üstteki önizlemede görünür; önizlemeye basılı tutunca ayarsız hâli görünür.",

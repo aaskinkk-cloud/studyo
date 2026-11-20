@@ -258,7 +258,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             hareketliEkle = { vm.katmanMetinEkle("acilan", "Yazınız", 4000, 0.5f, 0.72f, 0.042f, anim = "yok", ad = "Alıntı açılır")
                                 bolum = "metin"; haplar["metin"] = "yazi"; panelAcik = true; altMod = true },
                             nesneAc = { bolum = "duzenle"; haplar["duzenle"] = "nesne"; panelAcik = true; altMod = true },
-                            takipAc = { bolum = "metin"; haplar["metin"] = "takip"; panelAcik = true; altMod = true })
+                            takipAc = { bolum = "metin"; haplar["metin"] = "takip"; panelAcik = true; altMod = true },
+                            bolumAc = { b, h -> bolum = b; if (b == "renk") vm.renkSekme.value = h else haplar[b] = h; panelAcik = true; altMod = true })
                         if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
                         else if (!Duzen.seritGizli) Text("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.", color = Renk.soluk, fontSize = 11.5.sp,
@@ -537,7 +538,9 @@ private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje) {
 
 @Composable
 private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false, kapakAc: (() -> Unit)? = null,
-                       yaziEkle: (() -> Unit)? = null, hareketliEkle: (() -> Unit)? = null, nesneAc: (() -> Unit)? = null, takipAc: (() -> Unit)? = null) {
+                       yaziEkle: (() -> Unit)? = null, hareketliEkle: (() -> Unit)? = null, nesneAc: (() -> Unit)? = null, takipAc: (() -> Unit)? = null,
+                       bolumAc: ((String, String) -> Unit)? = null) {
+    val git: (String, String) -> (() -> Unit)? = { b, h -> bolumAc?.let { f -> { f(b, h) } } }
     // 3.67: seçili klip kartındaki hareket yönü simgesi → Hareket sayfası (Geçişler biçiminde, açılır pencere)
     var hareketId by remember { mutableStateOf<String?>(null) }
     hareketId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> HareketSecimi(vm, kk) { hareketId = null } } ?: run { hareketId = null } }
@@ -611,13 +614,13 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                 if (secili && !kucuk) {
                     // renkli küçük simgeler: ses · böl · çoğalt · sil
                     Row(Modifier.align(Alignment.TopEnd).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (!k.foto && k.sesVar) SimgeDugmesi(if (k.sessiz) "sessiz" else "ses", 0xFF5DCAA5) { vm.sesAcKapat() }
-                        SimgeDugmesi("kirp", 0xFFFAC775) { kirpId = k.id }
+                        if (!k.foto && k.sesVar) SimgeDugmesi(if (k.sessiz) "sessiz" else "ses", 0xFF5DCAA5, cift = git("ses", "klipses")) { vm.sesAcKapat() }
+                        SimgeDugmesi("kirp", 0xFFFAC775, cift = { kirpId = k.id }) { kirpId = k.id }
                         // 3.68: kırp simgesi = Nesne kes (fotoğraftan/videodan kesme); Kadraj (Sığdır/Doldur) ayrı tuval simgesinde
-                        if (nesneAc != null) SimgeDugmesi("kadraj", 0xFF97C459) { nesneAc() }
-                        SimgeDugmesi("tuval", 0xFF5DCAA5) { kadrajId = k.id }
-                        SimgeDugmesi("makas", 0xFFF0997B) { vm.klipBolSecili() }
-                        SimgeDugmesi("cogalt", 0xFF85B7EB) { vm.klipCogalt() }
+                        if (nesneAc != null) SimgeDugmesi("kadraj", 0xFF97C459, cift = nesneAc) { nesneAc() }
+                        SimgeDugmesi("tuval", 0xFF5DCAA5, cift = { kadrajId = k.id }) { kadrajId = k.id }
+                        SimgeDugmesi("makas", 0xFFF0997B, cift = git("duzenle", "klip")) { vm.klipBolSecili() }
+                        SimgeDugmesi("cogalt", 0xFF85B7EB, cift = git("duzenle", "klip")) { vm.klipCogalt() }
                         val onay = silOnayId == k.id
                         SimgeDugmesi("sil", if (onay) 0xFFFFFFFF else 0xFFED93B1, if (onay) Renk.kirmizi else Color(0xB3000000)) {
                             if (onay) { silOnayId = null; vm.klipSil() } else silOnayId = k.id
@@ -643,16 +646,23 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                                     val yeni = sira[(sira.indexOf(simdi) + 1) % sira.size]
                                     vm.klipGuncelle { if (yeni == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = yeni) }
                                     vm.mesaj.value = "Hareket: " + HAREKET_ADI.getValue(yeni) + " · basılı tut = ayarlar"
-                                }, onLongPress = { hareketId = k.id })
+                                }, onLongPress = { hareketId = k.id }, onDoubleTap = { bolumAc?.invoke("gorunum", "hareket") ?: run { hareketId = k.id } })
                             }, contentAlignment = Alignment.Center) { Simge(hareketSimgesi(k), Color(0xFFFFD54F), 16.dp) }
                             val dogal = k.renk == DOGAL_RENK
-                            SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000)) {
+                            SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000), cift = git("renk", "hazir")) {
                                 vm.klipGuncelle { it.copy(renk = if (dogal) null else DOGAL_RENK) }
                                 vm.mesaj.value = if (dogal) "Doğal renk kaldırıldı" else "Doğal renk uygulandı"
                             }
-                            if (takipAc != null && !k.foto) SimgeDugmesi("takip", 0xFF85B7EB) { takipAc() }
-                            if (yaziEkle != null) SimgeDugmesi("metin", 0xFFFFFFFF) { yaziEkle() }
-                            if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43) { hareketliEkle() }
+                            if (takipAc != null && !k.foto) SimgeDugmesi("takip", 0xFF85B7EB, cift = takipAc) { takipAc() }
+                            if (yaziEkle != null) SimgeDugmesi("metin", 0xFFFFFFFF, cift = git("metin", "yazi")) { yaziEkle() }
+                            if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43, cift = git("metin", "yazi")) { hareketliEkle() }
+                            // 3.69: Giriş yazısı — dokun = aç/kapat, çift dokun = Görünüm › Şablon › Giriş
+                            SimgeDugmesi("baslik", if (p.giris.acik) 0xFF000000 else 0xFFD9CF5A, if (p.giris.acik) Color(0xFFD9CF5A) else Color(0xB3000000),
+                                cift = { vm.sablonSekme.value = "giris"; bolumAc?.invoke("gorunum", "sablon") }) {
+                                val ac = !p.giris.acik
+                                vm.girisDegis { it.copy(acik = ac) }
+                                vm.mesaj.value = if (ac) "Giriş yazısı açıldı · çift dokun = ayarlar" else "Giriş yazısı kapandı"
+                            }
                         }
                     }
                 } else if (!kucuk) {
@@ -771,8 +781,14 @@ private fun KlipSureKirp(vm: EditorDurum, k: Klip) {
 
 /** Klip kartının üstündeki renkli küçük simge düğmesi (3.25). */
 @Composable
-private fun SimgeDugmesi(ad: String, renk: Long, zemin: Color = Color(0xB3000000), tik: () -> Unit) =
-    Box(Modifier.size(28.dp).clip(CircleShape).background(zemin).clickable { tik() }, contentAlignment = Alignment.Center) { Simge(ad, Color(renk), 16.dp) }
+private fun SimgeDugmesi(ad: String, renk: Long, zemin: Color = Color(0xB3000000), cift: (() -> Unit)? = null, tik: () -> Unit) {
+    // 3.69: çift dokunuş = ilgili bölüme git (tek dokunuş hızlı işlem)
+    val tikG by rememberUpdatedState(tik); val ciftG by rememberUpdatedState(cift)
+    Box(Modifier.size(28.dp).clip(CircleShape).background(zemin).then(
+        if (cift == null) Modifier.clickable { tikG() }
+        else Modifier.pointerInput(ad) { detectTapGestures(onTap = { tikG() }, onDoubleTap = { ciftG?.invoke() ?: tikG() }) }),
+        contentAlignment = Alignment.Center) { Simge(ad, Color(renk), 16.dp) }
+}
 
 /** 3.53: Kırp / Süre sayfası — Geçişler paneli biçiminde (ortada başlık, sağda Tamam). Önce Düzenle › Klip'teki "Kırp ve ekle" kartındaydı. */
 @Composable

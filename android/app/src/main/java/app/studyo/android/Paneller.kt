@@ -736,13 +736,13 @@ fun PanelSablon(vm: EditorDurum, p: Proje) {
 private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
     val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
     // 3.54: seçenekler tek sayfada yığılmasın — Renk bölümündeki gibi yatay alt düğmeler, her biri kendi sayfası (✓ = özellik açık)
-    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("paket") }
+    val sekme by vm.sablonSekme.collectAsState()   // 3.69: dışarıdan da açılır (klip kartı › Giriş)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        AyarDugmesi("Paketler", "sihir", TON[3], sekme == "paket", false) { sekme = "paket" }
-        AyarDugmesi("Giriş", "baslik", TON[0], sekme == "giris", p.giris.acik) { sekme = "giris" }
-        AyarDugmesi("Abone", "zil", TON[4], sekme == "abone", p.hatirlatici.acik) { sekme = "abone" }
-        AyarDugmesi("Kapanış", "kalp", TON[2], sekme == "kapanis", p.kapanis.acik) { sekme = "kapanis" }
-        AyarDugmesi("Varsayılan", "uygula", TON[1], sekme == "varsayilan", false) { sekme = "varsayilan" }
+        AyarDugmesi("Paketler", "sihir", TON[3], sekme == "paket", false) { vm.sablonSekme.value = "paket" }
+        AyarDugmesi("Giriş", "baslik", TON[0], sekme == "giris", p.giris.acik) { vm.sablonSekme.value = "giris" }
+        AyarDugmesi("Abone", "zil", TON[4], sekme == "abone", p.hatirlatici.acik) { vm.sablonSekme.value = "abone" }
+        AyarDugmesi("Kapanış", "kalp", TON[2], sekme == "kapanis", p.kapanis.acik) { vm.sablonSekme.value = "kapanis" }
+        AyarDugmesi("Varsayılan", "uygula", TON[1], sekme == "varsayilan", false) { vm.sablonSekme.value = "varsayilan" }
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
     if (sekme == "paket") Kart("Hazır paketler", ton = turuncu) {

@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.69 (20.11.2026, deneme · `yerel-android` dalı): kartta Giriş yazısı, çift dokun = ilgili bölüm, Renk › Hazır yatay
+- **Giriş yazısı simgesi** (klip kartının alt satırında): dokun = giriş başlığını aç/kapat (açıkken sarı dolu); çift dokun = Görünüm › Şablon › Giriş sayfası.
+- **Kart simgelerinde çift dokunuş = ilgili bölüm:** ses → Ses › Klip sesi · süre/kırp → Kırp sayfası · Nesne kes → Düzenle › Nesne · kadraj → Kadraj sayfası · böl/çoğalt → Düzenle › Klip · hareket → Görünüm › Hareket · Doğal → Renk › Hazır · takip → Metin › Takip · yazı ve hareketli yazı → Metin › Yazı. Tek dokunuş hızlı işlem olarak kalır. Sil'de çift dokunuş yok (güvenlik; iki ayrı dokunuşla silinir).
+- **Renk › Hazır ayarlar:** iki sütunlu kartlar yerine yatay, yuvarlak simgeli seçenekler (yana kayar); başta "Yok" = ayarları sıfırla.
+
 ## 3.68 (20.11.2026, deneme · `yerel-android` dalı): hareket oku gerçek yönü gösterir, kartta Nesne kes · Doğal · Takip, dokun = dur, kalın başlık bandı
 - **Hareket oku:** klibin gerçek yönünü gösterir (otomatik ve yakınlaş = yakınlaş oku; sihir değneği kalktı). Dokun = sıradaki yön (Yakınlaş → Uzaklaş → Sağa → Sola → Yukarı → Aşağı → Sabit), basılı tut = Hareket sayfası.
 - **Kartın üst satırı:** yeşil kırp simgesi artık **Nesne kes** (Düzenle › Nesne: fotoğraftan ve videodan kesme). Kadraj (Sığdır/Doldur) ayrı tuval simgesinde. Sarı kırp = süre/kırpma (aynen).

@@ -429,7 +429,7 @@ object Disa {
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
         k.renk?.keskinlik?.takeIf { it > 0.005f }?.let { v += KeskinEtki(it) }   // 3.53: çıkış çözünürlüğünde keskinleştirme
-        if (k.arkaBulanik > 0.01f) { v += BulanikEtki(k.arkaBulanik, true); v += BulanikEtki(k.arkaBulanik, false) }   // 3.61: arka plan bulanık (iki geçişli)
+        if (k.arkaBulanik > 0.01f) v += BulanikEtki.hepsi(k.arkaBulanik)   // 3.61 / 3.72: arka plan bulanık (dört geçişli, hafif karartmalı)
         if (k.efekt != "yok" && k.efektGuc > 0.001f) v += EfektEtki(k.efekt, k.efektGuc)   // 3.59: efekt (vinyet, gren, sinema, parıltı, VHS)
         v += gecis
         // Klibin kendi yazısı/takip yazısı klibe aittir (çıkış geçişinde klip ile birlikte kaybolur); zaman çizelgesi

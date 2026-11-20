@@ -1013,6 +1013,45 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** 3.69: Görünüm › Şablon'un açık alt sayfası (klip kartındaki Giriş simgesine çift dokununca "giris" açılır). */
     val sablonSekme = MutableStateFlow("paket")
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
+
+    // ---------- 3.72: şablon yazılarını ekranda düzenleme ----------
+    /** Önizlemenin altında açık ekran yazı düzenleyicisi: "giris" | "abone" | "kapanis" | null. */
+    val ekranDuzen = MutableStateFlow<String?>(null)
+    private var konuTur: String? = null
+    private var oneriSira = 0
+
+    /** Şablon öğesinin tam göründüğü ana gider ve durur (stil seçince "ekrana gelsin"). */
+    fun sablonGoster(tur: String) {
+        val p = proje.value
+        if (p.klipler.isEmpty()) return
+        val ms = when (tur) {
+            "giris" -> { val (a, b) = Zaman.girisAralik(p); (a + minOf(1800L, (b - a) / 2)).coerceAtMost((b - 100).coerceAtLeast(a)) }
+            "abone" -> { val (a, b) = Zaman.hatirlaticiAralik(p); (a + 1500).coerceAtMost(b - 100) }
+            "kapanis" -> if (p.kapanisMs > 0) p.klipMs + minOf(1500L, p.kapanisMs / 2) else return
+            else -> return
+        }
+        if (player.isPlaying) player.pause()
+        git(ms.coerceIn(0, (p.toplamMs - 1).coerceAtLeast(0)))
+    }
+
+    /** Giriş başlığı için konuya uygun örnek yazı (ML Kit etiketleri, cihaz içinde). Başlık boşsa doldurur; zorla = başka öneri.
+     *  Tarih/konum bandı ve alt başlık boşsa çekim tarihi · Kabataş, Ordu yazılır. Hepsi ekranda düzenlenebilir. */
+    fun girisOneri(zorla: Boolean = false) {
+        if (!zorla && proje.value.giris.baslik.isNotBlank()) return
+        kapsam.launch {
+            val tur = konuTur ?: runCatching { MuzikSecici.konudanTur(ctx, proje.value) }.getOrDefault("huzur").also { konuTur = it }
+            val liste = KonuOneri.basliklar(tur)
+            val baslik = liste[oneriSira++ % liste.size]
+            val p = proje.value
+            val tarih = p.klipler.firstNotNullOfOrNull { it.tarihMs.takeIf { t -> t > 0 } } ?: p.olusturma
+            val gun = java.text.SimpleDateFormat("d MMMM yyyy", TR).format(java.util.Date(tarih))
+            girisDegis { g ->
+                g.copy(baslik = if (zorla || g.baslik.isBlank()) baslik else g.baslik,
+                    bant = g.bant.ifBlank { Tarih.yaz(tarih) + "|Kabataş, Ordu" },
+                    alt = g.alt.ifBlank { "$gun · Kabataş, Ordu" })
+            }
+        }
+    }
     private var yapiIs: Job? = null
     /** Kapanış kartı yazısı değişince kart görüntüsü yeniden çizilir; yazarken her harfte değil, 700 ms durunca. */
     fun kapanisDegis(yapi: Boolean = true, f: (Kapanis) -> Kapanis) {
@@ -1530,12 +1569,12 @@ class EditorDurum(private val ctx: Context, id: String) {
             val olc = (alan[2] * gw / RW).coerceIn(0.02f, 3f)
             val bas = baslangic(i); val son = bas + p.zKlip(i).sureMs
             val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
-            val n = Nesne(yol = f.path, x = nx, y = ny, olcek = olc, basMs = bas, sonMs = son.coerceAtLeast(bas + 500), golge = false, orjYol = if (orj.exists()) orj.path else "")
-            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(kenBurns = false, arkaBulanik = if (kk.arkaBulanik > 0.01f) kk.arkaBulanik else 0.6f) else kk },
+            val n = Nesne(yol = f.path, x = nx, y = ny, olcek = olc, basMs = bas, sonMs = son.coerceAtLeast(bas + 500), golge = true, orjYol = if (orj.exists()) orj.path else "")
+            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(kenBurns = false, arkaBulanik = if (kk.arkaBulanik > 0.01f) kk.arkaBulanik else 0.75f) else kk },
                 nesneler = pp.nesneler + n) }
             kaydetSimdi(false)
             seciliNesne.value = n.id
-            mesaj.value = "Nesne ön planda · arka plan bulanık (bu klibin hareketi kapatıldı)"
+            mesaj.value = "Nesne ön planda · iki parmakla büyüt/küçült, sürükle = taşı"
         }
     }
 

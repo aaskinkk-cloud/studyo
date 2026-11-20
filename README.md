@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.72 (20.11.2026, deneme · `yerel-android` dalı): ince üst çubuk, kontroller videonun üstünde, ekranda yazı düzenleme, estetik nesne kesme
+- **Üst çubuk (siyah-beyaz tema):** 34 dp'ye indi. "Kaydet" ve "Dışa aktar" artık düğme değil, küçük yazı (Dışa aktar beyaz, kalın).
+- **Kontroller videonun üstünde (varsayılan):** oynat · başa · önceki · sonraki · zaman çubuğu · süre · tam ekran ⛶ şeffaf olarak videonun üstünde; geri al/yinele üst çubukta. Oynarken 2,5 sn sonra kendiliğinden solar, durunca (önizlemeye dokun) geri gelir. Önceki görünüm (kontroller videonun altında) ▾ ile seçilebilir, seçim hatırlanır.
+- **Ekranda yazı düzenleme (Görünüm › Şablon):** Giriş / Abone / Kapanış sayfası açılınca ya da bir stile dokununca o öğe tam göründüğü ana gelir ve durur. Giriş başlığı boşsa videonun konusuna uygun örnek başlık yazılır (ML Kit görüntü etiketleri, cihaz içinde: doğa, çay/sofra, yol, yapı…; tarih bandı ve "Kabataş, Ordu" da dolar). Önizlemede yazıya dokun = önizlemenin hemen altında ince düzenleyici açılır, her harf anında videoya yansır (Enter = yeni satır/bant). Girişte iki parmak = yazı boyutu; "Başka öneri" = konuya uygun başka başlık. Paneldeki alanlar da eşzamanlı güncellenir.
+- **Nesne kesme (Kareden Videoya estetiği):** kenar yumuşatma (sert eşik yerine yumuşak geçiş + içe doğru ince tüy; tırtık ve koyu hale yok), yumuşak gölge (%45, aşağı 1,2 %), arka plan bulanıklığı dört geçişli Gauss (daha kremsi, basamaksız) + %10 karartma; durağan önizleme de aynı görünümde. Varsayılan arka plan bulanıklığı %75.
+- **Nesneyi parmakla yönet:** Düzenle › Nesne ve Katman'da nesneye dokun = seç (beyaz çerçeve) · sürükle = taşı · iki parmak = büyüt/küçült. Hareket sırasında görüntü yeniden çizilmez (akıcı), bırakınca tek adımda kaydedilir (geri al çalışır). Boşta sürükleme klibin kadraj kaydırmasına kalır.
+
 ## 3.71 (20.11.2026, deneme · `yerel-android` dalı): menüler hep altta, video tam ekran, şeffaf kontroller, temiz müzik
 - **Menüler hep altta:** 3. katman çipleri panelin tepesinden alt menünün hemen üstüne indi; üstteki yol satırı kalktı (arama 🔍 alt menü satırının sağında). Ana menüye dönünce üstünde ayrı alt menü satırı yok — yalnız alt menü modu (‹ Bölüm · alt menüler) kullanılır. Önceki yazılı düzen aynen.
 - **Video tam ekran** (kontrollerdeki ⛶): yalnız video ve kontroller; 16:9'da ekran yan döner. ⛶/geri = çık.

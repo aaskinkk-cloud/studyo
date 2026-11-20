@@ -61,12 +61,31 @@ object Efektler {
     }
 
     /** 3.61: arka plan bulanıklığı (durağan önizleme): küçült-büyüt (GL'deki Gauss'a yakın). */
+    /** 3.72: arka plan bulanıklığı (durağan önizleme) — dışa aktarmadaki 4 geçişli GL Gauss'un karşılığı: küçültülmüş görüntüde
+     *  3 kez kutu bulanıklığı (Gauss'a yakın, basamaksız), yumuşak büyütme ve %10 karartma (öndeki nesne öne çıksın). */
     fun bulaniklastir(src: Bitmap, guc: Float): Bitmap {
         if (guc <= 0.01f) return src
-        val olc = (1f / (1f + guc * 14f)).coerceIn(0.04f, 1f)
-        val k = Bitmap.createScaledBitmap(src, max(1, (src.width * olc).toInt()), max(1, (src.height * olc).toInt()), true)
-        val k2 = Bitmap.createScaledBitmap(k, max(1, k.width / 2), max(1, k.height / 2), true)
-        return Bitmap.createScaledBitmap(Bitmap.createScaledBitmap(k2, k.width, k.height, true), src.width, src.height, true)
+        val sigma = guc.coerceIn(0f, 1f) * min(src.width, src.height) * 0.036f
+        val d = (sigma / 2.4f).coerceAtLeast(1f)
+        val kw = max(8, (src.width / d).toInt()); val kh = max(8, (src.height / d).toInt())
+        val k = Bitmap.createScaledBitmap(src, kw, kh, true)
+        val px = IntArray(kw * kh); k.getPixels(px, 0, kw, 0, 0, kw, kh)
+        val r = IntArray(kw * kh) { (px[it] shr 16) and 255 }; val g = IntArray(kw * kh) { (px[it] shr 8) and 255 }; val b = IntArray(kw * kh) { px[it] and 255 }
+        repeat(3) { kutu(r, kw, kh); kutu(g, kw, kh); kutu(b, kw, kh) }
+        for (i in px.indices) px[i] = (0xFF shl 24) or ((r[i] * 0.9f).toInt() shl 16) or ((g[i] * 0.9f).toInt() shl 8) or (b[i] * 0.9f).toInt()
+        val kb = Bitmap.createBitmap(px, kw, kh, Bitmap.Config.ARGB_8888)
+        return Bitmap.createScaledBitmap(kb, src.width, src.height, true)
+    }
+
+    /** Yarıçapı 2 olan yatay + dikey kutu bulanıklığı (kenarda sıkıştırma). */
+    private fun kutu(c: IntArray, w: Int, h: Int, rr: Int = 2) {
+        val t = IntArray(c.size); val n = 2 * rr + 1
+        for (y in 0 until h) { val o = y * w; var s = 0
+            for (x in -rr..rr) s += c[o + x.coerceIn(0, w - 1)]
+            for (x in 0 until w) { t[o + x] = s / n; s += c[o + (x + rr + 1).coerceAtMost(w - 1)] - c[o + (x - rr).coerceAtLeast(0)] } }
+        for (x in 0 until w) { var s = 0
+            for (y in -rr..rr) s += t[y.coerceIn(0, h - 1) * w + x]
+            for (y in 0 until h) { c[y * w + x] = s / n; s += t[(y + rr + 1).coerceAtMost(h - 1) * w + x] - t[(y - rr).coerceAtLeast(0) * w + x] } }
     }
 
     /** Geçiş önizleme küçük resmi (k = 0,5 anı): yeni kenar geçişlerinin görünümü. */
@@ -96,20 +115,26 @@ object Efektler {
     }
 }
 
-/** 3.61: arka plan bulanıklığı — iki geçişli (yatay + dikey) Gauss; yarıçap = güç × kısa kenarın %2,5'i. */
-class BulanikEtki(private val guc: Float, private val yatay: Boolean) : GlEffect {
-    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = BulanikProgram(useHdr, guc, yatay)
+/** 3.61: arka plan bulanıklığı — iki geçişli (yatay + dikey) Gauss. 3.72: dört geçiş (H, V, H, V; Kareden Videoya'daki gibi daha
+ *  kremsi, basamaksız), yarıçap = güç × kısa kenarın %4'ü; son geçişte karart (0…1) ile hafif karartma — öndeki nesne öne çıkar. */
+class BulanikEtki(private val guc: Float, private val yatay: Boolean, private val karart: Float = 0f) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = BulanikProgram(useHdr, guc, yatay, karart)
+    companion object {
+        /** Bir klibin arka plan bulanıklığı için etkiler (sırayla eklenir). */
+        fun hepsi(guc: Float): List<BulanikEtki> = listOf(BulanikEtki(guc, true), BulanikEtki(guc, false), BulanikEtki(guc, true), BulanikEtki(guc, false, 0.10f))
+    }
 }
 
-private class BulanikProgram(useHdr: Boolean, private val guc: Float, private val yatay: Boolean) : BaseGlShaderProgram(useHdr, 1) {
+private class BulanikProgram(useHdr: Boolean, private val guc: Float, private val yatay: Boolean, private val karart: Float) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(KENAR_VS, FS)
     private var gen = 1; private var yuk = 1
     init { program.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE) }
     override fun configure(inputWidth: Int, inputHeight: Int): Size { gen = inputWidth.coerceAtLeast(1); yuk = inputHeight.coerceAtLeast(1); return Size(inputWidth, inputHeight) }
     override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
-        val r = guc.coerceIn(0f, 1f) * min(gen, yuk) * 0.025f
+        val r = guc.coerceIn(0f, 1f) * min(gen, yuk) * 0.04f
         program.use()
         program.setSamplerTexIdUniform("uTexSampler", inputTexId, 0)
+        program.setFloatUniform("uKarart", karart)
         program.setFloatsUniform("uAdim", if (yatay) floatArrayOf(r / 4f / gen, 0f) else floatArrayOf(0f, r / 4f / yuk))
         program.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -120,6 +145,7 @@ private class BulanikProgram(useHdr: Boolean, private val guc: Float, private va
 precision highp float;
 uniform sampler2D uTexSampler;
 uniform vec2 uAdim;
+uniform float uKarart;
 varying vec2 vTexSamplingCoord;
 void main() {
   vec2 t = vTexSamplingCoord;
@@ -128,7 +154,7 @@ void main() {
   s += (texture2D(uTexSampler, t + uAdim * 2.0) + texture2D(uTexSampler, t - uAdim * 2.0)) * 0.1162;
   s += (texture2D(uTexSampler, t + uAdim * 3.0) + texture2D(uTexSampler, t - uAdim * 3.0)) * 0.0791;
   s += (texture2D(uTexSampler, t + uAdim * 4.0) + texture2D(uTexSampler, t - uAdim * 4.0)) * 0.0463;
-  gl_FragColor = vec4(s.rgb / 0.9347, 1.0);
+  gl_FragColor = vec4(s.rgb / 0.9347 * (1.0 - uKarart), 1.0);
 }
 """
     }

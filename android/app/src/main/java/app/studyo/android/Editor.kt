@@ -199,17 +199,18 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Row(
                 Modifier.fillMaxWidth().background(if (Renk.sb) Renk.zemin else Renk.kart)
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    // 3.72: siyah-beyaz temada üst çubuk olabildiğince dar (34 dp)
+                    .then(if (Renk.sb) Modifier.height(34.dp).padding(horizontal = 2.dp) else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 3.63: siyah-beyaz temada VITA dizilişi: ← simge · ad · Kaydet · beyaz Dışa aktar; geri al/yinele oynatıcı satırında
-                if (Renk.sb) Box(Modifier.size(42.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 24.dp) }
+                if (Renk.sb) Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 20.dp) }
                 else InceDugme("← Geri", Renk.yazi, onClick = cik)
                 var adMenu by remember { mutableStateOf(false) }
                 var adDuzen by remember { mutableStateOf(false) }
                 Box(Modifier.weight(1f)) {
-                    Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { adMenu = true }.padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(p.ad, color = Renk.soluk, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Row(Modifier.clip(RoundedCornerShape(10.dp)).clickable { adMenu = true }.padding(horizontal = 6.dp, vertical = if (Renk.sb) 3.dp else 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(p.ad, color = Renk.soluk, fontSize = if (Renk.sb) 12.sp else 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                         Simge("asagi", Renk.soluk, 14.dp)
                     }
                     DropdownMenu(expanded = adMenu, onDismissRequest = { adMenu = false }) {
@@ -226,19 +227,21 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
                 if (!Renk.sb || Duzen.kontrolUstte) {
-                Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
-                    Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
-                Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
-                    Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
+                val ub = if (Renk.sb) 30.dp else 34.dp; val us = if (Renk.sb) 17.dp else 18.dp
+                Box(Modifier.size(ub).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                    Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), us) }
+                Box(Modifier.size(ub).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                    Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), us) }
                 }
-                InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
                 if (Renk.sb) {
+                    // 3.72: Kaydet ve Dışa aktar düğme değil, küçük yazı (Ahmet'in isteği)
                     val etkin = p.klipler.isNotEmpty()
-                    Box(Modifier.padding(start = 4.dp, end = 4.dp).height(34.dp).clip(RoundedCornerShape(6.dp)).background(if (etkin) Color.White else Color(0x55FFFFFF))
-                        .clickable(enabled = etkin) { disaAcik = true }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-                        Text("Dışa aktar", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    }
+                    Text("Kaydet", color = Renk.soluk, fontSize = 12.5.sp, maxLines = 1,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { vm.kaydetSimdi() }.padding(horizontal = 8.dp, vertical = 6.dp))
+                    Text("Dışa aktar", color = if (etkin) Color.White else Renk.soluk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = etkin) { disaAcik = true }.padding(start = 8.dp, end = 10.dp, top = 6.dp, bottom = 6.dp))
                 } else {
+                    InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
                     Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
                     InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
                 }
@@ -250,14 +253,21 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 ((ekranGen / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
             }
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
+            // 3.72: Görünüm › Şablon açıkken hangi alt sayfa (giriş/abone/kapanış) — önizlemede yazıya dokun = ekranda düzenle
+            val sablonSekmeS by vm.sablonSekme.collectAsState()
+            val sablonSayfa = if (panelAcik && bolum == "gorunum" && haplar["gorunum"] == "sablon")
+                (if (Duzen.yaziliMenu) sablonSekmeS else AltHafiza.al("sablon")).takeIf { it in setOf("giris", "abone", "kapanis") } else null
+            val ekranDuzen by vm.ekranDuzen.collectAsState()
+            LaunchedEffect(sablonSayfa) { if (sablonSayfa == null || (ekranDuzen != null && ekranDuzen != sablonSayfa)) vm.ekranDuzen.value = null }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
-                    renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"))
+                    renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa)
                 if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
             }
+            ekranDuzen?.let { t -> EkranYaziDuzenleyici(vm, p, t) }   // 3.72: şablon yazısı ekranda düzenleme (anında önizlemeye yansır)
             if (Renk.sb && !Duzen.kontrolUstte && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p, tamEkran = { tamEkranV = true }) { Duzen.kontrolDegis(ctx) }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
@@ -517,8 +527,13 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkr
     val beyaz = Color(0xF2FFFFFF)
     // 3.71: şeffaf arka plan (koyu şerit yok); düğmeler parlak görüntüde de seçilsin diye hafif saydam yuvarlak üstünde
     val dz = Color(0x40000000)
+    // 3.72: oynarken 2,5 sn sonra kontroller kendiliğinden solar (görüntü temiz kalır); durunca (önizlemeye dokun = dur) geri gelir
+    var gizle by remember { mutableStateOf(false) }
+    LaunchedEffect(oyn) { gizle = false; if (oyn) { delay(2500); gizle = true } }
+    val gorunurluk by androidx.compose.animation.core.animateFloatAsState(if (gizle) 0f else 1f, label = "kontrol")
+    if (gorunurluk < 0.02f) return
     Row(
-        modifier.fillMaxWidth().padding(start = 4.dp, end = 6.dp, top = 6.dp, bottom = 4.dp),
+        modifier.fillMaxWidth().alpha(gorunurluk).padding(start = 4.dp, end = 6.dp, top = 6.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(34.dp).clip(CircleShape).background(dz).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 20.dp) }

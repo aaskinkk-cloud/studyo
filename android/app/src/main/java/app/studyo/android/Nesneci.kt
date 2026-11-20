@@ -47,6 +47,28 @@ object Nesneci {
     }
 
 
+    /** 3.72: nesne kenarı: alfa 40…215 arası yumuşak eğriyle yeniden ölçeklenir, sonra kısa kenarın ~%0,4'ü kadar kutu bulanıklığıyla
+     *  tüylenir. Tüy yalnız içe doğru uygulanır (min): saydam kalan piksellerin siyah rengi kenarda koyu hale olarak görünmez. */
+    internal fun kenarYumusat(kb: Bitmap) {
+        val w = kb.width; val h = kb.height; if (w < 3 || h < 3) return
+        val kp = IntArray(w * h); kb.getPixels(kp, 0, w, 0, 0, w, h)
+        val a = FloatArray(w * h)
+        for (i in kp.indices) { val t = (((kp[i] ushr 24) - 40f) / 175f).coerceIn(0f, 1f); a[i] = t * t * (3f - 2f * t) }
+        val r = (minOf(w, h) * 0.004f).toInt().coerceIn(1, 6)
+        val tmp = FloatArray(w * h); val b = FloatArray(w * h)
+        for (y in 0 until h) { var top = 0f; val o = y * w
+            for (x in -r..r) top += a[o + x.coerceIn(0, w - 1)]
+            for (x in 0 until w) { tmp[o + x] = top / (2 * r + 1); top += a[o + (x + r + 1).coerceAtMost(w - 1)] - a[o + (x - r).coerceAtLeast(0)] } }
+        for (x in 0 until w) { var top = 0f
+            for (y in -r..r) top += tmp[y.coerceIn(0, h - 1) * w + x]
+            for (y in 0 until h) { b[y * w + x] = top / (2 * r + 1); top += tmp[(y + r + 1).coerceAtMost(h - 1) * w + x] - tmp[(y - r).coerceAtLeast(0) * w + x] } }
+        for (i in kp.indices) {
+            val al = (minOf(a[i], b[i]) * 255f).toInt().coerceIn(0, 255)
+            kp[i] = if (al == 0) 0 else (al shl 24) or (kp[i] and 0x00FFFFFF)
+        }
+        kb.setPixels(kp, 0, w, 0, 0, w, h)
+    }
+
     /** @return kesilmiş nesnenin PNG dosyası ya da hata metni */
     /** alanCikti: verilirse nesnenin fotoğraftaki yeri 0…1 olarak yazılır (x, y, genişlik, yükseklik) — 3.61 ekrandan kesme yerleşimi. */
     suspend fun kes(ctx: Context, uri: Uri, alanCikti: FloatArray? = null): Pair<File?, String?> {
@@ -67,11 +89,8 @@ object Nesneci {
             val alan = withContext(Dispatchers.Default) { saydamKirpAlan(on) } ?: return null to "Fotoğrafta belirgin bir nesne bulunamadı."
             val kirp0 = Bitmap.createBitmap(on, alan[0], alan[1], alan[2], alan[3])
             // 3.62: çok düşük saydamlıklı arka plan kalıntısı (bulanık arka planın önünde sis gibi görünür) temizlenir
-            val kirp = kirp0.copy(Bitmap.Config.ARGB_8888, true).also { kb ->
-                val kp = IntArray(kb.width * kb.height); kb.getPixels(kp, 0, kb.width, 0, 0, kb.width, kb.height)
-                for (i in kp.indices) if ((kp[i] ushr 24) < 48) kp[i] = 0
-                kb.setPixels(kp, 0, kb.width, 0, 0, kb.width, kb.height)
-            }
+            // 3.72: kenar yumuşatma — sert eşik yerine yumuşak geçiş (smoothstep) + içe doğru ince tüy; kenar tırtıklı/kesik görünmez
+            val kirp = kirp0.copy(Bitmap.Config.ARGB_8888, true).also { kb -> withContext(Dispatchers.Default) { kenarYumusat(kb) } }
             alanCikti?.let { o -> if (o.size >= 4) { o[0] = alan[0].toFloat() / on.width; o[1] = alan[1].toFloat() / on.height; o[2] = alan[2].toFloat() / on.width; o[3] = alan[3].toFloat() / on.height } }
             val ad = yeniId()
             val f = File(Depo.dizin("nesne"), "$ad.png")

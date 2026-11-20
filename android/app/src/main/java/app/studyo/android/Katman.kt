@@ -181,11 +181,11 @@ object Katman {
         val yuk = (kaynak.height * gen.toFloat() / kaynak.width).roundToInt().coerceAtLeast(8)
         val olc = Bitmap.createScaledBitmap(kaynak, gen, yuk, true)
         val b = if (!n.golge) olc else {
-            val pay = (min(W, H) * 0.02f).roundToInt().coerceAtLeast(2)
+            val pay = (min(W, H) * 0.025f).roundToInt().coerceAtLeast(2)   // 3.72: Kareden Videoya'daki yumuşak gölge (bulanık 2,5 %, aşağı 1,2 %, %45)
             val o = Bitmap.createBitmap(gen + pay * 2, yuk + pay * 2, Bitmap.Config.ARGB_8888)
             val c = Canvas(o)
             val alfa = olc.extractAlpha()
-            c.drawBitmap(alfa, pay.toFloat(), pay * 1.6f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x88000000.toInt(); maskFilter = BlurMaskFilter(pay.toFloat(), BlurMaskFilter.Blur.NORMAL) })
+            c.drawBitmap(alfa, pay.toFloat(), pay * 1.48f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x73000000; maskFilter = BlurMaskFilter(pay.toFloat(), BlurMaskFilter.Blur.NORMAL) })
             c.drawBitmap(olc, pay.toFloat(), pay.toFloat(), null)
             o
         }

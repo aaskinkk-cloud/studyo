@@ -129,8 +129,7 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
                             YuvarlakSecim(ad, sm, Color(rr), a == r) { d { r } }
                         }
                     }
-                    Text("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Sonuç üstteki önizlemede görünür; önizlemeye basılı tutunca ayarsız hâli görünür.",
-                        color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
+                    AcilirNot("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Sonuç üstteki önizlemede görünür; önizlemeye basılı tutunca ayarsız hâli görünür.")
                 }
             }
         }

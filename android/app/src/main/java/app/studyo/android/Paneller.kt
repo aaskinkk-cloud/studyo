@@ -98,7 +98,7 @@ private fun Kaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPointR
 }
 
 @Composable
-private fun Not(m: String) = Text(m, color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+private fun Not(m: String) = AcilirNot(m)   // 3.72: bütün açıklamalar kapalı gelir (dokun = aç)
 
 // ===================================================== ÖNİZLEME =====================================================
 
@@ -200,18 +200,27 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         }.getOrNull()
                     }
                 }
+                // 3.72: Android 12+ arka plan bulanıklığı gerçek Gauss (RenderEffect, dışa aktarmadaki 4 geçişli GL Gauss'un karşılığı) + %10 karartma;
+                // eski sürümlerde yazılım bulanıklığı
+                val gpuBulanik = android.os.Build.VERSION.SDK_INT >= 31 && k.arkaBulanik > 0.01f
                 val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik) {
-                    value = ham?.let { b -> withContext(Dispatchers.Default) { Efektler.uygula(Efektler.bulaniklastir(RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc), k.arkaBulanik), k.efekt, k.efektGuc) } }
+                    value = ham?.let { b -> withContext(Dispatchers.Default) {
+                        val r = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+                        Efektler.uygula(if (gpuBulanik) r else Efektler.bulaniklastir(r, k.arkaBulanik), k.efekt, k.efektGuc) } }
                 }
+                val bulanikDp = with(yog) { (k.arkaBulanik.coerceIn(0f, 1f) * 0.035f * minOf(constraints.maxWidth, constraints.maxHeight)).toDp() }
                 var onceGoster by remember { mutableStateOf(false) }
                 (if (onceGoster) ham else ayarli)?.let { bm ->
                     Box(Modifier.fillMaxSize().background(Color.Black).then(if (renkPaneli) Modifier.pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) } else Modifier),
                         contentAlignment = Alignment.Center) {
+                        val gauss = gpuBulanik && !onceGoster
                         Image(bm.asImageBitmap(), null, Modifier.requiredSize(gorunumGen(kbAn), gorunumYuk(kbAn)).graphicsLayer {
                             val kb = kbAn?.s ?: 1f
                             scaleX = kb * an.olcek; scaleY = kb * an.olcek
                             translationX = (kbAn?.tx ?: 0f) * size.width / 2f; translationY = -(kbAn?.ty ?: 0f) * size.height / 2f
-                        }, contentScale = ContentScale.Fit)
+                        }.then(if (gauss) Modifier.blur(bulanikDp, androidx.compose.ui.draw.BlurredEdgeTreatment.Rectangle) else Modifier),
+                            contentScale = ContentScale.Fit,
+                            colorFilter = if (gauss) androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix().apply { setToScale(0.9f, 0.9f, 0.9f, 1f) }) else null)
                         if (renkPaneli) Text(if (onceGoster) "Önce" else "Basılı tut = önce", color = Color.White, fontSize = 11.sp,
                             modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
                     }
@@ -491,7 +500,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             } else if (nesnePaneli && katmanPaneli && seciliNesne != null) {
                 // 3.45: Katman bölümünde kesilen nesne seçiliyse sürükle = nesneyi taşı · 3.72: iki parmak = büyüt/küçült
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier.then(klipSurukle))
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (katmanPaneli) {
                 val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
                 val payPx = with(yog) { 28.dp.toPx() } / olcek     // 3.45: dokunma alanı katmanın çevresinde genişletilir (küçük yazı kolay tutulur)
@@ -566,8 +575,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 })
             } else if (nesnePaneli && (seciliNesne != null || p.nesneler.any { konum in it.basMs..it.sonMs })) {
                 // 3.72: Düzenle › Nesne: nesneye dokun = seç · sürükle = taşı · iki parmak = büyüt/küçült (Kareden Videoya'daki gibi);
-                // boş yere dokun = seçimi kaldır, boşta sürükle = klibi kadrajda kaydır
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier.then(klipSurukle))
+                // boş yere dokun = seçimi kaldır; arka plan sabit kalır
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (sablonSayfa != null && sablonGorunur(p, sablonSayfa, konum)) {
                 // 3.72: Görünüm › Şablon: ekrandaki giriş/abone/kapanış yazısına dokun = ekranda düzenle (önizlemenin altında);
                 // girişte iki parmak = yazı boyutu. Değişiklik anında önizlemeye yansır.
@@ -703,7 +712,7 @@ internal fun sablonGorunur(p: Proje, tur: String, konum: Long): Boolean = when (
 internal data class NesneGecici(val id: String, val dx: Float, val dy: Float, val carpan: Float)
 
 /** 3.72: önizlemede kesilen nesne: dokun = seç · sürükle = taşı · iki parmak = büyüt/küçült. Bırakınca tek adımda kaydedilir (geri al çalışır).
- *  Seçili nesne yokken ve nesneye değmeyen dokunuş: seçimi kaldırır; o hâlde sürükleme klibin kadraj kaydırmasına kalır (ek: klipSurukle). */
+ *  Nesneye değmeyen kısa dokunuş seçimi kaldırır. Arka plan (klip) bu modda kaymaz. */
 @Composable
 private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, RW: Int, RH: Int, boyut: Map<String, Pair<Int, Int>>,
                          gecici: () -> NesneGecici?, geciciYaz: (NesneGecici?) -> Unit, ek: Modifier) {
@@ -730,8 +739,8 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                 if (ev.changes.count { it.pressed } > 1) parmak2 = true
                 if (!tasindi) {
                     topPan += pan
-                    // seçili nesne dışında tek parmakla sürükleme klibe kalır; iki parmak her yerde seçili nesneyi büyütür
-                    if (hedef != null && (topPan.getDistance() > viewConfiguration.touchSlop && (vurulan != null || parmak2) || parmak2)) { tasindi = true; vm.seciliNesne.value = hedef }
+                    // seçili nesne ekranın her yerinden sürüklenir (küçük nesne de rahat tutulur); iki parmak = büyüt/küçült
+                    if (hedef != null && (parmak2 || topPan.getDistance() > viewConfiguration.touchSlop)) { tasindi = true; vm.seciliNesne.value = hedef }
                 }
                 if (tasindi && hedef != null && zoom.isFinite() && zoom > 0f && pan.x.isFinite() && pan.y.isFinite()) {
                     val g = gecici()?.takeIf { it.id == hedef } ?: NesneGecici(hedef, 0f, 0f, 1f)
@@ -1576,18 +1585,18 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
             val on = n.id == secili
             Column(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.14f) else Renk.kart2)
                 .border(if (on) 2.dp else 0.dp, if (on) Renk.turuncu else Color.Transparent, RoundedCornerShape(10.dp))
-                .clickable { vm.seciliNesne.value = n.id }.padding(10.dp)) {
+                .clickable { vm.seciliNesne.value = n.id; vm.git(n.basMs + 1) }.padding(10.dp)) {   // 3.72: dokun = seç + nesnenin klibine git
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val b by produceState<Bitmap?>(null, n.yol) { value = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(n.yol)?.let { Medya.olcekle(it, 160) } } }
                     Box(Modifier.size(52.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF3A4A5A))) { b?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) } }
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("${sureOndalik(n.basMs)} → ${sureOndalik(n.sonMs)}" + if (n.hareketli) " · hareketli" else "", color = Renk.yazi, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text(if (on) "Seçili · önizlemede sürükle" else "Seçmek için dokun", color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (on) "Seçili · sürükle = taşı · iki parmak = büyüt" else "Dokun = seç ve klibine git", color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 if (on) {
-                    Kaydirici("Boyut", n.olcek, 0.1f..1f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
+                    Kaydirici("Boyut", n.olcek, 0.05f..2f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
                     if (!n.hareketli) {
                         AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
                         var firca by remember(n.id) { mutableStateOf(false) }

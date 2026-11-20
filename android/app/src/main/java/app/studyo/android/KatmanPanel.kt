@@ -67,8 +67,7 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
         }
         Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
         HazirYazilar(vm)
-        Text("Yeni katman oynatıcının bulunduğu andan başlar, kısa süre kalır ve solarak biter; sonunu çizelgede ucundan çekerek ya da \"Sonu = şimdi\" ile ayarlarsın. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.",
-            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+        AcilirNot("Yeni katman oynatıcının bulunduğu andan başlar, kısa süre kalır ve solarak biter; sonunu çizelgede ucundan çekerek ya da \"Sonu = şimdi\" ile ayarlarsın. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür.")
     }
 
     p.katmanlar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
@@ -204,7 +203,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
                 if (o.kaynakSureMs > 1000) KatSlider("Sesin başladığı yer", o.kaynakBasMs.toFloat(), 0f..(o.kaynakSureMs - 500).toFloat(), { sureOndalik(it.toLong()) }, e) { v ->
                     d { it.copy(kaynakBasMs = v.toLong()) }
                 }
-                Text("Önizlemede ses en çok %100 duyulur; %100 üstü dışa aktarmada uygulanır.", color = Renk.soluk, fontSize = 11.sp)
+                AcilirNot("Önizlemede ses en çok %100 duyulur; %100 üstü dışa aktarmada uygulanır.")
             }
         }
 
@@ -387,7 +386,7 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int, alt: String? = null) {
         HazirYazilar(vm, hareketli = alt == null)
     }
     if (alt == "hareketli") Kart("Hareketli yazılar") {
-        Text("Dokun = oynatıcının olduğu andan 4 sn'lik hareketli yazı eklenir; metin hemen düzenlenir. Renk yazı ayarlarından değişir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(bottom = 6.dp))
+        AcilirNot("Dokun = oynatıcının olduğu andan 4 sn'lik hareketli yazı eklenir; metin hemen düzenlenir. Renk yazı ayarlarından değişir.")
         HazirYazilar(vm, duz = false)
     }
     yazilar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
@@ -424,7 +423,7 @@ fun EskiKlipYazisi(vm: EditorDurum, k: Klip, i: Int) {
     val y = k.yazi?.takeIf { it.metin.isNotBlank() } ?: return
     Kart("Bu klibin eski yazısı") {
         Text(y.metin, color = Renk.yazi, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
-        Text("Bu yazı eski biçimde klibe bağlı. Yazı katmanına taşıyınca diğer yazılar gibi düzenlenir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
+        AcilirNot("Bu yazı eski biçimde klibe bağlı. Yazı katmanına taşıyınca diğer yazılar gibi düzenlenir.")
         DugmeSirasi(
             "Yazı katmanına taşı" to { vm.klipYazisiniKatmanaTasi(i) },
             "Kaldır" to { vm.klipGuncelle { it.copy(yazi = null) } },

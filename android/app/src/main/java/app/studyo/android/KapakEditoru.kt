@@ -264,8 +264,7 @@ private fun KapakEfektAraci(vm: EditorDurum, kp: Kapak) {
         YuvarlakSecim("Canlı renkler", "gorunum", Color(TON[1]), kp.canli) { vm.kapakDegis { it.copy(canli = !it.canli) } }
         YuvarlakSecim("Logo", "logo", Color(TON[2]), kp.logo) { vm.kapakDegis { it.copy(logo = !it.logo) } }
     }
-    Text("Canlı renkler: renkleri canlandırır, kenarları hafifçe karartır. Logo: projenin logosu kapağın köşesine konur.",
-        color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+    AcilirNot("Canlı renkler: renkleri canlandırır, kenarları hafifçe karartır. Logo: projenin logosu kapağın köşesine konur.")
 }
 
 @Composable

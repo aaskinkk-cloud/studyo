@@ -49,8 +49,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
     }
 
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {
-        Text("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.",
-            color = Renk.soluk, fontSize = 12.sp)
+        AcilirNot("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.")
         Row(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(12.dp)).background(Color(TON[1]).copy(alpha = 0.16f))
             .border(1.dp, Color(TON[1]).copy(alpha = 0.7f), RoundedCornerShape(12.dp)).clickable {
                 Ayarlar.sakla(ctx, p, p.klipler.getOrNull(sec)); sakli = Ayarlar.sakli(ctx); vm.mesaj.value = "Ayarların saklandı"
@@ -67,8 +66,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         }
     }
     Kart("Yedek · uygulama silinse de kalır", ton = Color(TON[2])) {
-        Text("Ayarlar ve logo kütüphanen telefonda seçtiğin bir dosyaya (örneğin Belgeler/Stüdyo-yedek.zip) yazılır; sonra her değişiklikte kendiliğinden güncellenir. Uygulamayı silip yeniden kurunca \"Yedekten geri yükle\" ile hepsi geri gelir.",
-            color = Renk.soluk, fontSize = 12.sp)
+        AcilirNot("Ayarlar ve logo kütüphanen telefonda seçtiğin bir dosyaya (örneğin Belgeler/Stüdyo-yedek.zip) yazılır; sonra her değişiklikte kendiliğinden güncellenir. Uygulamayı silip yeniden kurunca \"Yedekten geri yükle\" ile hepsi geri gelir.")
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
             YuvarlakSecim(if (yedekUri != null) "Yedeği yenile" else "Yedek oluştur", "kaydet", Color(TON[2]), yedekUri != null) {
                 val u = yedekUri

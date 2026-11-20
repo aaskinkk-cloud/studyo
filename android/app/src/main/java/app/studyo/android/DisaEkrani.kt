@@ -182,7 +182,7 @@ fun DisaEkrani(vm: EditorDurum, kapat: () -> Unit) {
                         Etiketli("Boş alan", Medya.mb(bos) + if (yeter) "" else " (yetersiz)")
                     } else MetrikIzgara(listOf("Süre" to "${sureYaz(p.toplamMs)} · ${p.klipler.size} klip", "Çıktı" to "$w×$h", "Tahmini boyut" to "~" + Medya.mb(tahmin),
                         "Boş alan" to (Medya.mb(bos) + if (yeter) "" else " · yetersiz")), uyari = if (yeter) -1 else 3)
-                    if (p.klipler.any { it.hdr }) Text("HDR klipler SDR'ye dönüştürülür (renkler her telefonda doğru görünür).", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+                    if (p.klipler.any { it.hdr }) AcilirNot("HDR klipler SDR'ye dönüştürülür (renkler her telefonda doğru görünür).")
                     if (!yeter) Text("Yer yetersiz: yaklaşık ${Medya.mb(gerek)} boş alan gerekir (geçici dosya + galeriye kopya).", color = Renk.kirmizi, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
                     if (baskaProje) Text("Başka bir projenin dışa aktarması sürüyor ya da yarım kaldı. Önce onu bitir ya da vazgeç.", color = Renk.kirmizi, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
                     Spacer(Modifier.height(10.dp))

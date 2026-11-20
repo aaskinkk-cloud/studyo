@@ -226,7 +226,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
                 }
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
-                if (!Renk.sb || Duzen.kontrolUstte) {
+                if (!Renk.sb) {   // 3.72: siyah-beyaz temada geri al/yinele oynatıcı satırında (videonun üstünde ya da altında)
                 val ub = if (Renk.sb) 30.dp else 34.dp; val us = if (Renk.sb) 17.dp else 18.dp
                 Box(Modifier.size(ub).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
                     Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), us) }
@@ -312,8 +312,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             bolumAc = { b, h -> bolum = b; if (b == "renk") vm.renkSekme.value = h else haplar[b] = h; panelAcik = true; altMod = true })
                         if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
-                        else if (!Duzen.seritGizli) Text("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.", color = Renk.soluk, fontSize = 11.5.sp,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                        else if (!Duzen.seritGizli) AcilirNot("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.")
                     }
                 } else {
                     // klip seçimi gereken bölümlerde küçük şerit panelin üstünde kalır
@@ -532,6 +531,45 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkr
     LaunchedEffect(oyn) { gizle = false; if (oyn) { delay(2500); gizle = true } }
     val gorunurluk by androidx.compose.animation.core.animateFloatAsState(if (gizle) 0f else 1f, label = "kontrol")
     if (gorunurluk < 0.02f) return
+    if (Renk.sb) {
+        // 3.72: siyah-beyaz temada VITA dizilişi videonun üstünde (son tasarım korunur): süre · başa · önceki · büyük oynat · sonraki ·
+        // geri al · yinele · (alta al) · tam ekran; altında ince zaman çubuğu. Altta hafif koyu geçiş, düğmeler parlak görüntüde de seçilir.
+        val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
+        val f = (konum.coerceIn(0, toplam).toFloat() / toplam).coerceIn(0f, 1f)
+        Column(modifier.fillMaxWidth().alpha(gorunurluk).background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x8C000000))))
+            .padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 2.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.5.sp, maxLines = 1, modifier = Modifier.weight(1f))
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", beyaz, 15.dp) }
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", beyaz, 17.dp) }
+                Box(Modifier.size(42.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 26.dp) }
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", beyaz, 17.dp) }
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    if (!tamEkranda) {
+                        Box(Modifier.size(32.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                            Simge("gerial", if (geriVar) beyaz else beyaz.copy(alpha = 0.35f), 18.dp) }
+                        Box(Modifier.size(32.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                            Simge("yinele", if (ileriVar) beyaz else beyaz.copy(alpha = 0.35f), 18.dp) }
+                    }
+                    if (altaAl != null) Box(Modifier.size(30.dp).clip(CircleShape).clickable { altaAl() }, contentAlignment = Alignment.Center) { Simge("h_asagi", beyaz.copy(alpha = 0.7f), 15.dp) }
+                    if (tamEkran != null) Box(Modifier.size(32.dp).clip(CircleShape).clickable { tamEkran() }, contentAlignment = Alignment.Center) {
+                        Simge(if (tamEkranda) "kucult" else "tamekran", beyaz, 17.dp) }
+                }
+            }
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().height(16.dp)
+                    .pointerInput(toplam) { detectTapGestures { o -> vm.git((o.x / size.width * toplam).toLong()) } }
+                    .pointerInput(toplam) { detectHorizontalDragGestures { ch, _ -> ch.consume(); vm.git((ch.position.x / size.width * toplam).toLong().coerceIn(0, toplam)) } },
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                val w = maxWidth
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0x55FFFFFF)))
+                Box(Modifier.width(w * f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color.White))
+                Box(Modifier.offset(x = (w * f - 5.dp).coerceIn(0.dp, w - 10.dp)).size(10.dp).clip(CircleShape).background(Color.White))
+            }
+        }
+        return
+    }
     Row(
         modifier.fillMaxWidth().alpha(gorunurluk).padding(start = 4.dp, end = 6.dp, top = 6.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -704,7 +742,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                         )
                     }),
             ) {
-                KlipResmi(k, Modifier.fillMaxSize())
+                KlipKaresi(p, k, i, Modifier.fillMaxSize(), sigdir = secili && !kucuk)   // 3.72: önizlemedeki kadrajın aynısı
                 Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
                     Text("${i + 1}", color = Color.White, fontSize = if (kucuk) 10.sp else 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -1078,8 +1116,7 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
             )
         }
-        Text("Sil, böl, çoğalt ve ses: şeritte seçili klibin üstünde. Taşımak için oklara dokun ya da klibe basılı tutup sürükle.",
-            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+        AcilirNot("Sil, böl, çoğalt ve ses: şeritte seçili klibin üstünde. Taşımak için oklara dokun ya da klibe basılı tutup sürükle.")
     }
 }
 
@@ -1087,8 +1124,8 @@ private fun PanelKlip(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
 private fun PanelEkle(ekle: () -> Unit) {
     Kart("Klip ekle") {
         Dugme("＋ Video veya fotoğraf seç", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { ekle() }
-        Text("Seçilen klipler seçili klibin arkasına eklenir. Videolar kopyalanmaz, telefondaki yerinden okunur; boyut sınırı yoktur (1 GB, 2 GB…). " +
-            "Telefonun çözemediği biçimler eklenmez ve nedeni yazılır.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp))
+        AcilirNot("Seçilen klipler seçili klibin arkasına eklenir. Videolar kopyalanmaz, telefondaki yerinden okunur; boyut sınırı yoktur (1 GB, 2 GB…). " +
+            "Telefonun çözemediği biçimler eklenmez ve nedeni yazılır.")
     }
 }
 
@@ -1170,8 +1207,7 @@ private fun PanelHareket(vm: EditorDurum, k: Klip, alt: String? = null) {
             else -> "Görüntü seçilen yöne kayar (en çok karenin yarısı). Gökyüzü/yer gibi farklı bölgeler girerse ton değişebilir."
         }, color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
         if (alt == "odak" && !(secili == "otomatik" || secili == "yakin" || secili == "uzak"))
-            Text("Odak noktası yakınlaşma türlerinde kullanılır (Otomatik, Yakınlaş, Uzaklaş). Önce Yakınlaştırma sayfasından birini seç.",
-                color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+            AcilirNot("Odak noktası yakınlaşma türlerinde kullanılır (Otomatik, Yakınlaş, Uzaklaş). Önce Yakınlaştırma sayfasından birini seç.")
         if ((alt == null || alt == "odak") && (secili == "otomatik" || secili == "yakin" || secili == "uzak")) {
             Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(1.dp).background(Renk.cizgi))
             Text("ODAK", color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
@@ -1210,7 +1246,7 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
                 onValueChangeFinished = { vm.klipGuncelle { it.copy(ses = s) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi),
             )
-            Text("%100 üstü yalnız dışa aktarmada yükseltilir; önizleme en fazla %100 çalar.", color = Renk.soluk, fontSize = 12.sp)
+            AcilirNot("%100 üstü yalnız dışa aktarmada yükseltilir; önizleme en fazla %100 çalar.")
         }
     }
 }
@@ -1218,6 +1254,8 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
 @Composable
 private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
     val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.muzikSec(it) } }
+    // 3.72: mevcut müziği değiştirmeden/kaldırmadan yeni müzik — ses katmanı olarak oynatıcının olduğu andan eklenir (birden fazla olabilir)
+    val ekleSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.katmanSesEkle(it); vm.mesaj.value = "Müzik katman olarak eklendi · Katman bölümünde" } }
     // 3.61: yerleşik müzikler (uygulamada üretilir, telifsiz; silip kursan da vardır) + konuya göre otomatik
     val uretiyor by vm.muzikUretiliyor.collectAsState()
     if (alt == null || alt == "hazir") Kart("Hazır müzikler") {
@@ -1232,8 +1270,7 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
                 YuvarlakSecim(t.ad, t.simge, Color(t.renk), p.muzik?.ad == "Hazır müzik · ${t.ad}") { if (!uretiyor) vm.hazirMuzik(t.anahtar) }
             }
         }
-        Text("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Huzur, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.",
-            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+        AcilirNot("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Huzur, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.")
     }
     if (alt == null || alt == "dosya" || alt == "ayar") Kart(if (alt == "ayar") "Müzik ayarı" else "Arka plan müziği") {
         val m = p.muzik
@@ -1243,7 +1280,7 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
         } else {
             Text(m.ad, color = Renk.yazi, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (m.sureMs > 0) Text("Süre ${sureYaz(m.sureMs)}", color = Renk.soluk, fontSize = 12.sp)
-            if (alt == "dosya") { DugmeSirasi("Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() }); return@Kart }
+            if (alt == "dosya") { DugmeSirasi("Yeni ekle" to { ekleSec.launch(arrayOf("audio/*")) }, "Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() }); return@Kart }
             var s by remember(m.uri, m.ses) { mutableFloatStateOf(m.ses) }
             Etiketli("Müzik sesi", "%${(s * 100).roundToInt()}")
             InceSlider(value = s, onValueChange = { s = it }, valueRange = 0f..1f,
@@ -1256,7 +1293,7 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
                 vm.muzikDegis { it.copy(girisMs = (v * 1000).toLong()) } }
             TonKaydirici("Yumuşak çıkış", m.cikisMs / 1000f, 0f..8f, 0.5f, Renk.turuncu, { if (it < 0.05f) "yok" else String.format(TR, "%.1f sn", it) }) { v ->
                 vm.muzikDegis { it.copy(cikisMs = (v * 1000).toLong()) } }
-            if (alt == null) DugmeSirasi("Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() })
+            if (alt == null) DugmeSirasi("Yeni ekle" to { ekleSec.launch(arrayOf("audio/*")) }, "Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() })
         }
     }
 }
@@ -1276,7 +1313,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
                 if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) vm.kayitBaslat()
                 else izin.launch(Manifest.permission.RECORD_AUDIO)
             }
-            Text("Video o andan oynar, sen konuşursun. Kayıt sırasında klip sesi ve müzik susar.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+            AcilirNot("Video o andan oynar, sen konuşursun. Kayıt sırasında klip sesi ve müzik susar.")
         } else {
             Dugme("■ Durdur · kayıt ${sureYaz((konum - bas).coerceAtLeast(0))}", Modifier.fillMaxWidth(), renk = Renk.kirmizi, yaziRenk = Color.White) { vm.kayitDurdur() }
         }
@@ -1287,7 +1324,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
         OutlinedTextField(m, { m = it; vm.okumaDegis { pp -> pp.copy(okumaMetni = it) } }, Modifier.fillMaxWidth().heightIn(min = 110.dp),
             placeholder = { Text("Okuyacağın metni buraya yaz ya da yapıştır") }, maxLines = 8)
         GenisDugme("Tam ekran oku ve kaydet", "prompter", Modifier.padding(top = 8.dp), vurgulu = true) { vm.player.pause(); prompter = true }
-        Text("Metin kayarken okursun; sesin önizlemedeki andan itibaren seslendirme olarak eklenir. Hız ve yazı boyutu ekranda ayarlanır.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        AcilirNot("Metin kayarken okursun; sesin önizlemedeki andan itibaren seslendirme olarak eklenir. Hız ve yazı boyutu ekranda ayarlanır.")
     }
     if (prompter) Prompter(vm) { prompter = false }
     if (alt == "kayitlar" && p.sesler.isEmpty()) Text("Henüz seslendirme kaydı yok. Kayıt ya da Prompter sayfasından kaydet.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
@@ -1369,5 +1406,37 @@ private fun AltDugme(o0: AltOge) {
             if (o.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
         }
         Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (o.secili) o.renk else Color.Transparent))
+    }
+}
+
+
+/** 3.72: klip kartındaki resim, oynatıcıdaki görüntünün AYNISI: video biçimi (16:9 / 9:16 / 1:1), kadraj (Doldur/Sığdır, yüz odağı,
+ *  elle kaydırma, hareketin ilk karesi) ve renk/filtre önizlemedeki hesapla (Yuz.an + aynı yerleşim) çizilir.
+ *  sigdir = true: karenin tamamı kartın içinde (seçili büyük kart; simgeler üst/alt siyah bantta) · false: kart kare ile doldurulur. */
+@Composable
+private fun KlipKaresi(p: Proje, k: Klip, i: Int, modifier: Modifier, sigdir: Boolean) {
+    val ctx = LocalContext.current
+    val ham by produceState<android.graphics.Bitmap?>(null, k.uri, k.basMs) { value = Medya.kucukResim(ctx, k, 480) }
+    val renkli by produceState<android.graphics.Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc) {
+        val h = ham
+        value = if (h == null) null else if (k.renk?.bos != false && (k.filtre == "yok" || k.filtreGuc <= 0.001f)) h
+        else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { RenkLut.uygula(h, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc) }.getOrDefault(h) }
+    }
+    val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
+    BoxWithConstraints(modifier.background(Color.Black).clipToBounds(), contentAlignment = Alignment.Center) {
+        val cw = maxWidth; val ch = maxHeight
+        val genis = cw / ch > oran
+        val fw = if (genis == sigdir) ch * oran else cw
+        val fh = if (genis == sigdir) ch else cw / oran
+        Box(Modifier.requiredSize(fw, fh).clipToBounds(), contentAlignment = Alignment.Center) {
+            renkli?.let { b ->
+                val (RW, RH) = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
+                val a = Yuz.an(k, RW, RH, 0f, i)
+                Image(b.asImageBitmap(), null, Modifier.requiredSize(fw / a.vx, fh / a.vy).graphicsLayer {
+                    scaleX = a.s; scaleY = a.s
+                    translationX = a.tx * size.width / 2f; translationY = -a.ty * size.height / 2f
+                }, contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+            }
+        }
     }
 }

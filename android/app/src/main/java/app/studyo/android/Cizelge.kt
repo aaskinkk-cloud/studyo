@@ -424,22 +424,12 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
             .clip(sekil).background(renk.copy(alpha = (if (secili) 0.85f else 0.55f) * (if (o.gizli) 0.5f else 1f)))
             .border(if (secili) 2.dp else 0.dp, if (secili) Color.White else Color.Transparent, sekil)
             .pointerInput(o.id, secili) { detectTapGestures(onTap = { t ->
-                // 3.44: seçili değilse seç; seçiliyse uçlara dokun = Klip/Video sonu (başı) menüsü, ortaya dokun = yazıyı düzenle
-                // 3.50: seçili değilken de uca dokunmak menüyü açar (tek dokunuş: seç + menü)
+                // 3.72: bütün katmanlarda tek dokunuş = seç + menü (başına git, klip/video başı-sonu…); sol uca dokunmak başları öne alır.
+                // Uzun bas = aynı menü + Sil.
                 val g = t.x - kayG
-                if (!secili) {
-                    vm.seciliKatman.value = o.id
-                    if (!oG.kilitli) { if (g > gwG - ucPx * 1.6f) ucMenu = 1 else if (g < ucPx * 1.6f) ucMenu = -1 }
-                    return@detectTapGestures
-                }
-                when {
-                    oG.kilitli -> {}
-                    g > gwG - ucPx * 1.6f -> ucMenu = 1
-                    g < ucPx * 1.6f -> ucMenu = -1
-                    oG.tur == "metin" -> vm.katmanDuzenle.value = o.id
-                    else -> ucMenu = 1        // 3.51: ses dahil ortaya dokun = menü (ses düzeyi de menüde)
-                }
-            }) }
+                vm.seciliKatman.value = o.id
+                ucMenu = if (g < ucPx * 1.6f) -1 else 1
+            }, onLongPress = { vm.seciliKatman.value = o.id; ucMenu = 2 }) }
             .then(if (o.kilitli) Modifier else Modifier.pointerInput(o.id, w, secili) {
                 var yan = 0
                 // 3.45: seçili değilken basılı tut + sürükle = seç ve taşı (yatay kaydırma çizelgeyi sarar); seçiliyken doğrudan sürükle.
@@ -507,13 +497,20 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
         Box(Modifier.align(if (ucMenu < 0) Alignment.BottomStart else Alignment.BottomEnd)) {
             androidx.compose.material3.DropdownMenu(expanded = ucMenu != 0, onDismissRequest = { ucMenu = 0 }, containerColor = Renk.kart) {
                 // 3.51: tek, eksiksiz menü — dokunulan uca göre sıralanır (sağ uç: sonlar önce, sol uç: başlar önce); ses katmanında ses düzeyi
+                // 3.72: başta "Katmanın başına git" (oynatıcı), yazıda "Yazıyı düzenle"; uzun basınca en altta Sil. Kilitliyken yalnız gitme/sil.
                 fun sec(t: String) { vm.katmanDegis(o.id) { vm.katmanUc(it, t) }; if (t == "basaTasi") vm.git(0); ucMenu = 0 }
+                androidx.compose.material3.DropdownMenuItem(text = { Text("Katmanın başına git", color = Renk.yazi) },
+                    trailingIcon = { Simge("oynat", Renk.turuncu, 16.dp) }, onClick = { ucMenu = 0; vm.git(o.basMs) })
+                if (o.tur == "metin" && !o.kilitli) androidx.compose.material3.DropdownMenuItem(text = { Text("Yazıyı düzenle", color = Renk.yazi) },
+                    trailingIcon = { Simge("degistir", Renk.turuncu, 16.dp) }, onClick = { ucMenu = 0; vm.katmanDuzenle.value = o.id })
                 val basl = listOf("klipBas" to ("Klip başı" to "|‹"), "videoBas" to ("Video başı" to "|«"))
                 val sonl = listOf("klipSon" to ("Klip sonu" to "›|"), "videoSon" to ("Video sonu" to "»|"))
-                (if (ucMenu < 0) basl + sonl else sonl + basl).plus("basaTasi" to ("Videonun başına taşı" to "|◀")).forEach { (t, ad) ->
+                if (!o.kilitli) (if (ucMenu < 0) basl + sonl else sonl + basl).plus("basaTasi" to ("Videonun başına taşı" to "|◀")).forEach { (t, ad) ->
                     androidx.compose.material3.DropdownMenuItem(text = { Text(ad.first, color = Renk.yazi) },
                         trailingIcon = { Text(ad.second, color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(t) })
                 }
+                if (ucMenu == 2) androidx.compose.material3.DropdownMenuItem(text = { Text("Sil", color = Renk.kirmizi, fontWeight = FontWeight.SemiBold) },
+                    trailingIcon = { Simge("sil", Renk.kirmizi, 16.dp) }, onClick = { ucMenu = 0; vm.katmanSil(o.id); vm.mesaj.value = "Silindi · geri al ile geri gelir" })
                 if (o.tur == "ses") androidx.compose.material3.DropdownMenuItem(text = { Text(if (o.ses <= 0.001f) "Ses düzeyi · kapalı" else "Ses düzeyi · %${(o.ses * 100).roundToInt()}", color = Renk.yazi) },
                     trailingIcon = { Simge(if (o.ses <= 0.001f) "sessiz" else "ses", Renk.turkuaz, 18.dp) }, onClick = { ucMenu = 0; vm.sesPenceresi.value = o.id })
             }

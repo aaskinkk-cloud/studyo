@@ -13,6 +13,17 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Nesne kesme (Kareden Videoya estetiği):** kenar yumuşatma (sert eşik yerine yumuşak geçiş + içe doğru ince tüy; tırtık ve koyu hale yok), yumuşak gölge (%45, aşağı 1,2 %), arka plan bulanıklığı dört geçişli Gauss (daha kremsi, basamaksız) + %10 karartma; durağan önizleme de aynı görünümde. Varsayılan arka plan bulanıklığı %75.
 - **Nesneyi parmakla yönet:** Düzenle › Nesne ve Katman'da nesneye dokun = seç (beyaz çerçeve) · sürükle = taşı · iki parmak = büyüt/küçült. Hareket sırasında görüntü yeniden çizilmez (akıcı), bırakınca tek adımda kaydedilir (geri al çalışır). Boşta sürükleme klibin kadraj kaydırmasına kalır.
 
+- **Ek düzeltmeler (aynı sürüm, 20.11.2026 akşamı):**
+  - **Oynatıcı kontrolleri:** siyah-beyaz temada son VITA dizilişi (süre · başa · önceki · büyük oynat · sonraki · geri al · yinele · tam ekran + ince çubuk) artık videonun üstünde, altta hafif koyu geçişle. Üst çubukta geri al/yinele yok (oynatıcı satırında).
+  - **Kesilen nesneyi taşıma:** nesneyi taşırken alttaki bulanık arka plan artık kaymıyor (kök neden: aynı dokunuşla klibin kadraj kaydırması da çalışıyordu). Seçili nesne ekranın her yerinden sürüklenir, iki parmakla büyür/küçülür.
+  - **Gerçek Gauss bulanıklığı:** Android 12+ durağan önizlemede arka plan RenderEffect Gauss ile bulanıklaşır (dışa aktarmadaki 4 geçişli Gauss'un karşılığı) + %10 karartma.
+  - **Kesilenler listesi:** satıra dokun = nesne seçilir ve oynatıcı o nesnenin klibine gider. Boyut 5–200 %.
+  - **Müzik:** "Yeni ekle" — mevcut müziği değiştirmeden/kaldırmadan yeni müzik ses katmanı olarak eklenir (birden fazla olabilir).
+  - **Katman menüsü (bütün katmanlar):** çizelgede katmana dokun = menü (Katmanın başına git · Yazıyı düzenle · Klip/Video başı-sonu · Videonun başına taşı · ses düzeyi). Uzun bas = aynı menü + **Sil**.
+  - **Açıklamalar kapalı:** bütün panellerdeki açıklama yazıları "Nasıl çalışır?" satırında kapalı gelir.
+  - **Klip kartı = oynatıcı:** şeritteki klip resmi oynatıcıdaki görüntünün aynısı (video biçimi, Doldur/Sığdır, yüz odağı, elle kaydırma, hareketin ilk karesi, renk/filtre). Seçili kartta karenin tamamı görünür.
+  - **Logo varsayılanı:** boyut %14, opaklık %70 (Varsayılan ayarlar ve logo katmanı); Logo sayfasında "Varsayılan · %14 · %70" düğmesi.
+
 ## 3.71 (20.11.2026, deneme · `yerel-android` dalı): menüler hep altta, video tam ekran, şeffaf kontroller, temiz müzik
 - **Menüler hep altta:** 3. katman çipleri panelin tepesinden alt menünün hemen üstüne indi; üstteki yol satırı kalktı (arama 🔍 alt menü satırının sağında). Ana menüye dönünce üstünde ayrı alt menü satırı yok — yalnız alt menü modu (‹ Bölüm · alt menüler) kullanılır. Önceki yazılı düzen aynen.
 - **Video tam ekran** (kontrollerdeki ⛶): yalnız video ve kontroller; 16:9'da ekran yan döner. ⛶/geri = çık.

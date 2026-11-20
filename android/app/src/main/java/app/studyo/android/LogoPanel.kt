@@ -80,7 +80,7 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
     }
 
     if (l != null) Kart("Projedeki logo") {
-        Text("Önizlemede logoyu parmağınla sürükleyerek istediğin yere koyabilirsin.", color = Renk.soluk, fontSize = 12.sp)
+        AcilirNot("Önizlemede logoyu parmağınla sürükleyerek istediğin yere koyabilirsin.")
         val serbest = l.x >= 0f && l.y >= 0f
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("solUst" to "Sol üst", "sagUst" to "Sağ üst", "solAlt" to "Sol alt", "sagAlt" to "Sağ alt").forEach { (kk, ad) ->
@@ -95,6 +95,9 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
         Etiketli("Opaklık", "%${(o * 100).roundToInt()}")
         InceSlider(value = o, onValueChange = { o = it }, valueRange = 0.1f..1f, onValueChangeFinished = { vm.logoDegis { it.copy(opaklik = o) } })
         AnahtarSatiri("Yuvarlak kırp", l.yuvarlak) { v -> vm.logoDegis { it.copy(yuvarlak = v) } }
+        // 3.72: tek dokunuşla varsayılan boyut ve opaklık
+        if (kotlin.math.abs(l.boyut - 0.14f) > 0.005f || kotlin.math.abs(l.opaklik - 0.7f) > 0.005f)
+            SimgeDugme("uygula", "Varsayılan · %14 · %70", Modifier.fillMaxWidth(), renk = Renk.turuncu) { vm.logoDegis { it.copy(boyut = 0.14f, opaklik = 0.7f) } }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SimgeDugme("yukle", "Yeni logo yükle", Modifier.weight(1f), renk = Renk.turkuaz, onClick = yukle)
             SimgeDugme("sil", "Projeden kaldır", Modifier.weight(1f), renk = Renk.kirmizi) { vm.logoKaldir() }

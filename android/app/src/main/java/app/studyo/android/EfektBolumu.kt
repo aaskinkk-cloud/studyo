@@ -135,5 +135,5 @@ fun PanelEfekt(vm: EditorDurum, p: Proje, sec: Int) {
 }
 
 @Composable
-private fun Not2(m: String) = Text(m, color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp))
+private fun Not2(m: String) = AcilirNot(m)   // 3.72: açıklamalar kapalı gelir
 

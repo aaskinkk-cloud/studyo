@@ -871,7 +871,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
             if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
             val a = 0L; val b = proje.value.toplamMs.coerceAtLeast(500)   // 3.43: logo varsayılan olarak tüm video boyunca
-            katmanEkleOge(KatmanOge(tur = "gorsel", ad = "Logo · ${k.ad}", yol = f.path, olcek = 0.16f, x = 0.85f, y = 0.18f, basMs = a, sonMs = b))
+            katmanEkleOge(KatmanOge(tur = "gorsel", ad = "Logo · ${k.ad}", yol = f.path, olcek = 0.14f, opaklik = 0.7f, x = 0.85f, y = 0.18f, basMs = a, sonMs = b))   // 3.72: logo %14 · %70
         }
     }
 
@@ -1131,9 +1131,9 @@ class EditorDurum(private val ctx: Context, id: String) {
                             k?.let { kk -> LogoKutup.projeKopyasi(kk)?.let { kk to it } }
                         }.onFailure { Kayit.hata("varsayılan logo", it) }.getOrNull()
                     }
-                    if (f != null) guncelle { p -> p.copy(logo = (sk?.logo?.copy(x = -1f, y = -1f) ?: Logo(yol = "")).copy(yol = f.second.path, kutupId = f.first.id)) }
+                    if (f != null) guncelle { p -> p.copy(logo = (sk?.logo?.copy(x = -1f, y = -1f) ?: Logo(yol = "")).copy(yol = f.second.path, kutupId = f.first.id, boyut = 0.14f, opaklik = 0.7f)) }   // 3.72: varsayılan %14 · %70
                     else logoNotu = " · logo kütüphanesi boş (Yayın › Logo'dan ekle)"
-                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = sk?.logo?.konum ?: "solUst", boyut = sk?.logo?.boyut ?: 0.14f, opaklik = sk?.logo?.opaklik ?: 0.7f, x = -1f, y = -1f)) }
+                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = sk?.logo?.konum ?: "solUst", boyut = 0.14f, opaklik = 0.7f, x = -1f, y = -1f)) }   // 3.72: varsayılan %14 · %70
             }
             if ("muzik" in sec && proje.value.muzik == null) { val mt = sk?.muzikTur; if (mt != null) hazirMuzik(mt) else otomatikMuzik() }   // 3.61: saklı tür ya da konuya göre
             mesgul.value = null

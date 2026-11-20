@@ -73,6 +73,7 @@ object Duzen {
         katmanYuk = sp.getFloat("katmanYuk", 240f).coerceIn(120f, 560f)
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
         seritGizli = sp.getBoolean("seritGizli", false)
+        kontrolUstte = sp.getBoolean("kontrolUstte", false)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
@@ -81,6 +82,9 @@ object Duzen {
     /** Çok satırlı çizelgenin yakınlığı (dp / saniye; iki parmakla değişir). */
     var cizelgePps by mutableFloatStateOf(48f)
     fun ppsKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("cizelgePps", cizelgePps).apply() }
+    /** 3.71: siyah-beyaz temada oynatma kontrolleri videonun üstünde mi (şeffaf) yoksa altında mı (VITA satırı). */
+    var kontrolUstte by mutableStateOf(false)
+    fun kontrolDegis(ctx: Context) { kontrolUstte = !kontrolUstte; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kontrolUstte", kontrolUstte).apply() }
     /** 3.35: büyük klip şeridi gizli (izlerken göz yormasın); seçim hatırlanır. */
     var seritGizli by mutableStateOf(false)
     fun seritDegis(ctx: Context) { seritGizli = !seritGizli; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("seritGizli", seritGizli).apply() }
@@ -178,13 +182,28 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? =
     }
 }
 
+/** 3.71: uzun açıklama kapalı durur — "Nasıl çalışır?" satırına dokununca açılır. */
+@Composable
+fun AcilirNot(metin: String, baslik: String = "Nasıl çalışır?") {
+    var acik by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Row(Modifier.clip(RoundedCornerShape(8.dp)).clickable { acik = !acik }.padding(vertical = 4.dp, horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 11.5.sp)
+            Spacer(Modifier.width(4.dp))
+            Simge(if (acik) "h_yukari" else "h_asagi", Renk.soluk.copy(alpha = 0.55f), 11.dp)
+        }
+        if (acik) Text(metin, color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
 /** 3.57: bölüm başlıklarındaki gizle/göster düğmesi — renk tonlu çerçeveli hap, ok + yazı ("Gizle" / "Göster"). */
 @Composable
 fun GizleGosterDugmesi(acik: Boolean, ton: Color, tik: () -> Unit) {
     // 3.68: yazısız yuvarlak simge (▴ açık · ▾ kapalı); önceki yazılı hap ⋯ › "Alt başlıklar: yazılı (önceki)" seçiliyken kalır
     if (!Duzen.yaziliMenu) {
-        Box(Modifier.size(34.dp).clip(CircleShape).background(ton.copy(alpha = if (acik) 0.10f else 0.20f)).border(1.dp, ton.copy(alpha = 0.7f), CircleShape)
-            .clickable(onClick = tik), contentAlignment = Alignment.Center) { Simge(if (acik) "h_yukari" else "h_asagi", ton, 18.dp) }
+        // 3.71: yarı boyda ve silik (zeminsiz, çerçevesiz ok)
+        Box(Modifier.size(28.dp).clip(CircleShape).clickable(onClick = tik), contentAlignment = Alignment.Center) {
+            Simge(if (acik) "h_yukari" else "h_asagi", Renk.soluk.copy(alpha = 0.55f), 13.dp) }
         return
     }
     val sekil = RoundedCornerShape(14.dp)

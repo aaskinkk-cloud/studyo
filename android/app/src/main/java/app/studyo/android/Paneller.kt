@@ -750,12 +750,10 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     if (sekme == "bicim") Kart("Video biçimi", ton = turuncu) { BicimSatiri(vm, p) }
     if (sekme == "kayitli") KayitliAyarlarSayfasi(vm)
     if (sekme == "paket") Kart("Hazır paketler", ton = turuncu) {
-        if (alt == null) {
-            // 3.53: Biçim (önce Düzenle › Klip'te) paketlerin ilk satırı
-            Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            BicimSatiri(vm, p)
-            Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
-        }
+        // 3.53: Biçim paketlerin ilk satırı · 3.71: Paket tek sayfa (Biçim + Paketler birlikte)
+        Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        BicimSatiri(vm, p)
+        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
         Text("Paket", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 4.dp))
         TonSecici(listOf(Triple("youtube", "YouTube", "oynat"), Triple("reels", "Reels", "yildiz"), Triple("sinema", "Sinema", "kadraj")), "", ilkSira = 3,
             alt = listOf("alt bant · parlama · kapanış", "renkli bant · yakınlaşma", "sinematik · siyahtan")) { vm.paketUygula(it) }
@@ -1441,8 +1439,9 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
         p.klipler.getOrNull(sk)?.let { kk ->
             TonKaydirici("Arka plan", kk.arkaBulanik, 0f..1f, 0.05f, Color(TON[2]), { if (it < 0.01f) "yok" else "%${(it * 100).roundToInt()}" }) { v -> vm.klipGuncelle { it.copy(arkaBulanik = v) } }
         }
-        Not("Ekrandaki fotoğraftan kesince arka plan kendiliğinden bulanıklaşır, nesne tam yerinde ön plana katman olarak gelir (nesnenin oturması için o klibin hareketi kapanır). ")
-        Not("Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
+        // 3.71: uzun açıklama kapalı (dokun = aç)
+        AcilirNot("Ekrandaki fotoğraftan kesince arka plan kendiliğinden bulanıklaşır, nesne tam yerinde ön plana katman olarak gelir (nesnenin oturması için o klibin hareketi kapanır). " +
+            "Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
             "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
     }
     val nIl by vm.nesneIlerleme.collectAsState()
@@ -1460,7 +1459,7 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
                 Dugme("✂ Ekrandaki videodan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
                 Dugme("✂ Galeriden video", Modifier.weight(1f)) { videoSec.launch(arrayOf("video/*")) }
             }
-            Not("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
+            AcilirNot("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
         }
     }
     if (alt == "kesilen" && p.nesneler.isEmpty()) Not("Henüz kesilen nesne yok. Fotoğraftan ya da Videodan sayfasında kes.")

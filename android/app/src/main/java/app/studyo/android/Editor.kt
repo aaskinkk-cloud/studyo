@@ -123,6 +123,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     var disaAcik by rememberSaveable { mutableStateOf(false) }
     var kapakAcik by rememberSaveable { mutableStateOf(false) }   // 3.63: tam ekran Kapak düzenleyici
     var aramaAcik by remember { mutableStateOf(false) }           // 3.70: ayar arama
+    var tamEkranV by rememberSaveable { mutableStateOf(false) }   // 3.71: video tam ekran
     var altMod by rememberSaveable { mutableStateOf(false) }   // 3.61: alt menüler ana menünün yerinde
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
@@ -150,6 +151,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         KapakEditoru(vm) { kapakAcik = false }
         return
     }
+    if (tamEkranV) {
+        TamEkranVideo(vm, p) { tamEkranV = false }
+        return
+    }
     BackHandler { if (altMod && panelAcik) altMod = false else if (panelAcik) panelAcik = false else cik() }
 
     // 3.70: tek gezinme işlevi — bölüm › alt menü › alt sayfa (Renk'te alt menü = grup, alt sayfa = ayar)
@@ -163,7 +168,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         val liste = remember {
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
-                "kayitli" to "sakla kaydet şablonum", "bicim" to "16:9 9:16 reels shorts kare", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma")
+                "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -172,7 +177,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 } else bb.haplar.forEach { (h, ad) ->
                     if (h == "disa") return@forEach
-                    l += AramaOge("${bb.ad} › $ad", bb.anahtar, h, null)
+                    l += AramaOge("${bb.ad} › $ad", bb.anahtar, h, null, ek[h] ?: "")
                     ALT_SAYFALAR[h]?.forEach { a -> l += AramaOge("${bb.ad} › $ad › ${a.ad}", bb.anahtar, h, a.anahtar, ek[a.anahtar] ?: "") }
                 }
             }
@@ -220,7 +225,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
                 }
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
-                if (!Renk.sb) {
+                if (!Renk.sb || Duzen.kontrolUstte) {
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
                     Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
@@ -249,9 +254,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"))
-                if (!Duzen.yaziliMenu && !Renk.sb && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
+                if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
+                    OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
+                        altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
             }
-            if (Renk.sb && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p)
+            if (Renk.sb && !Duzen.kontrolUstte && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p, tamEkran = { tamEkranV = true }) { Duzen.kontrolDegis(ctx) }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
             val yog = LocalDensity.current
@@ -269,28 +276,6 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (Duzen.yaziliMenu && !Renk.sb) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
-                // 3.70: yol (Bölüm › Alt menü › Alt sayfa) + 3. katman çipleri — yalnız yeni düzende, panel açıkken
-                if (panelAcik && !Duzen.yaziliMenu) {
-                    val bb = BOLUMLER.first { it.anahtar == bolum }
-                    if (bolum == "renk") {
-                        val g = renkGrubu(renkSekmeS)
-                        val ad = RENK_SEKMELERI.firstOrNull { it.anahtar == renkSekmeS }?.ad
-                        YolSatiri(listOfNotNull(bb.ad, g.ad, ad?.takeIf { g.sayfalar.size > 1 }), { altMod = false }) { aramaAcik = true }
-                        if (g.sayfalar.size > 1) {
-                            val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
-                            AltSayfaCipleri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
-                                renkSekmeS, { renkSekmeDegisti(ra, it) }) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
-                        }
-                    } else {
-                        val h = haplar[bolum] ?: ""
-                        val hapAd = bb.haplar.firstOrNull { it.first == h }?.second
-                        val altListe = ALT_SAYFALAR[h]
-                        val altK = AltHafiza.al(h)
-                        YolSatiri(listOfNotNull(bb.ad, hapAd?.takeIf { bb.haplar.size > 1 || altListe != null }, altListe?.firstOrNull { it.anahtar == altK }?.ad),
-                            { altMod = false }) { aramaAcik = true }
-                        if (altListe != null) AltSayfaCipleri(altListe, altK, { altDegisti(p, p.klipler.getOrNull(sec), h, it) }) { a -> AltHafiza.sec(h, a) }
-                    }
-                }
                 if (bolum == "renk" && panelAcik) {
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
                     KlipSeridi(vm, p, sec, ekle, kucuk = true)
@@ -346,6 +331,20 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
                 }
             }
+            // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
+            if (panelAcik && !Duzen.yaziliMenu) {
+                if (bolum == "renk") {
+                    val g = renkGrubu(renkSekmeS)
+                    if (g.sayfalar.size > 1) {
+                        val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
+                        AltSayfaCipleri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
+                            renkSekmeS, { renkSekmeDegisti(ra, it) }) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
+                    }
+                } else {
+                    val h = haplar[bolum] ?: ""
+                    ALT_SAYFALAR[h]?.let { altListe -> AltSayfaCipleri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }) { a -> AltHafiza.sec(h, a) } }
+                }
+            }
             if (altMod && panelAcik) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
                 // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
@@ -359,10 +358,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     Box(Modifier.padding(end = 4.dp).width(1.dp).height(32.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
                     Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)) { altlar.forEach { AltDugme(it) } }
+                    if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
                 }
             } else {
-                if (altlar.size > 1 || bolum == "renk") {
-                    if (Duzen.yaziliMenu && bolum != "renk") {
+                if (Duzen.yaziliMenu && (altlar.size > 1 || bolum == "renk")) {   // 3.71: yeni düzende ana menünün üstünde ayrı alt menü satırı yok
+                    if (bolum != "renk") {
                         // önceki yazılı haplar (⋯ menüsünden seçilebilir)
                         Row(Modifier.fillMaxWidth().background(Renk.kart).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -510,20 +510,22 @@ private fun ZamanCubugu(konum: Long, toplam: Long, git: (Long) -> Unit) {
 
 /** Videonun üstünde, altta şeffaf kontrol şeridi (ayrı satır yer kaplamaz): oynat · başa · kare geri/ileri · ince çubuk · süre. */
 @Composable
-private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier) {
+private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkran: (() -> Unit)? = null, tamEkranda: Boolean = false, altaAl: (() -> Unit)? = null) {
     val konum by vm.konum.collectAsState()
     val oyn by vm.oynuyor.collectAsState()
     val toplam = p.toplamMs.coerceAtLeast(1)
     val beyaz = Color(0xF2FFFFFF)
+    // 3.71: şeffaf arka plan (koyu şerit yok); düğmeler parlak görüntüde de seçilsin diye hafif saydam yuvarlak üstünde
+    val dz = Color(0x40000000)
     Row(
-        modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000))))
-            .padding(start = 4.dp, end = 10.dp, top = 14.dp, bottom = 2.dp),
+        modifier.fillMaxWidth().padding(start = 4.dp, end = 6.dp, top = 6.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 20.dp) }
-        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", beyaz, 14.dp) }
-        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", beyaz, 14.dp) }
-        Box(Modifier.size(28.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", beyaz, 14.dp) }
+        Box(Modifier.size(34.dp).clip(CircleShape).background(dz).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 20.dp) }
+        Spacer(Modifier.width(2.dp))
+        Box(Modifier.size(28.dp).clip(CircleShape).background(dz).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", beyaz, 14.dp) }
+        Box(Modifier.size(28.dp).clip(CircleShape).background(dz).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", beyaz, 14.dp) }
+        Box(Modifier.size(28.dp).clip(CircleShape).background(dz).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", beyaz, 14.dp) }
         Spacer(Modifier.width(6.dp))
         val f = (konum.coerceIn(0, toplam).toFloat() / toplam).coerceIn(0f, 1f)
         BoxWithConstraints(
@@ -538,7 +540,28 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier) {
             Box(Modifier.offset(x = (w * f - 6.dp).coerceIn(0.dp, w - 12.dp)).size(12.dp).clip(CircleShape).background(Color.White))
         }
         Spacer(Modifier.width(8.dp))
-        Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.sp, maxLines = 1)
+        Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.sp, maxLines = 1,
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(dz).padding(horizontal = 5.dp, vertical = 1.dp))
+        if (altaAl != null) Box(Modifier.padding(start = 4.dp).size(28.dp).clip(CircleShape).background(dz).clickable { altaAl() }, contentAlignment = Alignment.Center) { Simge("h_asagi", beyaz, 14.dp) }
+        if (tamEkran != null) Box(Modifier.padding(start = 4.dp).size(30.dp).clip(CircleShape).background(dz).clickable { tamEkran() }, contentAlignment = Alignment.Center) {
+            Simge(if (tamEkranda) "kucult" else "tamekran", beyaz, 16.dp) }
+    }
+}
+
+/** 3.71: video tam ekran — yalnız önizleme ve kontroller; yatay videoda ekran yan döner. Geri / küçült simgesi = çık. */
+@Composable
+private fun TamEkranVideo(vm: EditorDurum, p: Proje, cik: () -> Unit) {
+    val ctx = LocalContext.current
+    BackHandler { cik() }
+    DisposableEffect(p.bicim) {
+        val akt = ctx as? android.app.Activity
+        if (p.bicim == "16:9") akt?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose { akt?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        OnizlemeKatmanli(vm, p, false, Modifier.fillMaxSize())
+        if (p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars),
+            tamEkran = cik, tamEkranda = true)
     }
 }
 
@@ -570,7 +593,7 @@ private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
 
 /** 3.63: siyah-beyaz tema (VITA dizilişi) — önizlemenin altında: süre · başa · önceki · oynat · sonraki · geri al · yinele; altında ince zaman çubuğu. */
 @Composable
-private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje) {
+private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje, tamEkran: () -> Unit = {}, ustteAl: () -> Unit = {}) {
     val konum by vm.konum.collectAsState()
     val oyn by vm.oynuyor.collectAsState()
     val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
@@ -587,6 +610,9 @@ private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje) {
                     Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
                 Box(Modifier.size(36.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
                     Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
+                // 3.71: kontrolleri videonun üstüne al · tam ekran
+                Box(Modifier.size(36.dp).clip(CircleShape).clickable { ustteAl() }, contentAlignment = Alignment.Center) { Simge("h_yukari", Renk.soluk, 18.dp) }
+                Box(Modifier.size(36.dp).clip(CircleShape).clickable { tamEkran() }, contentAlignment = Alignment.Center) { Simge("tamekran", Renk.yazi, 18.dp) }
             }
         }
         ZamanCubugu(konum.coerceIn(0, toplam), toplam) { vm.git(it) }
@@ -960,7 +986,8 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "muzik" -> PanelMuzik(vm, p, alt)
         "seslendirme" -> PanelSeslendirme(vm, p, alt)
         "logo" -> PanelLogoKutup(vm, p)
-        "sablon", "paket", "hazir" -> PanelSablon(vm, p, alt)   // 3.70: Görünüm'ün üç alt menüsü aynı sayfanın bölümleri
+        "sablon", "hazir" -> PanelSablon(vm, p, alt)   // 3.70: Görünüm'ün alt menüleri aynı sayfanın bölümleri
+        "paket" -> PanelSablon(vm, p, if (alt == null) null else "paket")   // 3.71: Paket tek sayfa (Biçim + Paketler)
         "gecis" -> PanelGecis(vm, p)
         "filtre" -> PanelFiltre(vm, p, sec)   // 3.59
         "ayarlar" -> PanelAyarlar(vm, p, sec)   // 3.61
@@ -1190,7 +1217,7 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
                 YuvarlakSecim(t.ad, t.simge, Color(t.renk), p.muzik?.ad == "Hazır müzik · ${t.ad}") { if (!uretiyor) vm.hazirMuzik(t.anahtar) }
             }
         }
-        Text("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Sakin, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.",
+        Text("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Huzur, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.",
             color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
     }
     if (alt == null || alt == "dosya" || alt == "ayar") Kart(if (alt == "ayar") "Müzik ayarı" else "Arka plan müziği") {

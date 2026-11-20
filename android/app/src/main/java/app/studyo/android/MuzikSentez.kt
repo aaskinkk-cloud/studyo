@@ -21,7 +21,8 @@ import kotlin.random.Random
 object MuzikSentez {
     class Tur(val anahtar: String, val ad: String, val aciklama: String, val simge: String, val renk: Long, val klasik: Boolean = false)
     val TURLER = listOf(
-        Tur("calm", "Sakin", "doğa · manzara", "nota", 0xFF5DCAA5),
+        // 3.71: "Sakin" kaldırıldı (TV'de arka planda hırıltı) → "Huzur": aynı akor yürüyüşü, saf sinüs tınılar, notalar sıfıra iner
+        Tur("huzur", "Huzur", "doğa · manzara", "nota", 0xFF5DCAA5),
         Tur("happy", "Neşeli", "insan · kutlama", "yildiz", 0xFFFAC775),
         Tur("warm", "Duygusal", "çay · sofra · anı", "kalp", 0xFFED93B1),
         Tur("drive", "Tempolu", "yol · araç · spor", "hareket", 0xFFF0997B),
@@ -39,7 +40,7 @@ object MuzikSentez {
     fun dosya(ctx: Context, anahtar: String, saniye: Int): File {
         val sn = saniye.coerceIn(30, 300)
         val dz = File(ctx.filesDir, "muzik").apply { mkdirs() }
-        val f = File(dz, "hazir_${anahtar}_$sn.wav")
+        val f = File(dz, "hazir2_${anahtar}_$sn.wav")   // 3.71: temiz üretim (tık/hırıltı düzeltmesi) — eski önbellek kullanılmaz
         if (f.exists() && f.length() > 1000) return f
         val (L, R) = if (tur(anahtar).klasik) klasik(anahtar, sn.toFloat()) else mod(anahtar, sn.toFloat())
         wavYaz(f, L, R)
@@ -100,6 +101,7 @@ object MuzikSentez {
     // ===================== Sakin / Neşeli / Duygusal / Tempolu (genMusic) =====================
     private class Mod(val bpm: Int, val prog: List<IntArray>, val kick: Boolean, val dalga: Int, val kes: Float)
     private val MODLAR = mapOf(
+        "huzur" to Mod(70, listOf(intArrayOf(57, 60, 64), intArrayOf(53, 57, 60), intArrayOf(48, 52, 55), intArrayOf(55, 59, 62)), false, 0, 2000f),
         "calm" to Mod(72, listOf(intArrayOf(57, 60, 64), intArrayOf(53, 57, 60), intArrayOf(48, 52, 55), intArrayOf(55, 59, 62)), false, 1, 1600f),
         "happy" to Mod(112, listOf(intArrayOf(60, 64, 67), intArrayOf(55, 59, 62), intArrayOf(57, 60, 64), intArrayOf(53, 57, 60)), true, 1, 2600f),
         "warm" to Mod(66, listOf(intArrayOf(57, 60, 64), intArrayOf(53, 57, 60), intArrayOf(60, 64, 67), intArrayOf(55, 59, 62)), false, 1, 1300f),
@@ -133,13 +135,15 @@ object MuzikSentez {
             val notalar = intArrayOf(ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[1] + 24)
             for (k in 0 until adim) {
                 val tt = t0 + k * st; val o = Osc(0); val f = mtof(notalar[(k + b) % notalar.size].toFloat()); val d = min(0.9f, st * 1.8f)
-                yaz(ana, tt, min(1f, st * 2), 0f, 1f, { _, t -> val e = if (t < 0.01f) 0.07f * t / 0.01f else 0.07f * (0.001f / 0.07f).pow(((t - 0.01f) / (d - 0.01f)).coerceAtMost(1f)); o.sonraki(f) * e }, gec, 1f)
+                // 3.71 KÖK DÜZELTME: zarf 0,001'de kalıp pencere sonunda kesiliyordu (her notada yankıyla çoğalan tık) → sonda 20 ms'de sıfıra iner
+                yaz(ana, tt, d + 0.02f, 0f, 1f, { _, t -> val e = when { t < 0.01f -> 0.07f * t / 0.01f; t < d -> 0.07f * (0.001f / 0.07f).pow((t - 0.01f) / (d - 0.01f))
+                    else -> 0.001f * (1f - (t - d) / 0.02f).coerceAtLeast(0f) }; o.sonraki(f) * e }, gec, 1f)
             }
             if (M.kick) for (k in 0 until 4) {
                 val tt = t0 + k * beat; var faz = 0.0
                 yaz(ana, tt, 0.3f, 0f, 1f, { _, t ->
                     val f = 120f * (42f / 120f).pow((t / 0.12f).coerceAtMost(1f)); faz += f / SR
-                    val e = 0.35f * (0.001f / 0.35f).pow((t / 0.25f).coerceAtMost(1f))
+                    val e = if (t < 0.25f) 0.35f * (0.001f / 0.35f).pow(t / 0.25f) else 0.001f * (1f - (t - 0.25f) / 0.05f).coerceAtLeast(0f)   // 3.71: sıfıra iner
                     sin(2 * PI * faz).toFloat() * e })
             }
         }
@@ -187,21 +191,22 @@ object MuzikSentez {
             val son = max(d, 0.3f) + dec * 0.6f
             val a = Osc(1); val b = Osc(0); val c = Osc(0)
             cik(t, son + 0.05f, pan) { _, tt ->
-                val e = when { tt < 0.006f -> v * tt / 0.006f; tt < dec * 0.35f -> v * (0.25f).pow((tt - 0.006f) / (dec * 0.35f - 0.006f)); else -> v * 0.25f * (0.0008f / (v * 0.25f)).pow(((tt - dec * 0.35f) / (son - dec * 0.35f)).coerceAtMost(1f)) }
+                val e = when { tt < 0.006f -> v * tt / 0.006f; tt < dec * 0.35f -> v * (0.25f).pow((tt - 0.006f) / (dec * 0.35f - 0.006f))
+                    tt < son -> v * 0.25f * (0.0008f / (v * 0.25f)).pow((tt - dec * 0.35f) / (son - dec * 0.35f)); else -> 0.0008f * (1f - (tt - son) / 0.05f).coerceAtLeast(0f) }   // 3.71: sıfıra iner
                 (a.sonraki(f) + b.sonraki(f * 2 * 1.00116f) * 0.35f + c.sonraki(f * 3 * 1.00116f) * 0.12f) * e
             }
         }
         /** klavsen */
         fun klv(m: Int, t: Float, v: Float, pan: Float) {
-            val o = Osc(2); val hp = Biquad(1, 400f, 0.707f); val f = mtof(m.toFloat())
-            cik(t, 0.75f, pan) { _, tt -> hp.isle(o.sonraki(f)) * v * (0.001f / v).pow((tt / 0.7f).coerceAtMost(1f)) }
+            val o = Osc(2); val hp = Biquad(1, 400f, 0.707f); val lp = Biquad(0, 3500f, 0.707f); val f = mtof(m.toFloat())   // 3.71: üst vızıltı süzülür
+            cik(t, 0.75f, pan) { _, tt -> lp.isle(hp.isle(o.sonraki(f))) * (if (tt < 0.7f) v * (0.001f / v).pow(tt / 0.7f) else 0.001f * (1f - (tt - 0.7f) / 0.05f).coerceAtLeast(0f)) }
         }
         /** timpani */
         fun tim(m: Int, t: Float, v: Float) {
             val f = mtof(m.toFloat()); var faz = 0.0; val lp = Biquad(0, 700f, 0.707f)
             cik(t, 1.65f, 0f) { _, tt ->
                 val ff = f * (1.04f * (1f / 1.04f).pow((tt / 0.12f).coerceAtMost(1f))); faz += ff / SR
-                val e = v * (0.001f / v).pow((tt / 1.6f).coerceAtMost(1f))
+                val e = if (tt < 1.6f) v * (0.001f / v).pow(tt / 1.6f) else 0.001f * (1f - (tt - 1.6f) / 0.05f).coerceAtLeast(0f)   // 3.71: sıfıra iner
                 val gurultu = if (tt < 0.12f) lp.isle((rnd.nextFloat() * 2 - 1) * (1 - tt / 0.12f)) * 0.6f else 0f
                 (sin(2 * PI * faz).toFloat() + gurultu) * e
             }
@@ -319,7 +324,10 @@ object MuzikSentez {
             val veri = L.size * 4
             o.writeBytes("RIFF"); i32(36 + veri); o.writeBytes("WAVE"); o.writeBytes("fmt "); i32(16); i16(1); i16(2); i32(SR); i32(SR * 4); i16(4); i16(16)
             o.writeBytes("data"); i32(veri)
-            for (i in L.indices) { i16((L[i].coerceIn(-1f, 1f) * 32767).toInt()); i16((R[i].coerceIn(-1f, 1f) * 32767).toInt()) }
+            // 3.71: 16 bit'e yuvarlama + TPDF titreşim (önce kesme: sessizleşen kuyruklarda pürüzlü taneciklenme)
+            val r = java.util.Random(11)
+            fun q(x: Float): Int = Math.round(x.coerceIn(-1f, 1f) * 32766f + (r.nextFloat() - r.nextFloat())).coerceIn(-32768, 32767)
+            for (i in L.indices) { i16(q(L[i])); i16(q(R[i])) }
         }
         tmp.renameTo(f)
     }

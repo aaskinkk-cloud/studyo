@@ -32,7 +32,6 @@ val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
     "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
-    "paket" to listOf(AltSayfa("paket", "Paketler", "sihir"), AltSayfa("bicim", "Biçim", "bicim")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),
     "hareket" to listOf(AltSayfa("yakin", "Yakınlaştırma", "h_yakin"), AltSayfa("kay", "Kaydırma", "h_sag"), AltSayfa("odak", "Odak", "h_odak")),
     "muzik" to listOf(AltSayfa("hazir", "Hazır", "sihir"), AltSayfa("dosya", "Dosyadan", "yukle"), AltSayfa("ayar", "Ayar", "ses")),
@@ -160,8 +159,8 @@ fun HizSayfasi(vm: EditorDurum, k: Klip) {
         val ozgunMs = if (k.asilUri.isNotEmpty()) k.asilSonMs - k.asilBasMs else k.sonMs - k.basMs
         Text("Şu an ${HizIsleyici.yaz(k.hiz)} · ekranda ${sureOndalik(k.sureMs)}" + (if (k.hiz != 1f) " (özgünü ${sureOndalik(ozgunMs)})" else ""),
             color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp))
-        Text("Seçili klibin kırpılmış aralığı bir kez işlenir (birkaç saniye sürer); özgün dosya silinmez, 1× ile geri döner. Ses de aynı hızda çalar. " +
-            "Hızdan sonra kırpma yeni klibe göre yapılır; hızı yeniden değiştirince özgün aralık kullanılır.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+        AcilirNot("Seçili klibin kırpılmış aralığı bir kez işlenir (birkaç saniye sürer); özgün dosya silinmez, 1× ile geri döner. Ses de aynı hızda çalar. " +
+            "Hızdan sonra kırpma yeni klibe göre yapılır; hızı yeniden değiştirince özgün aralık kullanılır.")
     }
 }
 
@@ -171,8 +170,8 @@ fun KayitliAyarlarSayfasi(vm: EditorDurum) {
     val liste by vm.kayitliAyarlar.collectAsState()
     var ad by remember { mutableStateOf("") }
     Kart("Kayıtlı ayarlarım") {
-        Text("Giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü adıyla saklanır. " +
-            "Yazılar ve dosyalar saklanmaz. Yedeğe de girer.", color = Renk.soluk, fontSize = 12.sp)
+        AcilirNot("Giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü adıyla saklanır. " +
+            "Yazılar ve dosyalar saklanmaz. Yedeğe de girer.", "Neler saklanır?")
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(ad, { ad = it }, Modifier.weight(1f), singleLine = true, placeholder = { Text("Ad (ör. Yayla serisi)") })
             Spacer(Modifier.width(8.dp))

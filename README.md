@@ -6,6 +6,14 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.71 (20.11.2026, deneme · `yerel-android` dalı): menüler hep altta, video tam ekran, şeffaf kontroller, temiz müzik
+- **Menüler hep altta:** 3. katman çipleri panelin tepesinden alt menünün hemen üstüne indi; üstteki yol satırı kalktı (arama 🔍 alt menü satırının sağında). Ana menüye dönünce üstünde ayrı alt menü satırı yok — yalnız alt menü modu (‹ Bölüm · alt menüler) kullanılır. Önceki yazılı düzen aynen.
+- **Video tam ekran** (kontrollerdeki ⛶): yalnız video ve kontroller; 16:9'da ekran yan döner. ⛶/geri = çık.
+- **Kontroller videonun üstünde, şeffaf:** koyu şerit kalktı; düğmeler hafif saydam yuvarlaklarda. Siyah-beyaz temada VITA satırındaki ▴ ile kontroller videonun üstüne, üstteki ▾ ile yeniden alta alınır (seçim hatırlanır).
+- **Açıklamalar kapalı:** Nesne, Hız, Kayıtlı ayarlarım'daki uzun açıklamalar "Nasıl çalışır?" satırında (dokun = aç). Bölüm aç/kapa oku yarı boyda ve silik.
+- **Paket tek sayfa:** Biçim + Paketler birlikte.
+- **Müzik:** "Sakin" kaldırıldı, yerine **Huzur** (aynı akor yürüyüşü, saf sinüs tınılar; doğa videolarında otomatik seçim). **Kök neden düzeltmeleri (bütün türlerde):** notaların zarfı en düşük seviyede kalıp pencere sonunda kesiliyordu → her notada yankıyla çoğalan tık/cızırtı; artık 20–50 ms'de sıfıra iner (arpej, davul, piyano, klavsen, timpani). 16 bit'e kesme yerine yuvarlama + TPDF titreşim (sessizleşen kuyruklarda taneciklenme kalkar). Klavsenin süzülmemiş testere vızıltısına alçak geçiren eklendi. Önbellek yenilendi (eski üretimler kullanılmaz).
+
 ## 3.70 (20.11.2026, deneme · `yerel-android` dalı): üç katmanlı menü, ayar arama, klip hızı, müziğin yumuşak giriş/çıkışı, kayıtlı ayarlarım
 - **Üç katmanlı gezinme** (Ahmet'in onayladığı taslak): 1. ana menü · 2. alt menü satırı · 3. panelin tepesinde alt sayfa çipleri. En üstte yol satırı (Görünüm › Şablon › Giriş; ‹ ya da bölüm adı = ana menü). Her alt menünün son açılan alt sayfası hatırlanır. Ayarı değişen alt sayfada ✓.
   - Düzenle › Klip (Klipler · Kırp · Kadraj · Hız) · Nesne (Fotoğraftan · Videodan · Kesilenler)

@@ -22,6 +22,9 @@ object Simgeler {
         "hareketli_yazi" to "M3 6h11M8.5 6v13M16 10h5M17 14h4M18 18h3",
         // 3.70: ayar arama
         "ara" to "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35",
+        // 3.71: tam ekran / küçült
+        "tamekran" to "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+        "kucult" to "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
         "izgara" to "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
         "fotoekle" to "M14 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9M4 17l5-5 4 4 2-2 5 5M18 3v6M15 6h6",
         // 3.53: Renk bölümü ve Kırp

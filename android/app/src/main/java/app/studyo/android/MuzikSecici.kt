@@ -13,10 +13,10 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /** 3.61: videonun konusuna göre müzik seçimi — Google ML Kit görüntü etiketleme (ücretsiz, cihaz içinde).
- *  Kliplerden en fazla 8 kare etiketlenir; etiketler müzik türlerine puan verir. Model yoksa/inmemişse "Sakin" (doğa videoları). */
+ *  Kliplerden en fazla 8 kare etiketlenir; etiketler müzik türlerine puan verir. Model yoksa/inmemişse "Huzur" (doğa videoları). */
 object MuzikSecici {
     private val KURAL = listOf(
-        "calm" to listOf("sky", "cloud", "mountain", "lake", "river", "sea", "beach", "forest", "tree", "plant", "flower", "sunset", "snow", "grass", "waterfall", "leaf", "garden", "field", "landscape", "nature", "hill"),
+        "huzur" to listOf("sky", "cloud", "mountain", "lake", "river", "sea", "beach", "forest", "tree", "plant", "flower", "sunset", "snow", "grass", "waterfall", "leaf", "garden", "field", "landscape", "nature", "hill"),
         "happy" to listOf("smile", "party", "fun", "dog", "cat", "pet", "child", "baby", "toy", "balloon", "dance", "festival", "event", "crowd", "team", "game", "playground", "bird"),
         "warm" to listOf("food", "cup", "tea", "coffee", "dessert", "bread", "candle", "bonfire", "fire", "cuisine", "dishware", "tableware", "drink", "kitchen", "hand", "flesh", "couple", "wedding"),
         "drive" to listOf("car", "vehicle", "motorcycle", "bicycle", "sport", "running", "road", "racing", "skateboard", "bus", "train", "boat", "jet", "wheel", "tire"),
@@ -30,7 +30,7 @@ object MuzikSecici {
     }
 
     suspend fun konudanTur(ctx: Context, p: Proje): String = withContext(Dispatchers.Default) {
-        if (p.klipler.isEmpty()) return@withContext "calm"
+        if (p.klipler.isEmpty()) return@withContext "huzur"
         val puan = HashMap<String, Float>()
         val etiketci = ImageLabeling.getClient(ImageLabelerOptions.Builder().setConfidenceThreshold(0.55f).build())
         try {
@@ -46,6 +46,6 @@ object MuzikSecici {
             }
         } finally { try { etiketci.close() } catch (_: Exception) {} }
         Kayit.yaz("Müzik konusu puanları: $puan")
-        puan.maxByOrNull { it.value }?.key ?: "calm"
+        puan.maxByOrNull { it.value }?.key ?: "huzur"
     }
 }

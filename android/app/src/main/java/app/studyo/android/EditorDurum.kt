@@ -671,7 +671,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (muzikUretiliyor.value) return
         kapsam.launch {
             muzikUretiliyor.value = true
-            val tur = runCatching { MuzikSecici.konudanTur(ctx, proje.value) }.getOrDefault("calm")
+            val tur = runCatching { MuzikSecici.konudanTur(ctx, proje.value) }.getOrDefault("huzur")
             muzikUretiliyor.value = false
             hazirMuzik(tur)
         }

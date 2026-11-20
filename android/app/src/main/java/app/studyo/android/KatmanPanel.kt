@@ -370,7 +370,8 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int) {
     val secId by vm.seciliKatman.collectAsState()
     val konum by vm.konum.collectAsState()
     val duzenle by vm.katmanDuzenle.collectAsState()
-    LaunchedEffect(duzenle) { if (duzenle != null) vm.katmanDuzenle.value = null }   // bu sayfada ayarlar zaten açık; açılır pencere gerekmez
+    // 3.66: önizlemedeki ✎ tutamacı ve listedeki Düzenle aynı hızlı düzenleme penceresini açar (Katman bölümündekiyle aynı)
+    if (duzenle != null) YaziDuzenleDiyalog(vm, p)
     if (p.klipler.isEmpty()) {
         Text("Önce en az bir klip ekle; yazılar videonun üstüne yerleşir.", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(16.dp)); return
     }
@@ -395,6 +396,15 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int) {
                 Text(o.metin.lineSequence().firstOrNull()?.ifBlank { null } ?: "Yazı", color = if (o.gizli) Renk.soluk else Renk.yazi, fontSize = 13.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 8.dp))
                 Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 11.sp)
+                // 3.66: satırdan doğrudan düzenle / sil (sil: iki dokunuş; geri al ile geri gelir)
+                Box(Modifier.padding(start = 6.dp).size(34.dp).clip(CircleShape).clickable(enabled = !o.kilitli) {
+                    vm.seciliKatman.value = o.id; vm.git(o.basMs); vm.katmanDuzenle.value = o.id
+                }, contentAlignment = Alignment.Center) { Simge("degistir", if (o.kilitli) Renk.soluk else Renk.yazi, 18.dp) }
+                var silOnay by remember(o.id) { mutableStateOf(false) }
+                LaunchedEffect(silOnay) { if (silOnay) { kotlinx.coroutines.delay(3000); silOnay = false } }
+                Box(Modifier.size(34.dp).clip(CircleShape).background(if (silOnay) Renk.kirmizi else Color.Transparent).clickable(enabled = !o.kilitli) {
+                    if (silOnay) { vm.katmanSil(o.id); vm.mesaj.value = "Yazı silindi · geri al ile geri gelir" } else { silOnay = true; vm.mesaj.value = "Silmek için yine dokun" }
+                }, contentAlignment = Alignment.Center) { Simge("sil", if (silOnay) Color.White else if (o.kilitli) Renk.soluk else Renk.kirmizi, 18.dp) }
             }
         }
     }

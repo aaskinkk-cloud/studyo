@@ -214,7 +214,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
-                    katmanPaneli = panelAcik && bolum == "katman", hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
+                    katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"))
                 if (!Duzen.yaziliMenu && !Renk.sb && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }

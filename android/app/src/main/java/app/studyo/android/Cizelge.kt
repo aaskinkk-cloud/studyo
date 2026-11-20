@@ -644,7 +644,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
 
 /** Hızlı yazı düzenleme (3.44): eklenince, çizelgede seçili yazıya ya da ekrandaki yazıya dokununca açılır. */
 @Composable
-private fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
+internal fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
     val id by vm.katmanDuzenle.collectAsState()
     val o = p.katmanlar.firstOrNull { it.id == id && it.tur == "metin" } ?: return
     var m by remember(o.id) { mutableStateOf(o.metin) }

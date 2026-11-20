@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.66 (20.11.2026, deneme · `yerel-android` dalı): önizlemede yazı tutamaçları, hızlı düğmeler, listeden düzenle/sil
+- **Önizlemede seçili katman (InShot gibi):** ✕ sil (sol üst) · ✎ düzenle (sağ üst, yazılarda) · ⧉ çoğalt (sol alt) · ⤡ tek parmakla büyüt + döndür (sağ alt). Taşıma ve iki parmakla büyütme/döndürme aynen çalışır. Tutamaçlar önizlemenin içinde kalır.
+- **Hızlı düğmeler** (önizlemenin üst kenarında; yazı üstteyse altta): Küçült · Büyüt · Ortala · Düzelt (açı 0) · Öne al · Kilitle (kilitliyken yalnız "Kilidi aç").
+- **Metin › Yazı'da da çalışır:** önceden önizlemede seçme/taşıma yalnız Katman bölümündeydi; artık Metin › Yazı açıkken de yazıya dokun-sürükle-büyüt yapılır, dokununca hızlı düzenleme açılır.
+- **Videodaki yazılar listesi:** her satırda ✎ Düzenle ve 🗑 Sil (iki dokunuş; geri al ile geri gelir). Satıra dokunmak seçer ve oraya gider.
+
 ## 3.65 (20.11.2026, deneme · `yerel-android` dalı): Katman bölümünde kaydırma sona gelince durmuyor
 - **Kök neden:** çizelge (kendi satırlarını kaydıran) ile altındaki bölümler iki ayrı kayan alandı, sayfanın kendisi kaymıyordu; satırlar sona gelince kaydırma devredecek yer bulamıyordu.
 - **Çözüm:** başlık sabit, altı tek kayan sayfa: çizelge kendi satırlarını kaydırır, sona gelince kalan kaydırma sayfaya geçer ve alttaki bölümler (hazır yazılar, katman ayarları) gelir. Çizelge yüksekliği tutamacı aynen çalışır.

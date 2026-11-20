@@ -597,7 +597,89 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         onDoubleTap = { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) }; vm.mesaj.value = "Kadraj ortalandı" }) }
                     .then(klipSurukle))
             }
+
+            // 3.66: seçili katmanın tutamaçları (InShot gibi): ✕ sil · ✎ düzenle (yazı) · ⤡ tek parmakla büyüt/döndür · ⧉ çoğalt;
+            // önizlemenin kenarında hızlı düğmeler (küçült, büyüt, ortala, düzelt, öne al, kilitle). Değişiklik katGecici'den kaydedilir.
+            if (katmanPaneli && !takipSecim) {
+                val so = p.katmanlar.firstOrNull { it.id == seciliK && it.gorsel && !it.gizli }
+                val boy = so?.let { katBoyut[it.id] }
+                if (so != null && boy != null && konum >= so.basMs && konum <= so.sonMs) {
+                    val g = katGecici?.takeIf { it.id == so.id }
+                    val anO = KatmanCizim.an(so, konum).olcek.let { if (it.isFinite() && it > 0f) it else 1f }
+                    val sk = anO * (g?.carpan ?: 1f)
+                    val cx = (g?.x ?: so.x) * RW * olcek; val cy = (g?.y ?: so.y) * RH * olcek
+                    val pay = with(yog) { 6.dp.toPx() }
+                    val hw = boy.first * olcek * sk / 2f + pay; val hh = boy.second * olcek * sk / 2f + pay
+                    val rad = Math.toRadians((so.aci + (g?.aci ?: 0f)).toDouble())
+                    val cs = kotlin.math.cos(rad).toFloat(); val sn = kotlin.math.sin(rad).toFloat()
+                    fun kose(sx: Float, sy: Float): Offset { val dx = sx * hw; val dy = sy * hh; return Offset(cx + dx * cs - dy * sn, cy + dx * sn + dy * cs) }
+                    val gwT = constraints.maxWidth.toFloat(); val ghT = constraints.maxHeight.toFloat()
+                    val rT = with(yog) { 15.dp.toPx() }
+                    val koseV by rememberUpdatedState(kose(1f, 1f) - Offset(cx, cy))
+                    val soG by rememberUpdatedState(so)
+                    if (!so.kilitli) {
+                        KatmanTutamac(kose(-1f, -1f), rT, gwT, ghT, "kapat", Renk.kirmizi, Color.White, Modifier.clickable {
+                            vm.katmanSil(so.id); vm.mesaj.value = "Silindi · geri al ile geri gelir" })
+                        if (so.tur == "metin") KatmanTutamac(kose(1f, -1f), rT, gwT, ghT, "degistir", Color.White, Color.Black, Modifier.clickable { vm.katmanDuzenle.value = so.id })
+                        KatmanTutamac(kose(-1f, 1f), rT, gwT, ghT, "cogalt", Color.White, Color.Black, Modifier.clickable {
+                            vm.katmanCogalt(so.id); vm.mesaj.value = "Çoğaltıldı (hemen ardından başlar)" })
+                        KatmanTutamac(kose(1f, 1f), rT, gwT, ghT, "kadraj", Color.White, Color.Black, Modifier.pointerInput(so.id) {
+                            var v0 = Offset(1f, 1f); var v = Offset(1f, 1f)
+                            var taban = KatmanGecici(so.id, so.x, so.y, 1f, 0f)
+                            detectDragGestures(onDragStart = {
+                                v0 = koseV; v = v0
+                                val s0 = soG
+                                taban = katGecici?.takeIf { it.id == s0.id } ?: KatmanGecici(s0.id, s0.x, s0.y, 1f, 0f)
+                            }) { ch, d ->
+                                ch.consume()
+                                val s0 = soG
+                                if (katGecici?.id != s0.id) { taban = KatmanGecici(s0.id, s0.x, s0.y, 1f, 0f); v0 = v }   // ara kayıttan sonra yeniden çapala
+                                v += d
+                                val l0 = v0.getDistance().coerceAtLeast(1f)
+                                val oran = v.getDistance() / l0
+                                val aci = Math.toDegrees((kotlin.math.atan2(v.y, v.x) - kotlin.math.atan2(v0.y, v0.x)).toDouble()).toFloat()
+                                if (oran.isFinite() && aci.isFinite())
+                                    katGecici = taban.copy(carpan = (taban.carpan * oran).coerceIn(0.1f, 8f), aci = taban.aci + aci)
+                            }
+                        })
+                    }
+                    // hızlı düğmeler yazının üstünü örtmesin: yazı üst bölgedeyse altta (oynatıcı şeridinin üstünde) dursun
+                    val ustte = cy > ghT * 0.35f
+                    Row(Modifier.align(if (ustte) Alignment.TopCenter else Alignment.BottomCenter)
+                        .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = if (ustte) 6.dp else 48.dp).clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xCC000000)).padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val (mn, mx) = if (so.tur == "metin") 0.02f to 0.3f else 0.03f to 1.5f
+                        if (so.kilitli) HizliTus("Kilidi aç", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = false) } }
+                        else {
+                            HizliTus("Küçült", "eksi") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 0.9f).coerceIn(mn, mx)) } }
+                            HizliTus("Büyüt", "ekle") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 1.1f).coerceIn(mn, mx)) } }
+                            HizliTus("Ortala", "h_odak") { vm.katmanDegis(so.id) { it.copy(x = 0.5f) } }
+                            HizliTus("Düzelt", "yinele") { vm.katmanDegis(so.id) { it.copy(aci = 0f) } }
+                            val i = p.katmanlar.indexOfFirst { it.id == so.id }
+                            if (i in 0 until p.katmanlar.lastIndex) HizliTus("Öne al", "katman") { vm.katmanTasi(i, p.katmanlar.lastIndex) }
+                            HizliTus("Kilitle", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = true) }; vm.mesaj.value = "Kilitlendi (taşınmaz)" }
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+/** 3.66: önizlemedeki katman tutamacı (yuvarlak simge); merkez önizleme sınırlarının içine çekilir. */
+@Composable
+private fun KatmanTutamac(m: Offset, r: Float, gw: Float, gh: Float, simge: String, zemin: Color, renk: Color, ek: Modifier) {
+    val x = m.x.coerceIn(r, (gw - r).coerceAtLeast(r)); val y = m.y.coerceIn(r, (gh - r).coerceAtLeast(r))
+    Box(Modifier.offset { IntOffset((x - r).roundToInt(), (y - r).roundToInt()) }.size(30.dp).clip(CircleShape).background(zemin)
+        .border(1.dp, Color(0x55000000), CircleShape).then(ek), contentAlignment = Alignment.Center) { Simge(simge, renk, 16.dp) }
+}
+
+/** 3.66: önizlemenin kenarındaki hızlı düğme (simge + küçük yazı). */
+@Composable
+private fun HizliTus(ad: String, simge: String, tik: () -> Unit) {
+    Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = tik).padding(horizontal = 6.dp, vertical = 3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Simge(simge, Color.White, 16.dp)
+        Text(ad, color = Color.White, fontSize = 9.5.sp, maxLines = 1)
     }
 }
 

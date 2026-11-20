@@ -536,12 +536,14 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkr
         Column(modifier.fillMaxWidth().alpha(gorunurluk).background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x8C000000))))
             .padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 2.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.5.sp, maxLines = 1, modifier = Modifier.weight(1f))
+                Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = beyaz, fontSize = 11.5.sp, maxLines = 1)
+                Spacer(Modifier.weight(1f))   // 3.72: gruplar kendi boyunda — tam ekran düğmesi taşıp kaybolmaz
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", beyaz, 15.dp) }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", beyaz, 17.dp) }
                 Box(Modifier.size(42.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", beyaz, 26.dp) }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", beyaz, 17.dp) }
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!tamEkranda) {
                         Box(Modifier.size(32.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
                             Simge("gerial", if (geriVar) beyaz else beyaz.copy(alpha = 0.35f), 18.dp) }
@@ -649,21 +651,23 @@ private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje, tamEkran: () -> Unit = {
     val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
     val toplam = p.toplamMs.coerceAtLeast(1)
     Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(horizontal = 12.dp)) {
+        // 3.72 KÖK DÜZELTME: sağ grup (geri al · yinele · ▴ · ⛶) eşit "weight" payına sığmıyordu → son iki düğme (▴ üste al, ⛶ tam ekran)
+        // ekranın dışında kalıp hiç görünmüyordu. Gruplar artık kendi boylarında, aradaki boşluk esnek; hepsi her ekranda sığar.
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = Renk.yazi, fontSize = 12.sp, maxLines = 1, modifier = Modifier.weight(1f))
-            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", Renk.yazi, 16.dp) }
-            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", Renk.yazi, 18.dp) }
-            Box(Modifier.size(44.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Renk.yazi, 28.dp) }
-            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", Renk.yazi, 18.dp) }
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                Box(Modifier.size(36.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
-                    Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
-                Box(Modifier.size(36.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
-                    Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
-                // 3.71: kontrolleri videonun üstüne al · tam ekran
-                Box(Modifier.size(36.dp).clip(CircleShape).clickable { ustteAl() }, contentAlignment = Alignment.Center) { Simge("h_yukari", Renk.soluk, 18.dp) }
-                Box(Modifier.size(36.dp).clip(CircleShape).clickable { tamEkran() }, contentAlignment = Alignment.Center) { Simge("tamekran", Renk.yazi, 18.dp) }
-            }
+            Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = Renk.yazi, fontSize = 12.sp, maxLines = 1)
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", Renk.yazi, 16.dp) }
+            Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", Renk.yazi, 18.dp) }
+            Box(Modifier.size(42.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Renk.yazi, 28.dp) }
+            Box(Modifier.size(34.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", Renk.yazi, 18.dp) }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.size(32.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 19.dp) }
+            Box(Modifier.size(32.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 19.dp) }
+            // kontrolleri videonun üstüne al · tam ekran
+            Box(Modifier.size(32.dp).clip(CircleShape).clickable { ustteAl() }, contentAlignment = Alignment.Center) { Simge("h_yukari", Renk.yazi, 18.dp) }
+            Box(Modifier.size(32.dp).clip(CircleShape).clickable { tamEkran() }, contentAlignment = Alignment.Center) { Simge("tamekran", Renk.yazi, 18.dp) }
         }
         ZamanCubugu(konum.coerceIn(0, toplam), toplam) { vm.git(it) }
     }

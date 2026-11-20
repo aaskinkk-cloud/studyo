@@ -73,7 +73,7 @@ object Duzen {
         katmanYuk = sp.getFloat("katmanYuk", 240f).coerceIn(120f, 560f)
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
         seritGizli = sp.getBoolean("seritGizli", false)
-        kontrolUstte = sp.getBoolean("kontrolUstte2", true)   // 3.72: kontroller varsayılan olarak videonun üstünde
+        kontrolUstte = sp.getBoolean("kontrolUstte3", true)   // 3.72: kontroller varsayılan olarak videonun üstünde
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
@@ -84,7 +84,7 @@ object Duzen {
     fun ppsKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("cizelgePps", cizelgePps).apply() }
     /** 3.71: siyah-beyaz temada oynatma kontrolleri videonun üstünde mi (şeffaf) yoksa altında mı (VITA satırı). */
     var kontrolUstte by mutableStateOf(true)
-    fun kontrolDegis(ctx: Context) { kontrolUstte = !kontrolUstte; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kontrolUstte2", kontrolUstte).apply() }
+    fun kontrolDegis(ctx: Context) { kontrolUstte = !kontrolUstte; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kontrolUstte3", kontrolUstte).apply() }
     /** 3.35: büyük klip şeridi gizli (izlerken göz yormasın); seçim hatırlanır. */
     var seritGizli by mutableStateOf(false)
     fun seritDegis(ctx: Context) { seritGizli = !seritGizli; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("seritGizli", seritGizli).apply() }

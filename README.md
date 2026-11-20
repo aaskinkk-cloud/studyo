@@ -26,6 +26,8 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
   - **Son düzeltme:** oynatıcı kontrolleri artık kendiliğinden gizlenmiyor (kontrollerin, ▾ alta alma okunun ve ⛶ tam ekranın kaybolduğu sanılıyordu). Duraklatılmışken ekrandaki giriş başlığına dokun = ekranda düzenleme, her bölümde (Görünüm › Şablon'da ekrana dokunmak yeterli). Üst çubukta kalın yazı yok ("Dışa aktar" ince).
 
+  - **Kök düzeltme (oynatıcı satırı):** satırın sağındaki grup (geri al · yinele · ▴ üste al · ⛶ tam ekran) eşit paylı alana sığmıyordu; son iki düğme ekranın dışında kalıp hiç görünmüyordu (3.71'den beri). Gruplar artık kendi boyunda, aradaki boşluk esnek — hem videonun altındaki satırda hem videonun üstündeki kontrollerde. Kontrollerin yeri sıfırlandı: videonun üstünde açılır (▾ ile alta, ▴ ile üste).
+
 ## 3.71 (20.11.2026, deneme · `yerel-android` dalı): menüler hep altta, video tam ekran, şeffaf kontroller, temiz müzik
 - **Menüler hep altta:** 3. katman çipleri panelin tepesinden alt menünün hemen üstüne indi; üstteki yol satırı kalktı (arama 🔍 alt menü satırının sağında). Ana menüye dönünce üstünde ayrı alt menü satırı yok — yalnız alt menü modu (‹ Bölüm · alt menüler) kullanılır. Önceki yazılı düzen aynen.
 - **Video tam ekran** (kontrollerdeki ⛶): yalnız video ve kontroller; 16:9'da ekran yan döner. ⛶/geri = çık.

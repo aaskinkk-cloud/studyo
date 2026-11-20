@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.65 (20.11.2026, deneme · `yerel-android` dalı): Katman bölümünde kaydırma sona gelince durmuyor
+- **Kök neden:** çizelge (kendi satırlarını kaydıran) ile altındaki bölümler iki ayrı kayan alandı, sayfanın kendisi kaymıyordu; satırlar sona gelince kaydırma devredecek yer bulamıyordu.
+- **Çözüm:** başlık sabit, altı tek kayan sayfa: çizelge kendi satırlarını kaydırır, sona gelince kalan kaydırma sayfaya geçer ve alttaki bölümler (hazır yazılar, katman ayarları) gelir. Çizelge yüksekliği tutamacı aynen çalışır.
+
 ## 3.64 (20.11.2026, deneme · `yerel-android` dalı): hareketli hazır yazılar
 - **Metin › Yazı ve Katman › Yazı ekle › "Hareketli yazılar":** dokun = oynatıcının olduğu andan 4 sn'lik yazı eklenir (metin hemen düzenlenir; renk Renk ayarından değişir, beyaz seçilirse stilin kendi rengi).
 - **Stiller:** Alıntı açılır (turuncu yuvarlak kare + tırnak; beyaz kutu karenin içinden sağa açılır, siyah yazı) · Kayan şerit (renkli şerit soldan süpürür, yazı içinden kayar; 2. satır beyaz şerit) · Daktilo (koyu kutuda harf harf, renkli imleç) · Çift kutu (renkli ve beyaz kutu sırayla soldan kayar) · Altı çizili (yazı aşağıdan yükselir, çizgi ortadan uzar). Farklı renk örnekleri hazır.

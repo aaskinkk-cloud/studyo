@@ -614,26 +614,30 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             Spacer(Modifier.width(6.dp))
             GizleGosterDugmesi(acik, Renk.turuncu) { acik = !acik }   // 3.57
         }
-        if (acik) {
-            if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-            else {
-                CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp)) { tur, i -> ekPanel = tur to i }
-                Box(Modifier.fillMaxWidth().height(22.dp)
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(onDragEnd = { Duzen.katmanYukKaydet(ctx) }) { ch, d ->
-                            ch.consume()
-                            Duzen.katmanYuk = (Duzen.katmanYuk + with(yog) { d.toDp().value }).coerceIn(120f, 560f)
+        // 3.64 KÖK DÜZELTME: çizelge ile alttaki bölümler ayrı ayrı kayıyordu (sayfa kaymıyordu) → çizelgenin satırları sona gelince
+        // kaydırma duruyordu. Artık tek kayan sayfa: çizelge kendi satırlarını kaydırır, sona gelince kalan kaydırma sayfaya geçer (iç içe kaydırma).
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+            if (acik) {
+                if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                else {
+                    CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp)) { tur, i -> ekPanel = tur to i }
+                    Box(Modifier.fillMaxWidth().height(22.dp)
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(onDragEnd = { Duzen.katmanYukKaydet(ctx) }) { ch, d ->
+                                ch.consume()
+                                Duzen.katmanYuk = (Duzen.katmanYuk + with(yog) { d.toDp().value }).coerceIn(120f, 560f)
+                            }
                         }
+                        .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.katmanYuk = 240f; Duzen.katmanYukKaydet(ctx) }) },
+                        contentAlignment = Alignment.Center) {
+                        Box(Modifier.width(56.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
                     }
-                    .pointerInput(Unit) { detectTapGestures(onDoubleTap = { Duzen.katmanYuk = 240f; Duzen.katmanYukKaydet(ctx) }) },
-                    contentAlignment = Alignment.Center) {
-                    Box(Modifier.width(56.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
                 }
             }
-        }
-        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-            PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value })
-            Spacer(Modifier.height(8.dp))
+            Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
+                PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value })
+                Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }

@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.67 (20.11.2026, deneme · `yerel-android` dalı): seçili klip kartında hareket yönü, yazı ekle, hareketli yazı; sade ve sabit Geri
+- **Seçili klip kartı** büyüdü (200 → 248 dp genişlik, 158 → 176 dp yükseklik). Alt satırda bilgi + yeni simgeler:
+  - **Hareket yönü:** klibin nasıl hareket edeceğini gösteren ok (sağa, sola, yukarı, aşağı, yakınlaş, uzaklaş, sabit; otomatikte sihir değneği). Dokun = Hareket sayfası (Görünüm › Hareket'in aynısı) açılır pencerede.
+  - **Yazı ekle (T):** oynatıcının olduğu andan yazı ekler, Metin › Yazı'ya geçer, düzenleme açılır.
+  - **Hareketli yazı:** "Alıntı açılır" yazısını ekler, Metin › Yazı'ya geçer (stil ve renk oradan değişir).
+- **Alt menüdeki Geri:** zeminsiz, soluk ince ok + bölüm adı; artık sabit — alt menüler yanında kayar, Geri yerinde kalır.
+
 ## 3.66 (20.11.2026, deneme · `yerel-android` dalı): önizlemede yazı tutamaçları, hızlı düğmeler, listeden düzenle/sil
 - **Önizlemede seçili katman (InShot gibi):** ✕ sil (sol üst) · ✎ düzenle (sağ üst, yazılarda) · ⧉ çoğalt (sol alt) · ⤡ tek parmakla büyüt + döndür (sağ alt). Taşıma ve iki parmakla büyütme/döndürme aynen çalışır. Tutamaçlar önizlemenin içinde kalır.
 - **Hızlı düğmeler** (önizlemenin üst kenarında; yazı üstteyse altta): Küçült · Büyüt · Ortala · Düzelt (açı 0) · Öne al · Kilitle (kilitliyken yalnız "Kilidi aç").

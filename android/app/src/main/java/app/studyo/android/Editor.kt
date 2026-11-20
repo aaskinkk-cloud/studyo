@@ -253,7 +253,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             GizleGosterDugmesi(!Duzen.seritGizli, Color(TON[2])) { Duzen.seritDegis(ctxS) }   // 3.57: bölüm başlıklarıyla aynı belirgin düğme
                         }
                         // 3.53: "Kırp ve ekle" kartı kalktı — kırpma/süre klip resmindeki ✂ simgesinde, Biçim Görünüm › Şablon › Hazır paketler'de
-                        if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle, kapakAc = { kapakAcik = true })
+                        if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle, kapakAc = { kapakAcik = true },
+                            yaziEkle = { vm.katmanMetinEkle(); bolum = "metin"; haplar["metin"] = "yazi"; panelAcik = true; altMod = true },
+                            hareketliEkle = { vm.katmanMetinEkle("acilan", "Yazınız", 4000, 0.5f, 0.72f, 0.042f, anim = "yok", ad = "Alıntı açılır")
+                                bolum = "metin"; haplar["metin"] = "yazi"; panelAcik = true; altMod = true })
                         if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
                         else if (!Duzen.seritGizli) Text("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.", color = Renk.soluk, fontSize = 11.5.sp,
@@ -285,16 +288,17 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (altMod && panelAcik) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
-                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Column(Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart).clickable { altMod = false }.padding(vertical = 8.dp),
+                // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
+                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(start = 2.dp, end = 6.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.width(44.dp).clip(RoundedCornerShape(10.dp)).clickable { altMod = false }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Simge("geri", Renk.turuncu, 22.dp); Spacer(Modifier.height(3.dp))
-                        Text("Geri", color = Renk.turuncu, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        Text(b.ad, color = Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
+                        Simge("sol", Renk.soluk, 20.dp)
+                        Text(b.ad, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 9.5.sp, maxLines = 1)
                     }
-                    Box(Modifier.padding(horizontal = 4.dp).width(1.dp).height(40.dp).background(Renk.cizgi))
-                    altlar.forEach { AltDugme(it) }
+                    Box(Modifier.padding(end = 4.dp).width(1.dp).height(32.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
+                    Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)) { altlar.forEach { AltDugme(it) } }
                 }
             } else {
                 if (altlar.size > 1 || bolum == "renk") {
@@ -530,7 +534,11 @@ private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje) {
 }
 
 @Composable
-private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false, kapakAc: (() -> Unit)? = null) {
+private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false, kapakAc: (() -> Unit)? = null,
+                       yaziEkle: (() -> Unit)? = null, hareketliEkle: (() -> Unit)? = null) {
+    // 3.67: seçili klip kartındaki hareket yönü simgesi → Hareket sayfası (Geçişler biçiminde, açılır pencere)
+    var hareketId by remember { mutableStateOf<String?>(null) }
+    hareketId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> HareketSecimi(vm, kk) { hareketId = null } } ?: run { hareketId = null } }
     // 3.63: büyük şeridin başında Kapak kutusu (VITA gibi) — LazyRow sırası bir kayar
     val kapakVar = !kucuk && kapakAc != null && p.klipler.isNotEmpty()
     var gecisSecim by remember { mutableStateOf<Int?>(null) }
@@ -547,14 +555,14 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     LaunchedEffect(sec) {
         if (sec !in p.klipler.indices) return@LaunchedEffect
         val vp = durum.layoutInfo.viewportSize.width
-        val kgPx = with(yogS) { (if (kucuk) 92.dp else 200.dp).toPx() }
+        val kgPx = with(yogS) { (if (kucuk) 92.dp else 248.dp).toPx() }
         durum.animateScrollToItem(sec + (if (kapakVar) 1 else 0), -((vp - kgPx) / 2f).toInt().coerceAtLeast(0))
     }
     // 3.25 (Ahmet'in onayladığı taslak): seçili klip büyük; üstünde renkli küçük simgeler (ses, böl, çoğalt, sil) ve
     // kenarlarında sola/sağa taşı okları. Basılı tutup sürükleyerek de taşınır.
     val kw = if (kucuk) 92.dp else 112.dp
-    val kwSecili = if (kucuk) 92.dp else 200.dp
-    val yukseklik = if (kucuk) 62.dp else 158.dp
+    val kwSecili = if (kucuk) 92.dp else 248.dp   // 3.67: simgeler sığsın diye seçili kart büyüdü (200 → 248)
+    val yukseklik = if (kucuk) 62.dp else 176.dp
     val yogunluk = LocalDensity.current
     val adimPx = with(yogunluk) { (kw + 8.dp + 38.dp).toPx() }
     var surukleId by remember { mutableStateOf<String?>(null) }
@@ -616,8 +624,18 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     if (i < p.klipler.lastIndex) Box(Modifier.align(Alignment.CenterEnd).padding(4.dp).size(30.dp).clip(CircleShape).background(Color(0xB3000000)).clickable { vm.tasi(1) },
                         contentAlignment = Alignment.Center) { Simge("ileri", Color(0xFF97C459), 20.dp) }
                     val alt = buildList { add(if (k.foto) "Foto" else "Video"); add(sureOndalik(k.sureMs)); if (sessiz) add("Sessiz"); if (k.yazi?.metin?.isNotBlank() == true) add("T") }
-                    Text(if (silOnayId == k.id) "Silmek için çöp kutusuna yine dokun" else alt.joinToString(" · "), color = Color.White, fontSize = 11.sp, maxLines = 1,
-                        modifier = Modifier.align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xB3000000)).padding(horizontal = 8.dp, vertical = 2.dp))
+                    // 3.67: alt satır — bilgi (yer kalmazsa kısalır) + hareket yönü · yazı ekle · hareketli yazı
+                    Row(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f).padding(end = 4.dp)) {
+                            Text(if (silOnayId == k.id) "Silmek için çöp kutusuna yine dokun" else alt.joinToString(" · "), color = Color.White, fontSize = 11.sp, maxLines = 1,
+                                overflow = TextOverflow.Ellipsis, modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xB3000000)).padding(horizontal = 8.dp, vertical = 2.dp))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SimgeDugmesi(hareketSimgesi(k), 0xFFFFD54F) { hareketId = k.id }
+                            if (yaziEkle != null) SimgeDugmesi("metin", 0xFFFFFFFF) { yaziEkle() }
+                            if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43) { hareketliEkle() }
+                        }
+                    }
                 } else if (!kucuk) {
                     Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC0E151B)).padding(horizontal = 6.dp, vertical = 1.dp))
@@ -785,6 +803,24 @@ private fun KadrajSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) 
             }
             Text(if (k.doldur) "Önizlemede parmakla sürükle = kaydır · çift dokun = ortala" else "Kaydırmak için Doldur'u seç",
                 color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp, bottom = 6.dp))
+        }
+    }
+}
+
+/** 3.67: klibin hareket yönü simgesi (kartın üstünde): sabit · yakınlaş · uzaklaş · sağa · sola · yukarı · aşağı · otomatik. */
+private fun hareketSimgesi(k: Klip): String = if (!k.kenBurns) "h_sabit" else when (k.hareket) {
+    "yakin" -> "h_yakin"; "uzak" -> "h_uzak"; "sag" -> "h_sag"; "sol" -> "h_sol"; "yukari" -> "h_yukari"; "asagi" -> "h_asagi"; else -> "sihir"
+}
+
+/** 3.67: seçili klip kartındaki hareket simgesinden açılan Hareket sayfası (Görünüm › Hareket'in aynısı). */
+@Composable
+private fun HareketSecimi(vm: EditorDurum, k: Klip, kapat: () -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = kapat, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart).heightIn(max = 600.dp).verticalScroll(rememberScrollState())) {
+            PanelHareket(vm, k)
+            Row(Modifier.fillMaxWidth().clickable { kapat() }.padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Simge("uygula", Renk.yazi, 20.dp); Spacer(Modifier.width(6.dp)); Text("Tamam", color = Renk.yazi, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

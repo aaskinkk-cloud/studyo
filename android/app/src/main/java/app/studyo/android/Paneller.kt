@@ -726,30 +726,36 @@ private fun VarsayilanSayfa(vm: EditorDurum) {
 }
 
 @Composable
-fun PanelSablon(vm: EditorDurum, p: Proje) {
-    if (Duzen.yaziliMenu) PanelSablonEski(vm, p) else PanelSablonYeni(vm, p)
+fun PanelSablon(vm: EditorDurum, p: Proje, alt: String? = null) {
+    if (Duzen.yaziliMenu) PanelSablonEski(vm, p) else PanelSablonYeni(vm, p, alt)
 }
 
 /** 3.27: Şablon sayfası Geçişler paneli biçiminde — her bölüm kendi renk tonunda (Varsayılan ayarlardaki TON ailesi),
  *  seçenekler simge ve önizleme olarak, süreler − kaydırıcı + ile; özellik anahtarı bölüm başlığında. */
 @Composable
-private fun PanelSablonYeni(vm: EditorDurum, p: Proje) {
+private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     val sari = Color(TON[0]); val yesil = Color(TON[1]); val turkuaz = Color(TON[2]); val turuncu = Color(TON[3]); val pembe = Color(TON[4])
     // 3.54: seçenekler tek sayfada yığılmasın — Renk bölümündeki gibi yatay alt düğmeler, her biri kendi sayfası (✓ = özellik açık)
-    val sekme by vm.sablonSekme.collectAsState()   // 3.69: dışarıdan da açılır (klip kartı › Giriş)
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    val sekmeIc by vm.sablonSekme.collectAsState()   // 3.69: dışarıdan da açılır (klip kartı › Giriş)
+    // 3.70: alt sayfa üstteki 3. katman çiplerinden gelir (Şablon: giriş/abone/kapanış · Paket: paket/biçim · Hazır: varsayılan/kayıtlı); iç düğme satırı yalnız eski düzende
+    val sekme = alt ?: sekmeIc
+    if (alt == null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         AyarDugmesi("Paketler", "sihir", TON[3], sekme == "paket", false) { vm.sablonSekme.value = "paket" }
         AyarDugmesi("Giriş", "baslik", TON[0], sekme == "giris", p.giris.acik) { vm.sablonSekme.value = "giris" }
         AyarDugmesi("Abone", "zil", TON[4], sekme == "abone", p.hatirlatici.acik) { vm.sablonSekme.value = "abone" }
         AyarDugmesi("Kapanış", "kalp", TON[2], sekme == "kapanis", p.kapanis.acik) { vm.sablonSekme.value = "kapanis" }
         AyarDugmesi("Varsayılan", "uygula", TON[1], sekme == "varsayilan", false) { vm.sablonSekme.value = "varsayilan" }
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+    if (alt == null) Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+    if (sekme == "bicim") Kart("Video biçimi", ton = turuncu) { BicimSatiri(vm, p) }
+    if (sekme == "kayitli") KayitliAyarlarSayfasi(vm)
     if (sekme == "paket") Kart("Hazır paketler", ton = turuncu) {
-        // 3.53: Biçim (önce Düzenle › Klip'te) paketlerin ilk satırı
-        Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        BicimSatiri(vm, p)
-        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
+        if (alt == null) {
+            // 3.53: Biçim (önce Düzenle › Klip'te) paketlerin ilk satırı
+            Text("Biçim", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            BicimSatiri(vm, p)
+            Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
+        }
         Text("Paket", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 4.dp))
         TonSecici(listOf(Triple("youtube", "YouTube", "oynat"), Triple("reels", "Reels", "yildiz"), Triple("sinema", "Sinema", "kadraj")), "", ilkSira = 3,
             alt = listOf("alt bant · parlama · kapanış", "renkli bant · yakınlaşma", "sinematik · siyahtan")) { vm.paketUygula(it) }
@@ -1148,7 +1154,7 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
 // ===================================================== ALTYAZI =====================================================
 
 @Composable
-fun PanelAltyazi(vm: EditorDurum, p: Proje) {
+fun PanelAltyazi(vm: EditorDurum, p: Proje, alt: String? = null) {
     val ctx = LocalContext.current
     val yukle = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.srtYukle(it) } }
     val kaydet = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/x-subrip")) { u ->
@@ -1161,15 +1167,19 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
     val oto by vm.altyaziIlerleme.collectAsState()
     var kaynak by remember { mutableStateOf(if (p.sesler.isNotEmpty()) "ses" else "klip") }
     // 3.55: dört kart tek sayfada yığılmasın — alt düğmeler (✓ = o bölümde içerik/ayar var)
-    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(if (p.altyazilar.isEmpty()) "oto" else "satir") }
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        AyarDugmesi("Otomatik", "sihir", TON[3], sekme == "oto", false) { sekme = "oto" }
-        AyarDugmesi("Satırlar", "altyazi", TON[0], sekme == "satir", p.altyazilar.isNotEmpty()) { sekme = "satir" }
-        AyarDugmesi("Toplu düzelt", "degistir", TON[4], sekme == "duzelt", false) { sekme = "duzelt" }
-        AyarDugmesi("Görünüm", "gorunum", TON[2], sekme == "gorunum", false) { sekme = "gorunum" }
+    var sekmeIc by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(if (p.altyazilar.isEmpty()) "oto" else "satir") }
+    val sekme = alt ?: sekmeIc   // 3.70: yeni düzende 3. katman çiplerinden
+    if (alt == null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AyarDugmesi("Otomatik", "sihir", TON[3], sekme == "oto", false) { sekmeIc = "oto" }
+        AyarDugmesi("Satırlar", "altyazi", TON[0], sekme == "satir", p.altyazilar.isNotEmpty()) { sekmeIc = "satir" }
+        AyarDugmesi("Toplu düzelt", "degistir", TON[4], sekme == "duzelt", false) { sekmeIc = "duzelt" }
+        AyarDugmesi("Görünüm", "gorunum", TON[2], sekme == "gorunum", false) { sekmeIc = "gorunum" }
     }
     var oncekiSay by remember { mutableIntStateOf(p.altyazilar.size) }
-    LaunchedEffect(p.altyazilar.size) { if (oncekiSay == 0 && p.altyazilar.isNotEmpty() && sekme == "oto") sekme = "satir"; oncekiSay = p.altyazilar.size }
+    LaunchedEffect(p.altyazilar.size) {
+        if (oncekiSay == 0 && p.altyazilar.isNotEmpty() && sekme == "oto") { if (alt == null) sekmeIc = "satir" else AltHafiza.sec("altyazi", "satir") }
+        oncekiSay = p.altyazilar.size
+    }
     Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
     if (sekme == "duzelt" && p.altyazilar.isEmpty()) Not("Önce altyazı oluştur ya da SRT yükle; sonra bütün satırları burada tek metin olarak düzeltebilirsin.")
     if (sekme == "oto") Kart("Otomatik altyazı") {
@@ -1238,7 +1248,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
 internal val VURGULAR = listOf(0xFFFFD400 to "Sarı", 0xFFFF3B30 to "Kırmızı", 0xFF35E06B to "Yeşil", 0xFF27D3FF to "Mavi", 0xFFFF8A00 to "Turuncu")
 
 @Composable
-fun PanelKapak(vm: EditorDurum, p: Proje) {
+fun PanelKapak(vm: EditorDurum, p: Proje, alt: String? = null) {
     // 3.58: Kapak yeniden — Geçişler/Renk düzeni: üstte büyük kapak önizlemesi + Kaydet, altında görsel alt düğmeler
     // (Kare · Yazı · Stil · Efekt), her biri kendi sayfası; stiller yazı yerine kapağın kendisiyle çizilmiş küçük resimler.
     val resim by vm.kapakResmi.collectAsState()
@@ -1258,12 +1268,13 @@ fun PanelKapak(vm: EditorDurum, p: Proje) {
             Text("Kapağı JPG kaydet", color = Renk.turuncuM, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
     }
-    var sekme by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("kare") }
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        AyarDugmesi("Kare", "kapak", TON[2], sekme == "kare", kp.kaynakUri.isNotEmpty()) { sekme = "kare" }
-        AyarDugmesi("Yazı", "metin", TON[0], sekme == "yazi", kp.yazi.isNotBlank()) { sekme = "yazi" }
-        AyarDugmesi("Stil", "sihir", TON[3], sekme == "stil", false) { sekme = "stil" }
-        AyarDugmesi("Efekt", "yildiz", TON[4], sekme == "efekt", kp.canli || kp.logo) { sekme = "efekt" }
+    var sekmeIc by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("kare") }
+    val sekme = alt ?: sekmeIc   // 3.70: yeni düzende 3. katman çiplerinden
+    if (alt == null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        AyarDugmesi("Kare", "kapak", TON[2], sekme == "kare", kp.kaynakUri.isNotEmpty()) { sekmeIc = "kare" }
+        AyarDugmesi("Yazı", "metin", TON[0], sekme == "yazi", kp.yazi.isNotBlank()) { sekmeIc = "yazi" }
+        AyarDugmesi("Stil", "sihir", TON[3], sekme == "stil", false) { sekmeIc = "stil" }
+        AyarDugmesi("Efekt", "yildiz", TON[4], sekme == "efekt", kp.canli || kp.logo) { sekmeIc = "efekt" }
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
     Spacer(Modifier.height(8.dp))
@@ -1414,12 +1425,12 @@ fun PanelTakip(vm: EditorDurum, k: Klip) {
 // ===================================================== NESNE =====================================================
 
 @Composable
-fun PanelNesne(vm: EditorDurum, p: Proje) {
+fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
     val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.nesneEkle(it) } }
     var dsn by remember { mutableFloatStateOf(5f) }
     val videoSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.videodanNesneDis(it, (dsn * 1000).toLong()) } }
     val secili by vm.seciliNesne.collectAsState()
-    Kart("Nesne kes · katman") {
+    if (alt == null || alt == "foto") Kart("Nesne kes · katman") {
         // 3.47: ekrandaki fotoğraftan ya da dışarıdan (galeri) fotoğraftan
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Dugme("✂ Ekrandaki fotoğraftan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.ekrandanNesne() }
@@ -1435,7 +1446,7 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
             "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
     }
     val nIl by vm.nesneIlerleme.collectAsState()
-    Kart("Videodan hareketli nesne", baslangicAcik = false) {
+    if (alt == null || alt == "video") Kart("Videodan hareketli nesne", baslangicAcik = alt != null) {
         val f = nIl
         if (f != null) {
             Text("Kareler kesiliyor… %${(f * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
@@ -1452,7 +1463,8 @@ fun PanelNesne(vm: EditorDurum, p: Proje) {
             Not("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
         }
     }
-    if (p.nesneler.isNotEmpty()) Kart("Katmanlar (${p.nesneler.size})") {
+    if (alt == "kesilen" && p.nesneler.isEmpty()) Not("Henüz kesilen nesne yok. Fotoğraftan ya da Videodan sayfasında kes.")
+    if ((alt == null || alt == "kesilen") && p.nesneler.isNotEmpty()) Kart("Katmanlar (${p.nesneler.size})") {
         p.nesneler.forEach { n -> key(n.id) {
             val on = n.id == secili
             Column(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.14f) else Renk.kart2)

@@ -25,15 +25,37 @@ object Ayarlar {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("ayar", 0)
 
     fun sakla(ctx: Context, p: Proje, k: Klip?) {
+        val s = anlik(p, k)
+        prefs(ctx).edit().putString(ANAHTAR, JSON.encodeToString(SakliAyar.serializer(), s)).apply()
+        otoYedek(ctx)
+    }
+
+    // ---------- 3.70: kayıtlı ayarlarım (adlı; "ayar" tercihinde → yedeğe de girer) ----------
+    private const val KAYITLI = "kayitliAyarlar"
+    fun kayitlilar(ctx: Context): List<Pair<String, SakliAyar>> = try {
+        val o = JSONObject(prefs(ctx).getString(KAYITLI, null) ?: "{}")
+        o.keys().asSequence().mapNotNull { ad -> runCatching { ad to JSON.decodeFromString(SakliAyar.serializer(), o.getString(ad)) }.getOrNull() }
+            .sortedByDescending { it.second.zaman }.toList()
+    } catch (e: Exception) { Kayit.hata("kayıtlı ayarlar", e); emptyList() }
+    fun kayitliEkle(ctx: Context, ad: String, p: Proje, k: Klip?) {
+        val o = try { JSONObject(prefs(ctx).getString(KAYITLI, null) ?: "{}") } catch (e: Exception) { JSONObject() }
+        o.put(ad, JSON.encodeToString(SakliAyar.serializer(), anlik(p, k)))
+        prefs(ctx).edit().putString(KAYITLI, o.toString()).apply(); otoYedek(ctx)
+    }
+    fun kayitliSil(ctx: Context, ad: String) {
+        val o = try { JSONObject(prefs(ctx).getString(KAYITLI, null) ?: "{}") } catch (e: Exception) { JSONObject() }
+        o.remove(ad); prefs(ctx).edit().putString(KAYITLI, o.toString()).apply(); otoYedek(ctx)
+    }
+
+    /** Projenin o anki görünüm ayarları (metinler ve kaynak dosyalar hariç). */
+    fun anlik(p: Proje, k: Klip?): SakliAyar {
         val muzikTur = p.muzik?.let { m -> MuzikSentez.TURLER.firstOrNull { m.ad == "Hazır müzik · ${it.ad}" }?.anahtar }
-        val s = SakliAyar(
+        return SakliAyar(
             giris = p.giris.copy(baslik = "", alt = "", bant = ""), hatirlatici = p.hatirlatici, kapanis = p.kapanis, gecis = p.gecis,
             logo = p.logo?.copy(yol = ""), altyaziStil = p.altyaziStil, kapak = p.kapak.copy(kaynakUri = "", kaynakMs = 0, yazi = "", bant = ""), bicim = p.bicim,
             renk = k?.renk, filtre = k?.filtre ?: "yok", filtreGuc = k?.filtreGuc ?: 0.8f, efekt = k?.efekt ?: "yok", efektGuc = k?.efektGuc ?: 0.7f,
             muzikTur = muzikTur,
         )
-        prefs(ctx).edit().putString(ANAHTAR, JSON.encodeToString(SakliAyar.serializer(), s)).apply()
-        otoYedek(ctx)
     }
     fun sakli(ctx: Context): SakliAyar? = try { prefs(ctx).getString(ANAHTAR, null)?.let { JSON.decodeFromString(SakliAyar.serializer(), it) } } catch (e: Exception) { Kayit.hata("saklı ayar", e); null }
     fun sil(ctx: Context) { prefs(ctx).edit().remove(ANAHTAR).apply(); otoYedek(ctx) }

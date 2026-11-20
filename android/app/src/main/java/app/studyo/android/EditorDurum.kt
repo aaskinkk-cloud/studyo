@@ -167,7 +167,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         val t = konum.value
         val kis = m.otoKis && (k != null && !k.foto && k.sesVar && !k.sessiz && k.ses > 0.01f || proje.value.sesler.any { t in it.basMs..(it.basMs + it.sureMs) }
             || proje.value.katmanlar.any { it.tur == "ses" && !it.otoKis && !it.gizli && it.ses > 0.01f && t in it.basMs..it.sonMs })
-        return (m.ses * (if (kis) MUZIK_KIS else 1f)).coerceIn(0f, 1f)
+        return (m.ses * (if (kis) MUZIK_KIS else 1f) * muzikSolma(m, t, proje.value.toplamMs)).coerceIn(0f, 1f)   // 3.70: yumuşak giriş/çıkış
     }
 
     fun git(ms: Long) {
@@ -1299,6 +1299,69 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun kapakOneriSec(k: Kapak) = kapakDegis { it.copy(kaynakUri = k.kaynakUri, kaynakMs = k.kaynakMs, kaynakFoto = k.kaynakFoto) }
+
+    /** 3.70: seçili klibin hızı (0,25×–4×). Video klip bir kez işlenir (HizIsleyici); 1× = özgün dosya ve aralık geri gelir. */
+    fun klipHiz(h: Float) {
+        val p0 = proje.value
+        val k = p0.klipler.getOrNull(secili.value) ?: return
+        if (k.foto) { uyari.value = "Fotoğrafta hız yok; ekranda kalma süresini Kırp'tan ayarla."; return }
+        if (kotlin.math.abs(h - k.hiz) < 0.01f) return
+        val ozgun = k.asilUri.isEmpty()
+        val aUri = if (ozgun) k.uri else k.asilUri
+        val aBas = if (ozgun) k.basMs else k.asilBasMs
+        val aSon = if (ozgun) k.sonMs else k.asilSonMs
+        val aKay = if (ozgun) k.kaynakSureMs else k.asilKaynakSureMs
+        if (kotlin.math.abs(h - 1f) < 0.01f) {
+            if (ozgun) return
+            guncelle(true) { p -> p.copy(klipler = p.klipler.map { if (it.id != k.id) it else it.copy(uri = aUri, basMs = aBas, sonMs = aSon, kaynakSureMs = aKay,
+                hiz = 1f, asilUri = "", asilBasMs = 0, asilSonMs = 0, asilKaynakSureMs = 0) }) }
+            mesaj.value = "Hız: normal (1×)"
+            return
+        }
+        kapsam.launch {
+            player.pause()
+            mesgul.value = "Hız uygulanıyor (${HizIsleyici.yaz(h)})…"
+            val r = runCatching { HizIsleyici.isle(ctx, aUri, aBas, aSon, h, k.sesVar) { pr -> mesgul.value = "Hız uygulanıyor (${HizIsleyici.yaz(h)}) %$pr" } }
+            val f = r.getOrNull()
+            if (f == null) {
+                mesgul.value = null
+                r.exceptionOrNull()?.let { Kayit.hata("klip hızı", it) }
+                uyari.value = "Hız uygulanamadı: ${r.exceptionOrNull()?.message ?: "bilinmeyen hata"}"
+                return@launch
+            }
+            val u = Uri.fromFile(f)
+            val b = withContext(Dispatchers.IO) { runCatching { Medya.incele(ctx, u) }.getOrNull() }
+            mesgul.value = null
+            val sure = b?.sureMs?.takeIf { it > 0 } ?: ((aSon - aBas) / h).toLong().coerceAtLeast(100)
+            val takipVardi = k.takip != null
+            guncelle(true) { p -> p.copy(klipler = p.klipler.map { if (it.id != k.id) it else it.copy(uri = u.toString(), basMs = 0, sonMs = sure, kaynakSureMs = sure,
+                hiz = h, takip = null, asilUri = aUri, asilBasMs = aBas, asilSonMs = aSon, asilKaynakSureMs = aKay) }) }
+            mesaj.value = "Hız: ${HizIsleyici.yaz(h)} · süre ${sureOndalik(sure)}" + if (takipVardi) " · takip yazısını yeniden seç" else ""
+        }
+    }
+
+    // ---------- 3.70: kayıtlı ayarlarım (adlı görünüm ayarları; başka projede tek dokunuş) ----------
+    val kayitliAyarlar = MutableStateFlow(Ayarlar.kayitlilar(ctx))
+    fun kayitliKaydet(ad: String) {
+        Ayarlar.kayitliEkle(ctx, ad.trim().ifBlank { "Ayarlarım" }, proje.value, proje.value.klipler.getOrNull(secili.value))
+        kayitliAyarlar.value = Ayarlar.kayitlilar(ctx); mesaj.value = "Kaydedildi: ${ad.trim().ifBlank { "Ayarlarım" }}"
+    }
+    fun kayitliSil(ad: String) { Ayarlar.kayitliSil(ctx, ad); kayitliAyarlar.value = Ayarlar.kayitlilar(ctx) }
+    fun kayitliUygula(ad: String, sk: SakliAyar) {
+        guncelle(true) { p ->
+            p.copy(
+                gecis = sk.gecis,
+                giris = p.giris.copy(acik = sk.giris.acik, stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
+                    efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs),
+                hatirlatici = sk.hatirlatici, kapanis = sk.kapanis, altyaziStil = sk.altyaziStil,
+                kapak = p.kapak.copy(stil = sk.kapak.stil, konum = sk.kapak.konum, vurgu = sk.kapak.vurgu, boyut = sk.kapak.boyut, canli = sk.kapak.canli, logo = sk.kapak.logo),
+                logo = p.logo?.let { l -> sk.logo?.let { s -> l.copy(konum = s.konum, boyut = s.boyut, opaklik = s.opaklik, x = -1f, y = -1f) } ?: l },
+                klipler = p.klipler.map { k -> k.copy(renk = sk.renk, filtre = sk.filtre, filtreGuc = sk.filtreGuc, efekt = sk.efekt, efektGuc = sk.efektGuc) },
+            )
+        }
+        if (proje.value.muzik == null) sk.muzikTur?.let { hazirMuzik(it) }
+        mesaj.value = "Uygulandı: $ad"
+    }
 
     /** 3.63: Kapak düzenleyici › İçe aktar — galeriden bir fotoğraf kapak zemini olur (uygulamaya kopyalanır; kaynak silinse de kalır). */
     fun kapakIceAktar(u: Uri) {

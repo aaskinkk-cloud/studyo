@@ -6,6 +6,18 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.70 (20.11.2026, deneme · `yerel-android` dalı): üç katmanlı menü, ayar arama, klip hızı, müziğin yumuşak giriş/çıkışı, kayıtlı ayarlarım
+- **Üç katmanlı gezinme** (Ahmet'in onayladığı taslak): 1. ana menü · 2. alt menü satırı · 3. panelin tepesinde alt sayfa çipleri. En üstte yol satırı (Görünüm › Şablon › Giriş; ‹ ya da bölüm adı = ana menü). Her alt menünün son açılan alt sayfası hatırlanır. Ayarı değişen alt sayfada ✓.
+  - Düzenle › Klip (Klipler · Kırp · Kadraj · Hız) · Nesne (Fotoğraftan · Videodan · Kesilenler)
+  - Görünüm › Şablon (Giriş · Abone · Kapanış) · Paket (Paketler · Biçim) · Hazır (Varsayılan · Kayıtlı ayarlarım) · Hareket (Yakınlaştırma · Kaydırma · Odak)
+  - Renk › Hazır · Işık (Parlaklık · Kontrast · Vurgular · Beyazlar · Gölgeler) · Renk (Doygunluk · Sıcaklık · Ton) · Detay (Keskinlik) · HSL
+  - Ses › Müzik (Hazır · Dosyadan · Ayar) · Seslendirme (Kayıt · Prompter · Kayıtlar) · Metin › Yazı (Ekle · Hareketli · Videodaki) · Altyazı (Otomatik · Satırlar · Toplu düzelt · Görünüm) · Yayın › Kapak (Kare · Yazı · Stil · Efekt)
+  - Önceki düzen (⋯ › "Alt başlıklar: yazılı (önceki)") aynen: orada sayfalar tek parça.
+- **Ayar arama** (yol satırında 🔍): "giriş", "keskinlik", "yavaş", "müzik"… yaz → dokun = o sayfa açılır.
+- **Klip hızı** (Düzenle › Klip › Hız, 0,25×–4×): kök tasarım — hız zaman çizgisine hesap olarak sokulmaz; klibin kırpılmış aralığı Media3'ün ses+görüntü hız etkisiyle (Effects.createExperimentalSpeedChangingEffect) bir kez yeni dosyaya işlenir, sonra her yer (önizleme, geçiş, katman, dışa aktarma) onu normal klip görür. Özgün dosya silinmez; 1× geri döndürür. Takip yazısı (kaynak zamanlı) hızda kaldırılır.
+- **Müzik yumuşak giriş/çıkış** (Ses › Müzik › Ayar): 0–6 sn giriş, 0–8 sn çıkış; dışa aktarmada ses zarfında (çıktı zamanıyla, döngü ve sarmada doğru), önizlemede ses düzeyinde. "Videoda ses varken otomatik kıs" anahtarı da burada.
+- **Kayıtlı ayarlarım** (Görünüm › Hazır): o anki görünüm ayarlarını adıyla sakla, başka projede tek dokunuşla uygula (giriş/abone/kapanış stili, geçiş, logo yeri, kapak stili, altyazı görünümü, renk/filtre/efekt, hazır müzik türü). Yedeğe de girer.
+
 ## 3.69 (20.11.2026, deneme · `yerel-android` dalı): kartta Giriş yazısı, çift dokun = ilgili bölüm, Renk › Hazır yatay
 - **Giriş yazısı simgesi** (klip kartının alt satırında): dokun = giriş başlığını aç/kapat (açıkken sarı dolu); çift dokun = Görünüm › Şablon › Giriş sayfası.
 - **Kart simgelerinde çift dokunuş = ilgili bölüm:** ses → Ses › Klip sesi · süre/kırp → Kırp sayfası · Nesne kes → Düzenle › Nesne · kadraj → Kadraj sayfası · böl/çoğalt → Düzenle › Klip · hareket → Görünüm › Hareket · Doğal → Renk › Hazır · takip → Metin › Takip · yazı ve hareketli yazı → Metin › Yazı. Tek dokunuş hızlı işlem olarak kalır. Sil'de çift dokunuş yok (güvenlik; iki ayrı dokunuşla silinir).

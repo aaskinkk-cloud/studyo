@@ -74,6 +74,8 @@ data class Klip(
     val hareket: String = "otomatik",
     /** 3.35 elle seçilen yaklaşma noktası (kaynak karede 0…1); -1 = otomatik (yüz → ana nesne → orta). */
     val odakSecX: Float = -1f, val odakSecY: Float = -1f,
+    /** 3.70 klip hızı: klip bir kez hızlandırılmış/yavaşlatılmış dosyaya işlenir (uri o dosya). asil* = özgün dosya ve aralığı (1× = geri döner). */
+    val hiz: Float = 1f, val asilUri: String = "", val asilBasMs: Long = 0, val asilSonMs: Long = 0, val asilKaynakSureMs: Long = 0,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
@@ -84,7 +86,17 @@ data class Klip(
 @Serializable
 data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.5f, val dongu: Boolean = true, val sureMs: Long = 0,
     /** 3.46: videonun kendi sesi olan kliplerde müzik otomatik kısılır (önizleme ve dışa aktarma). */
-    val otoKis: Boolean = true)
+    val otoKis: Boolean = true,
+    /** 3.70: yumuşak giriş/çıkış (ms; 0 = yok) — müzik başta yavaşça açılır, videonun sonunda yavaşça kısılır. */
+    val girisMs: Long = 0, val cikisMs: Long = 0)
+
+/** 3.70: müziğin yumuşak giriş/çıkış çarpanı (t: videodaki an, toplam: video süresi; ms). */
+fun muzikSolma(m: Muzik, t: Long, toplam: Long): Float {
+    var f = 1f
+    if (m.girisMs > 0) f = minOf(f, (t.toFloat() / m.girisMs).coerceIn(0f, 1f))
+    if (m.cikisMs > 0 && toplam > 0) f = minOf(f, ((toplam - t).toFloat() / m.cikisMs).coerceIn(0f, 1f))
+    return f
+}
 
 /** Otomatik kısmada müziğin inen oranı. */
 const val MUZIK_KIS = 0.35f

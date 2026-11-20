@@ -84,12 +84,14 @@ private val HAP_SIMGE = mapOf(
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
+    "paket" to "izgara", "hazir" to "kaydet",   // 3.70
 )
 
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
+    // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
+    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)
@@ -120,6 +122,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
     var kapakAcik by rememberSaveable { mutableStateOf(false) }   // 3.63: tam ekran Kapak düzenleyici
+    var aramaAcik by remember { mutableStateOf(false) }           // 3.70: ayar arama
     var altMod by rememberSaveable { mutableStateOf(false) }   // 3.61: alt menüler ana menünün yerinde
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
@@ -149,7 +152,37 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     }
     BackHandler { if (altMod && panelAcik) altMod = false else if (panelAcik) panelAcik = false else cik() }
 
+    // 3.70: tek gezinme işlevi — bölüm › alt menü › alt sayfa (Renk'te alt menü = grup, alt sayfa = ayar)
+    val git: (String, String, String?) -> Unit = { b, h, a ->
+        bolum = b
+        if (b == "renk") vm.renkSekme.value = a ?: (RENK_GRUPLARI.firstOrNull { it.anahtar == h }?.let { g -> AltHafiza.ham("renk_" + g.anahtar)?.takeIf { it in g.sayfalar } ?: g.sayfalar.first() } ?: "hazir")
+        else { haplar[b] = h; if (a != null) AltHafiza.sec(h, a) }
+        panelAcik = true; altMod = true
+    }
+    if (aramaAcik) {
+        val liste = remember {
+            val l = ArrayList<AramaOge>()
+            val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
+                "kayitli" to "sakla kaydet şablonum", "bicim" to "16:9 9:16 reels shorts kare", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma")
+            BOLUMLER.forEach { bb ->
+                if (bb.anahtar == "renk") {
+                    RENK_GRUPLARI.forEach { g ->
+                        l += AramaOge("${bb.ad} › ${g.ad}", "renk", g.anahtar, g.sayfalar.first())
+                        if (g.sayfalar.size > 1) g.sayfalar.forEach { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { l += AramaOge("${bb.ad} › ${g.ad} › ${it.ad}", "renk", g.anahtar, sy) } }
+                    }
+                } else bb.haplar.forEach { (h, ad) ->
+                    if (h == "disa") return@forEach
+                    l += AramaOge("${bb.ad} › $ad", bb.anahtar, h, null)
+                    ALT_SAYFALAR[h]?.forEach { a -> l += AramaOge("${bb.ad} › $ad › ${a.ad}", bb.anahtar, h, a.anahtar, ek[a.anahtar] ?: "") }
+                }
+            }
+            l
+        }
+        AramaPenceresi(liste, { o -> aramaAcik = false; git(o.bolum, o.hap, o.alt) }) { aramaAcik = false }
+    }
+
     LaunchedEffect(mesaj) { if (mesaj != null) { delay(2200); vm.mesaj.value = null } }
+    val renkSekmeS by vm.renkSekme.collectAsState()
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Renk.zemin)) {
         // Sade düzen (InShot gibi): önizleme ekranın %42'si ve hep görünür; panel açılınca klip şeridinin yerini alır.
@@ -236,13 +269,35 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             if (Duzen.yaziliMenu && !Renk.sb) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
+                // 3.70: yol (Bölüm › Alt menü › Alt sayfa) + 3. katman çipleri — yalnız yeni düzende, panel açıkken
+                if (panelAcik && !Duzen.yaziliMenu) {
+                    val bb = BOLUMLER.first { it.anahtar == bolum }
+                    if (bolum == "renk") {
+                        val g = renkGrubu(renkSekmeS)
+                        val ad = RENK_SEKMELERI.firstOrNull { it.anahtar == renkSekmeS }?.ad
+                        YolSatiri(listOfNotNull(bb.ad, g.ad, ad?.takeIf { g.sayfalar.size > 1 }), { altMod = false }) { aramaAcik = true }
+                        if (g.sayfalar.size > 1) {
+                            val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
+                            AltSayfaCipleri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
+                                renkSekmeS, { renkSekmeDegisti(ra, it) }) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
+                        }
+                    } else {
+                        val h = haplar[bolum] ?: ""
+                        val hapAd = bb.haplar.firstOrNull { it.first == h }?.second
+                        val altListe = ALT_SAYFALAR[h]
+                        val altK = AltHafiza.al(h)
+                        YolSatiri(listOfNotNull(bb.ad, hapAd?.takeIf { bb.haplar.size > 1 || altListe != null }, altListe?.firstOrNull { it.anahtar == altK }?.ad),
+                            { altMod = false }) { aramaAcik = true }
+                        if (altListe != null) AltSayfaCipleri(altListe, altK, { altDegisti(p, p.klipler.getOrNull(sec), h, it) }) { a -> AltHafiza.sec(h, a) }
+                    }
+                }
                 if (bolum == "renk" && panelAcik) {
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
                     KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Box(Modifier.fillMaxWidth().weight(1f)) { RenkBolumu(vm, p, sec) }
                 } else if (bolum == "katman" && panelAcik) {
                     KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
-                } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip")) {
+                } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "klipler")) {
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     // 3.31: kaydırılabilir; şerit + bölüm kartları (Geçişler paneli biçiminde)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp, bottom = 10.dp)) {
@@ -270,7 +325,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     val klipli = haplar[bolum] in setOf("klip", "kadraj", "hareket", "klipses", "takip", "filtre", "efekt")
                     if (klipli) KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle)
+                        Panel(vm, p, sec, bolum, haplar[bolum] ?: "", ekle, alt = if (Duzen.yaziliMenu) null else AltHafiza.al(haplar[bolum] ?: ""))
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -282,8 +337,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val b = BOLUMLER.first { it.anahtar == bolum }
             val renkSekme by vm.renkSekme.collectAsState()
             val altlar: List<AltOge> = if (bolum == "renk") {
+                // 3.70: Renk alt menüsü gruplu (Hazır · Işık · Renk · Detay · HSL); gruptaki ayarlar panelin tepesinde çip
                 val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
-                RENK_SEKMELERI.map { t -> AltOge(t.ad, t.simge, Color(t.renk), panelAcik && renkSekme == t.anahtar, renkSekmeDegisti(ra, t.anahtar)) { vm.renkSekme.value = t.anahtar; panelAcik = true } }
+                RENK_GRUPLARI.map { g -> AltOge(g.ad, g.simge, Color(g.renk), panelAcik && renkGrubu(renkSekme).anahtar == g.anahtar, g.sayfalar.any { renkSekmeDegisti(ra, it) }) {
+                    git("renk", g.anahtar, null) } }
             } else b.haplar.mapIndexed { sira, (k, ad) ->
                 AltOge(ad, HAP_SIMGE[k] ?: "ekle", Color(ALT_RENK[sira % ALT_RENK.size]), panelAcik && haplar[bolum] == k, degisen["$bolum/$k"] == true) {
                     if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
@@ -658,7 +715,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                             if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43, cift = git("metin", "yazi")) { hareketliEkle() }
                             // 3.69: Giriş yazısı — dokun = aç/kapat, çift dokun = Görünüm › Şablon › Giriş
                             SimgeDugmesi("baslik", if (p.giris.acik) 0xFF000000 else 0xFFD9CF5A, if (p.giris.acik) Color(0xFFD9CF5A) else Color(0xB3000000),
-                                cift = { vm.sablonSekme.value = "giris"; bolumAc?.invoke("gorunum", "sablon") }) {
+                                cift = { vm.sablonSekme.value = "giris"; AltHafiza.sec("sablon", "giris"); bolumAc?.invoke("gorunum", "sablon") }) {
                                 val ac = !p.giris.acik
                                 vm.girisDegis { it.copy(acik = ac) }
                                 vm.mesaj.value = if (ac) "Giriş yazısı açıldı · çift dokun = ayarlar" else "Giriş yazısı kapandı"
@@ -831,13 +888,7 @@ private fun KadrajSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) 
                     Simge("uygula", Renk.yazi, 26.dp); Text("Tamam", color = Renk.soluk, fontSize = 10.5.sp)
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
-                YuvarlakSecim("Sığdır · tamamı görünür", "tuval", Color(TON[2]), !k.doldur) { vm.klipGuncelle { it.copy(doldur = false) } }
-                YuvarlakSecim("Doldur · kare dolar", "kadraj", Color(TON[1]), k.doldur) { vm.klipGuncelle { it.copy(doldur = true) } }
-                if (k.kayX != 0f || k.kayY != 0f) YuvarlakSecim("Ortala", "h_odak", Color(TON[3]), false) { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) } }
-            }
-            Text(if (k.doldur) "Önizlemede parmakla sürükle = kaydır · çift dokun = ortala" else "Kaydırmak için Doldur'u seç",
-                color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp, bottom = 6.dp))
+            KadrajIcerik(vm, k)
         }
     }
 }
@@ -862,6 +913,34 @@ private fun HareketSecimi(vm: EditorDurum, k: Klip, kapat: () -> Unit) {
     }
 }
 
+/** Kadraj seçimi (Sığdır / Doldur / Ortala) — klip kartındaki pencere ile Düzenle › Klip › Kadraj ortak. */
+@Composable
+private fun KadrajIcerik(vm: EditorDurum, k: Klip) {
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
+        YuvarlakSecim("Sığdır · tamamı görünür", "tuval", Color(TON[2]), !k.doldur) { vm.klipGuncelle { it.copy(doldur = false) } }
+        YuvarlakSecim("Doldur · kare dolar", "kadraj", Color(TON[1]), k.doldur) { vm.klipGuncelle { it.copy(doldur = true) } }
+        if (k.kayX != 0f || k.kayY != 0f) YuvarlakSecim("Ortala", "h_odak", Color(TON[3]), false) { vm.klipGuncelle { it.copy(kayX = 0f, kayY = 0f) } }
+    }
+    Text(if (k.doldur) "Önizlemede parmakla sürükle = kaydır · çift dokun = ortala" else "Kaydırmak için Doldur'u seç",
+        color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp, bottom = 6.dp))
+}
+
+/** 3.70: 3. katman çipindeki ✓ — o alt sayfada bir ayar/içerik var mı. */
+private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = when (hap) {
+    "sablon" -> when (a) { "giris" -> p.giris.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
+    "klip" -> k != null && when (a) { "hiz" -> k.hiz != 1f; "kadraj" -> k.doldur || k.kayX != 0f || k.kayY != 0f
+        "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); else -> false }
+    "hareket" -> k != null && k.kenBurns && when (a) { "yakin" -> k.hareket in setOf("otomatik", "yakin", "uzak", ""); "kay" -> k.hareket in setOf("sag", "sol", "yukari", "asagi")
+        "odak" -> k.odakSecX >= 0f; else -> false }
+    "muzik" -> p.muzik != null && when (a) { "hazir" -> p.muzik.ad.startsWith("Hazır müzik"); "dosya" -> !p.muzik.ad.startsWith("Hazır müzik"); "ayar" -> p.muzik.girisMs > 0 || p.muzik.cikisMs > 0; else -> false }
+    "seslendirme" -> a == "kayitlar" && p.sesler.isNotEmpty()
+    "yazi" -> a == "liste" && p.katmanlar.any { it.tur == "metin" }
+    "altyazi" -> a == "satir" && p.altyazilar.isNotEmpty()
+    "kapak" -> when (a) { "kare" -> p.kapak.kaynakUri.isNotEmpty(); "yazi" -> p.kapak.yazi.isNotBlank(); "efekt" -> p.kapak.canli || p.kapak.logo; else -> false }
+    "nesne" -> a == "kesilen" && p.nesneler.isNotEmpty()
+    else -> false
+}
+
 /** Klipler arasındaki geçiş simgesinden açılan Geçişler paneli (3.25, Ahmet'in görseli). */
 @Composable
 private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
@@ -873,32 +952,37 @@ private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
 }
 
 @Composable
-private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: String, ekle: () -> Unit) {
+private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: String, ekle: () -> Unit, alt: String? = null) {
     val k = p.klipler.getOrNull(sec)
     when (hap) {
         "ekle" -> PanelEkle(ekle)
         "bicim" -> PanelBicim(vm, p)
-        "muzik" -> PanelMuzik(vm, p)
-        "seslendirme" -> PanelSeslendirme(vm, p)
+        "muzik" -> PanelMuzik(vm, p, alt)
+        "seslendirme" -> PanelSeslendirme(vm, p, alt)
         "logo" -> PanelLogoKutup(vm, p)
-        "sablon" -> PanelSablon(vm, p)
+        "sablon", "paket", "hazir" -> PanelSablon(vm, p, alt)   // 3.70: Görünüm'ün üç alt menüsü aynı sayfanın bölümleri
         "gecis" -> PanelGecis(vm, p)
         "filtre" -> PanelFiltre(vm, p, sec)   // 3.59
         "ayarlar" -> PanelAyarlar(vm, p, sec)   // 3.61
         "efekt" -> PanelEfekt(vm, p, sec)     // 3.59
-        "altyazi" -> PanelAltyazi(vm, p)
-        "kapak" -> PanelKapak(vm, p)
-        "nesne" -> PanelNesne(vm, p)
+        "altyazi" -> PanelAltyazi(vm, p, alt)
+        "kapak" -> PanelKapak(vm, p, alt)
+        "nesne" -> PanelNesne(vm, p, alt)
         "katmanlar" -> PanelKatmanlar(vm, p)
         else -> if (k == null) {
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))
         } else when (hap) {
-            "klip" -> PanelKlip(vm, p, sec, k)
+            "klip" -> when (alt) {   // 3.70: Düzenle › Klip › Kırp · Kadraj · Hız (Klipler = şerit görünümü)
+                "kirp" -> Kart(if (k.foto) "Süre · klip ${sec + 1}" else "Kırp · klip ${sec + 1}") { KlipSureKirp(vm, k) }
+                "kadraj" -> Kart("Kadraj · klip ${sec + 1}") { KadrajIcerik(vm, k) }
+                "hiz" -> HizSayfasi(vm, k)
+                else -> PanelKlip(vm, p, sec, k)
+            }
             "kadraj" -> PanelKadraj(vm, k)
-            "hareket" -> PanelHareket(vm, k)
+            "hareket" -> PanelHareket(vm, k, alt)
             "renk" -> PanelRenk(vm, k)
             "klipses" -> PanelKlipSes(vm, k)
-            "yazi" -> YaziSayfasi(vm, p, sec)   // 3.53: Katman › Yazı ekle ile ortak
+            "yazi" -> YaziSayfasi(vm, p, sec, alt)   // 3.53: Katman › Yazı ekle ile ortak
             "takip" -> PanelTakip(vm, k)
             else -> Text("Bölüm: $bolum", color = Renk.soluk)
         }
@@ -1003,7 +1087,7 @@ private val HAREKET_KAY = listOf(Triple("sag", "Sağa", "h_sag"), Triple("sol", 
 /** Hareket paneli (3.35, Geçişler paneli biçiminde): solda "Tümüne", ortada başlık; YAKINLAŞMA ve KAYDIRMA türleri;
  *  ODAK: yaklaşmanın başladığı nokta — kendisi bulur (yüz → ana nesne → orta), önizlemede dokunarak değiştirilir. */
 @Composable
-private fun PanelHareket(vm: EditorDurum, k: Klip) {
+private fun PanelHareket(vm: EditorDurum, k: Klip, alt: String? = null) {
     val secili = if (!k.kenBurns) "sabit" else k.hareket.ifEmpty { "otomatik" }
     fun sec(t: String) = vm.klipGuncelle { if (t == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = t) }
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -1021,6 +1105,8 @@ private fun PanelHareket(vm: EditorDurum, k: Klip) {
             Spacer(Modifier.width(48.dp))
         }
         listOf("YAKINLAŞMA" to HAREKET_YAKIN, "KAYDIRMA" to HAREKET_KAY).forEachIndexed { b, (baslik, liste) ->
+            // 3.70: alt sayfa — Yakınlaştırma / Kaydırma / Odak (eski düzende hepsi bir arada)
+            if (alt != null && !(alt == "yakin" && b == 0 || alt == "kay" && b == 1)) return@forEachIndexed
             Text(baslik, color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 liste.forEachIndexed { n, (anah, ad, simge) ->
@@ -1034,14 +1120,17 @@ private fun PanelHareket(vm: EditorDurum, k: Klip) {
                 }
             }
         }
-        Text(when (secili) {
+        if (alt != "odak") Text(when (secili) {
             "otomatik" -> if (k.foto) "Odak noktasına doğru yavaş yaklaşır; görüntü kaymaz (ton değişmez)." else "Saniyede %1,5 yavaş yaklaşır."
             "yakin" -> "Odak noktasına doğru yaklaşır."
             "uzak" -> "Odak noktasından geriye, tam kadraja uzaklaşır."
             "sabit" -> "Hareket yok; kadraj sabit kalır."
             else -> "Görüntü seçilen yöne kayar (en çok karenin yarısı). Gökyüzü/yer gibi farklı bölgeler girerse ton değişebilir."
         }, color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
-        if (secili == "otomatik" || secili == "yakin" || secili == "uzak") {
+        if (alt == "odak" && !(secili == "otomatik" || secili == "yakin" || secili == "uzak"))
+            Text("Odak noktası yakınlaşma türlerinde kullanılır (Otomatik, Yakınlaş, Uzaklaş). Önce Yakınlaştırma sayfasından birini seç.",
+                color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+        if ((alt == null || alt == "odak") && (secili == "otomatik" || secili == "yakin" || secili == "uzak")) {
             Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(1.dp).background(Renk.cizgi))
             Text("ODAK", color = Renk.soluk.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1085,11 +1174,11 @@ private fun PanelKlipSes(vm: EditorDurum, k: Klip) {
 }
 
 @Composable
-private fun PanelMuzik(vm: EditorDurum, p: Proje) {
+private fun PanelMuzik(vm: EditorDurum, p: Proje, alt: String? = null) {
     val sec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.muzikSec(it) } }
     // 3.61: yerleşik müzikler (uygulamada üretilir, telifsiz; silip kursan da vardır) + konuya göre otomatik
     val uretiyor by vm.muzikUretiliyor.collectAsState()
-    Kart("Hazır müzikler") {
+    if (alt == null || alt == "hazir") Kart("Hazır müzikler") {
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Renk.turuncu.copy(alpha = 0.14f)).border(1.dp, Renk.turuncu.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
             .clickable(enabled = !uretiyor && p.klipler.isNotEmpty()) { vm.otomatikMuzik() }.padding(vertical = 10.dp),
             horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -1104,27 +1193,34 @@ private fun PanelMuzik(vm: EditorDurum, p: Proje) {
         Text("Uygulamanın kendi ürettiği telifsiz müzikler; video süresi kadar hazırlanır. Otomatik seçim kliplere bakar: doğa → Sakin, insan → Neşeli, çay/sofra → Duygusal, yol → Tempolu, yapı → Klasik.",
             color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
     }
-    Kart("Arka plan müziği") {
+    if (alt == null || alt == "dosya" || alt == "ayar") Kart(if (alt == "ayar") "Müzik ayarı" else "Arka plan müziği") {
         val m = p.muzik
         if (m == null) {
             Dugme("♪ Müzik seç", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { sec.launch(arrayOf("audio/*")) }
-            Text("Telefondaki bir ses dosyasını seç (MP3, M4A, WAV…).", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+            Text(if (alt == "ayar") "Önce müzik seç (Hazır ya da Dosyadan)." else "Telefondaki bir ses dosyasını seç (MP3, M4A, WAV…).", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
         } else {
             Text(m.ad, color = Renk.yazi, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (m.sureMs > 0) Text("Süre ${sureYaz(m.sureMs)}", color = Renk.soluk, fontSize = 12.sp)
+            if (alt == "dosya") { DugmeSirasi("Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() }); return@Kart }
             var s by remember(m.uri, m.ses) { mutableFloatStateOf(m.ses) }
             Etiketli("Müzik sesi", "%${(s * 100).roundToInt()}")
             InceSlider(value = s, onValueChange = { s = it }, valueRange = 0f..1f,
                 onValueChangeFinished = { vm.muzikDegis { it.copy(ses = s) } },
                 colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
             AnahtarSatiri("Video boyunca tekrarla", m.dongu) { v -> vm.muzikDegis { it.copy(dongu = v) } }
-            DugmeSirasi("Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() })
+            AnahtarSatiri("Videoda ses varken otomatik kıs", m.otoKis) { v -> vm.muzikDegis { it.copy(otoKis = v) } }
+            // 3.70: yumuşak giriş / çıkış (başta yavaşça açılır, videonun sonunda yavaşça kısılır)
+            TonKaydirici("Yumuşak giriş", m.girisMs / 1000f, 0f..6f, 0.5f, Renk.turuncu, { if (it < 0.05f) "yok" else String.format(TR, "%.1f sn", it) }) { v ->
+                vm.muzikDegis { it.copy(girisMs = (v * 1000).toLong()) } }
+            TonKaydirici("Yumuşak çıkış", m.cikisMs / 1000f, 0f..8f, 0.5f, Renk.turuncu, { if (it < 0.05f) "yok" else String.format(TR, "%.1f sn", it) }) { v ->
+                vm.muzikDegis { it.copy(cikisMs = (v * 1000).toLong()) } }
+            if (alt == null) DugmeSirasi("Değiştir" to { sec.launch(arrayOf("audio/*")) }, "Kaldır" to { vm.muzikKaldir() })
         }
     }
 }
 
 @Composable
-private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
+private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
     val ctx = LocalContext.current
     val kaydediyor by vm.kaydediyor.collectAsState()
     val konum by vm.konum.collectAsState()
@@ -1132,7 +1228,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
     val izin = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) vm.kayitBaslat() else vm.uyari.value = "Seslendirme için mikrofon izni gerekiyor."
     }
-    Kart("Seslendirme") {
+    if (alt == null || alt == "kayit" || kaydediyor) Kart("Seslendirme") {
         if (!kaydediyor) {
             Dugme("● Kaydı başlat (${sureYaz(konum)} anından)", Modifier.fillMaxWidth(), renk = Renk.kirmizi, yaziRenk = Color.White, etkin = p.klipler.isNotEmpty()) {
                 if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) vm.kayitBaslat()
@@ -1144,7 +1240,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
         }
     }
     var prompter by remember { mutableStateOf(false) }
-    Kart("Kayan yazıdan oku (prompter)") {
+    if (alt == null || alt == "prompter") Kart("Kayan yazıdan oku (prompter)") {
         var m by remember(p.id) { mutableStateOf(p.okumaMetni) }
         OutlinedTextField(m, { m = it; vm.okumaDegis { pp -> pp.copy(okumaMetni = it) } }, Modifier.fillMaxWidth().heightIn(min = 110.dp),
             placeholder = { Text("Okuyacağın metni buraya yaz ya da yapıştır") }, maxLines = 8)
@@ -1152,7 +1248,8 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje) {
         Text("Metin kayarken okursun; sesin önizlemedeki andan itibaren seslendirme olarak eklenir. Hız ve yazı boyutu ekranda ayarlanır.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
     }
     if (prompter) Prompter(vm) { prompter = false }
-    if (p.sesler.isNotEmpty()) Kart("Kayıtlar (${p.sesler.size})") {
+    if (alt == "kayitlar" && p.sesler.isEmpty()) Text("Henüz seslendirme kaydı yok. Kayıt ya da Prompter sayfasından kaydet.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
+    if ((alt == null || alt == "kayitlar") && p.sesler.isNotEmpty()) Kart("Kayıtlar (${p.sesler.size})") {
         p.sesler.forEach { s ->
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(10.dp)).background(Renk.kart2).padding(10.dp)) {
                 Text("${sureYaz(s.basMs)} → ${sureYaz(s.basMs + s.sureMs)}  (${sureYaz(s.sureMs)})", color = Renk.yazi, fontWeight = FontWeight.SemiBold)

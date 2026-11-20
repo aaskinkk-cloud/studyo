@@ -250,7 +250,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
 private data class HazirYazi(val ad: String, val stil: String, val metin: String, val x: Float, val y: Float, val olcek: Float, val sure: Long, val renk: Long)
 
 @Composable
-private fun HazirYazilar(vm: EditorDurum) {
+private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolean = true) {
     val bugun = remember { java.text.SimpleDateFormat("d MMMM yyyy", java.util.Locale("tr")).format(java.util.Date()) }
     val l = remember(bugun) { listOf(
         HazirYazi("Konum", "konum", "Kabataş, Ordu\nKaradeniz", 0.3f, 0.84f, 0.055f, 3500, 0xFFF5A524),
@@ -260,7 +260,7 @@ private fun HazirYazilar(vm: EditorDurum) {
         HazirYazi("Tarih", "etiket", bugun, 0.78f, 0.12f, 0.045f, 3000, 0xFFFFFFFF),
         HazirYazi("Yer adı", "konum", "Yayla yolu", 0.5f, 0.15f, 0.05f, 3000, 0xFFFF6B6B),
     ) }
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (duz) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         l.forEach { h ->
             val v = Color(if (h.renk == 0xFFFFFFFFL) 0xFFF5A524 else h.renk)
             val ilk = h.metin.substringBefore('\n')
@@ -286,7 +286,8 @@ private fun HazirYazilar(vm: EditorDurum) {
         }
     }
     // 3.64: hareketli yazılar (Ahmet'in örneği: turuncu kareden sağa açılan alıntı) — farklı renkler; renk sonra Renk ayarından değişir
-    Text("Hareketli yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+    if (!hareketli) return
+    if (duz) Text("Hareketli yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
     val hl = remember { listOf(
         HazirYazi("Alıntı açılır", "acilan", "tam sertifikalı organik ürünler", 0.5f, 0.72f, 0.042f, 4000, 0xFFF08A24),
         HazirYazi("Alıntı · mavi", "acilan", "doğanın kalbinden", 0.5f, 0.72f, 0.042f, 4000, 0xFF27D3FF),
@@ -366,7 +367,7 @@ private fun HizliSatir(simge: String, ad: String, renk: Color, deger: Float, ara
  *  buradan eklenen yazı Katmanlar çizelgesinde de görünür, oradan eklenen burada. Eski klip yazısı (Klip.yazi) silinmez;
  *  istenirse tek dokunuşla yazı katmanına taşınır. */
 @Composable
-fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int) {
+fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int, alt: String? = null) {
     val secId by vm.seciliKatman.collectAsState()
     val konum by vm.konum.collectAsState()
     val duzenle by vm.katmanDuzenle.collectAsState()
@@ -376,16 +377,22 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int) {
         Text("Önce en az bir klip ekle; yazılar videonun üstüne yerleşir.", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(16.dp)); return
     }
     val yazilar = p.katmanlar.filter { it.tur == "metin" }
-    Kart("Yazı ekle") {
+    // 3.70: alt sayfalar — Ekle · Hareketli · Videodaki (eski düzende hepsi bir arada)
+    if (alt == null || alt == "ekle") Kart("Yazı ekle") {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SimgeDugme("metin", "Yazı ekle", Modifier.width(72.dp), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
             Text("Yazı oynatıcının bulunduğu andan başlar. Katman › Yazı ekle ile aynı yazıdır.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
         }
         Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        HazirYazilar(vm)
+        HazirYazilar(vm, hareketli = alt == null)
+    }
+    if (alt == "hareketli") Kart("Hareketli yazılar") {
+        Text("Dokun = oynatıcının olduğu andan 4 sn'lik hareketli yazı eklenir; metin hemen düzenlenir. Renk yazı ayarlarından değişir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(bottom = 6.dp))
+        HazirYazilar(vm, duz = false)
     }
     yazilar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
-    if (yazilar.isNotEmpty()) Kart("Videodaki yazılar (${yazilar.size})") {
+    if (alt == "liste" && yazilar.isEmpty()) Text("Videoda henüz yazı yok. Ekle ya da Hareketli sayfasından ekle.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
+    if ((alt == null || alt == "liste") && yazilar.isNotEmpty()) Kart("Videodaki yazılar (${yazilar.size})") {
         for (o in yazilar) key(o.id) {
             val secili = o.id == secId
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp))

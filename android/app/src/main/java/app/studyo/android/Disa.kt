@@ -86,11 +86,12 @@ object Disa {
      *  Önizleme (CompositionPlayer) için de geçerli: sarma (seek) anı [MuzikZarf] ile bildirilir, işleyici oradan sayar.
      *  KÖK NEDEN (3.46'da kısmıyordu): önizleme bileşimi sabit ses kullanıyordu ve seslendirme aralıkları hiç hesaba katılmıyordu. */
     private fun muzikIsleyici(p: Proje, m: Muzik, onizleme: Boolean): AudioProcessor {
-        if (!m.otoKis) return sesIsleyici(m.ses)
+        val solma = m.girisMs > 0 || m.cikisMs > 0   // 3.70: yumuşak giriş/çıkış zarfta (çıktı zamanıyla; döngü ve sarmada doğru)
+        if (!m.otoKis) return if (solma) ZarfIsleyici(m.ses, 1f, emptyList(), muzik = m, toplamUs = p.toplamMs * 1000) else sesIsleyici(m.ses)
         val bir = konusmaAraliklari(p, sesKatmanlari = true)
-        if (bir.isEmpty()) return sesIsleyici(m.ses)
+        if (bir.isEmpty()) return if (solma) ZarfIsleyici(m.ses, 1f, emptyList(), muzik = m, toplamUs = p.toplamMs * 1000) else sesIsleyici(m.ses)
         Kayit.yaz("  Müzik otomatik kısma: ${bir.size} aralık " + bir.take(6).joinToString { "${it[0] / 1000}-${it[1] / 1000}" } + (if (onizleme) " (önizleme)" else ""))
-        return ZarfIsleyici(m.ses, MUZIK_KIS, bir)
+        return ZarfIsleyici(m.ses, MUZIK_KIS, bir, muzik = m.takeIf { solma }, toplamUs = p.toplamMs * 1000)
     }
 
     /** Kısma aralıkları (çıktı zamanı, µs; sıralı ve birleşik): kendi sesi olan klipler + seslendirme (+ istenirse ses katmanları). */
@@ -110,7 +111,8 @@ object Disa {
     }
 
     /** ofsUs: işleyicinin ilk örneğinin çıktı zamanı (ses katmanı başladığı an; müzik için 0). */
-    private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>, val ofsUs: Long = 0L) : androidx.media3.common.audio.BaseAudioProcessor() {
+    private class ZarfIsleyici(val kat: Float, val kis: Float, val ar: List<LongArray>, val ofsUs: Long = 0L,
+                               val muzik: Muzik? = null, val toplamUs: Long = 0L) : androidx.media3.common.audio.BaseAudioProcessor() {
         private var kare = 0L; private var g = -1f
         override fun onConfigure(f: androidx.media3.common.audio.AudioProcessor.AudioFormat): androidx.media3.common.audio.AudioProcessor.AudioFormat {
             if (f.encoding != androidx.media3.common.C.ENCODING_PCM_16BIT && f.encoding != androidx.media3.common.C.ENCODING_PCM_FLOAT)
@@ -129,9 +131,10 @@ object Disa {
                 while (ai < ar.size && ar[ai][1] <= us) ai++
                 val hedef = kat * (if (ai < ar.size && us >= ar[ai][0]) kis else 1f)
                 if (g < 0f) g = hedef else g += (hedef - g) * yum.coerceAtMost(1f)
+                val gs = if (muzik != null) g * muzikSolma(muzik, us / 1000, toplamUs / 1000) else g
                 for (c in 0 until ch) {
-                    if (bayt == 4) out.putFloat(inp.float * g)
-                    else out.putShort((inp.short * g).toInt().coerceIn(-32768, 32767).toShort())
+                    if (bayt == 4) out.putFloat(inp.float * gs)
+                    else out.putShort((inp.short * gs).toInt().coerceIn(-32768, 32767).toShort())
                 }
                 kare++
             }

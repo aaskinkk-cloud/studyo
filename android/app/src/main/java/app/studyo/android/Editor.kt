@@ -119,6 +119,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
+    var kapakAcik by rememberSaveable { mutableStateOf(false) }   // 3.63: tam ekran Kapak düzenleyici
     var altMod by rememberSaveable { mutableStateOf(false) }   // 3.61: alt menüler ana menünün yerinde
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
@@ -142,6 +143,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         DisaEkrani(vm) { disaAcik = false }
         return
     }
+    if (kapakAcik) {
+        KapakEditoru(vm) { kapakAcik = false }
+        return
+    }
     BackHandler { if (altMod && panelAcik) altMod = false else if (panelAcik) panelAcik = false else cik() }
 
     LaunchedEffect(mesaj) { if (mesaj != null) { delay(2200); vm.mesaj.value = null } }
@@ -154,12 +159,14 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         Column(Modifier.fillMaxSize().imePadding()) {
             // ---- üst çubuk: kamera bölgesi de başlığın renginde ----
             Row(
-                Modifier.fillMaxWidth().background(Renk.kart)
+                Modifier.fillMaxWidth().background(if (Renk.sb) Renk.zemin else Renk.kart)
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                InceDugme("← Geri", Renk.yazi, onClick = cik)
+                // 3.63: siyah-beyaz temada VITA dizilişi: ← simge · ad · Kaydet · beyaz Dışa aktar; geri al/yinele oynatıcı satırında
+                if (Renk.sb) Box(Modifier.size(42.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 24.dp) }
+                else InceDugme("← Geri", Renk.yazi, onClick = cik)
                 var adMenu by remember { mutableStateOf(false) }
                 var adDuzen by remember { mutableStateOf(false) }
                 Box(Modifier.weight(1f)) {
@@ -180,13 +187,23 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         dismissButton = { TextButton(onClick = { adDuzen = false }) { Text("Vazgeç") } })
                 }
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
+                if (!Renk.sb) {
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
                     Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
                     Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 18.dp) }
+                }
                 InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
-                Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
-                InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
+                if (Renk.sb) {
+                    val etkin = p.klipler.isNotEmpty()
+                    Box(Modifier.padding(start = 4.dp, end = 4.dp).height(34.dp).clip(RoundedCornerShape(6.dp)).background(if (etkin) Color.White else Color(0x55FFFFFF))
+                        .clickable(enabled = etkin) { disaAcik = true }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                        Text("Dışa aktar", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    }
+                } else {
+                    Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
+                    InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
+                }
             }
             val nesneModu = panelAcik && (bolum == "duzenle" && haplar["duzenle"] == "nesne" || bolum == "katman")   // 3.45: nesne kesme Katmanlar'da da
             // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
@@ -199,8 +216,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && bolum == "katman", hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"))
-                if (!Duzen.yaziliMenu && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
+                if (!Duzen.yaziliMenu && !Renk.sb && p.klipler.isNotEmpty()) OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter))
             }
+            if (Renk.sb && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p)
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
             val yog = LocalDensity.current
@@ -216,7 +234,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 contentAlignment = Alignment.Center) {
                 Box(Modifier.width(64.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
             }
-            if (Duzen.yaziliMenu) OynaticiSatiri(vm, p)
+            if (Duzen.yaziliMenu && !Renk.sb) OynaticiSatiri(vm, p)
             Column(Modifier.fillMaxWidth().weight(1f)) {
                 if (bolum == "renk" && panelAcik) {
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
@@ -235,7 +253,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             GizleGosterDugmesi(!Duzen.seritGizli, Color(TON[2])) { Duzen.seritDegis(ctxS) }   // 3.57: bölüm başlıklarıyla aynı belirgin düğme
                         }
                         // 3.53: "Kırp ve ekle" kartı kalktı — kırpma/süre klip resmindeki ✂ simgesinde, Biçim Görünüm › Şablon › Hazır paketler'de
-                        if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle)
+                        if (!Duzen.seritGizli || p.klipler.isEmpty()) KlipSeridi(vm, p, sec, ekle, kapakAc = { kapakAcik = true })
                         if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
                         else if (!Duzen.seritGizli) Text("Kırpmak ya da süre ayarlamak için seçili klibin üstündeki kırp simgesine dokun.", color = Renk.soluk, fontSize = 11.5.sp,
@@ -486,8 +504,35 @@ private fun OynaticiSatiri(vm: EditorDurum, p: Proje) {
     }
 }
 
+/** 3.63: siyah-beyaz tema (VITA dizilişi) — önizlemenin altında: süre · başa · önceki · oynat · sonraki · geri al · yinele; altında ince zaman çubuğu. */
 @Composable
-private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false) {
+private fun OynaticiSatiriSB(vm: EditorDurum, p: Proje) {
+    val konum by vm.konum.collectAsState()
+    val oyn by vm.oynuyor.collectAsState()
+    val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
+    val toplam = p.toplamMs.coerceAtLeast(1)
+    Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(horizontal = 12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("${sureOndalik(konum)} / ${sureYaz(p.toplamMs)}", color = Renk.yazi, fontSize = 12.sp, maxLines = 1, modifier = Modifier.weight(1f))
+            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.git(0) }, contentAlignment = Alignment.Center) { Simge("basa", Renk.yazi, 16.dp) }
+            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.onceki() }, contentAlignment = Alignment.Center) { Simge("onceki", Renk.yazi, 18.dp) }
+            Box(Modifier.size(44.dp).clip(CircleShape).clickable { vm.oynatDurdur() }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Renk.yazi, 28.dp) }
+            Box(Modifier.size(36.dp).clip(CircleShape).clickable { vm.sonraki() }, contentAlignment = Alignment.Center) { Simge("sonraki", Renk.yazi, 18.dp) }
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+                Box(Modifier.size(36.dp).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
+                    Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
+                Box(Modifier.size(36.dp).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
+                    Simge("yinele", if (ileriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), 20.dp) }
+            }
+        }
+        ZamanCubugu(konum.coerceIn(0, toplam), toplam) { vm.git(it) }
+    }
+}
+
+@Composable
+private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, kucuk: Boolean = false, kapakAc: (() -> Unit)? = null) {
+    // 3.63: büyük şeridin başında Kapak kutusu (VITA gibi) — LazyRow sırası bir kayar
+    val kapakVar = !kucuk && kapakAc != null && p.klipler.isNotEmpty()
     var gecisSecim by remember { mutableStateOf<Int?>(null) }
     gecisSecim?.let { i -> if (i < p.klipler.lastIndex) GecisSecimi(vm, p, i) { gecisSecim = null } }
     // 3.53: klip resmindeki kırp simgesi → Kırp / Süre sayfası (Geçişler biçiminde)
@@ -503,7 +548,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         if (sec !in p.klipler.indices) return@LaunchedEffect
         val vp = durum.layoutInfo.viewportSize.width
         val kgPx = with(yogS) { (if (kucuk) 92.dp else 200.dp).toPx() }
-        durum.animateScrollToItem(sec, -((vp - kgPx) / 2f).toInt().coerceAtLeast(0))
+        durum.animateScrollToItem(sec + (if (kapakVar) 1 else 0), -((vp - kgPx) / 2f).toInt().coerceAtLeast(0))
     }
     // 3.25 (Ahmet'in onayladığı taslak): seçili klip büyük; üstünde renkli küçük simgeler (ses, böl, çoğalt, sil) ve
     // kenarlarında sola/sağa taşı okları. Basılı tutup sürükleyerek de taşınır.
@@ -522,6 +567,9 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (kapakVar && kapakAc != null) item(key = "kapak_kutusu") {
+            KapakKutusu(vm, p, Modifier.width(72.dp).fillMaxHeight(0.68f), kapakAc)
+        }
         itemsIndexed(p.klipler, key = { _, k -> k.id }) { i, k ->
             val secili = i == sec
             val sekil = RoundedCornerShape(if (secili && !kucuk) 12.dp else 8.dp)
@@ -1098,7 +1146,8 @@ fun PanelYazi(vm: EditorDurum, k: Klip) {
 class AltOge(val ad: String, val simge: String, val renk: Color, val secili: Boolean, val isaret: Boolean, val tik: () -> Unit)
 
 @Composable
-private fun AltDugme(o: AltOge) {
+private fun AltDugme(o0: AltOge) {
+    val o = if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
     Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp)

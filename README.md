@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.63 (20.11.2026, deneme · `yerel-android` dalı): siyah-beyaz tema (VITA düzeni) ve tam ekran Kapak düzenleyici
+- **Siyah-beyaz tema:** ⋯ › "Siyah-beyaz tema (VITA düzeni)". Zemin siyah, yazı ve simgeler beyaz, vurgular beyaz (renkli simge tonları beyaza döner). Gece ve gündüz temaları aynen duruyor; seçim hatırlanır (`Renk.tema`: 0 gece · 1 gündüz · 2 siyah-beyaz).
+- **VITA dizilişi (yalnız bu temada):** üstte ← · proje adı · Kaydet · beyaz "Dışa aktar"; önizlemenin altında süre · başa · önceki · oynat · sonraki · geri al · yinele satırı ve ince zaman çubuğu (videonun üstündeki şeffaf kontrol kalkar). Ana menü/alt menü mantığı (3.61) değişmedi.
+- **Kapak kutusu:** büyük klip şeridinin en başında (bütün temalarda). Kapak seçilmişse kapak, değilse ilk klip görünür; dokununca tam ekran Kapak düzenleyici açılır.
+- **Kapak düzenleyici:** üstte ✕ · geri al/yinele · Kaydet (JPG, Pictures/Stüdyo); ortada kapak; altında "Videodan seç" (videonun tamamının küçük resim şeridi, kaydır/dokun = o kare kapak olur) / "İçe aktar" (galeriden fotoğraf, uygulamaya kopyalanır); araçlar Şablon · Yazı · Efekt · Öneriler · Foto. Araç sayfalarında ✕ (vazgeç, önceki hale döner) · başlık · ✓ satırı altta.
+- **Şablonlar:** Tümü · Klasik · Reels sekmeli ızgara; her şablon projenin kendi kapak karesi ve yazısıyla canlı çizilir (3 Klasik + 13 Reels stili). Yayın › Kapak paneli seçenek olarak duruyor.
+
 ## 3.62 (20.11.2026, deneme · `yerel-android` dalı): dışa aktarma çökmesi giderildi, nesne kesme düzeltildi, yerleşik logo
 - **Kök neden (cihaz kaydı 3.61.89):** ekrandan kesilen nesne karenin kenarına taşınca bindirme çapası −1…1 dışına çıkıyor, Media3 `IllegalArgumentException` veriyordu → akıcı önizleme yeniden kuruluyor (görüntü titreyip kararıyordu) ve dışa aktarma duruyordu. `Yerlesim.ayar()`: arka plan çapası sınıra çekilir, fark bindirmenin kendi çapasına aktarılır (bitmap aynı yerde kalır); bütün bindirmelerde (zamanlı, logo, klip yazısı, altyazı, takip).
 - **Nesne kesme:** saydamlık eşiği 12 → 110 (kırpım bütün fotoğraf oluyor, nesne kareyi kaplayıp bulanık arka planı örtüyordu); düşük saydamlıklı arka plan kalıntısı temizlenir.

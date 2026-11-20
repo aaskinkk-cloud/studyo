@@ -768,7 +768,7 @@ internal fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, tik: (
 
 /** Başlığın yeri: üç küçük kare (bant üstte / ortada / altta). */
 @Composable
-private fun KonumSecici(secili: String, ton: Color, onSec: (String) -> Unit) {
+internal fun KonumSecici(secili: String, ton: Color, onSec: (String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("ust" to "Üstte", "orta" to "Ortada", "alt" to "Altta").forEach { (k, ad) ->
             val on = secili == k
@@ -1150,7 +1150,7 @@ fun PanelAltyazi(vm: EditorDurum, p: Proje) {
 
 // ===================================================== KAPAK =====================================================
 
-private val VURGULAR = listOf(0xFFFFD400 to "Sarı", 0xFFFF3B30 to "Kırmızı", 0xFF35E06B to "Yeşil", 0xFF27D3FF to "Mavi", 0xFFFF8A00 to "Turuncu")
+internal val VURGULAR = listOf(0xFFFFD400 to "Sarı", 0xFFFF3B30 to "Kırmızı", 0xFF35E06B to "Yeşil", 0xFF27D3FF to "Mavi", 0xFFFF8A00 to "Turuncu")
 
 @Composable
 fun PanelKapak(vm: EditorDurum, p: Proje) {
@@ -1239,7 +1239,7 @@ internal fun YuvarlakSecim(ad: String, simge: String, ton: Color, on: Boolean, t
     Column(Modifier.width(84.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = tik).padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(56.dp)) {
             Box(Modifier.fillMaxSize().clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
-                .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) { Simge(simge, ton, 26.dp) }
+                .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) { Simge(simge, Renk.tonla(ton), 26.dp) }
             if (on) OnayIsareti(Modifier.align(Alignment.TopEnd), 16.dp)
         }
         Text(ad, color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.padding(top = 4.dp))

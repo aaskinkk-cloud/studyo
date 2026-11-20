@@ -1298,6 +1298,19 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun kapakOneriSec(k: Kapak) = kapakDegis { it.copy(kaynakUri = k.kaynakUri, kaynakMs = k.kaynakMs, kaynakFoto = k.kaynakFoto) }
 
+    /** 3.63: Kapak düzenleyici › İçe aktar — galeriden bir fotoğraf kapak zemini olur (uygulamaya kopyalanır; kaynak silinse de kalır). */
+    fun kapakIceAktar(u: Uri) {
+        kapsam.launch {
+            mesgul.value = "Fotoğraf hazırlanıyor…"
+            val r = withContext(Dispatchers.IO) { runCatching { Medya.fotoHazirla(ctx, u) } }
+            mesgul.value = null
+            val f = r.getOrNull()
+            if (f == null) { r.exceptionOrNull()?.let { Kayit.hata("kapak içe aktar", it) }; uyari.value = "Fotoğraf açılamadı."; return@launch }
+            kapakDegis { it.copy(kaynakUri = Uri.fromFile(f.first).toString(), kaynakMs = 0, kaynakFoto = true) }
+            mesaj.value = "Kapak fotoğrafı içe aktarıldı"
+        }
+    }
+
     // ---------- takip eden yazı ----------
     val takipSecimde = MutableStateFlow(false)
     val takipIlerleme = MutableStateFlow<Float?>(null)

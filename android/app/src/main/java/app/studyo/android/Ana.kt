@@ -185,7 +185,10 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Hata kaydını paylaş") }, onClick = { menu = false; kayitPaylas(ctx) })
                     DropdownMenuItem(text = { Text("Yedekten geri yükle (ayarlar, logolar)") }, onClick = { menu = false; geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) })
-                    DropdownMenuItem(text = { Text(if (Renk.gunduz) "Gece teması" else "Gündüz teması") }, onClick = { menu = false; Renk.degistir(ctx) })
+                    // 3.63: üç tema — gece · gündüz · siyah-beyaz (VITA düzeni)
+                    if (Renk.tema != 0) DropdownMenuItem(text = { Text("Gece teması") }, onClick = { menu = false; Renk.sec(ctx, 0) })
+                    if (Renk.tema != 1) DropdownMenuItem(text = { Text("Gündüz teması") }, onClick = { menu = false; Renk.sec(ctx, 1) })
+                    if (Renk.tema != 2) DropdownMenuItem(text = { Text("Siyah-beyaz tema (VITA düzeni)") }, onClick = { menu = false; Renk.sec(ctx, 2) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
                     DropdownMenuItem(text = { Text("Sürüm ${BuildConfigBilgi.surum(ctx)}") }, onClick = { menu = false })

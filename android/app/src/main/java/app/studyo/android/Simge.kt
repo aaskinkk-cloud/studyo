@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.size
 object Simgeler {
     private val cizgi = mapOf(
         "geri" to "M19 12H5M12 19l-7-7 7-7",
+        // 3.63: kapak düzenleyici
+        "izgara" to "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+        "fotoekle" to "M14 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9M4 17l5-5 4 4 2-2 5 5M18 3v6M15 6h6",
         // 3.53: Renk bölümü ve Kırp
         "palet" to "M12 3a9 9 0 0 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",
         "r_palet" to "M12 3a9 9 0 0 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01",

@@ -28,24 +28,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Renkler. Gece (koyu) teması varsayılan; gündüz teması ⋯ menüsünden seçilir ve hatırlanır. Gece görünümü silinmedi. */
+/** Renkler. Gece (koyu) teması varsayılan; gündüz ve 3.63 siyah-beyaz (VITA tarzı) temalar ⋯ menüsünden seçilir ve hatırlanır. Önceki temalar silinmedi. */
 object Renk {
-    var gunduz by mutableStateOf(false)
-    private fun s(gece: Long, gun: Long) = Color(if (gunduz) gun else gece)
-    val zemin get() = s(0xFF121A21, 0xFFF2F5F8)
-    val kart get() = s(0xFF1B2833, 0xFFFFFFFF)
-    val kart2 get() = s(0xFF243444, 0xFFE6ECF1)
-    val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB)
-    val yazi get() = s(0xFFE6EDF3, 0xFF15212C)
-    val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80)
-    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C)
-    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204)
-    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD)
-    val kirmizi get() = s(0xFFEF5350, 0xFFD93A36)
-    val yesil get() = s(0xFF4CC38A, 0xFF16915A)
+    /** 0 = gece (varsayılan), 1 = gündüz, 2 = siyah-beyaz. */
+    var tema by mutableIntStateOf(0)
+    val gunduz get() = tema == 1
+    val sb get() = tema == 2
+    private fun s(gece: Long, gun: Long, sbr: Long) = Color(when (tema) { 1 -> gun; 2 -> sbr; else -> gece })
+    val zemin get() = s(0xFF121A21, 0xFFF2F5F8, 0xFF000000)
+    val kart get() = s(0xFF1B2833, 0xFFFFFFFF, 0xFF141414)
+    val kart2 get() = s(0xFF243444, 0xFFE6ECF1, 0xFF242424)
+    val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB, 0xFF343434)
+    val yazi get() = s(0xFFE6EDF3, 0xFF15212C, 0xFFFFFFFF)
+    val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80, 0xFF9E9E9E)
+    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF)
+    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204, 0xFF000000)
+    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6)
+    val kirmizi get() = s(0xFFEF5350, 0xFFD93A36, 0xFFEF5350)
+    val yesil get() = s(0xFF4CC38A, 0xFF16915A, 0xFF4CC38A)
 
-    fun yukle(ctx: Context) { gunduz = ctx.getSharedPreferences("ayar", 0).getBoolean("gunduz", false) }
-    fun degistir(ctx: Context) { gunduz = !gunduz; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("gunduz", gunduz).apply() }
+    /** Siyah-beyaz temada renkli simge tonları beyaza döner; diğer temalarda renk aynen kalır. */
+    fun tonla(c: Color): Color = if (sb) Color(0xFFEDEDED) else c
+
+    fun yukle(ctx: Context) {
+        val sp = ctx.getSharedPreferences("ayar", 0)
+        tema = sp.getInt("tema", if (sp.getBoolean("gunduz", false)) 1 else 0).coerceIn(0, 2)
+    }
+    fun sec(ctx: Context, t: Int) { tema = t.coerceIn(0, 2); ctx.getSharedPreferences("ayar", 0).edit().putInt("tema", tema).putBoolean("gunduz", tema == 1).apply() }
+    fun degistir(ctx: Context) = sec(ctx, if (tema == 1) 0 else 1)
 }
 
 /** Editör düzeni: sade (önizleme hep büyük, InShot gibi) varsayılan; önceki düzen ⋯ menüsünden seçilebilir. */
@@ -180,8 +190,10 @@ fun GizleGosterDugmesi(acik: Boolean, ton: Color, tik: () -> Unit) {
     }
 }
 
-/** Ortak renk tonları (alt menüyle aynı aile). */
-val TON = longArrayOf(0xFFD9CF5A, 0xFF86C06E, 0xFF3FBFAE, 0xFFE8A06A, 0xFFDB7F93)
+/** Ortak renk tonları (alt menüyle aynı aile). 3.63: siyah-beyaz temada beyaz/gri tonlar. */
+private val TON_RENKLI = longArrayOf(0xFFD9CF5A, 0xFF86C06E, 0xFF3FBFAE, 0xFFE8A06A, 0xFFDB7F93)
+private val TON_SB = longArrayOf(0xFFFFFFFF, 0xFFE6E6E6, 0xFFF0F0F0, 0xFFDADADA, 0xFFEBEBEB)
+val TON: LongArray get() = if (Renk.sb) TON_SB else TON_RENKLI
 fun tonRenk(sira: Int, metin: String): Color = Color(TON[(if (sira >= 0) sira else (metin.hashCode() and 0x7fffffff)) % TON.size])
 
 /** Başındaki ◀ ▶ ✂ ♪ gibi işaretleri atar. */

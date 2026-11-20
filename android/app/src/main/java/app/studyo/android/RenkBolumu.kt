@@ -137,7 +137,7 @@ internal fun AyarDugmesi(ad: String, simge: String, renk: Long, secili: Boolean,
         Box(Modifier.size(46.dp)) {
             Box(Modifier.fillMaxSize().clip(CircleShape).background(if (secili) Color.Transparent else Renk.kart2)
                 .border(if (secili) 2.5.dp else 0.dp, if (secili) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
-                Simge(simge, Color(renk), 22.dp)
+                Simge(simge, Renk.tonla(Color(renk)), 22.dp)
             }
             if (degisti) OnayIsareti(Modifier.align(Alignment.TopEnd), 14.dp)
         }

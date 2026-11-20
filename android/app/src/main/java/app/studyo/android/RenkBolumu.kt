@@ -51,9 +51,12 @@ private val RENK_AYARLARI = listOf(
     RenkAyarTanim("ton", "Ton", "gecis", 0xFFAFA9EC, { it.ton }, { a, v -> a.copy(ton = v) }, aciklama = "Bütün renkleri renk çemberinde kaydırır."),
 )
 
+/** 3.68: Renk › Hazır › Doğal (klip kartındaki simge de bunu uygular). */
+internal val DOGAL_RENK = RenkAyar(kontrast = 0.08f, doygunluk = 0.1f)
+
 private val RENK_HAZIR = listOf(
     "Patlamayı azalt" to RenkAyar(vurgular = -0.6f, golgeler = 0.15f, kontrast = -0.05f, beyazlar = -0.3f),
-    "Doğal" to RenkAyar(kontrast = 0.08f, doygunluk = 0.1f),
+    "Doğal" to DOGAL_RENK,
     "Canlı" to RenkAyar(kontrast = 0.15f, doygunluk = 0.35f, vurgular = -0.2f),
     "Net" to RenkAyar(kontrast = 0.1f, keskinlik = 0.35f),
     "Sıcak" to RenkAyar(sicaklik = 0.4f, doygunluk = 0.1f),

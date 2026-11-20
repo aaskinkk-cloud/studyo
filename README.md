@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.68 (20.11.2026, deneme · `yerel-android` dalı): hareket oku gerçek yönü gösterir, kartta Nesne kes · Doğal · Takip, dokun = dur, kalın başlık bandı
+- **Hareket oku:** klibin gerçek yönünü gösterir (otomatik ve yakınlaş = yakınlaş oku; sihir değneği kalktı). Dokun = sıradaki yön (Yakınlaş → Uzaklaş → Sağa → Sola → Yukarı → Aşağı → Sabit), basılı tut = Hareket sayfası.
+- **Kartın üst satırı:** yeşil kırp simgesi artık **Nesne kes** (Düzenle › Nesne: fotoğraftan ve videodan kesme). Kadraj (Sığdır/Doldur) ayrı tuval simgesinde. Sarı kırp = süre/kırpma (aynen).
+- **Kartın alt satırı:** **Doğal** renk (Renk › Hazır › Doğal; dokun = uygula / kaldır, uygulanınca yeşil dolu) · **Takip yazısı** (yalnız videolarda; Metin › Takip açılır) · hareket · yazı · hareketli yazı. Kart 264 dp'ye büyüdü; alt bilgi kısaldı (süre, sessiz).
+- **Önizlemeye dokun = dur / oynat** (akıcı oynatmada da). Yazıya/katmana dokunmak eskisi gibi onu seçer.
+- **Bölüm başlıkları (Kart):** bant dikeyde daha kalın; "Göster/Gizle" yazılı hap yerine yuvarlak ok simgesi. Önceki yazılı hap ⋯ › "Alt başlıklar: yazılı (önceki)" seçiliyken kalır.
+
 ## 3.67 (20.11.2026, deneme · `yerel-android` dalı): seçili klip kartında hareket yönü, yazı ekle, hareketli yazı; sade ve sabit Geri
 - **Seçili klip kartı** büyüdü (200 → 248 dp genişlik, 158 → 176 dp yükseklik). Alt satırda bilgi + yeni simgeler:
   - **Hareket yönü:** klibin nasıl hareket edeceğini gösteren ok (sağa, sola, yukarı, aşağı, yakınlaş, uzaklaş, sabit; otomatikte sihir değneği). Dokun = Hareket sayfası (Görünüm › Hareket'in aynısı) açılır pencerede.

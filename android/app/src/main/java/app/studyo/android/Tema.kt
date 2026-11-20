@@ -157,7 +157,7 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? =
     var acik by rememberSaveable(baslik) { mutableStateOf(baslangicAcik) }
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart)) {
         Row(
-            Modifier.fillMaxWidth().clickable { acik = !acik }.padding(horizontal = 14.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clickable { acik = !acik }.padding(horizontal = 14.dp, vertical = 18.dp),   // 3.68: bant dikeyde daha kalın (12 → 18)
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (acik || ton != null) Box(Modifier.width(3.dp).height(18.dp).background(if (acik) vurgu else vurgu.copy(alpha = 0.5f)))
@@ -181,6 +181,12 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? =
 /** 3.57: bölüm başlıklarındaki gizle/göster düğmesi — renk tonlu çerçeveli hap, ok + yazı ("Gizle" / "Göster"). */
 @Composable
 fun GizleGosterDugmesi(acik: Boolean, ton: Color, tik: () -> Unit) {
+    // 3.68: yazısız yuvarlak simge (▴ açık · ▾ kapalı); önceki yazılı hap ⋯ › "Alt başlıklar: yazılı (önceki)" seçiliyken kalır
+    if (!Duzen.yaziliMenu) {
+        Box(Modifier.size(34.dp).clip(CircleShape).background(ton.copy(alpha = if (acik) 0.10f else 0.20f)).border(1.dp, ton.copy(alpha = 0.7f), CircleShape)
+            .clickable(onClick = tik), contentAlignment = Alignment.Center) { Simge(if (acik) "h_yukari" else "h_asagi", ton, 18.dp) }
+        return
+    }
     val sekil = RoundedCornerShape(14.dp)
     Row(Modifier.height(28.dp).clip(sekil).background(ton.copy(alpha = if (acik) 0.10f else 0.20f)).border(1.dp, ton.copy(alpha = 0.7f), sekil)
         .clickable(onClick = tik).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {

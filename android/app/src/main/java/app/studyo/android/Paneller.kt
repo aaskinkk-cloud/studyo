@@ -143,7 +143,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             if (kompA) {
                 AndroidView(factory = { c -> android.view.SurfaceView(c).also { vm.kompYuzeyBagla(it) } },
                     onRelease = { vm.kompYuzeyBagla(null) }, modifier = Modifier.fillMaxSize())
-                if (kompG) return@BoxWithConstraints
+                // 3.68: akıcı oynatmada önizlemeye dokun = dur
+                if (kompG) { Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { vm.oynatDurdur() } }); return@BoxWithConstraints }
             }
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
             val RW = ref.first; val RH = ref.second
@@ -583,7 +584,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                     val (bw, bh) = katBoyut[ko.id] ?: return@firstOrNull false
                                     val sc = KatmanCizim.an(ko, km).olcek
                                     katmanIsabet(ko, (bw * sc).toInt(), (bh * sc).toInt(), px, py, RW, RH)
-                                } ?: return@detectTapGestures
+                                } ?: run { vm.oynatDurdur(); return@detectTapGestures }   // 3.68: boş yere dokun = dur / oynat
                                 vm.seciliKatman.value = bul.id; vm.katmanSayfasi.value++
                                 if (bul.tur == "metin") vm.katmanDuzenle.value = bul.id
                                 return@detectTapGestures

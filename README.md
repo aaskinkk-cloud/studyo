@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 3.64 (20.11.2026, deneme · `yerel-android` dalı): hareketli hazır yazılar
+- **Metin › Yazı ve Katman › Yazı ekle › "Hareketli yazılar":** dokun = oynatıcının olduğu andan 4 sn'lik yazı eklenir (metin hemen düzenlenir; renk Renk ayarından değişir, beyaz seçilirse stilin kendi rengi).
+- **Stiller:** Alıntı açılır (turuncu yuvarlak kare + tırnak; beyaz kutu karenin içinden sağa açılır, siyah yazı) · Kayan şerit (renkli şerit soldan süpürür, yazı içinden kayar; 2. satır beyaz şerit) · Daktilo (koyu kutuda harf harf, renkli imleç) · Çift kutu (renkli ve beyaz kutu sırayla soldan kayar) · Altı çizili (yazı aşağıdan yükselir, çizgi ortadan uzar). Farklı renk örnekleri hazır.
+- **Yöntem:** hareket bitmapin kendisinde, kare kare çizilir (30 kare giriş, ters çıkış); bütün kareler aynı boyutta, konum kaymaz. Önizleme ve dışa aktarma aynı `KatmanCizim.bitmap(o, W, H, adim)` karesini kullanır; dışa aktarmada yalnız son kare bellekte tutulur. Seçili yazı duraklatılmışken tam görünür (düzenlenebilsin).
+
 ## 3.63 (20.11.2026, deneme · `yerel-android` dalı): siyah-beyaz tema (VITA düzeni) ve tam ekran Kapak düzenleyici
 - **Siyah-beyaz tema:** ⋯ › "Siyah-beyaz tema (VITA düzeni)". Zemin siyah, yazı ve simgeler beyaz, vurgular beyaz (renkli simge tonları beyaza döner). Gece ve gündüz temaları aynen duruyor; seçim hatırlanır (`Renk.tema`: 0 gece · 1 gündüz · 2 siyah-beyaz).
 - **VITA dizilişi (yalnız bu temada):** üstte ← · proje adı · Kaydet · beyaz "Dışa aktar"; önizlemenin altında süre · başa · önceki · oynat · sonraki · geri al · yinele satırı ve ince zaman çubuğu (videonun üstündeki şeffaf kontrol kalkar). Ana menü/alt menü mantığı (3.61) değişmedi.

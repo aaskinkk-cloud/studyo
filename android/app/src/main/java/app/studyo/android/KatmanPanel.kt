@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
@@ -281,6 +282,35 @@ private fun HazirYazilar(vm: EditorDurum) {
                     }
                 }
                 Text(h.ad, color = Renk.soluk, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+    }
+    // 3.64: hareketli yazılar (Ahmet'in örneği: turuncu kareden sağa açılan alıntı) — farklı renkler; renk sonra Renk ayarından değişir
+    Text("Hareketli yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+    val hl = remember { listOf(
+        HazirYazi("Alıntı açılır", "acilan", "tam sertifikalı organik ürünler", 0.5f, 0.72f, 0.042f, 4000, 0xFFF08A24),
+        HazirYazi("Alıntı · mavi", "acilan", "doğanın kalbinden", 0.5f, 0.72f, 0.042f, 4000, 0xFF27D3FF),
+        HazirYazi("Kayan şerit", "serit", "BUGÜN YAYLADAYIZ\nKabataş, Ordu", 0.38f, 0.8f, 0.055f, 4000, 0xFFE53935),
+        HazirYazi("Şerit · yeşil", "serit", "TAZE FINDIK\nyeni sezon", 0.38f, 0.8f, 0.055f, 4000, 0xFF1FA855),
+        HazirYazi("Daktilo", "daktilo", "Sabahın ilk ışıkları…", 0.5f, 0.2f, 0.05f, 4500, 0xFF4CC38A),
+        HazirYazi("Çift kutu", "ciftkutu", "Şefin Doğası\nKaradeniz mutfağı", 0.36f, 0.82f, 0.055f, 4000, 0xFF7E57C2),
+        HazirYazi("Çift kutu · turuncu", "ciftkutu", "Bölüm 1\nHasat zamanı", 0.36f, 0.82f, 0.055f, 4000, 0xFFF5A524),
+        HazirYazi("Altı çizili", "altcizgi", "YAYLA YOLU\nhaziran 2026", 0.5f, 0.45f, 0.08f, 4000, 0xFFFFD400),
+    ) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        hl.forEach { h ->
+            val ornek = remember(h) { KatmanOge(tur = "metin", metin = h.metin, stil = h.stil, renk = h.renk, olcek = h.olcek * 1.6f) }
+            val bmp by produceState<android.graphics.Bitmap?>(null, h) { value = withContext(Dispatchers.Default) { KatmanCizim.bitmap(ornek, 360, 640) } }
+            Column(Modifier.width(120.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF2A2F35)).border(0.5.dp, Color(h.renk).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                .clickable {
+                    vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, anim = "yok", ad = h.ad)
+                    vm.katmanDegis(vm.seciliKatman.value ?: "") { it.copy(renk = h.renk) }
+                }
+                .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.fillMaxWidth().height(46.dp), contentAlignment = Alignment.Center) {
+                    bmp?.let { androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit) }
+                }
+                Text(h.ad, color = Renk.soluk, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             }
         }
     }

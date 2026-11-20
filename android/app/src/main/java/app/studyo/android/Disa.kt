@@ -245,7 +245,7 @@ object Disa {
                 ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, false)
                 ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, true)
             }
-            for ((o, bm) in katmanBmp) if (o.basMs < son && o.sonMs > bas) ek += KatmanBindirme(o, bm, bas)
+            for ((o, bm) in katmanBmp) if (o.basMs < son && o.sonMs > bas) ek += KatmanBindirme(o, bm, bas, W, H)
             val satir = altyazilar.filter { it.basMs < son && it.sonMs > bas }
             if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
             return ek

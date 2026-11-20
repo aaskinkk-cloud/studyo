@@ -397,7 +397,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             for (o in p.katmanlar) {
                 if (!o.gorsel) continue
                 key(o.id) {
-                    val bm = remember(KatmanCizim.anahtar(o), ref) { KatmanCizim.bitmap(o, RW, RH) }
+                    // 3.64: hareketli yazı kare kare (dışa aktarmayla aynı kare); seçili ve duraklatılmışken tam görünür (düzenlenebilsin)
+                    val adimK = if (oynuyorAkis || !(katmanPaneli && seciliK == o.id)) KatmanCizim.adim(o, konum) else KatmanCizim.ADIM
+                    val bm = remember(KatmanCizim.anahtar(o), ref, adimK) { KatmanCizim.bitmap(o, RW, RH, adimK) }
                     if (bm != null) {
                         katBoyut[o.id] = bm.width to bm.height
                         val g = katGecici?.takeIf { it.id == o.id }

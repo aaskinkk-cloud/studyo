@@ -34,10 +34,29 @@ object KatmanCizim {
     /** Bitmapi etkileyen alanlar (değişince yeniden çizilir). Konum, açı, opaklık, zaman bitmapi değiştirmez. */
     fun anahtar(o: KatmanOge): Int = listOf(o.tur, o.yol, o.metin, o.renk, o.kutu, o.olcek, o.stil, o.altyazi, o.filtre, o.kirpL, o.kirpT, o.kirpR, o.kirpB).hashCode()
 
-    /** W×H çıktı karesi için katmanın bitmapi (ses katmanı ve boş metin için null). */
-    fun bitmap(o: KatmanOge, W: Int, H: Int): Bitmap? = try {
+    // ---------------- 3.64: hareketli yazılar (kare kare çizilir) ----------------
+    /** Giriş/çıkışı kendi çizimiyle hareket eden yazı stilleri. */
+    val HAREKETLI = setOf("acilan", "serit", "daktilo", "ciftkutu", "altcizgi")
+    /** Giriş ve çıkış animasyonunun kare sayısı (ADIM = tam görünüm). */
+    const val ADIM = 30
+    fun hareketli(o: KatmanOge): Boolean = o.tur == "metin" && o.stil in HAREKETLI
+
+    /** O andaki animasyon karesi (0 = hiç görünmez … ADIM = tam). Hareketli olmayan katmanda hep ADIM. */
+    fun adim(o: KatmanOge, ms: Long): Int {
+        if (!hareketli(o)) return ADIM
+        val uzun = o.metin.replace("\n", " ").length
+        val gir = if (o.stil == "daktilo") (uzun * 55L).coerceIn(600L, 2200L) else 900L
+        val cik = 400L
+        val sure = (o.sonMs - o.basMs).coerceAtLeast(1L)
+        val g = minOf(gir, sure * 2 / 3); val c = minOf(cik, sure / 4).coerceAtLeast(1L)
+        val f = minOf((ms - o.basMs).toFloat() / g.coerceAtLeast(1L), (o.sonMs - ms).toFloat() / c, 1f).coerceIn(0f, 1f)
+        return (f * ADIM).roundToInt().coerceIn(0, ADIM)
+    }
+
+    /** W×H çıktı karesi için katmanın bitmapi (ses katmanı ve boş metin için null). adim: hareketli yazının karesi. */
+    fun bitmap(o: KatmanOge, W: Int, H: Int, adim: Int = ADIM): Bitmap? = try {
         val b = when (o.tur) {
-            "metin" -> metin(o, W, H)
+            "metin" -> if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
             "cikartma" -> cikartma(o, W)
             "gorsel" -> gorsel(o, W)
             else -> null
@@ -156,6 +175,161 @@ object KatmanCizim {
         }
     }
 
+    /** 3.64: hareketli yazı karesi. Bütün kareler AYNI boyutta (konum kaymaz); f = 0…1 ilerleme. Renk beyazsa stilin kendi rengi. */
+    private fun hareketliMetin(o: KatmanOge, W: Int, H: Int, f: Float): Bitmap? {
+        if (o.metin.isBlank()) return null
+        val k = min(W, H).toFloat()
+        val px = (o.olcek * k).coerceAtLeast(8f)
+        val satirlar = o.metin.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+        if (satirlar.isEmpty()) return null
+        val varsayilan = when (o.stil) { "acilan" -> 0xFFF08A24L; "serit" -> 0xFFE53935L; "daktilo" -> 0xFF4CC38AL; "ciftkutu" -> 0xFF7E57C2L; else -> 0xFFFFD400L }
+        val vurgu = (if (o.renk == 0xFFFFFFFFL) varsayilan else o.renk).toInt()
+        val kalin = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+        val enGen = W * 0.8f
+        fun kisalt(t: String, p: TextPaint) = android.text.TextUtils.ellipsize(t, p, enGen, android.text.TextUtils.TruncateAt.END).toString()
+        fun ara(a: Float, b: Float): Float { val x = ((f - a) / (b - a)).coerceIn(0f, 1f); return x * x * (3f - 2f * x) }
+        fun geri(a: Float, b: Float): Float {   // hafif taşan (geri sekme) yumuşatma
+            val x = ((f - a) / (b - a)).coerceIn(0f, 1f); val c1 = 1.70158f; val c3 = c1 + 1f
+            return 1f + c3 * (x - 1f) * (x - 1f) * (x - 1f) + c1 * (x - 1f) * (x - 1f)
+        }
+        fun bmp(w: Float, h: Float) = Bitmap.createBitmap(w.toInt().coerceAtLeast(2), h.toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
+        val boya = Paint(Paint.ANTI_ALIAS_FLAG)
+        val p1 = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = px; typeface = kalin; color = 0xFFFFFFFF.toInt() }
+        val f1 = p1.fontMetrics; val h1 = f1.descent - f1.ascent
+        val pad = px * 0.42f
+        return when (o.stil) {
+            "acilan" -> {   // turuncu yuvarlak kare + tırnak; beyaz kutu karenin içinden sağa doğru açılır (siyah yazı)
+                p1.color = 0xFF111111.toInt()
+                val u = kisalt(satirlar.joinToString(" "), p1)
+                val kutuH = h1 + pad * 1.1f
+                val S = kutuH * 1.8f
+                val tirnakH = S * 0.5f
+                val kx = S * 0.14f; val kutuW = p1.measureText(u) + pad * 2
+                val bw = maxOf(kx + kutuW + pad * 0.3f, S + 2f); val bh = tirnakH + S * 0.12f + S
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val sy = tirnakH + S * 0.12f
+                // beyaz kutu: karenin sol iç kenarından sağa açılır
+                val r = ara(0.28f, 1f)
+                if (r > 0f) {
+                    val ky = sy + (S - kutuH) / 2f
+                    c.save(); c.clipRect(kx, ky, kx + kutuW * r, ky + kutuH)
+                    boya.color = 0xFFFFFFFF.toInt(); c.drawRect(kx, ky, kx + kutuW, ky + kutuH, boya)
+                    c.drawText(u, kx + pad, ky + pad * 0.55f - f1.ascent, p1)
+                    c.restore()
+                }
+                // yuvarlak kare (çizgi): ortasından büyüyerek gelir
+                val sk = geri(0f, 0.38f)
+                if (sk > 0.01f) {
+                    val cw = S * 0.1f
+                    c.save(); c.scale(sk, sk, S / 2f, sy + S / 2f)
+                    boya.color = vurgu; boya.style = Paint.Style.STROKE; boya.strokeWidth = cw
+                    c.drawRoundRect(RectF(cw / 2f, sy + cw / 2f, S - cw / 2f, sy + S - cw / 2f), S * 0.2f, S * 0.2f, boya)
+                    boya.style = Paint.Style.FILL
+                    c.restore()
+                }
+                // tırnak işareti: hafif yukarıdan iner, belirir
+                val ta = ara(0.15f, 0.45f)
+                if (ta > 0f) {
+                    val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = tirnakH * 1.9f; typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.BOLD)
+                        color = 0xFFFFFFFF.toInt(); alpha = (ta * 255).toInt(); setShadowLayer(px * 0.12f, 0f, px * 0.04f, 0x66000000) }
+                    val tm = tp.fontMetrics
+                    c.drawText("\u201C", S * 0.08f, tirnakH * 1.25f - tm.descent * 0.2f - (1f - ta) * tirnakH * 0.3f, tp)
+                }
+                b
+            }
+            "serit" -> {    // renkli şerit soldan süpürür, beyaz yazı içinden kayar; 2. satır beyaz şeritte koyu yazı
+                val u = kisalt(satirlar[0], p1)
+                val p2 = TextPaint(p1).apply { textSize = px * 0.62f; color = 0xFF111111.toInt() }
+                val f2 = p2.fontMetrics; val h2 = f2.descent - f2.ascent
+                val a = if (satirlar.size > 1) kisalt(satirlar.drop(1).joinToString(" "), p2) else ""
+                val g1 = p1.measureText(u) + pad * 2; val y1 = h1 + pad * 0.9f
+                val g2 = if (a.isEmpty()) 0f else p2.measureText(a) + pad * 1.6f; val y2 = if (a.isEmpty()) 0f else h2 + pad * 0.7f
+                val bw = maxOf(g1, g2); val bh = y1 + y2
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val s1 = ara(0f, 0.45f)
+                if (s1 > 0f) { boya.color = vurgu; c.drawRect(0f, 0f, g1 * s1, y1, boya) }
+                val t1 = ara(0.3f, 0.75f)
+                if (t1 > 0f) { c.save(); c.clipRect(0f, 0f, g1, y1); c.drawText(u, pad - (1f - t1) * g1 * 0.5f, pad * 0.45f - f1.ascent, p1); c.restore() }
+                if (a.isNotEmpty()) {
+                    val s2 = ara(0.45f, 0.8f)
+                    if (s2 > 0f) { boya.color = 0xFFFFFFFF.toInt(); c.drawRect(0f, y1, g2 * s2, bh, boya) }
+                    val t2 = ara(0.6f, 1f)
+                    if (t2 > 0f) { c.save(); c.clipRect(0f, y1, g2, bh); c.drawText(a, pad * 0.8f - (1f - t2) * g2 * 0.5f, y1 + pad * 0.35f - f2.ascent, p2); c.restore() }
+                }
+                b
+            }
+            "daktilo" -> {  // koyu kutuda harf harf yazılır, yanıp sönmeyen renkli imleç
+                val u = kisalt(satirlar.joinToString(" "), p1)
+                val imW = px * 0.14f
+                val bw = p1.measureText(u) + pad * 2 + imW * 2; val bh = h1 + pad * 1.2f
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val za = ara(0f, 0.12f)
+                if (za > 0f) { boya.color = 0xE6121212.toInt(); boya.alpha = (za * 230).toInt(); c.drawRoundRect(RectF(0f, 0f, bw, bh), bh * 0.22f, bh * 0.22f, boya); boya.alpha = 255 }
+                val n = (u.length * ((f - 0.1f) / 0.85f).coerceIn(0f, 1f)).roundToInt().coerceIn(0, u.length)
+                val parca = u.substring(0, n)
+                val ty = pad * 0.6f - f1.ascent
+                c.drawText(parca, pad, ty, p1)
+                if (za > 0.5f) {
+                    val ix = pad + p1.measureText(parca) + imW * 0.4f
+                    boya.color = vurgu; c.drawRect(ix, ty + f1.ascent * 0.92f, ix + imW, ty + f1.descent * 0.6f, boya)
+                }
+                b
+            }
+            "ciftkutu" -> { // iki kutu sırayla soldan kayar: üst renkli (beyaz yazı), alt beyaz (koyu yazı)
+                val u = kisalt(satirlar[0], p1)
+                val p2 = TextPaint(p1).apply { textSize = px * 0.72f; color = 0xFF111111.toInt() }
+                val f2 = p2.fontMetrics; val h2 = f2.descent - f2.ascent
+                val a = if (satirlar.size > 1) kisalt(satirlar.drop(1).joinToString(" "), p2) else ""
+                val g1 = p1.measureText(u) + pad * 2; val y1 = h1 + pad
+                val g2 = if (a.isEmpty()) 0f else p2.measureText(a) + pad * 1.8f; val y2 = if (a.isEmpty()) 0f else h2 + pad * 0.8f
+                val ofs = pad * 0.9f
+                val bw = maxOf(g1, ofs + g2); val bh = y1 + y2
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val k1 = ara(0f, 0.55f)
+                if (k1 > 0f) {
+                    val dx = -(1f - k1) * g1
+                    c.save(); c.translate(dx, 0f); boya.color = vurgu; c.drawRect(0f, 0f, g1, y1, boya); c.drawText(u, pad, pad * 0.5f - f1.ascent, p1); c.restore()
+                }
+                if (a.isNotEmpty()) {
+                    val k2 = ara(0.35f, 0.9f)
+                    if (k2 > 0f) {
+                        val dx = -(1f - k2) * (ofs + g2)
+                        c.save(); c.translate(dx, 0f); boya.color = 0xFFFFFFFF.toInt(); c.drawRect(ofs, y1, ofs + g2, bh, boya)
+                        c.drawText(a, ofs + pad * 0.9f, y1 + pad * 0.4f - f2.ascent, p2); c.restore()
+                    }
+                }
+                b
+            }
+            else -> {       // altcizgi: büyük yazı aşağıdan yükselir, alt çizgi ortadan iki yana uzar, 2. satır belirir
+                val u = kisalt(satirlar[0], p1)
+                p1.setShadowLayer(px * 0.16f, 0f, px * 0.05f, 0x99000000.toInt())
+                val p2 = TextPaint(p1).apply { textSize = px * 0.55f; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                    setShadowLayer(px * 0.1f, 0f, px * 0.04f, 0xCC000000.toInt()) }
+                val f2 = p2.fontMetrics; val h2 = f2.descent - f2.ascent
+                val a = if (satirlar.size > 1) kisalt(satirlar.drop(1).joinToString(" "), p2) else ""
+                val w1 = p1.measureText(u); val w2 = if (a.isEmpty()) 0f else p2.measureText(a)
+                val cz = px * 0.13f
+                val bw = maxOf(w1, w2) + pad * 2; val bh = pad * 0.6f + h1 + cz * 2.6f + (if (a.isEmpty()) 0f else h2) + pad * 0.6f
+                val b = bmp(bw, bh); val c = Canvas(b)
+                val yuk = ara(0f, 0.55f)
+                val ust = pad * 0.6f; val alt = ust + h1
+                if (yuk > 0f) {
+                    c.save(); c.clipRect(0f, 0f, bw, alt + cz * 0.4f)
+                    c.drawText(u, (bw - w1) / 2f, ust - f1.ascent + (1f - yuk) * h1, p1)
+                    c.restore()
+                }
+                val cy = alt + cz * 0.6f
+                val ci = ara(0.35f, 0.85f)
+                if (ci > 0f) { boya.color = vurgu; val yarim = w1 / 2f * ci; c.drawRoundRect(RectF(bw / 2f - yarim, cy, bw / 2f + yarim, cy + cz), cz / 2f, cz / 2f, boya) }
+                if (a.isNotEmpty()) {
+                    val ga = ara(0.6f, 1f)
+                    if (ga > 0f) { p2.alpha = (ga * 255).toInt(); c.drawText(a, (bw - w2) / 2f, cy + cz * 2f - f2.ascent, p2) }
+                }
+                b
+            }
+        }
+    }
+
     private fun metin(o: KatmanOge, W: Int, H: Int): Bitmap? {
         if (o.metin.isBlank()) return null
         if (o.stil != "duz") return stilliMetin(o, W, H)
@@ -236,6 +410,7 @@ object KatmanCizim {
 
     fun an(o: KatmanOge, ms: Long): An {
         if (o.gizli || ms < o.basMs || ms > o.sonMs) return GIZLI
+        if (hareketli(o)) return An(o.opaklik, 1f, 0f)   // 3.64: hareket bitmapin kendisinde (kare kare)
         val G = min(500L, ((o.sonMs - o.basMs) / 3).coerceAtLeast(1)).toFloat()
         fun yum(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
         val gi = yum((ms - o.basMs) / G); val ci = yum((o.sonMs - ms) / G)
@@ -258,9 +433,21 @@ object KatmanCizim {
 }
 
 /** Dışa aktarma: bir klibe düşen katman bindirmesi (klip içi saatle zaman çizelgesi ms'sine çevrilir). */
-class KatmanBindirme(private val o: KatmanOge, private val bmp: Bitmap, private val klipBasMs: Long) : BitmapOverlay() {
+class KatmanBindirme(private val o: KatmanOge, private val bmp: Bitmap, private val klipBasMs: Long, private val W: Int = 0, private val H: Int = 0) : BitmapOverlay() {
     private val saat = Saat(klipBasMs)
-    override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
+    // 3.64: hareketli yazı — kare değişince yeni kare çizilir (yalnız son kare tutulur; bellek şişmez). Bütün kareler aynı boyutta.
+    private var sonAdim = -1
+    private var sonKare: Bitmap? = null
+    override fun getBitmap(presentationTimeUs: Long): Bitmap {
+        if (!KatmanCizim.hareketli(o) || W <= 0 || H <= 0) return bmp
+        val a = KatmanCizim.adim(o, klipBasMs + saat.yerelMs(presentationTimeUs))
+        if (a >= KatmanCizim.ADIM) return bmp
+        if (a != sonAdim || sonKare == null) {
+            sonKare = KatmanCizim.bitmap(o, W, H, a)?.takeIf { it.width == bmp.width && it.height == bmp.height } ?: bmp
+            sonAdim = a
+        }
+        return sonKare ?: bmp
+    }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = klipBasMs + saat.yerelMs(presentationTimeUs)
         val a = KatmanCizim.an(o, ms)

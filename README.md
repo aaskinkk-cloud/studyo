@@ -13,6 +13,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - Her projenin son dışa aktarılan videosu hatırlanır (galeriden silinmişse TV açamaz).
 - Kod: `TvYayin.kt` (yerel HTTP sunucusu + Cast penceresi), `CastAyar` (manifestte OPTIONS_PROVIDER), bağımlılıklar play-services-cast-framework 21.5.0, androidx.mediarouter 1.7.0.
 
+- **Klip şeridi oynatmayla paralel:** seçili klip kartının ortasında oynat/duraklat; alt kenarında ince turuncu çubuk = klibin neresindesin. Oynarken (akıcı önizlemede de) klip bitince şerit kendiliğinden sıradaki klibe geçer ve ortaya kayar.
+- **Logo geçişi** (Efekt › Geçişler › "Logo geçişi (baş · orta · son)"): baştaki (%15), ortadaki (%50) ve sona yakın (%85) klip arasında geçiş yerine logo arka plandan büyüyerek gelir (0,6 sn, hafif taşmalı), ~1,6 sn kalır, izleyiciye doğru büyüyüp solarak kaybolur; arkada hafif koyu hale (kesme görünmez). Toplam 2,8 sn, kesme logonun tam ekranda olduğu ana denk gelir. Önizleme, akıcı önizleme ve dışa aktarma aynı hesap (`LogoGecis.kt`). "İlkini göster" = ilk logo geçişinin 1 sn öncesinden oynatır.
+- **Logo netliği:** logo özgün PNG'den kademeli (yarıya yarıya) küçültmeyle çizilir — yazılar tırtıklı/bulanık olmaz. Yeni yüklenen logolar 2048 piksele kadar özgün boyutta saklanır (önce 1024'e küçültülüyordu).
+
 ## 3.72 (20.11.2026, deneme · `yerel-android` dalı): ince üst çubuk, kontroller videonun üstünde, ekranda yazı düzenleme, estetik nesne kesme
 - **Üst çubuk (siyah-beyaz tema):** 34 dp'ye indi. "Kaydet" ve "Dışa aktar" artık düğme değil, küçük yazı (Dışa aktar beyaz, kalın).
 - **Kontroller videonun üstünde (varsayılan):** oynat · başa · önceki · sonraki · zaman çubuğu · süre · tam ekran ⛶ şeffaf olarak videonun üstünde; geri al/yinele üst çubukta. Oynarken 2,5 sn sonra kendiliğinden solar, durunca (önizlemeye dokun) geri gelir. Önceki görünüm (kontroller videonun altında) ▾ ile seçilebilir, seçim hatırlanır.

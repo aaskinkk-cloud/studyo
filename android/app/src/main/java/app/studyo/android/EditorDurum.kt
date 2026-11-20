@@ -698,7 +698,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             for (u in l) {
                 val k = withContext(Dispatchers.IO) {
                     runCatching {
-                        val f = Medya.fotoHazirla(ctx, u, 1024, png = true, dizinAd = "logolar")?.first ?: error("açılamadı")
+                        val f = Medya.fotoHazirla(ctx, u, 2048, png = true, dizinAd = "logolar")?.first ?: error("açılamadı")   // 3.73: logo yazıları net kalsın (PNG, 2048 piksele kadar özgün)
                         LogoKutup.ekle(f, Medya.adBoyut(ctx, u).first)
                     }.onFailure { Kayit.hata("logo ekle", it) }.getOrNull()
                 }
@@ -1014,6 +1014,14 @@ class EditorDurum(private val ctx: Context, id: String) {
     val sablonSekme = MutableStateFlow("paket")
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
 
+    /** 3.73: ilk logo geçişinin 1 sn öncesinden oynatır (nasıl göründüğü hemen izlensin). */
+    fun logoGecisGoster() {
+        val t = proje.value.logoGecisAnlari().firstOrNull() ?: run { mesaj.value = "Logo geçişi için en az 2 klip ve bir logo gerekli"; return }
+        if (player.isPlaying || kompAktif.value) oynatDurdur()
+        git((t - LogoGecis.ONCE - 1000).coerceAtLeast(0))
+        oynatDurdur()
+    }
+
     // ---------- 3.72: şablon yazılarını ekranda düzenleme ----------
     /** Önizlemenin altında açık ekran yazı düzenleyicisi: "giris" | "abone" | "kapanis" | null. */
     val ekranDuzen = MutableStateFlow<String?>(null)
@@ -1086,7 +1094,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             guncelle(true) { p ->
                 p.copy(
                     bicim = if (bicimDegisti) "16:9" else p.bicim,
-                    gecis = Gecis("erime", 800, p.gecis.siyahtanAc),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
+                    gecis = Gecis("erime", 800, p.gecis.siyahtanAc, p.gecis.logo),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)

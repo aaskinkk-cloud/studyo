@@ -113,7 +113,9 @@ data class Logo(
 
 /** Klip geçişi (tüm projede). Çakışmalı geçişler (çapraz/eriyerek/kaydırma) iki klibi aynı anda oynatmayı gerektirir; henüz yok. */
 @Serializable
-data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc: Boolean = false) {
+data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc: Boolean = false,
+                 /** 3.73: logo geçişi — baştaki, ortadaki ve sona yakın üç klip arasında geçiş yerine logo arka plandan büyüyerek gelir */
+                 val logo: Boolean = false) {
     // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
     val cakisma: Boolean get() = tur == "erime" || tur == "capraz" || tur == "kaydir" || tur == "yakincapraz" || tur == "hafif" || tur == "akis"
 }
@@ -247,7 +249,24 @@ data class Proje(
 
     /** Üst üste binen (yumuşak) geçişte klip i ile sonraki arasındaki örtüşme (ms). Videoyu bu kadar kısaltır. */
     /** Klip i ile sonraki (ya da kapanış) arasındaki geçiş: klibe seçilmişse o, yoksa projenin geçişi. */
-    fun gecisAt(i: Int): Gecis = klipler.getOrNull(i)?.gecis?.let { gecis.copy(tur = it) } ?: gecis
+    fun gecisAt(i: Int): Gecis = if (i in logoGecisAralari()) gecis.copy(tur = "yok")   // 3.73: logo geçişinde kesme (logo örter)
+        else klipler.getOrNull(i)?.gecis?.let { gecis.copy(tur = it) } ?: gecis
+
+    /** 3.73: logo geçişinin yapıldığı klip araları (i = klip i ile i+1 arası): baş (%15), orta (%50), sona yakın (%85).
+     *  Sıra numarasıyla seçilir (süreye bağlı değil → geçiş/örtüşme hesabıyla döngü olmaz). */
+    fun logoGecisAralari(): Set<Int> {
+        val n = klipler.size - 1
+        if (!gecis.logo || logo == null || logo.yol.isEmpty() || n < 1) return emptySet()
+        return listOf(0.15f, 0.5f, 0.85f).map { Math.round(it * (n - 1)) }.toSet()
+    }
+
+    /** 3.73: logo geçişlerinin kesme anları (zaman çizelgesi ms). */
+    fun logoGecisAnlari(): List<Long> {
+        val a = logoGecisAralari(); if (a.isEmpty()) return emptyList()
+        var t = 0L; val l = ArrayList<Long>()
+        for (i in klipler.indices) { t += zKlip(i).sureMs; if (i in a) l += t }
+        return l
+    }
 
     fun ortusme(i: Int): Long {
         val g = gecisAt(i)

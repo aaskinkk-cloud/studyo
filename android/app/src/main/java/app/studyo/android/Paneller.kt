@@ -479,6 +479,22 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Ciz(if (s == null) ly else Yerlesim(ly.bmp, s.first * 2f - 1f, 1f - 2f * s.second, 0f, 0f, ly.alfa), 1f)
             }
 
+            // 3.73: logo geçişi (dışa aktarmadaki LogoGecis hesabının aynısı): arkada koyu hale, logo büyüyerek gelir ve kaybolur
+            val logoAnlar = remember(p.klipler, p.gecis, p.logo, p.kapanis) { p.logoGecisAnlari() }
+            if (logoAnlar.isNotEmpty()) {
+                val lgBmp = remember(p.logo, ref) { runCatching { LogoGecis.bitmap(p.logo, RW, RH) }.getOrNull() }
+                val lgAn = LogoGecis.an(logoAnlar, konum)
+                if (lgBmp != null && lgAn != null) {
+                    Box(Modifier.fillMaxSize().graphicsLayer { alpha = lgAn.alfa }.background(Brush.radialGradient(
+                        listOf(Color(0x8C000000), Color(0x59000000), Color(0x26000000)))))
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Image(lgBmp.asImageBitmap(), null,
+                            Modifier.size(with(yog) { (lgBmp.width * olcek).toDp() }, with(yog) { (lgBmp.height * olcek).toDp() })
+                                .graphicsLayer { scaleX = lgAn.olcek; scaleY = lgAn.olcek; alpha = lgAn.alfa.coerceIn(0f, 1f) })
+                    }
+                }
+            }
+
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
             // önizlemede parmakla sürükle = klibi kadraj içinde kaydır (yalnız taşan kısım kadar). Klip ve Katman bölümünde ortak (3.41)
             val kSonS by rememberUpdatedState(k)
@@ -1135,6 +1151,14 @@ fun PanelGecis(vm: EditorDurum, p: Proje) {
         GecisIcerik(vm, p, ara = null, kapat = null)
         Box(Modifier.padding(horizontal = 14.dp)) {
             AnahtarSatiri("Videoyu siyahtan açarak başlat", p.gecis.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
+            // 3.73: logo geçişi — baştaki, ortadaki ve sona yakın klip arasında geçiş yerine logo büyüyerek gelir (2,8 sn)
+            AnahtarSatiri("Logo geçişi (baş · orta · son)", p.gecis.logo) { v ->
+                if (v && p.logo == null) vm.uyari.value = "Önce Yayın › Logo'dan bir logo seç (PNG)."
+                else { vm.gecisDegis { it.copy(logo = v) }; if (v) vm.logoGecisGoster() }
+            }
+            if (p.gecis.logo && p.logo != null) Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TonHap("İlkini göster", "oynat", false, Renk.turuncu) { vm.logoGecisGoster() }
+            }
         }
     }
 }

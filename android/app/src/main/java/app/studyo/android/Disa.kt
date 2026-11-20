@@ -235,6 +235,11 @@ object Disa {
         // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
         val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
+        // 3.73: logo geçişi (baş · orta · sona yakın klip aralarında)
+        val logoAnlar = p.logoGecisAnlari()
+        val logoGecisBmp = if (logoAnlar.isNotEmpty()) runCatching { LogoGecis.bitmap(p.logo, W, H) }.getOrNull() else null
+        val logoHale = if (logoGecisBmp != null) LogoGecis.hale() else null
+        if (logoGecisBmp != null) Kayit.yaz("  Logo geçişi: ${logoAnlar.size} yer ${logoAnlar.joinToString { (it / 1000).toString() + " sn" }}")
 
         /** [bas, bas+sure) aralığındaki klibe eklenecek zamanlı bindirmeler (klip içi saatle). */
         fun katmanlar(bas: Long, sure: Long): List<TextureOverlay> {
@@ -251,6 +256,10 @@ object Disa {
             for ((o, bm) in katmanBmp) if (o.basMs < son && o.sonMs > bas) ek += KatmanBindirme(o, bm, bas, W, H)
             val satir = altyazilar.filter { it.basMs < son && it.sonMs > bas }
             if (satir.isNotEmpty()) ek += AltyaziBindirme(bas, satir, p.altyaziStil, W, H)
+            if (logoGecisBmp != null && logoHale != null) {
+                val buradakiler = logoAnlar.filter { t -> t - LogoGecis.ONCE < son && t - LogoGecis.ONCE + LogoGecis.SURE > bas }
+                if (buradakiler.isNotEmpty()) { ek += LogoGecisBindirme(logoHale, bas, buradakiler, W, H, true); ek += LogoGecisBindirme(logoGecisBmp, bas, buradakiler, W, H, false) }
+            }
             return ek
         }
 

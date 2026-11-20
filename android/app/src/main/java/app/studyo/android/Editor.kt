@@ -692,6 +692,16 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     var kadrajId by remember { mutableStateOf<String?>(null) }
     kadrajId?.let { kid -> p.klipler.firstOrNull { it.id == kid }?.let { kk -> KadrajSecimi(vm, p, kk) { kadrajId = null } } ?: run { kadrajId = null } }
     val durum = rememberLazyListState()
+    // 3.73: oynarken (akıcı önizlemede de) oynayan klip seçili olur → şerit üstteki oynatmayla paralel ilerler, klip bitince sıradakine geçer
+    LaunchedEffect(p.klipler) {
+        vm.konum.collect { t ->
+            if (!vm.oynuyor.value) return@collect
+            val pp = vm.proje.value
+            var kalan = t; var ix = pp.klipler.lastIndex
+            for (j in pp.klipler.indices) { val d = pp.zKlip(j).sureMs; if (kalan < d) { ix = j; break }; kalan -= d }
+            if (ix >= 0 && ix != vm.secili.value) vm.secili.value = ix
+        }
+    }
     // 3.42: etkin klip (oynatıcının üstündeki) şeridin ortasına kayar — izlerken ve sararken önizlemeyle eşleşir
     val yogS = LocalDensity.current
     LaunchedEffect(sec) {
@@ -744,6 +754,11 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     }),
             ) {
                 KlipKaresi(p, k, i, Modifier.fillMaxSize(), sigdir = secili && !kucuk)   // 3.72: önizlemedeki kadrajın aynısı
+                // 3.73: seçili kartta oynat/duraklat ve klip içindeki konum (alt kenarda ince çubuk)
+                if (secili && !kucuk) {
+                    KartOynat(vm, i, Modifier.align(Alignment.Center))
+                    KartIlerleme(vm, i, Modifier.align(Alignment.BottomStart))
+                }
                 Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
                     Text("${i + 1}", color = Color.White, fontSize = if (kucuk) 10.sp else 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -1439,5 +1454,33 @@ private fun KlipKaresi(p: Proje, k: Klip, i: Int, modifier: Modifier, sigdir: Bo
                 }, contentScale = androidx.compose.ui.layout.ContentScale.Fit)
             }
         }
+    }
+}
+
+
+/** 3.73: seçili klip kartının ortasında oynat/duraklat. Başka klipteyken dokunursa önce bu klibin başına gider. */
+@Composable
+private fun KartOynat(vm: EditorDurum, i: Int, modifier: Modifier) {
+    val oyn by vm.oynuyor.collectAsState()
+    Box(modifier.size(40.dp).clip(CircleShape).background(Color(0x73000000)).clickable {
+        if (oyn) vm.oynatDurdur()
+        else {
+            val bas = vm.baslangic(i); val son = bas + (vm.proje.value.klipler.getOrNull(i)?.let { vm.proje.value.zKlip(i).sureMs } ?: 0L)
+            if (vm.konum.value !in bas until son) vm.git(bas)
+            vm.oynatDurdur()
+        }
+    }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Color.White, 20.dp) }
+}
+
+/** 3.73: klip içindeki oynatma konumu — kartın alt kenarında ince çubuk (yalnız bu kendini yeniden çizer). */
+@Composable
+private fun KartIlerleme(vm: EditorDurum, i: Int, modifier: Modifier) {
+    val konum by vm.konum.collectAsState()
+    val p = vm.proje.value
+    if (i !in p.klipler.indices) return
+    val bas = vm.baslangic(i); val d = p.zKlip(i).sureMs.coerceAtLeast(1)
+    val f = ((konum - bas).toFloat() / d).coerceIn(0f, 1f)
+    Box(modifier.fillMaxWidth().height(4.dp).background(Color(0x55000000))) {
+        Box(Modifier.fillMaxWidth(f).fillMaxHeight().background(Renk.turuncu))
     }
 }

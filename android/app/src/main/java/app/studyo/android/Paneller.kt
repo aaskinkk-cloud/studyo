@@ -366,6 +366,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
             // giriş başlığı (klasik ya da reels şeritleri), ışıklı boncuklar
+            // 3.72: ekranda görünen giriş yazısının kutuları (dokununca ekranda düzenleme açılsın)
+            val girisKutular = remember { ArrayList<androidx.compose.ui.geometry.Rect>() }
+            girisKutular.clear()
             val (gA, gB) = Zaman.girisAralik(p)
             if (p.giris.acik && p.giris.boncuk) {
                 val sb = Zaman.solma(konum, gA, gB, 600)
@@ -384,6 +387,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 for (sr in seritler) {
                     val ak = Reels.an(sr, p.giris.hareket, konum, gA, gB) ?: continue
                     val (x0, y0) = ak.solUst(sr.bmp.width, sr.bmp.height, RW, RH)
+                    if (ak.alfa > 0.05f) girisKutular += androidx.compose.ui.geometry.Rect(x0 * olcek, y0 * olcek, (x0 + sr.bmp.width * ak.olcek) * olcek, (y0 + sr.bmp.height * ak.olcek) * olcek)
                     Image(sr.bmp.asImageBitmap(), null,
                         Modifier.offset { IntOffset((x0 * olcek).roundToInt(), (y0 * olcek).roundToInt()) }
                             .size(with(yog) { (sr.bmp.width * ak.olcek * olcek).toDp() }, with(yog) { (sr.bmp.height * ak.olcek * olcek).toDp() })
@@ -391,7 +395,11 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             } else {
                 val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
-                girisY?.let { Ciz(it, Zaman.solma(konum, gA, gB)) }
+                girisY?.let {
+                    val a = Zaman.solma(konum, gA, gB)
+                    Ciz(it, a)
+                    if (a > 0.05f) { val (x0, y0) = it.solUst(RW, RH); girisKutular += androidx.compose.ui.geometry.Rect(x0 * olcek, y0 * olcek, (x0 + it.bmp.width) * olcek, (y0 + it.bmp.height) * olcek) }
+                }
             }
             if (p.hatirlatici.stil == "klasik") {
                 val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
@@ -611,6 +619,11 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     .pointerInput(k.id, hareketPaneli, olcek) { detectTapGestures(
                         onTap = { o ->
                             if (!hareketPaneli) {
+                                // 3.72: duraklatılmışken ekrandaki giriş başlığına dokun = ekranda düzenleme (her bölümde)
+                                val pay = 16f * density
+                                if (!vm.oynuyor.value && girisKutular.any { r -> o.x >= r.left - pay && o.x <= r.right + pay && o.y >= r.top - pay && o.y <= r.bottom + pay }) {
+                                    vm.ekranDuzen.value = "giris"; return@detectTapGestures
+                                }
                                 // 3.44: ekrandaki katmana (yazı, logo…) dokun = Katman bölümünde o katman seçilir; yazıysa düzenleme açılır
                                 val px = o.x / olcek; val py = o.y / olcek; val km = vm.konum.value
                                 val bul = KatmanCizim.gorunenler(vm.proje.value, km).firstOrNull { ko ->

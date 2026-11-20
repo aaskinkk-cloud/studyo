@@ -238,7 +238,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     val etkin = p.klipler.isNotEmpty()
                     Text("Kaydet", color = Renk.soluk, fontSize = 12.5.sp, maxLines = 1,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { vm.kaydetSimdi() }.padding(horizontal = 8.dp, vertical = 6.dp))
-                    Text("Dışa aktar", color = if (etkin) Color.White else Renk.soluk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                    Text("Dışa aktar", color = if (etkin) Color.White else Renk.soluk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.Normal, maxLines = 1,   // 3.72: üst çubukta kalın yazı yok
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = etkin) { disaAcik = true }.padding(start = 8.dp, end = 10.dp, top = 6.dp, bottom = 6.dp))
                 } else {
                     InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
@@ -526,11 +526,8 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkr
     val beyaz = Color(0xF2FFFFFF)
     // 3.71: şeffaf arka plan (koyu şerit yok); düğmeler parlak görüntüde de seçilsin diye hafif saydam yuvarlak üstünde
     val dz = Color(0x40000000)
-    // 3.72: oynarken 2,5 sn sonra kontroller kendiliğinden solar (görüntü temiz kalır); durunca (önizlemeye dokun = dur) geri gelir
-    var gizle by remember { mutableStateOf(false) }
-    LaunchedEffect(oyn) { gizle = false; if (oyn) { delay(2500); gizle = true } }
-    val gorunurluk by androidx.compose.animation.core.animateFloatAsState(if (gizle) 0f else 1f, label = "kontrol")
-    if (gorunurluk < 0.02f) return
+    // 3.72: kontroller hep görünür (kendiliğinden gizlenme kaldırıldı — kontrollerin kaybolduğu sanılıyordu)
+    val gorunurluk = 1f
     if (Renk.sb) {
         // 3.72: siyah-beyaz temada VITA dizilişi videonun üstünde (son tasarım korunur): süre · başa · önceki · büyük oynat · sonraki ·
         // geri al · yinele · (alta al) · tam ekran; altında ince zaman çubuğu. Altta hafif koyu geçiş, düğmeler parlak görüntüde de seçilir.

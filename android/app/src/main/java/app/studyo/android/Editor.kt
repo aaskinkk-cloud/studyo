@@ -1502,6 +1502,19 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
                 InceSlider(value = v, onValueChange = { v = it }, valueRange = 0f..1.5f,
                     onValueChangeFinished = { vm.sesDegis(s.id) { it.copy(ses = v) } },
                     colors = SliderDefaults.colors(thumbColor = Renk.turuncu, activeTrackColor = Renk.turuncu, inactiveTrackColor = Renk.cizgi))
+                // 3.90: ses efekti (hazır ayarlar; özgün kayıt korunur — Doğal ile geri dönülür)
+                Text("Ses efekti", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SesEfekt.HAZIR.forEach { (k, ad) ->
+                        val on = s.efekt == k
+                        Text(ad, color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                            .background(if (on) Renk.turuncu else Renk.kart).border(1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(16.dp))
+                            .clickable { vm.sesEfekt(s.id, k) }.padding(horizontal = 13.dp, vertical = 7.dp))
+                    }
+                }
+                Text(SesEfekt.ACIKLAMA[s.efekt] ?: "", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
+                if (p.sesler.size > 1 && s.efekt != "dogal") Text("Bu efekti bütün kayıtlara uygula", color = Renk.turuncu, fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(8.dp)).clickable { vm.sesEfekt(null, s.efekt) }.padding(vertical = 4.dp))
                 var silOnay by remember(s.id) { mutableStateOf(false) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Dugme("▶ Dinle", Modifier.weight(1f)) { vm.git(s.basMs); vm.player.play() }

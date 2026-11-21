@@ -381,10 +381,10 @@ object Disa {
                 val son = minOf(s.basMs + s.sureMs, toplam)
                 if (son - bas < 100) continue
                 if (bas > imlec) b.addGap((bas - imlec) * 1000)
-                val mi = MediaItem.Builder().setUri(Uri.fromFile(File(s.yol)))
+                val mi = MediaItem.Builder().setUri(Uri.fromFile(File(s.calYol)))
                     .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(kes).setEndPositionMs(kes + (son - bas)).build())
                     .build()
-                b.addItem(EditedMediaItem.Builder(mi).sureli(ctx, onizleme, Uri.fromFile(File(s.yol)).toString(), 0L, kes + (son - bas))
+                b.addItem(EditedMediaItem.Builder(mi).sureli(ctx, onizleme, Uri.fromFile(File(s.calYol)).toString(), 0L, kes + (son - bas))
                     .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(s.ses)), listOf<Effect>())).build())
                 imlec = son; adet++
             }

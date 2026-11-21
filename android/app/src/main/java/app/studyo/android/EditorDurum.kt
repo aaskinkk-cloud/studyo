@@ -448,7 +448,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
         if (sesAktif != s.id) {
             sesAktif = s.id
-            sesPl.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(s.yol))))
+            sesPl.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(s.calYol))))
             sesPl.volume = s.ses.coerceIn(0f, 1f)
             sesPl.prepare(); sesPl.seekTo(t - s.basMs); sesPl.play()
         }
@@ -1354,6 +1354,32 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun okumaDegis(f: (Proje) -> Proje) = guncelle(false, f)
     fun sesDegis(id: String, f: (SesKaydi) -> SesKaydi) = guncelle { p -> p.copy(sesler = p.sesler.map { if (it.id == id) f(it) else it }) }
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }
+
+    /** 3.90: seslendirme efekti — özgünden bir kez işlenir (arka planda), özgün kayıt korunur. id = null: bütün kayıtlara. */
+    fun sesEfekt(id: String?, efekt: String) {
+        val hedef = proje.value.sesler.filter { id == null || it.id == id }
+        if (hedef.isEmpty()) return
+        kapsam.launch {
+            var hata = 0
+            val sonuc = HashMap<String, String>()
+            for ((n, s) in hedef.withIndex()) {
+                if (efekt == "dogal") continue
+                val hazir = java.io.File(java.io.File(s.yol).parentFile, java.io.File(s.yol).nameWithoutExtension + "_" + efekt + ".wav")
+                if (hazir.exists() && hazir.length() > 44) { sonuc[s.id] = hazir.path; continue }
+                mesgul.value = "Ses işleniyor ${n + 1}/${hedef.size}…"
+                val r = withContext(Dispatchers.Default) { runCatching { SesEfekt.isle(s.yol, efekt) } }
+                r.onSuccess { sonuc[s.id] = it.path }.onFailure { Kayit.hata("ses efekti ($efekt)", it); hata++ }
+            }
+            mesgul.value = null
+            guncelle { p -> p.copy(sesler = p.sesler.map { s ->
+                if (s.id !in hedef.map { it.id }) s
+                else if (efekt == "dogal") s.copy(efekt = "dogal")
+                else sonuc[s.id]?.let { s.copy(efekt = efekt, islenmis = it) } ?: s
+            }) }
+            sesAktif = null   // çalan seslendirme yeni dosyadan yeniden başlasın
+            mesaj.value = if (hata > 0) "$hata kayıt işlenemedi (hata kaydında); özgün kayıt duruyor" else "Ses: " + (SesEfekt.HAZIR.firstOrNull { it.first == efekt }?.second ?: efekt)
+        }
+    }
 
     // ---------- görünüm: geçiş ve şablon ----------
     fun gecisDegis(f: (Gecis) -> Gecis) = guncelle(true) { it.copy(gecis = f(it.gecis)) }

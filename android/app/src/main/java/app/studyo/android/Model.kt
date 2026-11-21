@@ -135,7 +135,12 @@ fun muzikSolma(m: Muzik, t: Long, toplam: Long): Float {
 const val MUZIK_KIS = 0.35f
 
 @Serializable
-data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f)
+data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f,
+    /** 3.90: ses efekti (dogal | net | temiz | radyo | kalin) ve özgünden işlenmiş dosya. Özgün kayıt (yol) hiç değişmez. */
+    val efekt: String = "dogal", val islenmis: String = "") {
+    /** Çalınacak dosya: efekt seçili ve işlenmiş dosya duruyorsa o, yoksa özgün kayıt. */
+    val calYol: String get() = if (efekt != "dogal" && islenmis.isNotEmpty() && java.io.File(islenmis).exists()) islenmis else yol
+}
 
 @Serializable
 data class Logo(

@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.89 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.90 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.90 (21.11.2026, deneme · `yerel-android` dalı): seslendirme efektleri (Doğal · Net · Temiz · Radyo · Kalın)
+- **Yer:** Ses › Seslendirme › Kayıtlar — her kayıtta "Ses efekti" hapları + "Bu efekti bütün kayıtlara uygula". Mevcut ses düzeyi ayarı ve kayıt yöntemi değişmedi.
+- **Özgün kayıt korunur:** efekt özgünden bir kez işlenip ayrı WAV yazılır (`SesKaydi.efekt`, `islenmis`, `calYol`); Doğal = özgün. Önizleme (sesPl) ve dışa aktarma aynı dosyayı çalar. İşlenmiş dosya temizlikte silinmez.
+- **Zincir (`SesEfekt.kt`, cihazda, ücretsiz):** yüksek geçiren süzgeç (uğultu/rüzgâr) → gürültü kapısı (sözcük aralarındaki fon, tepe −28 dB altı) → RBJ EQ → RMS sıkıştırıcı → [Kalın: Media3 Sonic ile perde −1,5 yarım ton, süre aynı] → tepe −1 dBFS.
+  - Net: HP 90 Hz, 250 Hz −2 dB, 3,2 kHz +4,5 dB, 8 kHz +1,5 dB, 3:1 · Temiz: HP 110 Hz, derin kapı, 3 kHz +2,5 dB · Radyo: HP 100 Hz, 180 Hz +3, 450 Hz −2, 3,5 kHz +5, 4,5:1 · Kalın: HP 70 Hz, 150 Hz +3,5, 2,8 kHz +2, perde −1,5.
+- Diksiyon (telaffuz) düzeltilemez; efektler sesi temiz ve anlaşılır yapar.
 
 ## 3.89 (21.11.2026, deneme · `yerel-android` dalı): sabit Düzenle düğmesi, sabit menü arama, her klipte hareket düğmesi
 - **Düzenle sabit = yalnız düğme** (3.87'deki alt menü satırı kaldırıldı): ana menü satırında ve başka bölümlerin alt menü satırında Düzenle solda kaymadan durur; daha küçük (62 dp, 21 dp simge). Varsayılan açık; Düzenle alt menüsündeki "Sabit/Sabitle" ile değişir (`duzenleSabit2`). Sabit değilken ana menüdeki Düzenle 84 → 70 dp.

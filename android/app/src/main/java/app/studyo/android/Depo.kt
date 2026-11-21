@@ -116,7 +116,7 @@ object Depo {
             for (p in listele()) {
                 p.klipler.forEach { k -> uriler += k.uri; Uri.parse(k.uri).path?.let { yollar += it } }
                 p.muzik?.let { uriler += it.uri }
-                p.sesler.forEach { yollar += it.yol }
+                p.sesler.forEach { yollar += it.yol; if (it.islenmis.isNotEmpty()) yollar += it.islenmis }   // 3.90: işlenmiş efekt dosyası da korunur
                 p.logo?.let { yollar += it.yol }
                 p.katmanlar.forEach { if (it.yol.isNotEmpty()) { if (it.tur == "ses") uriler += it.yol else yollar += it.yol } }
                 p.nesneler.forEach { yollar += it.yol; if (it.kareDizin.isNotEmpty()) yollar += it.kareDizin; if (it.orjYol.isNotEmpty()) yollar += it.orjYol }

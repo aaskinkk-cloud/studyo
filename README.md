@@ -2,9 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.93 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.94 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.94 (22.11.2026, deneme · `yerel-android` dalı): Renk › Hazır ayarlara yoğunluk çubuğu
+- Hazır ayar seçilince altında yoğunluk çubuğu (%5–200; %100 = hazır ayarın kendisi, "%100'e dön"). Bütün değerler aynı oranla ölçeklenir (`olcekle`); ölçeklenmiş ayar yeniden açılınca hangi hazır ayar olduğu ve oranı tanınır (`oranBul`). Efekt › Filtre/Efekt'te güç çubuğu zaten vardı.
 
 ## 3.93 (22.11.2026, deneme · `yerel-android` dalı): kamerayla prompter çekimi, prompter'da basılı tut = dur
 - **Kamerayla çek** (`KameraPrompter.kt`, CameraX 1.4.1, ücretsiz): tam ekran kamera (ön/arka), okunacak metin üstte merceğe yakın yarı saydam bantta akar (Ahmet'in seçimi). 3 sn geri sayım → kayıt (FHD, olmazsa HD). Bitince video projeye klip olarak eklenir (uygulama içi dosya, `medya/`) ve kopyası galeriye (Movies/Stüdyo) yazılır. Hız prompter'la ortak.

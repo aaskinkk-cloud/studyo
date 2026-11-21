@@ -70,6 +70,24 @@ private val HAZIR_SIMGE = mapOf(
     "Net" to ("r_keskin" to 0xFF5DCAA5), "Sıcak" to ("r_termo" to 0xFFF0997B), "Serin" to ("r_termo" to 0xFF85B7EB), "Yeşili canlandır" to ("r_palet" to 0xFF86C06E),
 )
 
+/** 3.94: hazır ayarın yoğunluğu — bütün değerler aynı oranla (g = 0…2; 1 = hazır ayarın kendisi). */
+private fun RenkAyar.alanlar(): FloatArray = (listOf(parlaklik, kontrast, doygunluk, sicaklik, vurgular, golgeler, ton, beyazlar, keskinlik) + hslTon + hslDoy + hslIsik).toFloatArray()
+private fun olcekle(r: RenkAyar, g: Float) = RenkAyar(
+    parlaklik = (r.parlaklik * g).coerceIn(-1f, 1f), kontrast = (r.kontrast * g).coerceIn(-1f, 1f), doygunluk = (r.doygunluk * g).coerceIn(-1f, 1f),
+    sicaklik = (r.sicaklik * g).coerceIn(-1f, 1f), vurgular = (r.vurgular * g).coerceIn(-1f, 1f), golgeler = (r.golgeler * g).coerceIn(-1f, 1f),
+    ton = (r.ton * g).coerceIn(-1f, 1f), beyazlar = (r.beyazlar * g).coerceIn(-1f, 1f), keskinlik = (r.keskinlik * g).coerceIn(0f, 1f),
+    hslTon = r.hslTon.map { (it * g).coerceIn(-1f, 1f) }, hslDoy = r.hslDoy.map { (it * g).coerceIn(-1f, 1f) }, hslIsik = r.hslIsik.map { (it * g).coerceIn(-1f, 1f) })
+/** Ayar bir hazır ayarın ölçeklenmiş hâliyse oranı (yoksa null). */
+private fun oranBul(a: RenkAyar, r: RenkAyar): Float? {
+    val ra = r.alanlar(); val aa = a.alanlar()
+    val i = ra.indices.maxByOrNull { abs(ra[it]) } ?: return null
+    if (abs(ra[i]) < 1e-4f) return null
+    val g = aa[i] / ra[i]
+    if (g < 0.02f || g > 2.01f) return null
+    val o = olcekle(r, g).alanlar()
+    return if (o.indices.all { abs(o[it] - aa[it]) < 0.012f }) g else null
+}
+
 private fun hslDegisti(a: RenkAyar) = (a.hslTon + a.hslDoy + a.hslIsik).any { abs(it) > 0.005f }
 
 /** 3.61: Renk alt menüsü (ana menü satırında / üstünde): Hazır · ayarlar · HSL. */
@@ -126,7 +144,24 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
                         YuvarlakSecim("Yok", "kapat", Renk.soluk, a.bos) { d { RenkAyar() } }
                         RENK_HAZIR.forEach { (ad, r) ->
                             val (sm, rr) = HAZIR_SIMGE[ad] ?: ("gorunum" to 0xFFFAC775)
-                            YuvarlakSecim(ad, sm, Color(rr), a == r) { d { r } }
+                            YuvarlakSecim(ad, sm, Color(rr), !a.bos && oranBul(a, r) != null) { d { r } }
+                        }
+                    }
+                    // 3.94 (Ahmet'in isteği): seçili hazır ayarın yoğunluk çubuğu (%0–200; %100 = hazır ayarın kendisi)
+                    val secili = if (a.bos) null else RENK_HAZIR.firstOrNull { oranBul(a, it.second) != null }
+                    if (secili != null) {
+                        val g0 = oranBul(a, secili.second) ?: 1f
+                        var g by remember(secili.first, g0) { mutableFloatStateOf(g0) }
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(secili.first, color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                            Text("%${(g * 100).roundToInt()}", color = Renk.turuncu, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        InceSlider(value = g, onValueChange = { g = it }, valueRange = 0.05f..2f,
+                            onValueChangeFinished = { val gg = g; d { olcekle(secili.second, gg) } })
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Hafif", color = Renk.soluk, fontSize = 10.5.sp)
+                            Text("%100'e dön", color = Renk.soluk, fontSize = 10.5.sp, modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { g = 1f; d { secili.second } }.padding(horizontal = 4.dp))
+                            Text("Güçlü", color = Renk.soluk, fontSize = 10.5.sp)
                         }
                     }
                     AcilirNot("Bir hazır ayar seçip ardından tek tek ayarlarla ince ayar yapabilirsin. Sonuç üstteki önizlemede görünür; önizlemeye basılı tutunca ayarsız hâli görünür.")

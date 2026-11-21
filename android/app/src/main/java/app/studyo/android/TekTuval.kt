@@ -48,7 +48,7 @@ class GelenTarif(
     val W: Int, val H: Int,
     val klip: Klip?,                    // null → kapanış kartı
     val resimYol: String?,              // fotoğraf klibinin ya da kapanış kartının dosyası
-    val etkiler: List<GlMatrixTransformation>,   // gelen klibin kadraj/hareket + sunum dönüşümleri (klip içi zamanla çalışır)
+    val etkiler: List<GlEffect>,   // gelen klibin renk/filtre (LUT) + kadraj/hareket + sunum + keskinlik/bulanık/efekt (ana hattaki sırayla; 3.82)
     val yazi: Yerlesim?,                // gelen klibin kendi yazısı (geçişle birlikte belirir)
     val hdrCozucudeCevir: Boolean,      // HDR → SDR çevirisini çözücüden iste (ana hatla aynı yöntem)
     val onizleme: Boolean,              // ▶ akıcı önizleme (damgalar kompozisyon zamanı) / dışa aktarma (ilk kare = öğenin başı)
@@ -284,7 +284,7 @@ private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean,
     private fun programAdim(): Boolean {
         val i = programlar.size
         if (i >= t.etkiler.size) return true
-        val pr = t.etkiler[i].toGlShaderProgram(ctx, useHdr)
+        val pr = t.etkiler[i].toGlShaderProgram(ctx, useHdr) as BaseGlShaderProgram
         ciktilar += null
         pr.setOutputListener(object : GlShaderProgram.OutputListener {
             override fun onOutputFrameAvailable(outputTexture: GlTextureInfo, presentationTimeUs: Long) { ciktilar[i] = outputTexture }

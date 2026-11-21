@@ -41,6 +41,7 @@ object Reels {
         "r_haber" to "Renkli kutular", "r_strip" to "Beyaz şerit", "r_redwhite" to "Kırmızı-beyaz", "r_bang" to "Sarı ünlem", "r_green" to "Yeşil tırnak",
         "r_quote" to "Sarı balon", "r_alert" to "Ünlem kutusu", "r_dikkat" to "Dikkat", "r_torn" to "Yırtık kâğıt",
         "r_frame" to "Köşe çerçeve", "r_tricolor" to "Üç renk", "r_frekans" to "Kırmızı sekme", "r_alinti" to "Kırmızı alıntı",
+        "r_yil" to "Yıl etiketi",   // 3.82: sarı yıl etiketi · beyaz kutular · kırmızı konum bandı (ilk satır = etiket, Enter ile satırlar)
     )
     private const val KIRMIZI = 0xFFE53935.toInt()
     private const val SARI = 0xFFFFD400.toInt()

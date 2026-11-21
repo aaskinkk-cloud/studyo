@@ -348,6 +348,47 @@ object ReelsCiz {
                         yaz(c, b.lines[0], bx + bw / 2, y + bh / 2 + b.fs * 0.34f, Yazilar.cond(800), b.fs, fgc, true, if (fgc == INK) 0f else b.fs * 0.06f) }
                     by += bh + fs * 0.12f }
             }
+            "r_yil" -> {   // 3.82: Yıl etiketi (Kabataş Lisesi kapağı): sarı etiket (ilk satır, yıl kırmızı) · beyaz kutular (son satır büyük) · kırmızı konum bandı (iğneli)
+                val sat = baslik.replace("*", "").split('|').map { it.trim() }.filter { it.isNotEmpty() }
+                val etiket = if (sat.size >= 2) sat[0] else ""
+                val govde = (if (sat.size >= 2) sat.drop(1) else sat).ifEmpty { listOf("Başlık") }
+                val fs = fs0 * 0.92f; val padX = fs * 0.3f; val gap = fs * 0.1f
+                val ff = govde.mapIndexed { i, s -> sigdir(s, cond(800), if (i == govde.lastIndex && govde.size > 1) fs * 1.14f else fs, maxW, 1) }
+                val ef = if (etiket.isNotEmpty()) sigdir(etiket, cond(800), fs * 0.66f, maxW, 1) else null
+                val bf = bands.map { b -> sigdir(b, cond(800), fs * 0.7f, maxW, 1) }
+                val eH = ef?.let { it.fs * 1.55f } ?: 0f
+                val rH = ff.map { it.fs * 1.12f }; val bH = bf.map { it.fs * 1.5f }
+                val toplamH = eH + rH.sum() + gap * (ff.size - 1).coerceAtLeast(0) + (if (bf.isNotEmpty()) gap * 1.6f + bH.sum() + gap * (bf.size - 1) else 0f)
+                val blockW = max(ff.maxOf { (it.ws.firstOrNull() ?: 0f) } + padX * 2, ef?.let { (it.ws.firstOrNull() ?: 0f) + padX * 2 } ?: 0f)
+                val x0 = max(Wf * 0.03f, (Wf - blockW) / 2); var y = CY - toplamH / 2
+                if (ef != null) { val e = ef; val w = (e.ws.firstOrNull() ?: 0f) + padX * 2; val yy = y; val h = eH; val m0 = e.lines.firstOrNull() ?: ""
+                    add(true, -1, x0, yy, w, h) { c ->
+                        dolgu(c, x0, yy, w, h, YEL, fs)
+                        val tf = Yazilar.cond(800); val bx = x0 + padX; val by = yy + h / 2 + e.fs * 0.34f
+                        val m = Regex("\\d{4}").find(m0)
+                        if (m == null) yaz(c, m0, bx, by, tf, e.fs, INK)
+                        else { var x = bx; val ol = boya(tf, e.fs)
+                            listOf(m0.substring(0, m.range.first) to INK, m.value to RED, m0.substring(m.range.last + 1) to INK).forEach { (s, r) ->
+                                if (s.isNotEmpty()) { yaz(c, s, x, by, tf, e.fs, r); x += ol.measureText(s) } } }
+                    }
+                    y += h }
+                ff.forEachIndexed { i, f -> val w = (f.ws.firstOrNull() ?: 0f) + padX * 2; val h = rH[i]; val yy = y; val ln = f.lines.firstOrNull() ?: ""
+                    add(false, if (i % 2 == 1) 1 else -1, x0, yy, w, h) { c -> dolgu(c, x0, yy, w, h, BEYAZ, fs); yaz(c, ln, x0 + padX, yy + h / 2 + f.fs * 0.34f, Yazilar.cond(800), f.fs, INK) }
+                    y += h + gap }
+                if (bf.isNotEmpty()) y += gap * 0.6f
+                bf.forEachIndexed { j, b -> val pin = b.fs * 0.9f; val pad = b.fs * 0.45f; val w = pin + (b.ws.firstOrNull() ?: 0f) + pad * 2; val h = bH[j]; val yy = y
+                    val bx = max(Wf * 0.03f, min(Wf - w - Wf * 0.03f, x0 + blockW - w)); val ln = b.lines.firstOrNull() ?: ""
+                    add(false, 1, bx, yy, w, h) { c ->
+                        dolgu(c, bx, yy, w, h, RED, fs)
+                        val cx = bx + pad + pin * 0.4f; val cy = yy + h / 2 - b.fs * 0.1f; val s = b.fs * 0.3f
+                        val pp = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BEYAZ }
+                        c.drawCircle(cx, cy - s * 0.2f, s, pp)
+                        c.drawPath(Path().apply { moveTo(cx - s * 0.82f, cy + s * 0.15f); lineTo(cx + s * 0.82f, cy + s * 0.15f); lineTo(cx, cy + s * 1.75f); close() }, pp)
+                        pp.color = RED; c.drawCircle(cx, cy - s * 0.2f, s * 0.4f, pp)
+                        yaz(c, ln, bx + pad + pin, yy + h / 2 + b.fs * 0.34f, Yazilar.cond(800), b.fs, BEYAZ)
+                    }
+                    y += h + gap }
+            }
             else -> haber(title, bands, Wf, Hf, olcek, CY, liste)   // r_haber: Renkli kutular (Stüdyo'ya özgü)
         }
         // taşma koruması: bütün blok karenin içinde kalsın (alt/üst konumda)

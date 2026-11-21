@@ -237,7 +237,7 @@ object Disa {
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
         // 3.73: logo geçişi (baş · orta · sona yakın klip aralarında)
         val logoAnlar = p.logoGecisAnlari()
-        val logoGecisBmp = if (logoAnlar.isNotEmpty()) runCatching { LogoGecis.bitmap(p.logo, W, H) }.getOrNull() else null
+        val logoGecisBmp = if (logoAnlar.isNotEmpty()) runCatching { LogoGecis.bitmap(p.gecisLogoYol, p.gecis.logoSekil, W, H) }.getOrNull() else null
         val logoHale = if (logoGecisBmp != null) LogoGecis.hale() else null
         if (logoGecisBmp != null) Kayit.yaz("  Logo geçişi: ${logoAnlar.size} yer ${logoAnlar.joinToString { (it / 1000).toString() + " sn" }}")
 
@@ -291,10 +291,20 @@ object Disa {
             val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas, W, H)
             val tekTuval: Effect? = if (tOut > 0) {
                 val B = p.klipler.getOrNull(j + 1)
-                val etk = ArrayList<androidx.media3.effect.GlMatrixTransformation>()
+                // 3.82 KÖK DÜZELTME ("fotoğraf önce aydınlık başlıyor, sonra koyulaşıyor"): geçiş penceresinde gelen klip yalnız
+                // kadraj/hareket + sunumla çiziliyordu; rengi (Doğal vb.), filtresi, efekti (vinyet…), keskinliği ve arka plan bulanıklığı
+                // ancak geçiş bitip klibin kendi öğesi başlayınca geliyordu → geçişte ham (aydınlık), hemen sonra ayarlı (koyu) görünüyordu.
+                // Artık gelen klip, kendi öğesindeki AYNI etkilerle, AYNI sırayla çizilir (bkz. parca()).
+                val etk = ArrayList<androidx.media3.effect.GlEffect>()
+                if (B != null) renkEtkisi(B)?.let { etk += it }
                 if (B != null) hareket(B, W, H, j + 1, B.sureMs, 0L, 0L, dogrudan = true)?.let { etk += it }
                 etk += Presentation.createForWidthAndHeight(W, H,
                     if (B != null && B.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
+                if (B != null) {
+                    B.renk?.keskinlik?.takeIf { it > 0.005f }?.let { etk += KeskinEtki(it) }
+                    if (B.arkaBulanik > 0.01f) etk += BulanikEtki.hepsi(B.arkaBulanik)
+                    if (B.efekt != "yok" && B.efektGuc > 0.001f) etk += EfektEtki(B.efekt, B.efektGuc)
+                }
                 val tur = p.gecisAt(j).tur
                 Kayit.yaz("  Geçiş ${j + 1}→${j + 2}: $tur $tOut ms, tek tuval, pencere ${ogeBas + uz - tOut}–${ogeBas + uz} ms · gelen=" +
                     (B?.let { "${it.tur} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} kaynak ${it.basMs}–${it.basMs + tOut} ms" } ?: "kapanış kartı"))
@@ -431,9 +441,7 @@ object Disa {
         else mib.setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(k.basMs + ofsMs).setEndPositionMs(klipSon).build())
         val v = ArrayList<Effect>()
         // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır) · 3.59: filtre aynı LUT'ta
-        val filtreVar = k.filtre != "yok" && k.filtreGuc > 0.001f
-        if (filtreVar) v += RenkLut.etki(k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
-        else k.renk?.takeIf { RenkLut.lutVar(it) }?.let { v += RenkLut.etki(it) }
+        renkEtkisi(k)?.let { v += it }
         hareket(k, W, H, i, tamMs, ofsMs, cizelgeBas)?.let { v += it }   // akıllı kadraj + otomatik hareket
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
@@ -473,6 +481,11 @@ object Disa {
         if (!k.foto && !sesli) b.setRemoveAudio(true)
         return b.build()
     }
+
+    /** Klibin renk ayarı + filtresi (tek 3B LUT) — klibin kendi öğesinde ve geçişte gelen klip olarak AYNI. */
+    private fun renkEtkisi(k: Klip): androidx.media3.effect.GlEffect? =
+        if (k.filtre != "yok" && k.filtreGuc > 0.001f) RenkLut.etki(k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+        else k.renk?.takeIf { RenkLut.lutVar(it) }?.let { RenkLut.etki(it) }
 
     internal fun kodlayici(ctx: Context, kisa: Int, kalite: Float) = DefaultEncoderFactory.Builder(ctx)
         .setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(bitHizi(kisa, kalite)).build())

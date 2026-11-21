@@ -50,20 +50,25 @@ object LogoGecis {
         return if (b.width == w && b.height == h) b else Bitmap.createScaledBitmap(b, w.coerceAtLeast(1), h.coerceAtLeast(1), true)
     }
 
-    /** Logo bitmapi (yumuşak gölgeli); W×H çıkış karesi için piksel boyutunda. */
-    fun bitmap(l: Logo?, W: Int, H: Int): Bitmap? {
-        if (l == null || l.yol.isEmpty()) return null
-        val kaynak = BitmapFactory.decodeFile(l.yol) ?: return null
+    /** 3.82: şekiller (geçiş paneli) */
+    val SEKILLER = listOf("yuvarlak" to "Yuvarlak", "kare" to "Yuvarlak kare", "ozgun" to "Özgün")
+
+    /** Logo bitmapi (yumuşak gölgeli); W×H çıkış karesi için piksel boyutunda. sekil: yuvarlak · kare (yuvarlak köşe) · ozgun */
+    fun bitmap(yol: String, sekil: String, W: Int, H: Int): Bitmap? {
+        if (yol.isEmpty()) return null
+        val kaynak = BitmapFactory.decodeFile(yol) ?: return null
         val hedef = (BOY * min(W, H)).toInt().coerceAtLeast(16)
         val s = hedef.toFloat() / max(kaynak.width, kaynak.height)
         val sw = (kaynak.width * s).toInt().coerceAtLeast(1); val sh = (kaynak.height * s).toInt().coerceAtLeast(1)
         var b = netOlcekle(kaynak, sw, sh)
-        if (l.yuvarlak) {
+        if (sekil == "yuvarlak" || sekil == "kare") {
             val d = min(sw, sh)
             val o = Bitmap.createBitmap(d, d, Bitmap.Config.ARGB_8888)
             val sh2 = BitmapShader(b, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
             sh2.setLocalMatrix(Matrix().apply { setTranslate(-(sw - d) / 2f, -(sh - d) / 2f) })
-            Canvas(o).drawCircle(d / 2f, d / 2f, d / 2f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { shader = sh2 })
+            val p = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { shader = sh2 }
+            if (sekil == "yuvarlak") Canvas(o).drawCircle(d / 2f, d / 2f, d / 2f, p)
+            else Canvas(o).drawRoundRect(android.graphics.RectF(0f, 0f, d.toFloat(), d.toFloat()), d * 0.22f, d * 0.22f, p)
             b = o
         }
         // yumuşak gölge (logo her zeminde seçilsin)

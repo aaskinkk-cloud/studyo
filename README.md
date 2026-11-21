@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.81 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.82 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.82 (21.11.2026, deneme · `yerel-android` dalı): "önce aydınlık, sonra koyu" kök düzeltmesi, bağımsız logo geçişi, Yıl etiketi stili, TV kopyası 6 Mbps
+- **Kronik hata — fotoğraf aydınlık başlayıp koyulaşıyordu (kök neden):** üst üste binen geçişlerde (tek tuval) gelen klip yalnız kadraj/hareket + sunumla çiziliyordu; klibin **renk ayarı/Doğal**, **filtresi**, **efekti** (vinyet, sinema…), **keskinliği** ve **arka plan bulanıklığı** ancak geçiş bitip klibin kendi öğesi başlayınca uygulanıyordu → geçiş boyunca ham (daha aydınlık), hemen ardından ayarlı (koyu). Artık gelen klip kendi öğesindeki AYNI etkilerle, AYNI sırayla çizilir (`Disa.renkEtkisi`, `GelenTarif.etkiler: List<GlEffect>`). Dışa aktarma ve akıcı önizleme aynı yolu kullanır.
+- **Logo geçişi (Efekt › Geçiş):** köşe logosundan **bağımsız** — kütüphaneden logo seçilir (`Gecis.logoYol`), köşe logosu kaldırılsa da geçişler kalır. Yerler: **15. saniyeye, ortaya ve bitime 15 sn kalaya en yakın** klip arası (25 sn'den kısa videoda yalnız orta). **Şekil:** Yuvarlak · Yuvarlak kare · Özgün (`Gecis.logoSekil`). Standart geçiş seçmek, "Tümüne", hazır paketler, varsayılan ve kayıtlı ayarlar logo geçişini değiştirmez. Logo ekrana doğru büyüyerek gelir (2,8 sn, 3.73'teki hareket). Köşe logosu ayrı tercih olarak duruyor.
+- **Yeni başlık stili "Yıl etiketi"** (giriş ve kapak Reels stilleri): ilk satır sarı etiket (içindeki 4 haneli yıl kırmızı), sonraki satırlar beyaz kutular (son satır büyük), vurgu bandı kırmızı konum bandı (iğneli). Örnek: `2012 · 14 YIL ÖNCE ⏎ Kabataş Lisesi ⏎ TURİZM HAFTASI`, bant `Kabataş · Ordu`.
+- **TV:** akıcı kopya 10 → 6 Mbps (Wi-Fi'da kısa duraksamalar için); eski kopyalar bir kez yeniden hazırlanır.
 
 ## 3.81 (21.11.2026, deneme · `yerel-android` dalı): Google Fotoğraflar albüm bağlantısından fotoğraf alma
 - **Editörde:** klip şeridinde "+ Ekle"nin yanında **Albüm · Google Fotoğraflar** kutusu → pencere (panodaki albüm bağlantısı kendiliğinden yazılır) → "Fotoğrafları al": albümdeki fotoğraflar özgün boyutunda (çekim tarihiyle) indirilir ve projeye eklenir; ilerleme "Albümden alınıyor 12 / 30", "Vazgeç" ile durur. Daha önce indirilenler yeniden indirilmez.

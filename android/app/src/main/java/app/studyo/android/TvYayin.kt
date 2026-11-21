@@ -181,7 +181,7 @@ object TvYayin {
     suspend fun akiciKopya(ctx: Context, uri: Uri, ilerleme: (Int) -> Unit): Uri? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
         val dizin = java.io.File(ctx.cacheDir, "tv").apply { mkdirs() }
         val boy = runCatching { ctx.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L }.getOrDefault(0L)
-        val ad = ((uri.toString() + boy).hashCode().toLong() and 0xffffffffL).toString(16)
+        val ad = ((uri.toString() + boy + "|6m").hashCode().toLong() and 0xffffffffL).toString(16)   // 3.82: 6 Mbps kopya (eskiler yeniden yapılır)
         val hedef = java.io.File(dizin, "$ad.mp4")
         if (hedef.exists() && hedef.length() > 0) { hedef.setLastModified(System.currentTimeMillis()); return@withContext Uri.fromFile(hedef) }
         val (w, h, bit) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -199,12 +199,12 @@ object TvYayin {
         }
         if (w <= 0 || h <= 0) return@withContext null
         val kisa = minOf(w, h)
-        if (kisa <= 1080 && bit in 1..16_000_000) return@withContext uri          // zaten akıcı
+        if (kisa <= 1080 && bit in 1..8_000_000) return@withContext uri          // zaten akıcı
         dizin.listFiles()?.filter { it.name.endsWith(".mp4") }?.sortedByDescending { it.lastModified() }?.drop(2)?.forEach { it.delete() }
         val yarim = java.io.File(dizin, "$ad.yarim.mp4").apply { delete() }
         val k = 1080f / kisa
         val tw = (w * k / 2).toInt() * 2; val th = (h * k / 2).toInt() * 2
-        Kayit.yaz("TV kopyası: ${w}x$h ${bit / 1000} kbps → ${tw}x$th 10 Mbps")
+        Kayit.yaz("TV kopyası: ${w}x$h ${bit / 1000} kbps → ${tw}x$th 6 Mbps")
         kotlinx.coroutines.suspendCancellableCoroutine<Uri?> { c ->
             val el = android.os.Handler(android.os.Looper.getMainLooper())
             var tr: androidx.media3.transformer.Transformer? = null
@@ -217,7 +217,7 @@ object TvYayin {
             tr = androidx.media3.transformer.Transformer.Builder(ctx)
                 .setVideoMimeType(androidx.media3.common.MimeTypes.VIDEO_H264).setAudioMimeType(androidx.media3.common.MimeTypes.AUDIO_AAC)
                 .setEncoderFactory(androidx.media3.transformer.DefaultEncoderFactory.Builder(ctx)
-                    .setRequestedVideoEncoderSettings(androidx.media3.transformer.VideoEncoderSettings.Builder().setBitrate(10_000_000).build())
+                    .setRequestedVideoEncoderSettings(androidx.media3.transformer.VideoEncoderSettings.Builder().setBitrate(6_000_000).build())
                     .setEnableFallback(true).build())
                 .addListener(object : androidx.media3.transformer.Transformer.Listener {
                     override fun onCompleted(composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult) {

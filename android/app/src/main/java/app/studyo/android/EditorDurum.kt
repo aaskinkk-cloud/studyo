@@ -1275,6 +1275,19 @@ class EditorDurum(private val ctx: Context, id: String) {
     val sablonSekme = MutableStateFlow("paket")
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
 
+    /** 3.82: logo geçişini aç/kapat. Açarken logo yoksa: köşe logosu, yoksa kütüphanedeki son kullanılan / ilk logo. */
+    fun logoGecisAc(ac: Boolean) {
+        if (!ac) { gecisDegis { it.copy(logo = false) }; return }
+        val p = proje.value
+        val yol = p.gecis.logoYol.ifEmpty { p.logo?.yol ?: "" }.ifEmpty {
+            LogoKutup.yukle(); val l = LogoKutup.ogeler.value
+            val son = runCatching { Varsayilan.sonLogo(ctx) }.getOrNull()
+            (l.firstOrNull { it.id == son } ?: l.firstOrNull())?.yol ?: "" }
+        if (yol.isEmpty()) { uyari.value = "Kütüphanede logo yok. Yayın › Logo'dan bir logo yükle (köşeye koyman gerekmez)."; return }
+        gecisDegis { it.copy(logo = true, logoYol = yol) }
+        logoGecisGoster()
+    }
+
     /** 3.73: ilk logo geçişinin 1 sn öncesinden oynatır (nasıl göründüğü hemen izlensin). */
     fun logoGecisGoster() {
         val t = proje.value.logoGecisAnlari().firstOrNull() ?: run { mesaj.value = "Logo geçişi için en az 2 klip ve bir logo gerekli"; return }
@@ -1355,7 +1368,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             guncelle(true) { p ->
                 p.copy(
                     bicim = if (bicimDegisti) "16:9" else p.bicim,
-                    gecis = Gecis("erime", 800, p.gecis.siyahtanAc, p.gecis.logo),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
+                    gecis = p.gecis.copy(tur = "erime", sureMs = 800),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)
@@ -1377,7 +1390,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             val sk = Ayarlar.sakli(ctx)
             if (sk != null) guncelle(true) { p ->
                 p.copy(
-                    gecis = sk.gecis,
+                    gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil),   // 3.82: logo geçişi korunur
                     giris = if ("giris" in sec) p.giris.copy(stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
                         efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs) else p.giris,
                     hatirlatici = if ("abone" in sec) sk.hatirlatici.copy(acik = true) else p.hatirlatici,
@@ -1415,11 +1428,11 @@ class EditorDurum(private val ctx: Context, id: String) {
         guncelle(true) { p ->
             val g = p.giris.copy(acik = true, baslik = p.giris.baslik.ifBlank { "Ahmet Aşkın" }, alt = p.giris.alt.ifBlank { "Şefin Doğası" })
             when (ad) {
-                "reels" -> p.copy(giris = g.copy(stil = "bantlar", sureMs = 3000), gecis = Gecis("yakin", 500, false),
+                "reels" -> p.copy(giris = g.copy(stil = "bantlar", sureMs = 3000), gecis = p.gecis.copy(tur = "yakin", sureMs = 500, siyahtanAc = false),
                     hatirlatici = p.hatirlatici.copy(acik = true), kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000))
-                "sinema" -> p.copy(giris = g.copy(stil = "sinematik", sureMs = 4000), gecis = Gecis("siyah", 900, true),
+                "sinema" -> p.copy(giris = g.copy(stil = "sinematik", sureMs = 4000), gecis = p.gecis.copy(tur = "siyah", sureMs = 900, siyahtanAc = true),
                     hatirlatici = p.hatirlatici.copy(acik = false), kapanis = p.kapanis.copy(acik = true, stil = "sade", sureMs = 4000))
-                else -> p.copy(giris = g.copy(stil = "altbant", sureMs = 3500), gecis = Gecis("beyaz", 700, false),
+                else -> p.copy(giris = g.copy(stil = "altbant", sureMs = 3500), gecis = p.gecis.copy(tur = "beyaz", sureMs = 700, siyahtanAc = false),
                     hatirlatici = p.hatirlatici.copy(acik = false), kapanis = p.kapanis.copy(acik = true, stil = "cta", sureMs = 5000))
             }
         }
@@ -1658,7 +1671,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun kayitliUygula(ad: String, sk: SakliAyar) {
         guncelle(true) { p ->
             p.copy(
-                gecis = sk.gecis,
+                gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil),   // 3.82: logo geçişi korunur
                 giris = p.giris.copy(acik = sk.giris.acik, stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
                     efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs),
                 hatirlatici = sk.hatirlatici, kapanis = sk.kapanis, altyaziStil = sk.altyaziStil,

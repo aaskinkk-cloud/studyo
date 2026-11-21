@@ -140,7 +140,9 @@ data class Logo(
 @Serializable
 data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc: Boolean = false,
                  /** 3.73: logo geçişi — baştaki, ortadaki ve sona yakın üç klip arasında geçiş yerine logo arka plandan büyüyerek gelir */
-                 val logo: Boolean = false) {
+                 val logo: Boolean = false,
+                 /** 3.82: geçiş logosu köşe logosundan bağımsız (kütüphaneden seçilir; köşe logosu kaldırılsa da kalır). Şekil: yuvarlak · kare · ozgun */
+                 val logoYol: String = "", val logoSekil: String = "yuvarlak") {
     // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
     val cakisma: Boolean get() = tur == "erime" || tur == "capraz" || tur == "kaydir" || tur == "yakincapraz" || tur == "hafif" || tur == "akis"
 }
@@ -281,12 +283,22 @@ data class Proje(
     fun gecisAt(i: Int): Gecis = if (i in logoGecisAralari()) gecis.copy(tur = "yok")   // 3.73: logo geçişinde kesme (logo örter)
         else klipler.getOrNull(i)?.gecis?.let { gecis.copy(tur = it) } ?: gecis
 
-    /** 3.73: logo geçişinin yapıldığı klip araları (i = klip i ile i+1 arası): baş (%15), orta (%50), sona yakın (%85).
-     *  Sıra numarasıyla seçilir (süreye bağlı değil → geçiş/örtüşme hesabıyla döngü olmaz). */
+    /** 3.82: geçiş logosunun dosyası: kendi seçilen logo, yoksa köşe logosu. */
+    val gecisLogoYol: String get() = gecis.logoYol.ifEmpty { logo?.yol ?: "" }
+
+    /** 3.82: logo geçişinin yapıldığı klip araları (i = klip i ile i+1 arası): 15. saniyeye, ortaya ve bitime 15 sn kalaya EN YAKIN
+     *  klip arası (kesme logonun tam ekranda olduğu ana denk gelir). Ham klip süreleriyle hesaplanır (örtüşme hesabıyla döngü olmaz).
+     *  Kısa videoda yerler çakışırsa daha az logo olur. Standart geçişler / Tümüne uygula bunları değiştirmez. */
     fun logoGecisAralari(): Set<Int> {
         val n = klipler.size - 1
-        if (!gecis.logo || logo == null || logo.yol.isEmpty() || n < 1) return emptySet()
-        return listOf(0.15f, 0.5f, 0.85f).map { Math.round(it * (n - 1)) }.toSet()
+        if (!gecis.logo || gecisLogoYol.isEmpty() || n < 1) return emptySet()
+        val sinir = LongArray(n); var t = 0L
+        for (i in 0 until n) { t += klipler[i].sureMs; sinir[i] = t }
+        val top = t + klipler.last().sureMs
+        val hedef = if (top < 25_000) listOf(top / 2) else listOf(15_000L, top / 2, top - 15_000L)
+        val sec = LinkedHashSet<Int>()
+        for (h in hedef) (0 until n).filter { it !in sec }.minByOrNull { kotlin.math.abs(sinir[it] - h) }?.let { sec += it }
+        return sec
     }
 
     /** 3.73: logo geçişlerinin kesme anları (zaman çizelgesi ms). */

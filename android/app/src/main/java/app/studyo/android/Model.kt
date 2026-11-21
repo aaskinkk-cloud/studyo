@@ -137,9 +137,12 @@ const val MUZIK_KIS = 0.35f
 @Serializable
 data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long, val sureMs: Long, val ses: Float = 1f,
     /** 3.90: ses efekti (dogal | net | temiz | radyo | kalin) ve özgünden işlenmiş dosya. Özgün kayıt (yol) hiç değişmez. */
-    val efekt: String = "dogal", val islenmis: String = "") {
-    /** Çalınacak dosya: efekt seçili ve işlenmiş dosya duruyorsa o, yoksa özgün kayıt. */
-    val calYol: String get() = if (efekt != "dogal" && islenmis.isNotEmpty() && java.io.File(islenmis).exists()) islenmis else yol
+    val efekt: String = "dogal", val islenmis: String = "",
+    /** 3.95: hız (perde korunur, 0,5–2) · baş/son sessizliği kırp · kırpılan baş (ms; konum hizası için) · özgün kaydın süresi */
+    val hiz: Float = 1f, val kirp: Boolean = false, val kirpBasMs: Long = 0, val ozgunMs: Long = 0) {
+    val islemVar: Boolean get() = efekt != "dogal" || kotlin.math.abs(hiz - 1f) > 0.001f || kirp
+    /** Çalınacak dosya: işlem seçili ve işlenmiş dosya duruyorsa o, yoksa özgün kayıt. */
+    val calYol: String get() = if (islemVar && islenmis.isNotEmpty() && java.io.File(islenmis).exists()) islenmis else yol
 }
 
 @Serializable

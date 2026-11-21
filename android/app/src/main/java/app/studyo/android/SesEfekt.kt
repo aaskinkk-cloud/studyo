@@ -38,10 +38,21 @@ object SesEfekt {
         "kalin" to "Ses biraz pesleşir (−1,5 yarım ton), sıcak ve dolgun.",
     )
 
-    /** Özgün kayıttan işlenmiş WAV üretir. Hata olursa istisna fırlatır (çağıran kayda yazar, özgün kayıt kalır). */
-    fun isle(girdi: String, efekt: String): File {
+    class Sonuc(val dosya: File, val sureMs: Long, val kirpBasMs: Long)
+
+    /** Özgün kayıttan işlenmiş WAV üretir (efekt + hız + sessizlik kırpma). Hata olursa istisna fırlatır (özgün kayıt kalır). */
+    fun isle(girdi: String, efekt: String, hiz: Float = 1f, kirp: Boolean = false): Sonuc {
         val (pcm, sr) = coz(girdi)
         var x = pcm
+        // 3.95: baştaki/sondaki sessizlik (tepenin %3'ünün altı) 0,15 sn pay bırakılarak kırpılır
+        var kirpBas = 0
+        if (kirp && x.isNotEmpty()) {
+            val tepe = x.maxOf { abs(it) }; val esik = tepe * 0.03f; val pay = (0.15f * sr).toInt()
+            val ilk = x.indexOfFirst { abs(it) > esik }.takeIf { it >= 0 } ?: 0
+            val son = x.indexOfLast { abs(it) > esik }.takeIf { it >= 0 } ?: (x.size - 1)
+            kirpBas = (ilk - pay).coerceAtLeast(0); val bitis = (son + pay).coerceAtMost(x.size)
+            if (bitis > kirpBas) x = x.copyOfRange(kirpBas, bitis)
+        }
         val p = when (efekt) {
             "net" -> Ayar(hp = 90f, gate = true, gateDerin = 0.35f, eq = listOf(Eq(250f, -2f, 1.0f), Eq(3200f, 4.5f, 1.0f), Eq(8000f, 1.5f, 0.8f)), esik = -20f, oran = 3f)
             "temiz" -> Ayar(hp = 110f, gate = true, gateDerin = 0.12f, eq = listOf(Eq(3000f, 2.5f, 1.0f)), esik = -22f, oran = 2.5f)
@@ -53,12 +64,14 @@ object SesEfekt {
         if (p.gate) kapi(x, sr, p.gateDerin)
         for (e in p.eq) x = biquad(x, katsayiPeak(e.f, e.db, e.q, sr))
         if (p.oran > 1f) sikistir(x, sr, p.esik, p.oran)
-        if (p.perde != 1f) x = perde(x, sr, p.perde)
-        normallestir(x, 0.89f)
-        val f = File(File(girdi).parentFile, File(girdi).nameWithoutExtension + "_" + efekt + ".wav")
+        if (p.perde != 1f || abs(hiz - 1f) > 0.001f) x = perde(x, sr, p.perde, hiz.coerceIn(0.5f, 2f))
+        if (efekt != "dogal") normallestir(x, 0.89f)
+        val f = File(dosyaAdi(girdi, efekt, hiz, kirp))
         wavYaz(f, x, sr)
-        return f
+        return Sonuc(f, x.size * 1000L / sr, kirpBas * 1000L / sr)
     }
+    fun dosyaAdi(girdi: String, efekt: String, hiz: Float, kirp: Boolean): String =
+        File(File(girdi).parentFile, File(girdi).nameWithoutExtension + "_" + efekt + "_h" + (hiz * 100).toInt() + (if (kirp) "_k" else "") + ".wav").path
 
     private class Eq(val f: Float, val db: Float, val q: Float)
     private class Ayar(val hp: Float = 0f, val gate: Boolean = false, val gateDerin: Float = 1f, val eq: List<Eq> = emptyList(),
@@ -165,9 +178,9 @@ object SesEfekt {
     }
 
     /** Perde değişimi (süre aynı) — Media3 Sonic. */
-    private fun perde(x: FloatArray, sr: Int, oran: Float): FloatArray {
+    private fun perde(x: FloatArray, sr: Int, oran: Float, hiz: Float = 1f): FloatArray {
         val s = SonicAudioProcessor()
-        s.setPitch(oran); s.setSpeed(1f)
+        s.setPitch(oran); s.setSpeed(hiz)   // 3.95: hız (süre değişir, perde korunur)
         s.configure(AudioProcessor.AudioFormat(sr, 1, C.ENCODING_PCM_16BIT)); s.flush()
         val out = java.io.ByteArrayOutputStream()
         fun topla() { while (true) { val o = s.output; if (!o.hasRemaining()) break; val b = ByteArray(o.remaining()); o.get(b); out.write(b) } }

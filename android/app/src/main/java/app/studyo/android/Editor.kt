@@ -1531,6 +1531,26 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
                 Text(SesEfekt.ACIKLAMA[s.efekt] ?: "", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
                 if (p.sesler.size > 1 && s.efekt != "dogal") Text("Bu efekti bütün kayıtlara uygula", color = Renk.turuncu, fontSize = 12.sp,
                     modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(8.dp)).clickable { vm.sesEfekt(null, s.efekt) }.padding(vertical = 4.dp))
+                // 3.95: hız (ses tonu korunur) · sessizlik kırpma · yerini kaydır
+                Text("Hız (ses tonu korunur)", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(0.75f, 0.9f, 1f, 1.1f, 1.25f, 1.5f).forEach { h ->
+                        val on = kotlin.math.abs(s.hiz - h) < 0.01f
+                        Text(if (h == 1f) "1×" else String.format(TR, "%.2f×", h).replace(",00", "").trimEnd('0').replace(Regex("[,.]×$"), "×"),
+                            color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                            .background(if (on) Renk.turuncu else Renk.kart).border(1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(16.dp))
+                            .clickable { vm.sesIsle(s.id) { it.copy(hiz = h) } }.padding(horizontal = 12.dp, vertical = 7.dp))
+                    }
+                }
+                AnahtarSatiri("Baştaki ve sondaki sessizliği kırp", s.kirp) { v -> vm.sesIsle(s.id) { it.copy(kirp = v) } }
+                Text("Yeri: ${sureYaz(s.basMs)}", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 2.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SimgeDugme("geri", "−0,5 sn", Modifier.weight(1f)) { vm.sesKaydir(s.id, -500) }
+                    SimgeDugme("ileri", "+0,5 sn", Modifier.weight(1f)) { vm.sesKaydir(s.id, 500) }
+                    SimgeDugme("takip", "Oynatıcının yerine", Modifier.weight(1.4f), renk = Renk.turuncu) { vm.sesKaydir(s.id, buraya = true) }
+                }
+                if (p.sesler.size > 1 && (kotlin.math.abs(s.hiz - 1f) > 0.01f || s.kirp)) Text("Hızı ve kırpmayı bütün kayıtlara uygula", color = Renk.turuncu, fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 2.dp).clip(RoundedCornerShape(8.dp)).clickable { val h = s.hiz; val k = s.kirp; vm.sesIsle(null) { it.copy(hiz = h, kirp = k) } }.padding(vertical = 4.dp))
                 var silOnay by remember(s.id) { mutableStateOf(false) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Dugme("▶ Dinle", Modifier.weight(1f)) { vm.git(s.basMs); vm.player.play() }

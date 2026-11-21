@@ -1355,31 +1355,33 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun sesDegis(id: String, f: (SesKaydi) -> SesKaydi) = guncelle { p -> p.copy(sesler = p.sesler.map { if (it.id == id) f(it) else it }) }
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }
 
-    /** 3.90: seslendirme efekti — özgünden bir kez işlenir (arka planda), özgün kayıt korunur. id = null: bütün kayıtlara. */
-    fun sesEfekt(id: String?, efekt: String) {
-        val hedef = proje.value.sesler.filter { id == null || it.id == id }
+    /** 3.90 / 3.95: seslendirme işleme — efekt, hız (perde korunur), baş/son sessizliği kırp. Özgünden bir kez işlenir (arka planda),
+     *  özgün kayıt korunur. Süre değişirse kaydın süresi, sessizlik kırpılırsa başlangıcı (konuşma aynı anda kalsın) güncellenir. id = null: bütün kayıtlara. */
+    fun sesEfekt(id: String?, efekt: String) = sesIsle(id) { it.copy(efekt = efekt) }
+    fun sesIsle(id: String?, f: (SesKaydi) -> SesKaydi) {
+        val hedef = proje.value.sesler.filter { id == null || it.id == id }.map { f(it) }
         if (hedef.isEmpty()) return
         kapsam.launch {
             var hata = 0
-            val sonuc = HashMap<String, String>()
-            for ((n, s) in hedef.withIndex()) {
-                if (efekt == "dogal") continue
-                val hazir = java.io.File(java.io.File(s.yol).parentFile, java.io.File(s.yol).nameWithoutExtension + "_" + efekt + ".wav")
-                if (hazir.exists() && hazir.length() > 44) { sonuc[s.id] = hazir.path; continue }
+            val sonuc = HashMap<String, SesKaydi>()
+            for ((n, s0) in hedef.withIndex()) {
+                val s = s0.copy(ozgunMs = if (s0.ozgunMs > 0) s0.ozgunMs else s0.sureMs)   // ilk işlemde özgün süre saklanır (3.90 efektleri süreyi değiştirmez)
+                if (!s.islemVar) { sonuc[s.id] = s.copy(sureMs = s.ozgunMs, basMs = s.basMs - s.kirpBasMs, kirpBasMs = 0); continue }
                 mesgul.value = "Ses işleniyor ${n + 1}/${hedef.size}…"
-                val r = withContext(Dispatchers.Default) { runCatching { SesEfekt.isle(s.yol, efekt) } }
-                r.onSuccess { sonuc[s.id] = it.path }.onFailure { Kayit.hata("ses efekti ($efekt)", it); hata++ }
+                val r = withContext(Dispatchers.Default) { runCatching { SesEfekt.isle(s.yol, s.efekt, s.hiz, s.kirp) } }
+                r.onSuccess { o -> sonuc[s.id] = s.copy(islenmis = o.dosya.path, sureMs = o.sureMs.coerceAtLeast(100), basMs = (s.basMs - s.kirpBasMs + (o.kirpBasMs / s.hiz).toLong()).coerceAtLeast(0), kirpBasMs = (o.kirpBasMs / s.hiz).toLong()) }
+                    .onFailure { Kayit.hata("ses işleme", it); hata++ }
             }
             mesgul.value = null
-            guncelle { p -> p.copy(sesler = p.sesler.map { s ->
-                if (s.id !in hedef.map { it.id }) s
-                else if (efekt == "dogal") s.copy(efekt = "dogal")
-                else sonuc[s.id]?.let { s.copy(efekt = efekt, islenmis = it) } ?: s
-            }) }
+            guncelle { p -> p.copy(sesler = p.sesler.map { s -> sonuc[s.id] ?: s }.sortedBy { it.basMs }) }
             sesAktif = null   // çalan seslendirme yeni dosyadan yeniden başlasın
-            mesaj.value = if (hata > 0) "$hata kayıt işlenemedi (hata kaydında); özgün kayıt duruyor" else "Ses: " + (SesEfekt.HAZIR.firstOrNull { it.first == efekt }?.second ?: efekt)
+            mesaj.value = if (hata > 0) "$hata kayıt işlenemedi (hata kaydında); özgün kayıt duruyor" else "Seslendirme güncellendi"
         }
     }
+    /** 3.95: kaydın başlangıcını kaydır (ms) ya da oynatıcının bulunduğu ana taşı. */
+    fun sesKaydir(id: String, ms: Long? = null, buraya: Boolean = false) = guncelle { p -> p.copy(sesler = p.sesler.map {
+        if (it.id != id) it else it.copy(basMs = (if (buraya) anlik() else it.basMs + (ms ?: 0)).coerceIn(0, (p.toplamMs - 200).coerceAtLeast(0)))
+    }.sortedBy { it.basMs }) }
 
     // ---------- görünüm: geçiş ve şablon ----------
     fun gecisDegis(f: (Gecis) -> Gecis) = guncelle(true) { it.copy(gecis = f(it.gecis)) }

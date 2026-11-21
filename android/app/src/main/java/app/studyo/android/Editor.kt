@@ -121,6 +121,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(id) { if (Depo.acilincaDisa == id) { Depo.acilincaDisa = null; disaAcik = true } }   // 3.78: Ayrı video'dan gelen taslak
     var kapakAcik by rememberSaveable { mutableStateOf(false) }   // 3.63: tam ekran Kapak düzenleyici
     var aramaAcik by remember { mutableStateOf(false) }           // 3.70: ayar arama
     var tamEkranV by rememberSaveable { mutableStateOf(false) }   // 3.71: video tam ekran
@@ -134,6 +135,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             degisen[bolum] = true; haplar[bolum]?.let { degisen["$bolum/$it"] = true }
         }
     }
+    vm.projeAc = { pid -> ac(pid) }   // 3.78
     vm.bosProjeAc = { bicim ->
         val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
         Depo.kaydet(y); ac(y.id)
@@ -169,7 +171,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
-                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "ekle" to "kanca dikkat hazır yazı")
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -1115,6 +1117,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
                 "kadraj" -> Kart("Kadraj · klip ${sec + 1}") { KadrajIcerik(vm, k) }
                 "hiz" -> HizSayfasi(vm, k)
                 "yuzler" -> YuzTuruSayfasi(vm, p, sec, k)   // 3.74: yüzlere sırayla yaklaşma
+                "ayri" -> YuzAyriVideoSayfasi(vm, p, sec, k)   // 3.78: seçilen kişilerden ayrı video (Reels/yatay/kare)
                 else -> PanelKlip(vm, p, sec, k)
             }
             "kadraj" -> PanelKadraj(vm, k)

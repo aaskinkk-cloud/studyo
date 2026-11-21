@@ -29,7 +29,7 @@ class AltSayfa(val anahtar: String, val ad: String, val simge: String)
 
 /** 3. katman: alt menü anahtarı → alt sayfalar (ilk = varsayılan). */
 val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
-    "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler", "yuz")),
+    "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler", "yuz"), AltSayfa("ayri", "Ayrı video", "disa")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),

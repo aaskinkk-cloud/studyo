@@ -335,8 +335,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         TurVurgu.isikCiz(nc, tv, kotlin.math.min(RW, RH).toFloat())   // 3.77
                         nc.restore()
                     }
-                    if (tv.adAlfa > 0.002f && tv.ad.isNotEmpty()) {
-                        val ib = remember(tv.ad, ref) { TurVurgu.isimBitmap(tv.ad, RW, RH) }
+                    if (tv.adAlfa > 0.002f && tv.ad.isNotEmpty()) TurVurgu.isimOnbellek(tv.ad, RW, RH)?.let { ib ->   // 3.78: koşullu remember yerine önbellek
                         val (ix, iy) = TurVurgu.isimYeri(tv, ib.width, ib.height, RW, RH)
                         val (zx, zy) = TurVurgu.ndc(ix, iy, RW, RH)
                         Ciz(Yerlesim(ib, zx, zy, 0f, 0f), tv.adAlfa)

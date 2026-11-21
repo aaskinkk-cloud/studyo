@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.77 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.78 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.78 (21.11.2026, deneme · `yerel-android` dalı): yüz klibinde kapanma için koruma, Yüzler › Ayrı video (Reels/yatay/kare)
+- **Kapanma (yüzlerin olduğu klibe gelince):** cihaz kaydı olmadan kesin neden görülemedi; yüz turundaki bütün yeni çizim/hesap yolları korumaya alındı: `TurVurgu.durum` (sonlu olmayan değerler elenir), ışık ve çizgi çizimi, isim kutusu (koşullu `remember` yerine önbellek), dışa aktarma/akıcı önizleme bindirmeleri (hata olursa o kare boş, kayda bir kez yazılır). Gövde bulma (ML Kit nesne ayırma) için kapanma bekçisi: başlarken işaret konur, bitince kaldırılır; işaret kalmışsa (uygulama o sırada kapanmışsa) bir daha çalışmaz, ışık baş-omuz biçiminde döner. Kayda "Gövde bulma başladı" yazılır. Bozuk gövde değeri kaydedilmez.
+- **Ayrı video (Düzenle › Klip › Yüzler'in sağında):** kişileri seç (numara + ad; Tümü/Hiçbiri), biçim: Reels · dikey (9:16) / Yatay / Kare → "Videoyu oluştur". Bu proje değişmez; yalnız bu fotoğraf ve seçilen duraklarla yeni bir taslak açılır ("… · Yüzler · Reels"), dışa aktarma ekranı hemen gelir. Yüz yakınlıkları yeni biçime çevrilir (baş kadrajda aynı payı kaplar); isim kutusu, öne çıkarma, müzik, logo, geçiş, renk korunur; giriş/abone/kapanış ve diğer kliplerin yazıları alınmaz.
 
 ## 3.77 (21.11.2026, deneme · `yerel-android` dalı): TV'de akıcı oynatma, gövdenin çevresinde dönen ışık, harf biçimi, durdurunca siyah ekran düzeltmesi, ortası açık klip kartı
 - **TV'de takılma (kök nedenler):** (1) 4K · 64 Mbps dosya ev Wi-Fi'ında ve TV çözücüsünde zorlanıyordu → **Akıcı** (varsayılan): video bir kez kısa kenar 1080, H.264 ~10 Mbps kopyaya çevrilir (`TvYayin.akiciKopya`, ilerleme gösterilir, önbellekte son 3 kopya; zaten küçükse özgün kullanılır). **Özgün** seçeneği 4K dosyanın kendisi; seçim hatırlanır, bağlıyken değiştirince yeniden gönderir. (2) Ekran kararınca telefonun Wi-Fi'ı güç tasarrufuna geçiyordu → yayın sürerken Wi-Fi kilidi (düşük gecikme / yüksek başarım) ve işlemci uyanık; yayın bitince bırakılır. (3) Sunucu: 256 KB tampon, 1 MB gönderme tamponu, TCP_NODELAY.

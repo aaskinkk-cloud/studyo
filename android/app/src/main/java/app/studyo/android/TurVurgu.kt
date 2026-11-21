@@ -30,8 +30,16 @@ object TurVurgu {
 
     private fun yum(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
-    /** sn: klip içi zaman, D: klibin ekrandaki tam süresi (sn). null = çizilecek bir şey yok. */
-    fun durum(k: Klip, W: Int, H: Int, sn: Float, D: Float): Durum? {
+    @Volatile private var hataYazildi = false
+    private fun hataBir(yer: String, e: Throwable) { if (!hataYazildi) { hataYazildi = true; Kayit.hata("yüz turu çizimi ($yer)", e) } }
+
+    /** 3.78: hiçbir hata uygulamayı kapatmasın — çizim hesabı korumalı; hata olursa o kare çizilmez, kayda bir kez yazılır. */
+    fun durum(k: Klip, W: Int, H: Int, sn: Float, D: Float): Durum? = try {
+        if (!sn.isFinite() || !D.isFinite() || W <= 0 || H <= 0) null else durum0(k, W, H, sn, D)?.takeIf { d ->
+            d.cx.isFinite() && d.cy.isFinite() && d.rx.isFinite() && d.ry.isFinite() && (d.isik?.all { it.isFinite() } != false) }
+    } catch (e: Throwable) { hataBir("durum", e); null }
+
+    private fun durum0(k: Klip, W: Int, H: Int, sn: Float, D: Float): Durum? {
         if (!k.turEtkin) return null
         val t = k.yuzTur ?: return null
         if (!t.vurgu && !t.isim) return null
@@ -88,7 +96,8 @@ object TurVurgu {
     }
 
     /** 3.77: gövde çevresinde dönen ışık — çok soluk çevre, kuyruklu parlak ışık ve ışık başı. Bulanıklık filtresi yok (donanımda da aynı). */
-    fun isikCiz(c: Canvas, d: Durum, kisa: Float) {
+    fun isikCiz(c: Canvas, d: Durum, kisa: Float) = try { isikCiz0(c, d, kisa) } catch (e: Throwable) { hataBir("ışık", e) }
+    private fun isikCiz0(c: Canvas, d: Durum, kisa: Float) {
         val pts = d.isik ?: return
         if (d.isikAlfa <= 0.002f || pts.size < 8) return
         val yol = android.graphics.Path().apply { moveTo(pts[0], pts[1]); var i = 2; while (i < pts.size) { lineTo(pts[i], pts[i + 1]); i += 2 }; close() }
@@ -126,7 +135,8 @@ object TurVurgu {
     }
 
     /** Halkayı mutlak koordinatlarla çizer (yazılım ve donanım tuvalinde aynı görünür: bulanıklık filtresi yok). */
-    fun halkaCiz(c: Canvas, d: Durum, kisa: Float) {
+    fun halkaCiz(c: Canvas, d: Durum, kisa: Float) = try { halkaCiz0(c, d, kisa) } catch (e: Throwable) { hataBir("çizgi", e) }
+    private fun halkaCiz0(c: Canvas, d: Durum, kisa: Float) {
         if (!d.yuz || d.halkaAlfa <= 0.002f || d.sup <= 0.001f) return
         val sw = max(1.5f, kisa * 0.0026f)
         val oval = RectF(d.cx - d.rx, d.cy - d.ry, d.cx + d.rx, d.cy + d.ry)
@@ -144,6 +154,10 @@ object TurVurgu {
             f.alpha = (255 * d.halkaAlfa).roundToInt(); c.drawCircle(x, y, sw * 1.5f, f)
         }
     }
+
+    /** Önizleme için isim kutusu önbelleği (her karede yeniden çizilmez). */
+    private val onbellek = object : LinkedHashMap<String, Bitmap>(8, 0.75f, true) { override fun removeEldestEntry(e: MutableMap.MutableEntry<String, Bitmap>?) = size > 12 }
+    fun isimOnbellek(ad: String, W: Int, H: Int): Bitmap? = try { synchronized(onbellek) { onbellek.getOrPut("$ad|$W|$H") { isimBitmap(ad, W, H) } } } catch (e: Throwable) { hataBir("isim", e); null }
 
     /** İsim kutusu bitmapi (Montserrat 600, yarı saydam koyu kutu, solda ince açık çizgi). */
     fun isimBitmap(ad: String, W: Int, H: Int): Bitmap {
@@ -189,7 +203,7 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
     private fun hazirla(us: Long): TurVurgu.Durum? {
         if (us == sonUs) return sonD
         sonUs = us
-        val d = TurVurgu.durum(k, W, H, (saat.yerelMs(us) + ofsMs) / 1000f, tamMs / 1000f)?.takeIf { it.yuz && it.halkaAlfa > 0.002f && it.sup > 0.001f }
+        val d = TurVurgu.durum(k, W, H, (saat.yerelMs(us) + ofsMs) / 1000f, tamMs / 1000f)?.takeIf { it.yuz && it.halkaAlfa > 0.002f && it.sup > 0.001f && it.rx > 0.5f && it.ry > 0.5f }
         sonD = d
         if (d != null) {
             val ad = (kisa * 0.01f).coerceAtLeast(1f)
@@ -207,12 +221,13 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
         }
         return d
     }
-    override fun getBitmap(presentationTimeUs: Long): Bitmap { val d = hazirla(presentationTimeUs); return if (d == null) bos else bmp }
-    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-        val d = hazirla(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        val (zx, zy) = TurVurgu.ndc(d.cx, d.cy, W, H)
-        return Yerlesim(bmp, zx, zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(d.halkaAlfa.coerceIn(0f, 1f)).build()
-    }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap = try { val d = hazirla(presentationTimeUs); if (d == null) bos else bmp } catch (e: Throwable) { bos }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings = try {
+        val d = hazirla(presentationTimeUs)
+        if (d == null) StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        else { val (zx, zy) = TurVurgu.ndc(d.cx, d.cy, W, H)
+            Yerlesim(bmp, zx, zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(d.halkaAlfa.coerceIn(0f, 1f)).build() }
+    } catch (e: Throwable) { StaticOverlaySettings.Builder().setAlphaScale(0f).build() }
 }
 
 /** Dışa aktarma / akıcı önizleme: isim kutusu (her durağın bitmapi bir kez çizilir). */
@@ -225,15 +240,16 @@ class TurIsimBindirme(private val k: Klip, private val W: Int, private val H: In
         if (us != sonUs) { sonUs = us; sonD = TurVurgu.durum(k, W, H, (saat.yerelMs(us) + ofsMs) / 1000f, tamMs / 1000f)?.takeIf { it.adAlfa > 0.002f && it.ad.isNotEmpty() } }
         return sonD
     }
-    private fun kutu(d: TurVurgu.Durum): Bitmap = kutular.getOrPut(d.durak) { TurVurgu.isimBitmap(d.ad, W, H) }
-    override fun getBitmap(presentationTimeUs: Long): Bitmap = durum(presentationTimeUs)?.let { kutu(it) } ?: bos
-    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-        val d = durum(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        val b = kutu(d)
-        val (x, y) = TurVurgu.isimYeri(d, b.width, b.height, W, H)
-        val (zx, zy) = TurVurgu.ndc(x, y, W, H)
-        return Yerlesim(b, zx, zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(d.adAlfa.coerceIn(0f, 1f)).build()
-    }
+    private fun kutu(d: TurVurgu.Durum): Bitmap = kutular.getOrPut(d.durak) { TurVurgu.isimOnbellek(d.ad, W, H) ?: bos }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap = try { durum(presentationTimeUs)?.let { kutu(it) } ?: bos } catch (e: Throwable) { bos }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings = try {
+        val d = durum(presentationTimeUs)
+        if (d == null) StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        else { val b = kutu(d)
+            val (x, y) = TurVurgu.isimYeri(d, b.width, b.height, W, H)
+            val (zx, zy) = TurVurgu.ndc(x, y, W, H)
+            Yerlesim(b, zx, zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(d.adAlfa.coerceIn(0f, 1f)).build() }
+    } catch (e: Throwable) { StaticOverlaySettings.Builder().setAlphaScale(0f).build() }
 }
 
 
@@ -258,10 +274,10 @@ class TurIsikBindirme(private val k: Klip, private val W: Int, private val H: In
         TurVurgu.isikCiz(c, d, kisa)
         sonBmp = b; gorunur = true
     }
-    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return sonBmp }
-    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+    override fun getBitmap(presentationTimeUs: Long): Bitmap = try { hazirla(presentationTimeUs); sonBmp } catch (e: Throwable) { gorunur = false; bos }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings = try {
         hazirla(presentationTimeUs)
-        if (!gorunur) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor(0f, 0f).setOverlayFrameAnchor(0f, 0f).setScale(1f / f, 1f / f).build()
-    }
+        if (!gorunur) StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        else StaticOverlaySettings.Builder().setBackgroundFrameAnchor(0f, 0f).setOverlayFrameAnchor(0f, 0f).setScale(1f / f, 1f / f).build()
+    } catch (e: Throwable) { StaticOverlaySettings.Builder().setAlphaScale(0f).build() }
 }

@@ -609,8 +609,21 @@ class EditorDurum(private val ctx: Context, id: String) {
         val k = proje.value.klipler.getOrNull(s)?.takeIf { it.foto } ?: return
         val t = k.yuzTur ?: return
         if (t.vurguStil == "cizgi" || !t.vurgu || t.noktalar.none { !it.govdeArandi } || govdeIs?.isActive == true) return
+        // 3.78 güvenlik: gövde bulma (ML Kit) önceki denemede uygulamayı kapattıysa bir daha çalışmaz; ışık baş-omuz biçiminde döner
+        val sp = ctx.getSharedPreferences("ayar", 0)
+        if (sp.getBoolean("govdeCalisiyor", false)) {
+            sp.edit().putBoolean("govdeKapali", true).putBoolean("govdeCalisiyor", false).apply()
+            Kayit.yaz("Gövde bulma önceki denemede yarım kaldı (uygulama kapanmış olabilir) → kapatıldı; ışık baş-omuz biçiminde")
+        }
+        if (sp.getBoolean("govdeKapali", false)) {
+            guncelle(false) { p -> p.copy(klipler = p.klipler.map { if (it.id == k.id) it.copy(yuzTur = t.copy(noktalar = t.noktalar.map { n -> n.copy(govdeArandi = true) })) else it }) }
+            return
+        }
         govdeIs = kapsam.launch {
+            sp.edit().putBoolean("govdeCalisiyor", true).commit()
+            Kayit.yaz("Gövde bulma başladı: ${t.noktalar.size} durak")
             val l = try { Govde.cevreler(k.uri, t.noktalar) } catch (e: Throwable) { Kayit.hata("gövde", e); t.noktalar.map { emptyList() } }
+            sp.edit().putBoolean("govdeCalisiyor", false).apply()
             val simdi = proje.value.klipler.getOrNull(s)?.takeIf { it.id == k.id } ?: return@launch
             val tt = simdi.yuzTur ?: return@launch
             // bu arada duraklar değiştiyse yalnız aynı yerdeki duraklara yazılır
@@ -930,6 +943,37 @@ class EditorDurum(private val ctx: Context, id: String) {
     val renkSekme = MutableStateFlow("hazir")
     /** 3.53: Hazır paketler › Boş proje — editör ekranı ayarlar (yeni boş projeyi açar). */
     var bosProjeAc: (String) -> Unit = {}
+    /** 3.78: başka bir projeyi aç (editör yeni projeye geçer). */
+    var projeAc: (String) -> Unit = {}
+
+    /** 3.78: Yüzler › Ayrı video — seçilen kişilerden (duraklardan) yeni bir taslak: yalnız bu fotoğraf, seçilen biçimde (Reels 9:16, yatay, kare).
+     *  Yüz yakınlıkları yeni biçime çevrilir (baş kadrajda aynı payı kaplar); isim kutusu, öne çıkarma, müzik, logo, geçiş ve renk korunur;
+     *  giriş, abone, kapanış ve diğer kliplere ait yazılar alınmaz. Bu proje değişmez. Açılınca dışa aktarma ekranı gelir. */
+    fun turAyriVideo(secilen: List<Int>, bicim: String) {
+        val p = proje.value; val k = p.klipler.getOrNull(secili.value)?.takeIf { it.foto } ?: return
+        val t = k.yuzTur ?: return
+        val sec = secilen.filter { it in t.noktalar.indices }.distinct().sorted()
+        if (sec.isEmpty()) { mesaj.value = "En az bir kişi seç"; return }
+        val (W0, H0) = Disa.boyut(p.bicim, 1080); val (W1, H1) = Disa.boyut(bicim, 1080)
+        val g = (if (k.gen > 0) k.gen else W0).toFloat(); val h = (if (k.yuk > 0) k.yuk else H0).toFloat()
+        val sc0 = kotlin.math.max(W0 / g, H0 / h); val sc1 = kotlin.math.max(W1 / g, H1 / h)
+        val nok = sec.map { t.noktalar[it] }.map { n ->
+            if (n.yb > 0f) { val pay = n.z * n.yb * h * sc0 / H0; n.copy(z = (pay / kotlin.math.max(0.01f, n.yb * h * sc1 / H1)).coerceIn(1f, 6f)) } else n }
+        val t2 = t.copy(noktalar = nok)
+        val sure = (kotlin.math.ceil(YuzTur.toplamSn(t2) * 10.0) * 100).toLong().coerceAtLeast(1500)
+        val k2 = k.copy(id = yeniId(), yuzTur = t2, fotoSureMs = sure, kenBurns = true, gecis = null)
+        val simdi = System.currentTimeMillis()
+        val tur = when (bicim) { "9:16" -> "Reels"; "1:1" -> "Kare"; else -> "Yatay" }
+        val y = p.copy(id = yeniId(), ad = p.ad + " · " + (if (sec.size == t.noktalar.size) "Yüzler" else "${sec.size} kişi") + " · " + tur,
+            olusturma = simdi, guncelleme = simdi, bicim = bicim, bos = true, arsiv = false, klipler = listOf(k2),
+            sesler = emptyList(), katmanlar = emptyList(), altyazilar = emptyList(), nesneler = emptyList(), kapak = Kapak(),
+            giris = p.giris.copy(acik = false), hatirlatici = p.hatirlatici.copy(acik = false), kapanis = p.kapanis.copy(acik = false))
+        kaydetSimdi(false)
+        Depo.kaydet(y)
+        Kayit.yaz("Ayrı video taslağı: ${y.ad} · ${sec.size} durak · $bicim · ${sure / 1000} sn")
+        Depo.acilincaDisa = y.id
+        projeAc(y.id)
+    }
 
     /** InShot tarzı uç seçimi (3.44): klipSon | videoSon | klipBas | videoBas. Klip sonu zaten seçiliyse bir sonraki klibin sonuna uzar. */
     fun katmanUc(o: KatmanOge, tur: String): KatmanOge {

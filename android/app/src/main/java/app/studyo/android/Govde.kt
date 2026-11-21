@@ -100,6 +100,6 @@ object Govde {
             l += (Math.round((cx + cos(a).toFloat() * rr) / W * 1000f) / 1000f)
             l += (Math.round((cy + sin(a).toFloat() * rr) / H * 1000f) / 1000f)
         }
-        return l
+        return if (l.all { it.isFinite() }) l else emptyList()   // 3.78: bozuk değer kaydedilmez
     }
 }

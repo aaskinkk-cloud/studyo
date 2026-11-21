@@ -40,6 +40,8 @@ object Depo {
     @Volatile private var cokmeKuruldu = false
     /** Akıcı önizleme oynatıcısının iç iş parçacığı çökerse çağrılır (ana iş parçacığında). Editör açıkken atanır. */
     @Volatile var onizlemeCokmesi: ((Throwable) -> Unit)? = null
+    /** 3.78: bu proje açılınca dışa aktarma ekranı hemen gelsin (Yüzler › Ayrı video). */
+    @Volatile var acilincaDisa: String? = null
 
     fun baslat(ctx: Context) {
         app = ctx.applicationContext

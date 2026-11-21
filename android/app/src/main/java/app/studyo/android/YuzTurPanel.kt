@@ -276,3 +276,52 @@ fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modi
     }
 }
 
+
+/** 3.78: Düzenle › Klip › Ayrı video — seçilen kişilerden (yüz duraklarından) ayrı bir video: Reels (dikey), yatay ya da kare.
+ *  Bu proje değişmez; yeni bir taslak açılır ve dışa aktarma ekranı gelir. */
+@Composable
+fun YuzAyriVideoSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
+    Kart("Ayrı video · klip ${sec + 1}") {
+        val t = k.yuzTur
+        if (!k.foto || t == null || t.noktalar.isEmpty()) {
+            Text("Önce Yüzler sekmesinde kişileri (durakları) ekle; sonra buradan seçtiklerinle ayrı bir video yaparsın.", color = Renk.soluk, fontSize = 12.5.sp)
+            return@Kart
+        }
+        val n = t.noktalar.size
+        var secili by remember(k.id, n) { mutableStateOf((0 until n).toSet()) }
+        var bicim by remember { mutableStateOf("9:16") }
+        TurBaslik("KİŞİLER")
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            t.noktalar.forEachIndexed { j, d ->
+                val on = j in secili
+                Column(Modifier.width(56.dp).clip(RoundedCornerShape(12.dp)).clickable { secili = if (on) secili - j else secili + j }.padding(vertical = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(42.dp).clip(CircleShape).background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, CircleShape),
+                        contentAlignment = Alignment.Center) { Text("${j + 1}", color = if (on) Renk.zemin else Renk.soluk, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                    Text(d.ad.trim().substringBefore(' ').take(8).ifEmpty { if (d.yb > 0f) "yüz" else "nokta" }, color = if (on) Renk.yazi else Renk.soluk,
+                        fontSize = 10.sp, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+        }
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Tümü", color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { secili = (0 until n).toSet() }.padding(6.dp))
+            Text("Hiçbiri", color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { secili = emptySet() }.padding(6.dp))
+        }
+        TurBaslik("BİÇİM")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf(Triple("9:16", "Reels · dikey", "bicim"), Triple("16:9", "Yatay", "tuval"), Triple("1:1", "Kare", "kadraj")).forEachIndexed { j, (b, ad, sm) ->
+                YuvarlakSecim(ad, sm, Color(TON[j % TON.size]), bicim == b) { bicim = b }
+            }
+        }
+        val t2 = t.copy(noktalar = t.noktalar.filterIndexed { j, _ -> j in secili })
+        Text(if (secili.isEmpty()) "Kişi seçilmedi." else "${secili.size} kişi · yaklaşık ${String.format(java.util.Locale("tr"), "%.1f", YuzTur.toplamSn(t2))} sn · isim kutusu ve öne çıkarma dahil",
+            color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp))
+        Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(46.dp).clip(RoundedCornerShape(12.dp))
+            .background(if (secili.isEmpty()) Renk.kart2 else Renk.yazi)
+            .clickable(enabled = secili.isNotEmpty()) { vm.turAyriVideo(secili.toList(), bicim) }, contentAlignment = Alignment.Center) {
+            Text("Videoyu oluştur", color = if (secili.isEmpty()) Renk.soluk else Renk.zemin, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
+        AcilirNot("Bu proje değişmez. Seçtiğin kişilerle yeni bir taslak açılır (Projeler'de durur) ve dışa aktarma ekranı gelir. " +
+            "Yakınlıklar seçilen biçime göre yeniden hesaplanır; isim kutusu, öne çıkarma, müzik, logo ve renk korunur; giriş, abone ve kapanış eklenmez.")
+    }
+}

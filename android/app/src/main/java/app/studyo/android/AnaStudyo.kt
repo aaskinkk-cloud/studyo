@@ -161,7 +161,7 @@ private fun AnaSekme(projeler: List<Proje>, disa: DisaDurum, ac: (String) -> Uni
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 24.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.mipmap.ic_launcher), null, Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)))
+                Image(painterResource(R.drawable.studyo_logo), null, Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)))
                 Spacer(Modifier.width(14.dp))
                 Text("STÜDYO", color = AS.yazi, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.18.em, modifier = Modifier.weight(1f))
                 Box(Modifier.size(52.dp).clip(CircleShape).background(AS.kart).border(1.dp, AS.cizgi, CircleShape).clickable { AS.degistir(ctx) },

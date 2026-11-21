@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.85 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.86 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.86 (21.11.2026, deneme · `yerel-android` dalı): 3.85 açılmıyordu — kök düzeltme
+- **Neden:** ana sayfa logosu `painterResource(R.mipmap.ic_launcher)` ile çiziliyordu; Android 8+ cihazda bu kaynak uyarlanabilir simge (XML `adaptive-icon`) ve Compose bunu çizemez → açılışta `IllegalArgumentException`, uygulama kapanıyordu.
+- **Çözüm:** logo ayrı bir PNG olarak eklendi (`res/drawable-nodpi/studyo_logo.png`, yuvarlak köşeli kare, web Stüdyo logosu gibi) ve ondan çiziliyor.
 
 ## 3.85 (21.11.2026, deneme · `yerel-android` dalı): "Stüdyo" ana sayfası (web Stüdyo görünümü)
 - Ahmet'in istediği tema: web Stüdyo 2.16 ana ekranının yerel hâli (`AnaStudyo.kt`). **Yalnız ana sayfa** — editör kendi temasında (Renk.tema) kalır.

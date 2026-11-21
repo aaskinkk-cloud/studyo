@@ -79,6 +79,9 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
         )
     }
 
+    // 3.88: büyük logo geçişi (Ahmet'in isteği: aynı ya da başka logo, kaç kez / hangi aralıkla — geçiş türünden bağımsız)
+    LogoGecisKarti(vm, p)
+
     if (l != null) Kart("Projedeki logo") {
         AcilirNot("Önizlemede logoyu parmağınla sürükleyerek istediğin yere koyabilirsin.")
         val serbest = l.x >= 0f && l.y >= 0f

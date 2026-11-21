@@ -1383,8 +1383,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     /** 3.73: ilk logo geçişinin 1 sn öncesinden oynatır (nasıl göründüğü hemen izlensin). */
-    fun logoGecisGoster() {
-        val t = proje.value.logoGecisAnlari().firstOrNull() ?: run { mesaj.value = "Logo geçişi için en az 2 klip ve bir logo gerekli"; return }
+    fun logoGecisGoster(an: Long? = null) {
+        val t = an ?: proje.value.logoGecisAnlari().firstOrNull() ?: run { mesaj.value = "Logo geçişi için bir logo ve yeterince uzun video gerekli"; return }
         if (player.isPlaying || kompAktif.value) oynatDurdur()
         git((t - LogoGecis.ONCE - 1000).coerceAtLeast(0))
         oynatDurdur()
@@ -1484,7 +1484,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             val sk = Ayarlar.sakli(ctx)
             if (sk != null) guncelle(true) { p ->
                 p.copy(
-                    gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil),   // 3.82: logo geçişi korunur
+                    gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil, logoPlan = p.gecis.logoPlan, logoAralikSn = p.gecis.logoAralikSn, logoAdet = p.gecis.logoAdet, logoYakala = p.gecis.logoYakala),   // 3.82: logo geçişi korunur
                     giris = if ("giris" in sec) p.giris.copy(stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
                         efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs) else p.giris,
                     hatirlatici = if ("abone" in sec) sk.hatirlatici.copy(acik = true) else p.hatirlatici,
@@ -1765,7 +1765,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun kayitliUygula(ad: String, sk: SakliAyar) {
         guncelle(true) { p ->
             p.copy(
-                gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil),   // 3.82: logo geçişi korunur
+                gecis = sk.gecis.copy(logo = p.gecis.logo, logoYol = p.gecis.logoYol, logoSekil = p.gecis.logoSekil, logoPlan = p.gecis.logoPlan, logoAralikSn = p.gecis.logoAralikSn, logoAdet = p.gecis.logoAdet, logoYakala = p.gecis.logoYakala),   // 3.82: logo geçişi korunur
                 giris = p.giris.copy(acik = sk.giris.acik, stil = sk.giris.stil, hareket = sk.giris.hareket, konum = sk.giris.konum, olcek = sk.giris.olcek,
                     efektSes = sk.giris.efektSes, sesSeviye = sk.giris.sesSeviye, boncuk = sk.giris.boncuk, sureMs = sk.giris.sureMs),
                 hatirlatici = sk.hatirlatici, kapanis = sk.kapanis, altyaziStil = sk.altyaziStil,

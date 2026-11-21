@@ -510,7 +510,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
 
             // 3.73: logo geçişi (dışa aktarmadaki LogoGecis hesabının aynısı): arkada koyu hale, logo büyüyerek gelir ve kaybolur
-            val logoAnlar = remember(p.klipler, p.gecis, p.logo, p.kapanis) { p.logoGecisAnlari() }   // 3.82: köşe logosundan bağımsız
+            val logoAnlar = remember(p.klipler, p.gecis, p.logo, p.kapanis, p.giris) { p.logoGecisAnlari() }   // 3.82: köşe logosundan bağımsız
             if (logoAnlar.isNotEmpty()) {
                 val lgBmp = remember(p.gecisLogoYol, p.gecis.logoSekil, ref) { runCatching { LogoGecis.bitmap(p.gecisLogoYol, p.gecis.logoSekil, RW, RH) }.getOrNull() }
                 val lgAn = LogoGecis.an(logoAnlar, konum)
@@ -1186,8 +1186,10 @@ fun PanelGecis(vm: EditorDurum, p: Proje) {
             AnahtarSatiri("Videoyu siyahtan açarak başlat", p.gecis.siyahtanAc) { v -> vm.gecisDegis { it.copy(siyahtanAc = v) } }
             // 3.82: logo geçişi — 15. saniye · orta · bitime 15 sn kala, klip arasında logo ekrana doğru büyür (2,8 sn).
             // Köşe logosundan bağımsız (köşe logosu kaldırılsa da kalır); Tümüne uygula / standart geçişler bunu değiştirmez.
-            AnahtarSatiri("Logo geçişi (15. sn · orta · son 15 sn)", p.gecis.logo) { v -> vm.logoGecisAc(v) }
-            if (p.gecis.logo) LogoGecisAyari(vm, p)
+            // 3.88: logo geçişinin bütün ayarları Yayın › Logo'da (aynı iş iki yerde olmasın); burada yalnız durum
+            val nL = p.logoGecisAnlari().size
+            Text(if (p.gecis.logo) "Logo geçişi açık · $nL yerde (ayarları: Yayın › Logo › Büyük logo geçişi)" else "Logo geçişi: Yayın › Logo › Büyük logo geçişi",
+                color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
         }
     }
 }
@@ -1755,16 +1757,74 @@ fun PanelRenk(vm: EditorDurum, k: Klip) {
 }
 
 
+/** 3.88: Yayın › Logo › Büyük logo geçişi — aç/kapat, logo (köşe logosuyla aynı ya da kütüphaneden başka), şekil, plan (kaç kez / ne sıklıkla), yerler. */
+@Composable
+fun LogoGecisKarti(vm: EditorDurum, p: Proje) {
+    val g = p.gecis
+    Kart("Büyük logo geçişi", baslangicAcik = g.logo, anahtar = g.logo, anahtarDegis = { v -> vm.logoGecisAc(v) }) {
+        AcilirNot("Logo ekranın ortasında arka plandan büyüyerek gelir, ~1,6 sn kalır, izleyiciye doğru büyüyüp kaybolur (toplam 2,8 sn). " +
+            "Klip arasına denk gelirse kesme logonun altında kalır; değilse fotoğrafın üstünde belirir. Geçiş türünden (geçiş yok dahil) bağımsızdır.")
+        if (!g.logo) { Text("Açmak için sağdaki anahtar.", color = Renk.soluk, fontSize = 12.sp); return@Kart }
+        LogoGecisAyari(vm, p)
+        Text("Ne zaman", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("bos" to "Baş · orta · son", "orta" to "Yalnız ortada", "aralik" to "Belli arayla", "adet" to "Kaç kez").forEach { (k, ad) ->
+                val on = g.logoPlan == k
+                Text(ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                    .background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(16.dp))
+                    .clickable { vm.gecisDegis { it.copy(logoPlan = k) } }.padding(horizontal = 14.dp, vertical = 7.dp))
+            }
+        }
+        if (g.logoPlan == "aralik") {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(15, 20, 30, 45, 50, 60, 90, 120).forEach { s ->
+                    val on = g.logoAralikSn == s
+                    Text("$s sn", color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                        .background(if (on) Renk.turuncu else Renk.kart2).clickable { vm.gecisDegis { it.copy(logoAralikSn = s) } }.padding(horizontal = 12.dp, vertical = 7.dp))
+                }
+            }
+        }
+        if (g.logoPlan == "adet") {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Kaç kez", color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                SimgeDugme("eksi", "Azalt", etkin = g.logoAdet > 1, renk = Renk.turuncu) { vm.gecisDegis { it.copy(logoAdet = (it.logoAdet - 1).coerceAtLeast(1)) } }
+                Text("${g.logoAdet}", color = Renk.yazi, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp))
+                SimgeDugme("ekle", "Artır", etkin = g.logoAdet < 12, renk = Renk.turuncu) { vm.gecisDegis { it.copy(logoAdet = (it.logoAdet + 1).coerceAtMost(12)) } }
+            }
+        }
+        AnahtarSatiri("Klip arasına denk getir (±3 sn)", g.logoYakala) { v -> vm.gecisDegis { it.copy(logoYakala = v) } }
+        // yerler: dokun = o yerin 1 sn öncesinden oynat
+        val anlar = p.logoGecisAnlari()
+        Text(if (anlar.isEmpty()) "Bu plana uyan yer yok (video kısa olabilir)." else "${anlar.size} yerde · dokun = izle", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            anlar.forEach { t ->
+                val sn = t / 1000
+                Text(String.format(TR, "%d:%02d", sn / 60, sn % 60), color = Renk.turuncu, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, Renk.turuncu.copy(alpha = 0.6f), RoundedCornerShape(14.dp)).clickable { vm.logoGecisGoster(t) }.padding(horizontal = 11.dp, vertical = 6.dp))
+            }
+        }
+    }
+}
+
 /** 3.82: logo geçişi ayarı — kütüphaneden logo, şekil, ilkini göster. */
 @Composable
 private fun LogoGecisAyari(vm: EditorDurum, p: Proje) {
     val kutup by LogoKutup.ogeler.collectAsState()
     LaunchedEffect(Unit) { withContext(Dispatchers.IO) { LogoKutup.yukle() } }
     Text("Logo", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
-    if (kutup.isEmpty()) Text("Kütüphanede logo yok. Yayın › Logo'dan yükle (köşeye koyman gerekmez).", color = Renk.soluk, fontSize = 12.sp)
+    if (kutup.isEmpty()) Text("Kütüphanede logo yok. Yukarıdaki kütüphaneden yükle (köşeye koyman gerekmez).", color = Renk.soluk, fontSize = 12.sp)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 3.88: köşe logosuyla aynı (köşe logosu değişirse geçiş de değişir)
+        p.logo?.yol?.takeIf { it.isNotEmpty() }?.let { ky ->
+            val on = g0(p).logoYol.isEmpty()
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).border(if (on) 2.5.dp else 1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(12.dp))
+                    .clickable { vm.gecisDegis { it.copy(logoYol = "") } }.padding(4.dp)) { LogoResmi(ky, Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp))) }
+                Text("Köşedeki", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.sp)
+            }
+        }
         kutup.forEach { k ->
-            val on = p.gecisLogoYol == k.yol
+            val on = p.gecis.logoYol == k.yol
             Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).border(if (on) 2.5.dp else 1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(12.dp))
                 .clickable { vm.gecisDegis { it.copy(logoYol = k.yol) } }.padding(4.dp)) { LogoResmi(k.yol, Modifier.fillMaxSize().clip(RoundedCornerShape(9.dp))) }
         }
@@ -1778,9 +1838,5 @@ private fun LogoGecisAyari(vm: EditorDurum, p: Proje) {
                 .clickable { vm.gecisDegis { it.copy(logoSekil = k) } }.padding(horizontal = 14.dp, vertical = 7.dp))
         }
     }
-    val n = p.logoGecisAralari().size
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (n == 0) "En az 2 klip gerekli." else "$n yerde logo büyüyerek gelir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f))
-        TonHap("İlkini göster", "oynat", false, Renk.turuncu) { vm.logoGecisGoster() }
-    }
 }
+private fun g0(p: Proje) = p.gecis

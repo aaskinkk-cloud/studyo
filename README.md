@@ -2,9 +2,21 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.87 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.88 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.88 (21.11.2026, deneme · `yerel-android` dalı): Büyük logo geçişi Yayın › Logo'da — plan (kaç kez / hangi aralıkla), geçiş türünden bağımsız
+- **Yer:** Yayın › Logo › **Büyük logo geçişi** (anahtarlı açılır kart). Efekt › Geçiş'te yalnız durum satırı kaldı (aynı ayar iki yerde olmasın).
+- **Logo:** "Köşedeki" (köşe logosuyla aynı; köşe logosu değişince o da değişir) ya da kütüphaneden başka bir logo. Şekil: Yuvarlak · Yuvarlak kare · Özgün.
+- **Ne zaman** (`Gecis.logoPlan`, `Proje.logoPlani()`): T = video süresi; logo girişten sonra (giriş açıksa giriş + 0,5 sn, en az 4 sn) ve bitime 4 sn kalana kadar.
+  - Baş · orta · son: 15 sn, T/2, T−15 sn (T < 25 sn: yalnız T/2) — önceki davranış
+  - Yalnız ortada: T/2
+  - Belli arayla (A = 15/20/30/45/50/60/90/120 sn): A, 2A, 3A… (T−4 sn'ye kadar)
+  - Kaç kez (N = 1…12): T·k/(N+1), eşit aralık
+  - **Klip arasına denk getir** (varsayılan açık): hedefe ±3 sn içindeki en yakın klip arasına oturur → kesme logo tam ekrandayken olur (o arada geçiş yok). Yakın ara yoksa logo klibin üstünde belirir. Logolar arası en az 6 sn.
+  - Yerler kartta dakika:saniye olarak listelenir; dokun = o yerin 1 sn öncesinden oynatır.
+- **"Geçiş yok"ta logo gelmiyordu:** logo geçişi önceden yalnız klip aralarına bağlıydı ve ayarı Geçiş panelindeydi; artık plan zaman çizelgesindeki anlara göre kurulur, geçiş türüne bakılmaz (önizleme ve dışa aktarma aynı `logoGecisAnlari()`).
 
 ## 3.87 (21.11.2026, deneme · `yerel-android` dalı): silüet ışığı, öncü/sabitlenebilir Düzenle, sürüklerken kararma kök düzeltmesi, hareket yönü menüsü
 - **Yüz turu › Silüet ışığı** (Ahmet'in gösterdiği Samsung Galeri efekti; varsayılan): ışık kişinin dış hattını **iki alt uçtan** (omuzlar/kollar) başlayıp başın tepesinde buluşacak şekilde izler, sonra kuyruk tepeye çekilip söner (~2 sn; durak kısaysa sıkışır). Yumuşak beyaz hale + parlak ince çekirdek + koşan ışık noktaları.

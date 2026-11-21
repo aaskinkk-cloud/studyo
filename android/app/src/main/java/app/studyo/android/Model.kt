@@ -150,7 +150,10 @@ data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc
                  /** 3.73: logo geçişi — baştaki, ortadaki ve sona yakın üç klip arasında geçiş yerine logo arka plandan büyüyerek gelir */
                  val logo: Boolean = false,
                  /** 3.82: geçiş logosu köşe logosundan bağımsız (kütüphaneden seçilir; köşe logosu kaldırılsa da kalır). Şekil: yuvarlak · kare · ozgun */
-                 val logoYol: String = "", val logoSekil: String = "yuvarlak") {
+                 val logoYol: String = "", val logoSekil: String = "yuvarlak",
+                 /** 3.88: logo geçişinin planı (Yayın › Logo) — "bos": baş · orta · son · "orta": yalnız ortada · "aralik": her logoAralikSn saniyede
+                  *  · "adet": videoya eşit aralıkla logoAdet kez. logoYakala: hedef ana yakın (±3 sn) klip arası varsa logo oraya oturur (kesme logonun altında kalır). */
+                 val logoPlan: String = "bos", val logoAralikSn: Int = 30, val logoAdet: Int = 3, val logoYakala: Boolean = true) {
     // yok | siyah | beyaz | yakin  (tek dizi)  ·  capraz | kaydir | yakincapraz  (üst üste binen: giden klibin devamı üstte solar)
     val cakisma: Boolean get() = tur == "erime" || tur == "capraz" || tur == "kaydir" || tur == "yakincapraz" || tur == "hafif" || tur == "akis"
 }
@@ -297,24 +300,50 @@ data class Proje(
     /** 3.82: logo geçişinin yapıldığı klip araları (i = klip i ile i+1 arası): 15. saniyeye, ortaya ve bitime 15 sn kalaya EN YAKIN
      *  klip arası (kesme logonun tam ekranda olduğu ana denk gelir). Ham klip süreleriyle hesaplanır (örtüşme hesabıyla döngü olmaz).
      *  Kısa videoda yerler çakışırsa daha az logo olur. Standart geçişler / Tümüne uygula bunları değiştirmez. */
-    fun logoGecisAralari(): Set<Int> {
+    fun logoGecisAralari(): Set<Int> = logoPlani().mapNotNull { it.second }.toSet()
+
+    /** 3.88: logo geçişi planı (ham klip süreleriyle; örtüşme hesabına bağlı değil → döngü yok). Her öğe: (hedef an ms, oturduğu klip arası ya da null).
+     *  Matematik: T = video süresi. Logo girişten (giriş açıksa giriş süresi + 0,5 sn, en az 4 sn) sonra ve bitime 4 sn kalana kadar konur.
+     *   - bos (baş·orta·son): 15 sn, T/2, T−15 sn (T < 25 sn ise yalnız T/2)
+     *   - orta: T/2
+     *   - aralik A sn: A, 2A, 3A, … (T−4 sn'ye kadar)
+     *   - adet N: T·k/(N+1), k = 1…N (eşit aralık)
+     *  Yakala açıksa her hedef ±3 sn içindeki en yakın klip arasına oturur (o arada kesme yok, logo tam ekrandayken klip değişir); yoksa klibin
+     *  ortasında üstte belirir. Logolar arası en az 6 sn (2,8 sn'lik logo üst üste binmez). */
+    fun logoPlani(): List<Pair<Long, Int?>> {
+        if (!gecis.logo || gecisLogoYol.isEmpty() || klipler.isEmpty()) return emptyList()
         val n = klipler.size - 1
-        if (!gecis.logo || gecisLogoYol.isEmpty() || n < 1) return emptySet()
-        val sinir = LongArray(n); var t = 0L
+        val sinir = LongArray(n.coerceAtLeast(0)); var t = 0L
         for (i in 0 until n) { t += klipler[i].sureMs; sinir[i] = t }
-        val top = t + klipler.last().sureMs
-        val hedef = if (top < 25_000) listOf(top / 2) else listOf(15_000L, top / 2, top - 15_000L)
-        val sec = LinkedHashSet<Int>()
-        for (h in hedef) (0 until n).filter { it !in sec }.minByOrNull { kotlin.math.abs(sinir[it] - h) }?.let { sec += it }
-        return sec
+        val top = klipler.sumOf { it.sureMs }
+        val ilk = maxOf(4_000L, if (giris.acik) giris.sureMs + 500 else 0L)
+        val son = top - 4_000L
+        if (son <= ilk) return emptyList()
+        val ham: List<Long> = when (gecis.logoPlan) {
+            "orta" -> listOf(top / 2)
+            "aralik" -> { val a = gecis.logoAralikSn.coerceIn(5, 600) * 1000L; generateSequence(a) { it + a }.takeWhile { it <= son }.toList() }
+            "adet" -> { val k = gecis.logoAdet.coerceIn(1, 12); (1..k).map { top * it / (k + 1) } }
+            else -> if (top < 25_000) listOf(top / 2) else listOf(15_000L, top / 2, top - 15_000L)
+        }
+        val sonuc = ArrayList<Pair<Long, Int?>>()
+        val kullanilan = HashSet<Int>()
+        for (h0 in ham) {
+            val h = h0.coerceIn(ilk, son)
+            val yak = if (gecis.logoYakala) (0 until n).filter { it !in kullanilan && kotlin.math.abs(sinir[it] - h) <= 3_000 }.minByOrNull { kotlin.math.abs(sinir[it] - h) } else null
+            val an = yak?.let { sinir[it] } ?: h
+            if (sonuc.any { kotlin.math.abs(it.first - an) < 6_000 }) continue
+            if (yak != null) kullanilan += yak
+            sonuc += an to yak
+        }
+        return sonuc.sortedBy { it.first }
     }
 
-    /** 3.73: logo geçişlerinin kesme anları (zaman çizelgesi ms). */
+    /** 3.73: logo geçişlerinin anları (zaman çizelgesi ms; logonun tam ekranda olduğu an). Klip arasına oturanlar gerçek kesme anında. */
     fun logoGecisAnlari(): List<Long> {
-        val a = logoGecisAralari(); if (a.isEmpty()) return emptyList()
-        var t = 0L; val l = ArrayList<Long>()
-        for (i in klipler.indices) { t += zKlip(i).sureMs; if (i in a) l += t }
-        return l
+        val plan = logoPlani(); if (plan.isEmpty()) return emptyList()
+        val kesme = HashMap<Int, Long>(); var t = 0L
+        for (i in klipler.indices) { t += zKlip(i).sureMs; kesme[i] = t }
+        return plan.map { (an, ara) -> if (ara != null) kesme[ara] ?: an else an }
     }
 
     fun ortusme(i: Int): Long {

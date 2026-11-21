@@ -2,9 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.83 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.84 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.84 (21.11.2026, deneme · `yerel-android` dalı): "Karanlık Oda" teması
+- Dördüncü tema (`Renk.tema = 3`, `Renk.ko`): Karanlık Oda ve Kareden Videoya'nın ortak görünümü — grafit zemin `#0F1213`, yüzey `#171B1D/#21262A`,
+  kehribar vurgu `#F0993C`, sıcak kırık beyaz yazı `#E8E6E0`, deniz yeşili ikincil `#6CB8AC`. Renkler bütün uygulamaya (editör dahil) uygulanır.
+- Ana sayfa bu temada o uygulamaların düzeninde (`AnaKO.kt`): ışıldayan kehribar lamba imi + "Stüdyo" (Archivo), alt satırda sürüm;
+  açılır **Ayarlar** kutusu (tema seçimi hap düğmelerle, alt başlık düzeni, yedekten geri yükle, pil, hata kaydı, sürüm — ⋯ menüsünün yerine);
+  eylem kartları (birincil "Yeni video" kehribar, ışık gölgeli, tam genişlik; altında "Fotoğraf (web)" ve "Arşiv");
+  hap sekmeler "Son çalışmalarım · Arşiv"; proje kartı büyük küçük resim + süre rozeti, biçim etiketi.
+- Seçim: ⋯ › "Karanlık Oda teması (yeni)". Önceki üç tema ve ana sayfanın önceki görünümü aynen duruyor.
 
 ## 3.83 (21.11.2026, deneme · `yerel-android` dalı): Yüz gizleme (takipli bulanıklaştırma)
 - **Düzenle › Klip › Yüz gizle** (Yüzler'in yanında; fotoğraf ve video). Yalnız **seçilen** yüzler gizlenir.

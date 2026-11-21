@@ -177,6 +177,12 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
         }.start()
     }
 
+    if (Renk.ko) AnaSayfaKO(
+        projeler = projeler, gorunen = gorunen, arsivde = arsivde, arsivSayisi = arsivSayisi, secim = secim, disa = disa,
+        arsivDegis = { arsivde = it }, secimDegis = { secim = it }, yeni = yeni, webAc = webAc, ac = ac,
+        yenile = { projeler = Depo.listele() }, topluSil = { topluSilOnay = true }, geriYukle = { geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
+        silIste = { silinecek = it }, adIste = { adDegis = it }, tvIste = { tvVideo = it },
+    ) else
     Column(Modifier.fillMaxSize().background(Renk.zemin)) {
         Row(
             Modifier.fillMaxWidth().background(Renk.kart)
@@ -197,6 +203,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                     if (Renk.tema != 0) DropdownMenuItem(text = { Text("Gece teması") }, onClick = { menu = false; Renk.sec(ctx, 0) })
                     if (Renk.tema != 1) DropdownMenuItem(text = { Text("Gündüz teması") }, onClick = { menu = false; Renk.sec(ctx, 1) })
                     if (Renk.tema != 2) DropdownMenuItem(text = { Text("Siyah-beyaz tema (VITA düzeni)") }, onClick = { menu = false; Renk.sec(ctx, 2) })
+                    DropdownMenuItem(text = { Text("Karanlık Oda teması (yeni)") }, onClick = { menu = false; Renk.sec(ctx, 3) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
                     DropdownMenuItem(text = { Text("Sürüm ${BuildConfigBilgi.surum(ctx)}") }, onClick = { menu = false })

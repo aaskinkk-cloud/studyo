@@ -30,31 +30,33 @@ import androidx.compose.ui.unit.sp
 
 /** Renkler. Gece (koyu) teması varsayılan; gündüz ve 3.63 siyah-beyaz (VITA tarzı) temalar ⋯ menüsünden seçilir ve hatırlanır. Önceki temalar silinmedi. */
 object Renk {
-    /** 0 = gece (varsayılan), 1 = gündüz, 2 = siyah-beyaz. */
+    /** 0 = gece (varsayılan), 1 = gündüz, 2 = siyah-beyaz, 3 = Karanlık Oda (3.84: Karanlık Oda + Kareden Videoya'nın ortak görünümü:
+     *  grafit zemin, kehribar vurgu, sıcak kırık beyaz yazı; ana sayfa o uygulamaların düzeninde). */
     var tema by mutableIntStateOf(0)
     val gunduz get() = tema == 1
     val sb get() = tema == 2
-    private fun s(gece: Long, gun: Long, sbr: Long) = Color(when (tema) { 1 -> gun; 2 -> sbr; else -> gece })
-    val zemin get() = s(0xFF121A21, 0xFFF2F5F8, 0xFF000000)
-    val kart get() = s(0xFF1B2833, 0xFFFFFFFF, 0xFF141414)
-    val kart2 get() = s(0xFF243444, 0xFFE6ECF1, 0xFF242424)
-    val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB, 0xFF343434)
-    val yazi get() = s(0xFFE6EDF3, 0xFF15212C, 0xFFFFFFFF)
-    val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80, 0xFF9E9E9E)
-    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF)
-    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204, 0xFF000000)
-    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6)
-    val kirmizi get() = s(0xFFEF5350, 0xFFD93A36, 0xFFEF5350)
-    val yesil get() = s(0xFF4CC38A, 0xFF16915A, 0xFF4CC38A)
+    val ko get() = tema == 3
+    private fun s(gece: Long, gun: Long, sbr: Long, kor: Long) = Color(when (tema) { 1 -> gun; 2 -> sbr; 3 -> kor; else -> gece })
+    val zemin get() = s(0xFF121A21, 0xFFF2F5F8, 0xFF000000, 0xFF0F1213)
+    val kart get() = s(0xFF1B2833, 0xFFFFFFFF, 0xFF141414, 0xFF171B1D)
+    val kart2 get() = s(0xFF243444, 0xFFE6ECF1, 0xFF242424, 0xFF21262A)
+    val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB, 0xFF343434, 0xFF2D3337)
+    val yazi get() = s(0xFFE6EDF3, 0xFF15212C, 0xFFFFFFFF, 0xFFE8E6E0)
+    val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80, 0xFF9E9E9E, 0xFF8A939A)
+    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF, 0xFFF0993C)
+    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204, 0xFF000000, 0xFF1B1206)
+    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6, 0xFF6CB8AC)
+    val kirmizi get() = s(0xFFEF5350, 0xFFD93A36, 0xFFEF5350, 0xFFE0645A)
+    val yesil get() = s(0xFF4CC38A, 0xFF16915A, 0xFF4CC38A, 0xFF7FD3A1)
 
     /** Siyah-beyaz temada renkli simge tonları beyaza döner; diğer temalarda renk aynen kalır. */
     fun tonla(c: Color): Color = if (sb) Color(0xFFEDEDED) else c
 
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
-        tema = sp.getInt("tema", if (sp.getBoolean("gunduz", false)) 1 else 0).coerceIn(0, 2)
+        tema = sp.getInt("tema", if (sp.getBoolean("gunduz", false)) 1 else 0).coerceIn(0, 3)
     }
-    fun sec(ctx: Context, t: Int) { tema = t.coerceIn(0, 2); ctx.getSharedPreferences("ayar", 0).edit().putInt("tema", tema).putBoolean("gunduz", tema == 1).apply() }
+    fun sec(ctx: Context, t: Int) { tema = t.coerceIn(0, 3); ctx.getSharedPreferences("ayar", 0).edit().putInt("tema", tema).putBoolean("gunduz", tema == 1).apply() }
     fun degistir(ctx: Context) = sec(ctx, if (tema == 1) 0 else 1)
 }
 

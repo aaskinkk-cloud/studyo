@@ -297,6 +297,7 @@ object Disa {
                 // Artık gelen klip, kendi öğesindeki AYNI etkilerle, AYNI sırayla çizilir (bkz. parca()).
                 val etk = ArrayList<androidx.media3.effect.GlEffect>()
                 if (B != null) renkEtkisi(B)?.let { etk += it }
+                if (B != null) etk += YuzGizleEtki.hepsi(B, 0L, 0L, dogrudan = true)   // 3.83: gelen klipte de yüzler gizli
                 if (B != null) hareket(B, W, H, j + 1, B.sureMs, 0L, 0L, dogrudan = true)?.let { etk += it }
                 etk += Presentation.createForWidthAndHeight(W, H,
                     if (B != null && B.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)
@@ -442,6 +443,7 @@ object Disa {
         val v = ArrayList<Effect>()
         // 3.49: renk ve ışık (önce: kaynak renklerine uygulanır) · 3.59: filtre aynı LUT'ta
         renkEtkisi(k)?.let { v += it }
+        v += YuzGizleEtki.hepsi(k, cizelgeBas, ofsMs)   // 3.83: yüz gizleme — kaynak karede, kadraj/hareketten önce (yüzle birlikte hareket eder)
         hareket(k, W, H, i, tamMs, ofsMs, cizelgeBas)?.let { v += it }   // akıllı kadraj + otomatik hareket
         v += Presentation.createForWidthAndHeight(W, H,
             if (k.doldur) Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP else Presentation.LAYOUT_SCALE_TO_FIT)

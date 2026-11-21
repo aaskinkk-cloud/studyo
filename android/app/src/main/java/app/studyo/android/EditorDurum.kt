@@ -560,6 +560,75 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun hepsine(f: (Klip) -> Klip, yapi: Boolean = false) = guncelle(yapi) { p -> p.copy(klipler = p.klipler.map(f)) }
 
+    // ---------- 3.83: yüz gizleme (Düzenle › Klip › Yüz gizle) ----------
+    val gizleAraniyor = MutableStateFlow(false)
+    val gizleIlerleme = MutableStateFlow(0f)
+    /** İncelenen an (kaynak zamanı, ms) ve seçili yüz (id; -1 = yok). */
+    val gizleAnMs = MutableStateFlow(0L)
+    val gizleSecili = MutableStateFlow(-1)
+    private var gizleIs: Job? = null
+
+    private fun gizleDegis(f: (YuzGizle) -> YuzGizle) = klipGuncelle { it.copy(yuzGizle = f(it.yuzGizle ?: YuzGizle())) }
+
+    /** Sayfa açılınca: incelenecek an oynatıcının yeri (bu klipteyse). */
+    fun gizleBasla() {
+        val s = secili.value; val k = proje.value.klipler.getOrNull(s) ?: return
+        gizleAnMs.value = if (k.foto) 0L else if (player.currentMediaItemIndex == s) (k.basMs + player.currentPosition.coerceAtLeast(0)).coerceIn(k.basMs, k.sonMs) else k.basMs
+    }
+
+    /** Klipteki yüzleri bul (videoda takip izleriyle). Önceki elle eklenenler ve seçimleri korunur. */
+    fun gizleAra() {
+        val s = secili.value; val k = proje.value.klipler.getOrNull(s) ?: return
+        if (gizleAraniyor.value) { gizleIs?.cancel(); gizleAraniyor.value = false; mesaj.value = "Arama durduruldu"; return }
+        gizleAraniyor.value = true; gizleIlerleme.value = 0f
+        gizleIs = kapsam.launch {
+            val l = try { if (k.foto) YuzGizleme.fotoAra(ctx, k) else YuzGizleme.videoAra(ctx, k) { gizleIlerleme.value = it } }
+                catch (e: kotlinx.coroutines.CancellationException) { gizleAraniyor.value = false; return@launch }
+                catch (e: Throwable) { Kayit.hata("yüz gizle", e); null }
+            gizleAraniyor.value = false
+            if (l == null) { mesaj.value = "Yüzler aranamadı (hata kaydında)"; return@launch }
+            val i = proje.value.klipler.indexOfFirst { it.id == k.id }.takeIf { it >= 0 } ?: return@launch
+            guncelle { p -> p.copy(klipler = p.klipler.toMutableList().also { kl ->
+                val g = kl[i].yuzGizle ?: YuzGizle()
+                val elle = g.yuzler.filter { it.elle }
+                val ilk = (elle.maxOfOrNull { it.id } ?: 0)
+                val yeni = l.map { it.copy(id = ilk + it.id) }
+                kl[i] = kl[i].copy(yuzGizle = g.copy(yuzler = elle + yeni, secili = g.secili.filter { id -> elle.any { it.id == id } }.toSet(), arandi = true))
+            }) }
+            mesaj.value = if (l.isEmpty()) "Yüz bulunamadı · kaçan yüze basılı tut = elle ekle" else "${l.size} yüz bulundu · gizlenecekleri seç"
+        }
+    }
+
+    fun gizleSec(id: Int) = gizleDegis { g -> g.copy(secili = if (id in g.secili) g.secili - id else g.secili + id) }
+    fun gizleHepsi(ac: Boolean) = gizleDegis { g -> g.copy(secili = if (ac) g.yuzler.map { it.id }.toSet() else emptySet()) }
+    fun gizleGuc(v: Float) = gizleDegis { it.copy(guc = v.coerceIn(0.05f, 1f)) }
+    fun gizleOlcek(id: Int, v: Float) = gizleDegis { g -> g.copy(yuzler = g.yuzler.map { if (it.id == id) it.copy(olcek = v.coerceIn(0.6f, 2.2f)) else it }) }
+    fun gizleSil(id: Int) { gizleDegis { g -> g.copy(yuzler = g.yuzler.filter { it.id != id }, secili = g.secili - id) }; gizleSecili.value = -1 }
+    fun gizleTemizle() { klipGuncelle { it.copy(yuzGizle = null) }; gizleSecili.value = -1; mesaj.value = "Yüz gizleme kaldırıldı" }
+
+    /** Kaçan yüzü elle ekle (x, y: karede 0…1, ms: kaynak zamanı). Videoda o andan itibaren takip edilir; eklenen yüz gizlenir. */
+    fun gizleElleEkle(x: Float, y: Float, ms: Long) {
+        val s = secili.value; val k = proje.value.klipler.getOrNull(s) ?: return
+        if (gizleAraniyor.value) return
+        gizleAraniyor.value = true; gizleIlerleme.value = 0f
+        if (!k.foto) mesaj.value = "Yüz takip ediliyor…"
+        gizleIs = kapsam.launch {
+            val iz = try { YuzGizleme.elleIz(ctx, k, x, y, ms, YuzGizleme.varsayilanBoy(k.yuzGizle)) { gizleIlerleme.value = it } }
+                catch (e: kotlinx.coroutines.CancellationException) { gizleAraniyor.value = false; return@launch }
+            gizleAraniyor.value = false
+            val i = proje.value.klipler.indexOfFirst { it.id == k.id }.takeIf { it >= 0 } ?: return@launch
+            var yeniId = 0
+            guncelle { p -> p.copy(klipler = p.klipler.toMutableList().also { kl ->
+                val g = kl[i].yuzGizle ?: YuzGizle()
+                yeniId = (g.yuzler.maxOfOrNull { it.id } ?: 0) + 1
+                kl[i] = kl[i].copy(yuzGizle = g.copy(yuzler = g.yuzler + GizliYuz(yeniId, iz, elle = true), secili = g.secili + yeniId))
+            }) }
+            gizleSecili.value = yeniId
+            mesaj.value = if (k.foto || iz.size < 2) "Yüz eklendi ve gizlendi · boyutu aşağıdan ayarla"
+                else "Yüz ${String.format(java.util.Locale("tr"), "%.1f", (iz.last().ms - iz.first().ms) / 1000f)} sn takip edildi ve gizlendi"
+        }
+    }
+
     // ---------- 3.74: yüz turu (Düzenle › Klip › Yüzler) ----------
     val yuzAraniyor = MutableStateFlow(false)
     /** Seçili turdaki durak (numara − 1); -1 = yok. */

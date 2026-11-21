@@ -78,7 +78,11 @@ data class Klip(
     val hiz: Float = 1f, val asilUri: String = "", val asilBasMs: Long = 0, val asilSonMs: Long = 0, val asilKaynakSureMs: Long = 0,
     /** 3.74: yüzlere (ve seçilen noktalara) sırayla yaklaşma — aynı fotoğrafta numaralı noktalar arasında yumuşak kamera turu. null = yok. */
     val yuzTur: YuzTuru? = null,
+    /** 3.83: yüz gizleme (bulanıklaştırma) — bulunan/elle eklenen yüzler, takip izleri ve seçilenler. null = yok. */
+    val yuzGizle: YuzGizle? = null,
 ) {
+    /** 3.83: bu klipte bulanıklaştırılacak yüz var mı. */
+    val gizleVar: Boolean get() = yuzGizle?.let { g -> g.guc > 0.01f && g.yuzler.any { it.id in g.secili && it.izler.isNotEmpty() } } == true
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
     val yuzEtkin: Boolean get() = foto && kenBurns && yuzOdak && yuzB > 0f
@@ -326,3 +330,17 @@ data class Proje(
     val kapanisMs: Long get() = if (kapanis.acik && klipler.isNotEmpty()) kapanis.sureMs else 0L
     val toplamMs: Long get() = klipMs + kapanisMs
 }
+
+
+/** 3.83: yüz gizlemede bir yüzün bir andaki yeri. ms: kaynak dosyada zaman (fotoğrafta 0); x, y: yüz merkezi (0…1);
+ *  w, h: yüz kutusunun eni/boyu (karenin eni/boyu oranı); aci: başın yana eğimi (derece). */
+@Serializable
+data class YuzIz(val ms: Long, val x: Float, val y: Float, val w: Float, val h: Float, val aci: Float = 0f)
+
+/** 3.83: takip edilen bir yüz (videoda kare kare iz; fotoğrafta tek iz). olcek: bulanık alanın büyüklüğü çarpanı. elle: kullanıcı ekledi. */
+@Serializable
+data class GizliYuz(val id: Int, val izler: List<YuzIz>, val olcek: Float = 1f, val elle: Boolean = false, val resim: String = "")
+
+/** 3.83: Düzenle › Klip › Yüz gizle. secili: bulanıklaşacak yüzler (yalnız seçilenler). guc: bulanıklık gücü 0…1. */
+@Serializable
+data class YuzGizle(val yuzler: List<GizliYuz> = emptyList(), val secili: Set<Int> = emptySet(), val guc: Float = 0.7f, val arandi: Boolean = false)

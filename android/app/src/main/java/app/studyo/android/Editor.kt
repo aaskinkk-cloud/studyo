@@ -173,7 +173,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
-                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -270,7 +270,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa,
-                    yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler")
+                    yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler",
+                    gizlePaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "gizle")
                 if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
@@ -1134,6 +1135,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
                 "kadraj" -> Kart("Kadraj · klip ${sec + 1}") { KadrajIcerik(vm, k) }
                 "hiz" -> HizSayfasi(vm, k)
                 "yuzler" -> YuzTuruSayfasi(vm, p, sec, k)   // 3.74: yüzlere sırayla yaklaşma
+                "gizle" -> YuzGizleSayfasi(vm, sec, k)   // 3.83: seçilen yüzleri bulanıklaştır (takipli)
                 "ayri" -> YuzAyriVideoSayfasi(vm, p, sec, k)   // 3.78: seçilen kişilerden ayrı video (Reels/yatay/kare)
                 else -> PanelKlip(vm, p, sec, k)
             }

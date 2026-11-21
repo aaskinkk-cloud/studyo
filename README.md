@@ -2,9 +2,20 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.82 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.83 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.83 (21.11.2026, deneme · `yerel-android` dalı): Yüz gizleme (takipli bulanıklaştırma)
+- **Düzenle › Klip › Yüz gizle** (Yüzler'in yanında; fotoğraf ve video). Yalnız **seçilen** yüzler gizlenir.
+- **Bulma:** ML Kit yüz algılama (ücretsiz, cihaz içinde; küçük/arkadaki yüzler dahil). Videoda kareler sırayla çözülür, saniyede ~10'u taranır;
+  yüzler konum + boyut benzerliğiyle kareden kareye bağlanır (takip izi), 3 sn'ye kadar kopuk izler birleşir, iz 3 noktalık ortalamayla yumuşatılır,
+  yüz 1,5 sn'ye kadar görünmese (döndü/kapandı) de gizli kalır; izin başı/sonu 0,4 sn payla kapatılır. Her yüzün küçük resmi listede.
+- **Elle ekleme:** önizlemede kaçan yüze basılı tut → fotoğrafta oval eklenir, videoda o andan itibaren şablon takibiyle (Takipci) izlenir ve gizlenir.
+- **Görünüm:** yüz hattına uyan oval (alın-çene dahil), başın eğimine döner, kenarı yumuşak; dört geçişli maskeli Gauss (dışarısı hiç değişmez).
+  Ayarlar: bulanıklık gücü (klip), alan genişliği (yüz başına), gizle/göster, listeden sil, Hepsini gizle / Hiçbiri / Kaldır.
+- **Uygulama yeri:** kaynak karede, renkten sonra, kadraj/hareketten önce (`YuzGizleEtki`, `Disa.parca`) → yaklaşma/kaydırmada yüzle birlikte gider;
+  geçişte gelen klipte de (tek tuval). Durağan önizlemede aynı ovaller işlemciyle (`YuzGizleme.uygula`). Veri: `Klip.yuzGizle` (`YuzGizle`, `GizliYuz`, `YuzIz`).
 
 ## 3.82 (21.11.2026, deneme · `yerel-android` dalı): "önce aydınlık, sonra koyu" kök düzeltmesi, bağımsız logo geçişi, Yıl etiketi stili, TV kopyası 6 Mbps
 - **Kronik hata — fotoğraf aydınlık başlayıp koyulaşıyordu (kök neden):** üst üste binen geçişlerde (tek tuval) gelen klip yalnız kadraj/hareket + sunumla çiziliyordu; klibin **renk ayarı/Doğal**, **filtresi**, **efekti** (vinyet, sinema…), **keskinliği** ve **arka plan bulanıklığı** ancak geçiş bitip klibin kendi öğesi başlayınca uygulanıyordu → geçiş boyunca ham (daha aydınlık), hemen ardından ayarlı (koyu). Artık gelen klip kendi öğesindeki AYNI etkilerle, AYNI sırayla çizilir (`Disa.renkEtkisi`, `GelenTarif.etkiler: List<GlEffect>`). Dışa aktarma ve akıcı önizleme aynı yolu kullanır.

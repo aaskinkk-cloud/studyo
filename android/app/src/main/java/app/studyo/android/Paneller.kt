@@ -106,7 +106,7 @@ private fun Not(m: String) = AcilirNot(m)   // 3.72: bütün açıklamalar kapal
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
 fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false, hareketPaneli: Boolean = false, renkPaneli: Boolean = false,
-                     sablonSayfa: String? = null, yuzPaneli: Boolean = false) {
+                     sablonSayfa: String? = null, yuzPaneli: Boolean = false, gizlePaneli: Boolean = false) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
     val konumAkis by vm.konum.collectAsState()
@@ -188,9 +188,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // 3.56: Renk bölümünde ayarın sonucu doğrudan ana önizlemede (durağanken). Önceden durağan oynatıcı ham görüntüyü gösterdiği için
             // Renk sayfasında ayrı bir önce/sonra kutusu gerekiyordu; o kutu kaldırıldı. Oynarken akıcı önizleme rengi zaten uygular.
             // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
-            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f)
+            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f || k.gizleVar)
             // 3.61: arka planı bulanık klip durağanken her bölümde bulanık görünür (kesilen nesne önünde)
-            if ((renkPaneli || (k?.arkaBulanik ?: 0f) > 0.01f) && !oynuyorAkis && k != null && goruntuAyari) {
+            if ((renkPaneli || (k?.arkaBulanik ?: 0f) > 0.01f || k?.gizleVar == true) && !oynuyorAkis && k != null && goruntuAyari && !gizlePaneli) {
                 val ctxR = LocalContext.current
                 val kaynakMs = if (k.foto) 0L else k.basMs + vm.player.currentPosition.coerceAtLeast(0)
                 val ham by produceState<Bitmap?>(null, k.id, k.uri, kaynakMs) {
@@ -204,9 +204,11 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 // 3.72: Android 12+ arka plan bulanıklığı gerçek Gauss (RenderEffect, dışa aktarmadaki 4 geçişli GL Gauss'un karşılığı) + %10 karartma;
                 // eski sürümlerde yazılım bulanıklığı
                 val gpuBulanik = android.os.Build.VERSION.SDK_INT >= 31 && k.arkaBulanik > 0.01f
-                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik) {
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik, k.yuzGizle) {
                     value = ham?.let { b -> withContext(Dispatchers.Default) {
-                        val r = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+                        val r0 = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+                        // 3.83: yüz gizleme (dışa aktarmadaki ovallerin aynısı)
+                        val r = k.yuzGizle?.takeIf { k.gizleVar }?.let { g -> YuzGizleme.uygula(r0, YuzGizleme.anlik(g, kaynakMs, k.foto), g.guc) } ?: r0
                         Efektler.uygula(if (gpuBulanik) r else Efektler.bulaniklastir(r, k.arkaBulanik), k.efekt, k.efektGuc) } }
                 }
                 val bulanikDp = with(yog) { (k.arkaBulanik.coerceIn(0f, 1f) * 0.035f * minOf(constraints.maxWidth, constraints.maxHeight)).toDp() }
@@ -745,6 +747,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             // 3.74: Düzenle › Klip › Yüzler — duraklatılmışken fotoğrafın tamamı, yüz halkaları ve numaralı duraklar (dokun = ekle, sürükle = taşı)
             if (yuzPaneli && !oynuyorAkis && k != null && k.foto) YuzTuruKatmani(vm, p, k, Modifier.fillMaxSize())
+            // 3.83: Düzenle › Klip › Yüz gizle — duraklatılmışken karenin tamamı, bulanık (seçili) ve kesik çizgili (seçilmemiş) ovaller
+            if (gizlePaneli && !oynuyorAkis && k != null) YuzGizleKatmani(vm, k, Modifier.fillMaxSize())
         }
     }
 }

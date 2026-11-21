@@ -24,7 +24,9 @@ import kotlin.math.sin
  */
 object TurVurgu {
     class Durum(val durak: Int, val yuz: Boolean, val cx: Float, val cy: Float, val rx: Float, val ry: Float,
-                val sup: Float, val halkaAlfa: Float, val ad: String, val adAlfa: Float, val adDy: Float)
+                val sup: Float, val halkaAlfa: Float, val ad: String, val adAlfa: Float, val adDy: Float,
+                /** 3.87: silüet ışığı — hat noktaları çıkış pikselinde (x,y sırayla), tepe sırası, ışığın kuyruğu (0…1) */
+                val siluet: FloatArray? = null, val tepe: Int = 0, val kuyruk: Float = 0f)
 
     private fun yum(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
@@ -52,8 +54,28 @@ object TurVurgu {
         val kisa = min(W, H).toFloat()
         val ry = if (yuz) n.yb * fh * 0.6f else kisa * 0.08f
         val rx = if (yuz) ry * 0.8f else ry
-        // halka zamanlaması (durak kısaysa orantılı sıkışır)
         val g = a.gecen; val h = a.sure
+        // 3.87: silüet ışığı — ışık iki alt uçtan kişinin hattını izleyerek başın tepesinde buluşur, sonra kuyruk tepeye çekilip söner (~2 sn)
+        if (t.vurgu && yuz && t.vurguTur == "siluet" && n.siluet.size >= 16) {
+            val c2 = (min(2.1f, h - 0.15f) / 2.1f).coerceIn(0.3f, 1f)
+            val bas = 0.15f * c2; val buyu = 0.95f * c2; val bek = 0.12f * c2; val cek = 0.75f * c2
+            val on = yum((g - bas) / buyu)
+            val kuyruk = yum((g - bas - buyu - bek) / cek)
+            val alfa = if (g < bas) 0f else (1f - ((kuyruk - 0.45f) / 0.55f).coerceIn(0f, 1f)).let { it * it * (3f - 2f * it) }
+            val pts = FloatArray(n.siluet.size)
+            var i = 0
+            while (i + 1 < n.siluet.size) {
+                pts[i] = geo[2] + (n.siluet[i] - 0.5f) * fw; pts[i + 1] = geo[3] + (n.siluet[i + 1] - 0.5f) * fh; i += 2
+            }
+            if (pts.any { !it.isFinite() }) return null
+            val adBas2 = min(0.35f, h * 0.15f)
+            val adSon2 = if (t.isimDurak) h - 0.15f else min(adBas2 + 2f, h - 0.15f)
+            val adA2 = if (!t.isim || ad.isEmpty()) 0f else min((g - adBas2) / 0.4f, (adSon2 - g) / 0.4f).coerceIn(0f, 1f)
+            val adDy2 = (1f - yum((g - adBas2) / 0.5f)) * kisa * 0.014f
+            if (alfa <= 0.002f && adA2 <= 0.002f) return null
+            return Durum(a.durak, true, cx, cy, rx, ry, on, alfa, ad, adA2, adDy2, pts, Siluet.tepe(n.siluet), kuyruk)
+        }
+        // halka zamanlaması (durak kısaysa orantılı sıkışır)
         val c = (min(2.3f, h - 0.15f) / 2.3f).coerceIn(0.3f, 1f)
         val bas = 0.12f * c; val ciz = 1.0f * c; val bek = 0.5f * c; val sol = 0.6f * c
         val sup = yum((g - bas) / ciz)
@@ -71,6 +93,7 @@ object TurVurgu {
     fun halkaCiz(c: Canvas, d: Durum, kisa: Float) = try { halkaCiz0(c, d, kisa) } catch (e: Throwable) { hataBir("çizgi", e) }
     private fun halkaCiz0(c: Canvas, d: Durum, kisa: Float) {
         if (!d.yuz || d.halkaAlfa <= 0.002f || d.sup <= 0.001f) return
+        d.siluet?.let { siluetCiz(c, it, d.tepe, d.sup, d.kuyruk, d.halkaAlfa, kisa); return }
         val sw = max(1.5f, kisa * 0.0026f)
         val oval = RectF(d.cx - d.rx, d.cy - d.ry, d.cx + d.rx, d.cy + d.ry)
         val aci = 360f * d.sup
@@ -85,6 +108,47 @@ object TurVurgu {
             val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }
             f.alpha = (255 * 0.25f * d.halkaAlfa).roundToInt(); c.drawCircle(x, y, sw * 3.2f, f)
             f.alpha = (255 * d.halkaAlfa).roundToInt(); c.drawCircle(x, y, sw * 1.5f, f)
+        }
+    }
+
+    /** 3.87: silüet ışığı. Hattın iki yarısı (soldaki uç → tepe, sağdaki uç → tepe) aynı anda çizilir: yarının [kuyruk, ön] aralığı.
+     *  Yumuşak beyaz hale (geniş, çok saydam çizgiler) + parlak ince çekirdek + öndeki ışık noktası. Bulanıklık filtresi yok (iki tuvalde aynı). */
+    fun siluetCiz(c: Canvas, p: FloatArray, tepe: Int, on: Float, kuyruk: Float, alfa: Float, kisa: Float) {
+        val n = p.size / 2
+        if (n < 3 || on <= kuyruk + 0.001f) return
+        val sw = max(1.6f, kisa * 0.0030f)
+        val yollar = ArrayList<android.graphics.Path>(2); val uclar = ArrayList<Pair<Float, Float>>(2)
+        for (yari in 0..1) {
+            val sira = if (yari == 0) (0..tepe).toList() else (n - 1 downTo tepe).toList()
+            if (sira.size < 2) continue
+            val uz = FloatArray(sira.size)
+            for (j in 1 until sira.size) uz[j] = uz[j - 1] + kotlin.math.hypot(p[2 * sira[j]] - p[2 * sira[j - 1]], p[2 * sira[j] + 1] - p[2 * sira[j - 1] + 1])
+            val L = uz.last(); if (L <= 0f) continue
+            fun nokta(s: Float): Pair<Float, Float> {
+                var j = 0; while (j < sira.size - 2 && uz[j + 1] < s) j++
+                val t = ((s - uz[j]) / (uz[j + 1] - uz[j]).coerceAtLeast(1e-4f)).coerceIn(0f, 1f)
+                val a = sira[j]; val b = sira[j + 1]
+                return (p[2 * a] + (p[2 * b] - p[2 * a]) * t) to (p[2 * a + 1] + (p[2 * b + 1] - p[2 * a + 1]) * t)
+            }
+            val s0 = kuyruk * L; val s1 = on * L
+            val yol = android.graphics.Path()
+            val (ax, ay) = nokta(s0); yol.moveTo(ax, ay)
+            for (j in sira.indices) if (uz[j] > s0 && uz[j] < s1) yol.lineTo(p[2 * sira[j]], p[2 * sira[j] + 1])
+            val (bx, by) = nokta(s1); yol.lineTo(bx, by)
+            yollar += yol; uclar += bx to by
+        }
+        val pn = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND; color = android.graphics.Color.WHITE }
+        for ((gen, opak) in listOf(7f to 0.06f, 4f to 0.12f, 2.2f to 0.30f, 1f to 0.95f)) {
+            pn.strokeWidth = sw * gen; pn.alpha = (255 * opak * alfa).roundToInt().coerceIn(0, 255)
+            yollar.forEach { c.drawPath(it, pn) }
+        }
+        if (on < 0.999f) {   // öndeki ışık noktaları (iki uç tepeye doğru koşar)
+            val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }
+            for ((x, y) in uclar) {
+                f.alpha = (255 * 0.18f * alfa).roundToInt(); c.drawCircle(x, y, sw * 4.5f, f)
+                f.alpha = (255 * 0.45f * alfa).roundToInt(); c.drawCircle(x, y, sw * 2.4f, f)
+                f.alpha = (255 * alfa).roundToInt(); c.drawCircle(x, y, sw * 1.2f, f)
+            }
         }
     }
 
@@ -133,11 +197,35 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
     private val kisa = min(W, H).toFloat()
     private var sonUs = Long.MIN_VALUE; private var sonD: TurVurgu.Durum? = null
     private var anahtar = ""; private var bmp: Bitmap = bos
+    // 3.87: silüet ışığı — hattın çevresindeki kutu yarım çözünürlükte çizilir, bindirme 2× ölçeklenir; iki bitmap nöbetleşe
+    // (Media3 aynı bitmap nesnesini yeniden yüklemez). Kutu ortası çıkışta (sCx, sCy).
+    private var sCx = 0f; private var sCy = 0f; private var sOlcek = 1f
+    private var sNobet = 0; private val sBmp = arrayOfNulls<Bitmap>(2)
+    private fun siluetHazirla(d: TurVurgu.Durum) {
+        val p = d.siluet ?: return
+        val pay = max(1.6f, kisa * 0.0030f) * 6f
+        var x0 = Float.MAX_VALUE; var y0 = Float.MAX_VALUE; var x1 = -Float.MAX_VALUE; var y1 = -Float.MAX_VALUE
+        var i = 0; while (i + 1 < p.size) { x0 = min(x0, p[i]); x1 = max(x1, p[i]); y0 = min(y0, p[i + 1]); y1 = max(y1, p[i + 1]); i += 2 }
+        x0 = max(x0 - pay, 0f); y0 = max(y0 - pay, 0f); x1 = min(x1 + pay, W.toFloat()); y1 = min(y1 + pay, H.toFloat())
+        if (x1 - x0 < 4f || y1 - y0 < 4f) { bmp = bos; return }
+        val ad = (kisa * 0.004f).coerceAtLeast(1f)
+        val yeni = "s${(d.sup * 90f).roundToInt()}/${(d.kuyruk * 90f).roundToInt()}/${(x0 / ad).roundToInt()}/${(y0 / ad).roundToInt()}/${(x1 / ad).roundToInt()}/${(y1 / ad).roundToInt()}"
+        if (yeni == anahtar && bmp !== bos) return
+        anahtar = yeni
+        val o = if (max(W, H) > 2000) 0.5f else 1f
+        val bw = ((x1 - x0) * o).roundToInt().coerceAtLeast(2); val bh = ((y1 - y0) * o).roundToInt().coerceAtLeast(2)
+        sNobet = 1 - sNobet
+        val b = sBmp[sNobet]?.takeIf { it.width == bw && it.height == bh }?.also { it.eraseColor(0) } ?: Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888).also { sBmp[sNobet] = it }
+        val c = Canvas(b); c.scale(o, o); c.translate(-x0, -y0)
+        TurVurgu.siluetCiz(c, p, d.tepe, d.sup, d.kuyruk, 1f, kisa)
+        bmp = b; sCx = (x0 + x1) / 2f; sCy = (y0 + y1) / 2f; sOlcek = 1f / o
+    }
     private fun hazirla(us: Long): TurVurgu.Durum? {
         if (us == sonUs) return sonD
         sonUs = us
         val d = TurVurgu.durum(k, W, H, (saat.yerelMs(us) + ofsMs) / 1000f, tamMs / 1000f)?.takeIf { it.yuz && it.halkaAlfa > 0.002f && it.sup > 0.001f && it.rx > 0.5f && it.ry > 0.5f }
         sonD = d
+        if (d?.siluet != null) { siluetHazirla(d); return d }
         if (d != null) {
             val ad = (kisa * 0.01f).coerceAtLeast(1f)
             val rx = (d.rx / ad).roundToInt() * ad; val ry = (d.ry / ad).roundToInt() * ad
@@ -158,6 +246,9 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings = try {
         val d = hazirla(presentationTimeUs)
         if (d == null) StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        else if (d.siluet != null) { val (zx, zy) = TurVurgu.ndc(sCx, sCy, W, H)
+            StaticOverlaySettings.Builder().setBackgroundFrameAnchor(zx.coerceIn(-1f, 1f), zy.coerceIn(-1f, 1f)).setScale(sOlcek, sOlcek)
+                .setAlphaScale(d.halkaAlfa.coerceIn(0f, 1f)).build() }
         else { val (zx, zy) = TurVurgu.ndc(d.cx, d.cy, W, H)
             Yerlesim(bmp, zx, zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(d.halkaAlfa.coerceIn(0f, 1f)).build() }
     } catch (e: Throwable) { StaticOverlaySettings.Builder().setAlphaScale(0f).build() }

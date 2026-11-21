@@ -96,7 +96,9 @@ data class Klip(
 @Serializable
 data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: Float = 0f,
     /** 3.76: kişinin adı (isim kutusunda görünür; boş = kutu yok) */
-    val ad: String = "")
+    val ad: String = "",
+    /** 3.87: kişinin silüet hattı (fotoğrafa göre 0…1, x,y sırayla; soldan sağa). Boş = bulunmadı (ince çizgi kullanılır). */
+    val siluet: List<Float> = emptyList())
 
 /** 3.74: yüz turu ayarları (web Kareden Videoya "Odak" sisteminin gelişmiş hâli; karartma/bulanıklık yok).
  *  bekleSn: her durakta kalma · gecis: yavas | orta | hizli (duraklar arası süre) · yaklas: durakta kalırken ek yavaş yaklaşma (0 = yok)
@@ -110,6 +112,8 @@ data class YuzTuru(
     val bulunan: List<OdakNoktasi> = emptyList(), val arandi: Boolean = false,
     /** 3.76: öne çıkarma çizgisi (odaklanan kişinin etrafında ince çizgi dolaşıp kaybolur) · isim kutusu · isimDurak: kutu durak boyunca (false = 2 sn) */
     val vurgu: Boolean = true, val isim: Boolean = true, val isimDurak: Boolean = false,
+    /** 3.87: öne çıkarma biçimi — "siluet": ışık kişinin dış hattını iki alt uçtan başın tepesine doğru izler (Samsung Galeri efekti) · "cizgi": baş çevresinde ince çizgi (3.76) */
+    val vurguTur: String = "siluet", val siluetArandi: Boolean = false,
 )
 
 @Serializable

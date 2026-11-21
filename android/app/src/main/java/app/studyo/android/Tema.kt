@@ -76,7 +76,8 @@ object Duzen {
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
         seritGizli = sp.getBoolean("seritGizli", false)
         kontrolUstte = sp.getBoolean("kontrolUstte3", true)
-        anaStudyo = sp.getBoolean("anaStudyo", true)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan   // 3.72: kontroller varsayılan olarak videonun üstünde
+        anaStudyo = sp.getBoolean("anaStudyo", true)
+        duzenleSabit = sp.getBoolean("duzenleSabit", false)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan   // 3.72: kontroller varsayılan olarak videonun üstünde
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
@@ -91,6 +92,9 @@ object Duzen {
     /** 3.85: ana sayfa web Stüdyo görünümünde mi (açık zemin, mavi/turuncu kartlar, alt gezinme). false = önceki ana sayfalar. */
     var anaStudyo by mutableStateOf(true)
     fun anaStudyoSec(ctx: Context, b: Boolean) { anaStudyo = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("anaStudyo", b).apply() }
+    /** 3.87: Düzenle menüsü sabit — başka bölümdeyken de Düzenle'nin menüsü altta durur. */
+    var duzenleSabit by mutableStateOf(false)
+    fun duzenleSabitSec(ctx: Context, b: Boolean) { duzenleSabit = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("duzenleSabit", b).apply() }
     /** 3.35: büyük klip şeridi gizli (izlerken göz yormasın); seçim hatırlanır. */
     var seritGizli by mutableStateOf(false)
     fun seritDegis(ctx: Context) { seritGizli = !seritGizli; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("seritGizli", seritGizli).apply() }

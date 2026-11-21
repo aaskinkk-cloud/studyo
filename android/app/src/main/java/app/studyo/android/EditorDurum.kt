@@ -666,6 +666,31 @@ class EditorDurum(private val ctx: Context, id: String) {
                 else -> "${l.size} yüz bulundu · halkaya dokun = durak ekle"
             }
             if (ekle && bos && l.isNotEmpty()) turSecili.value = 0
+            if (l.isNotEmpty()) turSiluetHazirla(k.id)
+        }
+    }
+
+    /** 3.87: silüet ışığı için kişilerin dış hattı (bulunan yüzler ve duraklar). Bir kez aranır; durağın bulunan yüzle eşleşeni alınır. */
+    private var siluetIs: Job? = null
+    fun turSiluetHazirla(klipId: String) {
+        if (siluetIs?.isActive == true || !Siluet.kullanilabilir()) return
+        val k = proje.value.klipler.firstOrNull { it.id == klipId }?.takeIf { it.foto } ?: return
+        val t = k.yuzTur ?: return
+        if (t.siluetArandi || t.vurguTur != "siluet" || !t.vurgu) return
+        val hedef = (t.bulunan + t.noktalar).filter { it.yb > 0f && it.siluet.isEmpty() }
+        if (hedef.isEmpty()) return
+        siluetIs = kapsam.launch {
+            val l = try { Siluet.hesapla(k.uri, hedef) } catch (e: Throwable) { Kayit.hata("silüet", e); hedef.map { emptyList() } }
+            fun eslesen(n: OdakNoktasi): List<Float>? = hedef.indices.filter { l[it].isNotEmpty() }
+                .minByOrNull { kotlin.math.hypot(hedef[it].x - n.x, hedef[it].y - n.y) }
+                ?.takeIf { kotlin.math.hypot(hedef[it].x - n.x, hedef[it].y - n.y) < n.yb.coerceAtLeast(0.02f) * 0.8f }?.let { l[it] }
+            val i = proje.value.klipler.indexOfFirst { it.id == klipId }.takeIf { it >= 0 } ?: return@launch
+            guncelle { p -> p.copy(klipler = p.klipler.toMutableList().also { kl ->
+                val tt = kl[i].yuzTur ?: return@also
+                kl[i] = kl[i].copy(yuzTur = tt.copy(siluetArandi = true,
+                    bulunan = tt.bulunan.map { n -> if (n.siluet.isEmpty() && n.yb > 0f) eslesen(n)?.let { n.copy(siluet = it) } ?: n else n },
+                    noktalar = tt.noktalar.map { n -> if (n.siluet.isEmpty() && n.yb > 0f) eslesen(n)?.let { n.copy(siluet = it) } ?: n else n }))
+            }) }
         }
     }
 

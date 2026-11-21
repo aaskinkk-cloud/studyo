@@ -2,9 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.86 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.87 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.87 (21.11.2026, deneme · `yerel-android` dalı): silüet ışığı, öncü/sabitlenebilir Düzenle, sürüklerken kararma kök düzeltmesi, hareket yönü menüsü
+- **Yüz turu › Silüet ışığı** (Ahmet'in gösterdiği Samsung Galeri efekti; varsayılan): ışık kişinin dış hattını **iki alt uçtan** (omuzlar/kollar) başlayıp başın tepesinde buluşacak şekilde izler, sonra kuyruk tepeye çekilip söner (~2 sn; durak kısaysa sıkışır). Yumuşak beyaz hale + parlak ince çekirdek + koşan ışık noktaları.
+  - Kişi maskesi **ML Kit Selfie Segmentation** (ücretsiz, model uygulamada, cihazda; `com.google.mlkit:segmentation-selfie`) ile bir kez bulunur (`Siluet.kt`): yüze bağlı kişi bileşeni → Moore/radyal sınır izleme → bölge kesimindeki düz kenar atılır → soldan sağa açık hat, 160 noktaya örneklenir, yumuşatılır, 1–2 px dışa açılır. Veri: `OdakNoktasi.siluet`, `YuzTuru.vurguTur` ("siluet" | "cizgi"), `siluetArandi`.
+  - Önizleme ve dışa aktarma aynı çizim (`TurVurgu.siluetCiz`); dışa aktarmada hattın kutusu (4K'da yarım çözünürlük + 2× ölçek, iki bitmap nöbetleşe, değişmeyen karede yeniden çizilmez).
+  - Koruma: hata olursa o kişide baş çevresi çizgisi kullanılır; bulma sırasında uygulama kapanırsa bekçi işareti kalır ve bir daha denenmez. Yüzler sayfasında "Silüet ışığı / Baş çevresinde çizgi" seçimi.
+- **Düzenle menüsü:** editör açılınca Düzenle'nin alt menüleri hemen görünür (önce ana menüye dokunmak gerekmiyordu → artık gerekmiyor). Ana menüde Düzenle öncü: geniş, vurgu renginde, ince çerçeveli. Düzenle alt menüsünde **Sabitle**: açıkken başka bölümlerde de Düzenle'nin menüsü (Nesne + Klip'in sayfaları: Klipler, Kırp, Kadraj, Hız, Yüzler, Yüz gizle, Ayrı video) ana menü gibi altta durur; ✕ ile kaldırılır.
+- **Fotoğrafı sürükleyince kararma (kök neden):** durağan önizleme fotoğrafı oynatıcının yüzeyinden gösteriyordu; sürükleme bitince yapılan güncelleme akıcı oynatıcıyı bırakıp düzenleme oynatıcısını yeniden sardırıyor, o arada perde saydam olduğu için siyah zemin görünüyordu (Klip ve Katman bölümünde aynı önizleme). Artık duraklatılmışken fotoğraf klibi fotoğrafın kendisinden (aynı yerleşim, aynı kaydırma/yaklaşma, renk ayarlarıyla) çizilir; oynatıcının durumundan bağımsız. Videoda sürükleme sırasında ve bırakınca 1,5 sn karenin kendisi gösterilir.
+- **Klip kartı › hareket simgesi:** dokun = küçük yön menüsü (3×3: Yakınlaş · Yukarı · Uzaklaş / Sola · Sabit · Sağa / Otomatik · Aşağı · Ayarlar; fotoğrafta Yüz turu satırı). Yön seçilince yüz turu varsa kapanır (geri al ile döner). Basılı tut = Hareket ayarları, çift dokun = Görünüm › Hareket.
 
 ## 3.86 (21.11.2026, deneme · `yerel-android` dalı): 3.85 açılmıyordu — kök düzeltme
 - **Neden:** ana sayfa logosu `painterResource(R.mipmap.ic_launcher)` ile çiziliyordu; Android 8+ cihazda bu kaynak uyarlanabilir simge (XML `adaptive-icon`) ve Compose bunu çizemez → açılışta `IllegalArgumentException`, uygulama kapanıyordu.

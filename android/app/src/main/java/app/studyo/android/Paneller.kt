@@ -163,6 +163,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             // elle kaydırma: sürüklerken yerel değer, bırakınca klibe yazılır
             var surKay by remember(k?.id) { mutableStateOf<Offset?>(null) }
+            // 3.87: videoda sürükleme sırasında (ve bırakınca 1,5 sn) karenin kendisi bitmap olarak gösterilir — oynatıcı yeniden çizerken kararmaz
+            var videoDondur by remember(k?.id) { mutableStateOf(false) }
+            LaunchedEffect(surKay == null) { if (surKay == null && videoDondur) { kotlinx.coroutines.delay(1500); videoDondur = false } }
             val kG = k?.let { kk -> surKay?.let { kk.copy(kayX = it.x, kayY = it.y) } ?: kk }
             val kbAn = kG?.let { Yuz.an(it, RW, RH, kbF, sira) }
             val an = Gecisler.onizleme(p, konum)
@@ -190,7 +193,12 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
             val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f || k.gizleVar)
             // 3.61: arka planı bulanık klip durağanken her bölümde bulanık görünür (kesilen nesne önünde)
-            if ((renkPaneli || (k?.arkaBulanik ?: 0f) > 0.01f || k?.gizleVar == true) && !oynuyorAkis && k != null && goruntuAyari && !gizlePaneli) {
+            // 3.87 KÖK DÜZELTME (fotoğrafı sürükleyince / düzenleyince ekranın kararması): duraklatılmışken fotoğraf klibi oynatıcının yüzeyine
+            // bağlı kalmadan, fotoğrafın kendisinden (aynı yerleşim + aynı kaydırma/yaklaşma) çizilir. Oynatıcı sarma, akıcı oynatıcıyı bırakma,
+            // yüzey yeniden kurma gibi anlarda kareyi bir an boşaltıyordu (perde saydam → siyah zemin). Fotoğraf durağan olduğu için görüntü aynıdır.
+            val fotoSabit = k != null && k.foto && !(kompA && kompG)
+            val ayarGoster = (renkPaneli || (k?.arkaBulanik ?: 0f) > 0.01f || k?.gizleVar == true) && goruntuAyari
+            if ((ayarGoster || fotoSabit || videoDondur) && !oynuyorAkis && k != null && !gizlePaneli) {
                 val ctxR = LocalContext.current
                 val kaynakMs = if (k.foto) 0L else k.basMs + vm.player.currentPosition.coerceAtLeast(0)
                 val ham by produceState<Bitmap?>(null, k.id, k.uri, kaynakMs) {
@@ -204,8 +212,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 // 3.72: Android 12+ arka plan bulanıklığı gerçek Gauss (RenderEffect, dışa aktarmadaki 4 geçişli GL Gauss'un karşılığı) + %10 karartma;
                 // eski sürümlerde yazılım bulanıklığı
                 val gpuBulanik = android.os.Build.VERSION.SDK_INT >= 31 && k.arkaBulanik > 0.01f
-                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik, k.yuzGizle) {
-                    value = ham?.let { b -> withContext(Dispatchers.Default) {
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik, k.yuzGizle, goruntuAyari) {
+                    value = if (!goruntuAyari) ham else ham?.let { b -> withContext(Dispatchers.Default) {
                         val r0 = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
                         // 3.83: yüz gizleme (dışa aktarmadaki ovallerin aynısı)
                         val r = k.yuzGizle?.takeIf { k.gizleVar }?.let { g -> YuzGizleme.uygula(r0, YuzGizleme.anlik(g, kaynakMs, k.foto), g.guc) } ?: r0
@@ -213,7 +221,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
                 val bulanikDp = with(yog) { (k.arkaBulanik.coerceIn(0f, 1f) * 0.035f * minOf(constraints.maxWidth, constraints.maxHeight)).toDp() }
                 var onceGoster by remember { mutableStateOf(false) }
-                (if (onceGoster) ham else ayarli)?.let { bm ->
+                (if (onceGoster) ham else ayarli ?: ham)?.let { bm ->
                     Box(Modifier.fillMaxSize().background(Color.Black).then(if (renkPaneli) Modifier.pointerInput(Unit) { detectTapGestures(onPress = { onceGoster = true; tryAwaitRelease(); onceGoster = false }) } else Modifier),
                         contentAlignment = Alignment.Center) {
                         val gauss = gpuBulanik && !onceGoster
@@ -326,6 +334,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val logoY = remember(p.logo, ref) { p.logo?.let { Kaplama.logo(it, RW, RH) } }
             yaziY?.let { if (sira < p.klipler.size) Ciz(it, 1f) }
             // 3.76: yüz turu — öne çıkarma çizgisi ve isim kutusu (dışa aktarmadaki TurVurgu hesabının aynısı)
+            if (k != null && k.turEtkin) LaunchedEffect(k.id) { vm.turSiluetHazirla(k.id) }   // 3.87: silüet ışığı (eski projelerde bir kez bulunur)
             if (k != null && k.turEtkin && sira < p.klipler.size && !yuzPaneli) {
                 val D = k.sureMs / 1000f
                 val tv = TurVurgu.durum(k, RW, RH, kbF * D, D)
@@ -523,7 +532,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val klipSurukle: Modifier = if (k == null || sira >= p.klipler.size) Modifier else Modifier
                     .pointerInput(k.id, k.doldur, gwS, ghS) {
                         detectDragGestures(
-                            onDragStart = { surKay = Offset(kSonS!!.kayX, kSonS!!.kayY) },
+                            onDragStart = { surKay = Offset(kSonS!!.kayX, kSonS!!.kayY); if (kSonS?.foto == false) videoDondur = true },
                             onDragEnd = { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null },
                             onDragCancel = { surKay = null },
                         ) { ch, d ->

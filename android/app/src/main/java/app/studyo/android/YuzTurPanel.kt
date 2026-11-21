@@ -59,6 +59,7 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         val s = secN.takeIf { it in 0 until n }
         // fotoğraf ilk açıldığında yüzler bir kez aranır (halkalar önizlemede görünsün; durak eklemez)
         LaunchedEffect(k.id) { if (!t.arandi && !ariyor) vm.turYuzleriBul(ekle = false) }
+        LaunchedEffect(k.id, t.vurguTur, t.vurgu, t.noktalar.size) { vm.turSiluetHazirla(k.id) }   // 3.87: silüet ışığı için kişi hattı
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             YuvarlakSecim(if (ariyor) "Aranıyor…" else "Yüzleri bul", "yuz", Color(TON[2]), false) {
@@ -146,7 +147,23 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             }
             // 3.76: odaklanan kişiyi öne çıkarma
             TurBaslik("ÖNE ÇIKARMA")
-            AnahtarSatiri("Kişinin etrafında ince çizgi (dolaşır, kaybolur)", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
+            AnahtarSatiri("Kişiyi ışıkla öne çıkar", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
+            // 3.87: ışık biçimi — silüet (Samsung Galeri'deki gibi: iki alt uçtan omuzları ve başı izleyip tepede buluşur) · ince çizgi (3.76)
+            if (t.vurgu) {
+                Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("siluet" to "Silüet ışığı", "cizgi" to "Baş çevresinde çizgi").forEach { (v, ad2) ->
+                        val on = t.vurguTur == v
+                        Text(ad2, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                            .background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(16.dp))
+                            .clickable { vm.turAyar { it.copy(vurguTur = v) } }.padding(horizontal = 14.dp, vertical = 7.dp))
+                    }
+                }
+                if (t.vurguTur == "siluet") {
+                    val eksik = t.noktalar.count { it.yb > 0f && it.siluet.isEmpty() }
+                    if (t.siluetArandi && eksik > 0) Text("$eksik kişinin hattı bulunamadı; onlarda baş çevresinde çizgi kullanılır.", color = Renk.soluk, fontSize = 11.5.sp)
+                    else if (!t.siluetArandi && eksik > 0) Text("Kişilerin hattı bulunuyor…", color = Renk.soluk, fontSize = 11.5.sp)
+                }
+            }
             AnahtarSatiri("İsim kutusu", t.isim) { v -> vm.turAyar { it.copy(isim = v) } }
             if (t.isim) Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(false to "2 saniye", true to "Durak boyunca").forEach { (v, ad2) ->

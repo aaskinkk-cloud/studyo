@@ -163,7 +163,15 @@ object Yuz {
         val oy = sinirla(sinirla((H * hedef - H / 2f - (fy - 0.5f) * dh) / H, -mxY0, mxY0) + k.kayY * mxY0, -mxY0, mxY0)
 
         var fw = dw; var fh = dh; var cx = W / 2f + ox * W; var cy = H / 2f + oy * H
-        if (k.kenBurns) {
+        if (k.turEtkin) {
+            // 3.74: yüz turu — numaralı duraklar arasında yumuşak kamera (YuzTur.kt). Tam görünüm durağı = klibin kendi kadrajı.
+            val scC = max(W / g, H / h)
+            val kam = YuzTur.kamera(k.yuzTur!!, p * D, D, 0.5f - ox * W / dw, 0.5f - oy * H / dh, sc0 / scC)
+            fw = g * scC * kam.z; fh = h * scC * kam.z
+            cx = W / 2f - (kam.x - 0.5f) * fw; cy = H * kam.ay - (kam.y - 0.5f) * fh
+            if (fw >= W) cx = sinirla(cx, W - fw / 2f, fw / 2f)
+            if (fh >= H) cy = sinirla(cy, H - fh / 2f, fh / 2f)
+        } else if (k.kenBurns) {
             // 3.35: dikey fotoğrafta otomatik KAYDIRMA kaldırıldı (Ahmet'in videosunda ölçüldü: 4 sn'de yerden gökyüzüne kayınca
             // ortalama parlaklık %60'a kadar artıyor, "parlama" gibi görünüyordu). Otomatik = odak noktasına doğru yavaş yaklaşma.
             // Odak: elle seçilen nokta → yüz → ana nesne → orta. Kaydırma yalnız Hareket panelinde seçilirse yapılır.

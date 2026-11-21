@@ -482,6 +482,112 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     fun hepsine(f: (Klip) -> Klip, yapi: Boolean = false) = guncelle(yapi) { p -> p.copy(klipler = p.klipler.map(f)) }
 
+    // ---------- 3.74: yüz turu (Düzenle › Klip › Yüzler) ----------
+    val yuzAraniyor = MutableStateFlow(false)
+    /** Seçili turdaki durak (numara − 1); -1 = yok. */
+    val turSecili = MutableStateFlow(-1)
+    private var turOnizleIs: Job? = null
+
+    /** Tur değişikliği: klip gerekirse uzatılır (geçişler rahat görünsün; web Kareden Videoya kfSure ile aynı). */
+    private fun turDegis(mesajYaz: Boolean = true, f: (YuzTuru) -> YuzTuru) {
+        val s = secili.value
+        val k0 = proje.value.klipler.getOrNull(s)?.takeIf { it.foto } ?: return
+        val t = f(k0.yuzTur ?: YuzTuru())
+        val gerek = (kotlin.math.ceil(YuzTur.toplamSn(t) * 10.0) * 100).toLong()
+        val uzat = t.noktalar.isNotEmpty() && k0.fotoSureMs + 50 < gerek
+        klipGuncelle(yapi = uzat) { it.copy(yuzTur = t, kenBurns = if (t.noktalar.isNotEmpty()) true else it.kenBurns, fotoSureMs = if (uzat) gerek else it.fotoSureMs) }
+        if (uzat && mesajYaz) mesaj.value = "Geçişler rahat görünsün diye fotoğraf " + String.format(java.util.Locale("tr"), "%.1f", gerek / 1000f) + " sn'ye uzatıldı"
+    }
+
+    /** Fotoğraftaki yüzleri bul; tur boşsa hepsini soldan sağa numaralı durak yap. */
+    fun turYuzleriBul(ekle: Boolean = true) {
+        val s = secili.value
+        val k = proje.value.klipler.getOrNull(s)?.takeIf { it.foto } ?: return
+        if (yuzAraniyor.value) return
+        yuzAraniyor.value = true
+        kapsam.launch {
+            val l = try { YuzTur.yuzleriBul(k.uri) } catch (e: Throwable) { Kayit.hata("yüz turu", e); emptyList() }
+            yuzAraniyor.value = false
+            if (proje.value.klipler.getOrNull(s)?.id != k.id || secili.value != s) return@launch
+            val (scC, hh, H) = turOlcek(k)
+            val bos = k.yuzTur?.noktalar.isNullOrEmpty()
+            turDegis { t -> t.copy(bulunan = l, arandi = true,
+                noktalar = if (ekle && bos) l.map { it.copy(z = YuzTur.yuzYakinlik(it.yb, hh, scC, H)) } else t.noktalar) }
+            mesaj.value = when {
+                l.isEmpty() -> "Yüz bulunamadı · yaklaşılacak yerlere dokun"
+                ekle && bos -> "${l.size} yüz bulundu ve numaralandı · numaraya dokun = seç"
+                else -> "${l.size} yüz bulundu · halkaya dokun = durak ekle"
+            }
+            if (ekle && bos && l.isNotEmpty()) turSecili.value = 0
+        }
+    }
+
+    /** (kadrajı dolduran ölçek, fotoğraf yüksekliği, çıkış yüksekliği) — 1080 referansında. */
+    private fun turOlcek(k: Klip): Triple<Float, Float, Int> {
+        val (W, H) = Disa.boyut(proje.value.bicim, 1080)
+        val g = (if (k.gen > 0) k.gen else W).toFloat(); val h = (if (k.yuk > 0) k.yuk else H).toFloat()
+        return Triple(kotlin.math.max(W / g, H / h), h, H)
+    }
+
+    /** Dokunulan yer (fotoğrafta 0…1): bulunan bir yüzün üstündeyse ona yapışır. */
+    fun turNoktaEkle(x: Float, y: Float) {
+        val k = proje.value.klipler.getOrNull(secili.value)?.takeIf { it.foto } ?: return
+        val (scC, hh, H) = turOlcek(k)
+        val oran = k.gen.toFloat() / k.yuk.coerceAtLeast(1)
+        val yuz = k.yuzTur?.bulunan?.minByOrNull { kotlin.math.hypot((it.x - x) * oran, it.y - y) }
+            ?.takeIf { kotlin.math.hypot((it.x - x) * oran, it.y - y) < it.yb * 0.75f }
+        val n = yuz?.let { it.copy(z = YuzTur.yuzYakinlik(it.yb, hh, scC, H)) } ?: OdakNoktasi(x, y, 1.8f)
+        turDegis { t -> t.copy(noktalar = t.noktalar + n) }
+        turSecili.value = (k.yuzTur?.noktalar?.size ?: 0)
+    }
+
+    fun turNoktaTasi(i: Int, x: Float, y: Float) = turDegis(false) { t ->
+        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (j == i) n.copy(x = x.coerceIn(0f, 1f), y = y.coerceIn(0f, 1f)) else n }) }
+
+    fun turYakinlik(i: Int, z: Float, hepsi: Boolean = false) = turDegis(false) { t ->
+        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (hepsi || j == i) n.copy(z = z.coerceIn(1f, 4f)) else n }) }
+
+    /** Sırayı değiştir: yon −1 = öne, +1 = sona doğru. */
+    fun turSira(i: Int, yon: Int) {
+        val l = proje.value.klipler.getOrNull(secili.value)?.yuzTur?.noktalar ?: return
+        val h = i + yon; if (i !in l.indices || h !in l.indices) return
+        turDegis(false) { t -> t.copy(noktalar = t.noktalar.toMutableList().also { Collections.swap(it, i, h) }) }
+        turSecili.value = h
+    }
+
+    /** Sürükle-bırak sıralama: i. durağı h. sıraya taşı. */
+    fun turSiraTasi(i: Int, h: Int) {
+        val l = proje.value.klipler.getOrNull(secili.value)?.yuzTur?.noktalar ?: return
+        if (i !in l.indices || h !in l.indices || i == h) return
+        turDegis(false) { t -> t.copy(noktalar = t.noktalar.toMutableList().also { m -> val o = m.removeAt(i); m.add(h, o) }) }
+        turSecili.value = h
+    }
+
+    fun turNoktaSil(i: Int) {
+        turDegis(false) { t -> t.copy(noktalar = t.noktalar.filterIndexed { j, _ -> j != i }) }
+        turSecili.value = -1
+    }
+
+    fun turAyar(f: (YuzTuru) -> YuzTuru) = turDegis(true, f)
+
+    fun turTemizle() { turDegis(false) { t -> t.copy(noktalar = emptyList()) }; turSecili.value = -1; mesaj.value = "Duraklar temizlendi · geri al ile geri gelir" }
+
+    /** Yalnız bu klibi baştan oynat, klip bitince dur. */
+    fun turOnizle() {
+        val s = secili.value
+        val k = proje.value.klipler.getOrNull(s) ?: return
+        if (oynuyor.value) oynatDurdur()
+        val bas = baslangic(s); val son = bas + proje.value.zKlip(s).sureMs
+        git(bas); oynatDurdur()
+        turOnizleIs?.cancel()
+        turOnizleIs = kapsam.launch {
+            delay(300)
+            while (isActive && oynuyor.value && konum.value < son - 80) delay(40)
+            if (oynuyor.value && secili.value == s) oynatDurdur()
+            if (proje.value.klipler.getOrNull(s)?.id == k.id) git(son - 120)
+        }
+    }
+
     fun kirp(bas: Long, son: Long) {
         val s = secili.value
         val k = proje.value.klipler.getOrNull(s) ?: return
@@ -818,6 +924,18 @@ class EditorDurum(private val ctx: Context, id: String) {
         val o = KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b)
         katmanEkleOge(o)
         katmanDuzenle.value = o.id   // 3.44: eklenince yazı hemen düzenlenir
+    }
+
+    /** 3.74: kanca yazısı (web Kareden Videoya "Kanca yazısı videoda"): giriş başlığı bitince 3 sn, ortada (dikeyde biraz yukarıda). */
+    fun kancaEkle() {
+        val p = proje.value; if (p.klipler.isEmpty()) return
+        val T = p.toplamMs.coerceAtLeast(1000)
+        val a = (if (p.giris.acik) Zaman.girisAralik(p).second else 0L).coerceIn(0, (T - 1000).coerceAtLeast(0))
+        val dikey = p.bicim == "9:16"
+        val o = KatmanOge(tur = "metin", ad = "Kanca", metin = "Sonuna kadar izle!\nBu manzarayı kaçırma", olcek = if (dikey) 0.063f else 0.07f, stil = "kanca", anim = "pop",
+            y = if (dikey) 0.4f else 0.5f, basMs = a, sonMs = minOf(T, a + 3000))
+        katmanEkleOge(o); katmanDuzenle.value = o.id
+        git(a + 400)
     }
 
     /** 3.53: eski klip yazısını (Klip.yazi) aynı görünümle yazı katmanına taşır; tek geri alma adımı. */

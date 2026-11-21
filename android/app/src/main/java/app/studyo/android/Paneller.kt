@@ -105,7 +105,7 @@ private fun Not(m: String) = AcilirNot(m)   // 3.72: bütün açıklamalar kapal
 /** Önizleme: dışa aktarmadaki bitmaplerin ve geçiş hesabının AYNISI (1080 ölçeğinde çizilip küçültülür). */
 @Composable
 fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: Modifier, logoPaneli: Boolean = false, katmanPaneli: Boolean = false, hareketPaneli: Boolean = false, renkPaneli: Boolean = false,
-                     sablonSayfa: String? = null) {
+                     sablonSayfa: String? = null, yuzPaneli: Boolean = false) {
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     val sira by vm.sira.collectAsState()
     val konumAkis by vm.konum.collectAsState()
@@ -725,6 +725,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     }
                 }
             }
+            // 3.74: Düzenle › Klip › Yüzler — duraklatılmışken fotoğrafın tamamı, yüz halkaları ve numaralı duraklar (dokun = ekle, sürükle = taşı)
+            if (yuzPaneli && !oynuyorAkis && k != null && k.foto) YuzTuruKatmani(vm, p, k, Modifier.fillMaxSize())
         }
     }
 }

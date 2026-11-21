@@ -2,9 +2,20 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.73 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.74 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.74 (21.11.2026, deneme · `yerel-android` dalı): yüzlere sırayla yaklaşma (yüz turu), kanca yazısı
+- **Yeri:** Düzenle › Klip › **Yüzler** (yeni alt sayfa; fotoğraf kliplerinde). Klip kartındaki hareket simgesi tur varken yüz simgesine döner; dokununca bu sayfa açılır.
+- **Yüz turu:** aynı fotoğrafta numaralı duraklar sırayla gezilir. "Yüzleri bul" yüzleri bulur (ML Kit yüz algılama, ücretsiz, cihaz içinde; olmazsa Android FaceDetector), soldan sağa numaralandırır. Yüz olmasa da önizlemede istenen yere dokunarak durak eklenir (yüz halkasının üstüne dokunulursa yüze yapışır).
+- **Önizleme (Yüzler sayfası açık, duraklatılmışken):** fotoğrafın tamamı; bulunan yüzler ince halka, duraklar numaralı daire, sıra çizgisi; seçili durağın görünecek alanı kesik çerçeve. Dokun = durak ekle · numaraya dokun = seç · numarayı sürükle = taşı.
+- **Sayfa:** Yüzleri bul · Önizle (yalnız bu klibi oynatır, bitince durur) · Temizle; DURAKLAR şeridi (numara, yüz/nokta, yakınlık); seçili durakta Öne al / Sona al (sıra değişir) / Sil ve **Yakınlık** 1×–4× (Tümüne). AKIŞ: her durakta kalma 1,5–6 sn, geçiş Yavaş/Orta/Hızlı, durakta yavaş yaklaşma Yok/Hafif/Orta/Belirgin, "Önce fotoğrafın tamamı", "Sonda fotoğrafın tamamı", "Sinematik kavis".
+- **Hareket (web Kareden Videoya kfPlan/kfDurum'un gelişmiş hâli, `YuzTur.kt`):** durakta kosinüs eğrisiyle çok yavaş ek yaklaşma (görüntü donmaz); duraklar arası 5. dereceden yumuşak eğri (başta/sonda hız sıfır, birden geçmez); yakınlık geometrik ara değerle (eşit algılanan hız); kavis: uzak duraklar arasında hafif geri çekilip yeniden yaklaşma; yüz durağında yüz kadrajın %44'ünde, elle noktada ortada. **Karartma/bulanıklık yok** — fotoğrafın geri kalanı olduğu gibi. Varsayılan yakınlık: baş kadraj yüksekliğinin ~%32'si.
+- **Süre:** tur sığmazsa fotoğraf klibi kendiliğinden uzar (mesaj verir); Kırp sayfasından değişir. Klip uzunsa tur ona yayılır.
+- **Tek hesap:** `Yuz.an()` içinde (`Klip.turEtkin`) — durağan önizleme, akıcı önizleme, geçişler ve dışa aktarma aynı kamerayı kullanır. Hareket "Sabit" yapılırsa tur durur, duraklar silinmez. Kayıt: `Klip.yuzTur` (`YuzTuru`, `OdakNoktasi`).
+- **Kanca yazısı (web Kareden Videoya'dan taşındı):** Metin › Yazı › Ekle › "Kanca yazısı" — giriş başlığı bitince 3 sn, ortada (dikeyde biraz yukarıda): yarı saydam koyu yuvarlak kutu, Archivo 800, ilk satır altın, en çok 3 satır; 0,35 sn'de %6 büyükten yerine oturarak gelir (`pop`). Yazı stillerinde "Kanca" olarak da seçilir. Normal yazı katmanıdır (çizelgede taşınır, düzenlenir, silinir).
+- Bağımlılık: play-services-mlkit-face-detection 17.1.0; manifestte ML Kit bağımlılığına `face` eklendi. Kod: `YuzTur.kt`, `YuzTurPanel.kt`, `Yuz.kt`, `EditorDurum.kt` (tur*), `Katmanlar.kt` (kanca, pop).
 
 ## 3.73 (20.11.2026, deneme · `yerel-android` dalı): Televizyonda izle (Google TV / Chromecast)
 - **YouTube'a yüklemeden TV'de tam ekran:** dışa aktarma bitince "TV'de izle"; Projeler ekranında dışa aktarılmış videosu olan projede TV simgesi (ve ⋯ › Televizyonda izle).

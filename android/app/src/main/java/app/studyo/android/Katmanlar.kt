@@ -109,6 +109,19 @@ object KatmanCizim {
         val boya = Paint(Paint.ANTI_ALIAS_FLAG)
         fun bmp(w: Float, h: Float) = Bitmap.createBitmap(w.toInt().coerceAtLeast(2), h.toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
         return when (o.stil) {
+            "kanca" -> {     // 3.74: kanca yazısı (web Kareden Videoya drawHook): yarı saydam koyu yuvarlak kutu, Archivo 800, ilk satır altın, en çok 3 satır
+                val sat = o.metin.split('\n').map { it.trim() }.filter { it.isNotEmpty() }.take(3).ifEmpty { listOf(" ") }
+                val pk = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = px; typeface = Yazilar.archivo800 }
+                val sat2 = sat.map { android.text.TextUtils.ellipsize(it, pk, W * 0.84f, android.text.TextUtils.TruncateAt.END).toString() }
+                val fm = pk.fontMetrics; val lh = px * 1.12f
+                val bw = (sat2.maxOf { pk.measureText(it) } + px * 1.1f); val bh = sat2.size * lh + px * 0.55f
+                val b = bmp(bw, bh); val c = Canvas(b)
+                boya.color = 0x8C000000.toInt(); c.drawRoundRect(RectF(0f, 0f, bw, bh), px * 0.3f, px * 0.3f, boya)
+                val ilkRenk = if (o.renk == 0xFFFFFFFFL) 0xFFFFD27A.toInt() else o.renk.toInt()
+                sat2.forEachIndexed { i, l -> pk.color = if (i == 0) ilkRenk else 0xFFFFFFFF.toInt()
+                    c.drawText(l, (bw - pk.measureText(l)) / 2f, px * 0.35f + i * lh - fm.ascent, pk) }
+                b
+            }
             "konum" -> {     // 📍 iğne simgesi + yer adı, koyu cam kart, solda vurgu
                 val ik = h1 * 0.9f
                 val icGen = maxOf(w1, w2)
@@ -419,6 +432,10 @@ object KatmanCizim {
             "yok" -> An(o.opaklik, 1f, 0f)
             "kay" -> An(o.opaklik * f, 1f, (1f - f) * 0.08f)
             "buyu" -> An(o.opaklik * f, 0.6f + 0.4f * f, 0f)
+            "pop" -> {   // 3.74: kanca yazısı — 0,35 sn'de solarak gelir, %6 büyükten yerine oturur
+                val g = ((ms - o.basMs) / 350f).coerceIn(0f, 1f); val c = ((o.sonMs - ms) / 350f).coerceIn(0f, 1f)
+                An(o.opaklik * min(g, c), 1f + 0.06f * (1f - g), 0f)
+            }
             "zipla" -> {
                 val g = ((ms - o.basMs) / (G * 1.4f)).coerceIn(0f, 1f)
                 val z = if (g < 1f) 1f + 0.18f * sin(g * PI.toFloat()) * (1f - g) - 0.25f * (1f - g) * (1f - g) else 1f

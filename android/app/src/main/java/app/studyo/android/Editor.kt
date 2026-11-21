@@ -168,7 +168,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         val liste = remember {
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
-                "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma")
+                "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -262,7 +263,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
-                    renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa)
+                    renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa,
+                    yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler")
                 if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
@@ -791,13 +793,16 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             // 3.68: ok klibin gerçek hareket yönünü gösterir; dokun = sıradaki yön, basılı tut = Hareket sayfası
-                            Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xB3000000)).pointerInput(k.id, k.hareket, k.kenBurns) {
+                            Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xB3000000)).pointerInput(k.id, k.hareket, k.kenBurns, k.turEtkin) {
                                 detectTapGestures(onTap = {
+                                    // 3.74: yüz turu varken dokun = Düzenle › Klip › Yüzler (tur, yön düğmesiyle bozulmasın)
+                                    if (k.turEtkin) { AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip"); vm.mesaj.value = "Yüz turu · ${k.yuzTur?.noktalar?.size ?: 0} durak" } else {
                                     val sira = listOf("yakin", "uzak", "sag", "sol", "yukari", "asagi", "sabit")
                                     val simdi = if (!k.kenBurns) "sabit" else k.hareket.ifEmpty { "otomatik" }.let { if (it == "otomatik") "yakin" else it }
                                     val yeni = sira[(sira.indexOf(simdi) + 1) % sira.size]
                                     vm.klipGuncelle { if (yeni == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = yeni) }
                                     vm.mesaj.value = "Hareket: " + HAREKET_ADI.getValue(yeni) + " · basılı tut = ayarlar"
+                                    }
                                 }, onLongPress = { hareketId = k.id }, onDoubleTap = { bolumAc?.invoke("gorunum", "hareket") ?: run { hareketId = k.id } })
                             }, contentAlignment = Alignment.Center) { Simge(hareketSimgesi(k), Color(0xFFFFD54F), 16.dp) }
                             val dogal = k.renk == DOGAL_RENK
@@ -989,7 +994,7 @@ private fun KadrajSecimi(vm: EditorDurum, p: Proje, k: Klip, kapat: () -> Unit) 
 }
 
 /** 3.67: klibin hareket yönü simgesi (kartın üstünde): sabit · yakınlaş · uzaklaş · sağa · sola · yukarı · aşağı · otomatik. */
-private fun hareketSimgesi(k: Klip): String = if (!k.kenBurns) "h_sabit" else when (k.hareket) {
+private fun hareketSimgesi(k: Klip): String = if (k.turEtkin) "yuz" else if (!k.kenBurns) "h_sabit" else when (k.hareket) {   // 3.74: yüz turu
     "uzak" -> "h_uzak"; "sag" -> "h_sag"; "sol" -> "h_sol"; "yukari" -> "h_yukari"; "asagi" -> "h_asagi"
     else -> "h_yakin"   // yakın ve otomatik: ikisi de odağa doğru yaklaşır (3.68: sihir değneği yerine gerçek yön)
 }
@@ -1024,7 +1029,7 @@ private fun KadrajIcerik(vm: EditorDurum, k: Klip) {
 private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = when (hap) {
     "sablon" -> when (a) { "giris" -> p.giris.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
     "klip" -> k != null && when (a) { "hiz" -> k.hiz != 1f; "kadraj" -> k.doldur || k.kayX != 0f || k.kayY != 0f
-        "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); else -> false }
+        "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); "yuzler" -> k.turEtkin; else -> false }
     "hareket" -> k != null && k.kenBurns && when (a) { "yakin" -> k.hareket in setOf("otomatik", "yakin", "uzak", ""); "kay" -> k.hareket in setOf("sag", "sol", "yukari", "asagi")
         "odak" -> k.odakSecX >= 0f; else -> false }
     "muzik" -> p.muzik != null && when (a) { "hazir" -> p.muzik.ad.startsWith("Hazır müzik"); "dosya" -> !p.muzik.ad.startsWith("Hazır müzik"); "ayar" -> p.muzik.girisMs > 0 || p.muzik.cikisMs > 0; else -> false }
@@ -1072,6 +1077,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
                 "kirp" -> Kart(if (k.foto) "Süre · klip ${sec + 1}" else "Kırp · klip ${sec + 1}") { KlipSureKirp(vm, k) }
                 "kadraj" -> Kart("Kadraj · klip ${sec + 1}") { KadrajIcerik(vm, k) }
                 "hiz" -> HizSayfasi(vm, k)
+                "yuzler" -> YuzTuruSayfasi(vm, p, sec, k)   // 3.74: yüzlere sırayla yaklaşma
                 else -> PanelKlip(vm, p, sec, k)
             }
             "kadraj" -> PanelKadraj(vm, k)

@@ -76,12 +76,33 @@ data class Klip(
     val odakSecX: Float = -1f, val odakSecY: Float = -1f,
     /** 3.70 klip hızı: klip bir kez hızlandırılmış/yavaşlatılmış dosyaya işlenir (uri o dosya). asil* = özgün dosya ve aralığı (1× = geri döner). */
     val hiz: Float = 1f, val asilUri: String = "", val asilBasMs: Long = 0, val asilSonMs: Long = 0, val asilKaynakSureMs: Long = 0,
+    /** 3.74: yüzlere (ve seçilen noktalara) sırayla yaklaşma — aynı fotoğrafta numaralı noktalar arasında yumuşak kamera turu. null = yok. */
+    val yuzTur: YuzTuru? = null,
 ) {
     val foto: Boolean get() = tur == "foto"
     /** Yüze yaklaşma bu klipte etkin mi: fotoğraf, yavaş yakınlaşma açık, dikey, yüz bulunmuş. */
     val yuzEtkin: Boolean get() = foto && kenBurns && yuzOdak && yuzB > 0f
     val sureMs: Long get() = if (foto) fotoSureMs else (sonMs - basMs).coerceAtLeast(100)
+    /** 3.74: yüz turu bu klipte etkin mi (fotoğraf, hareket açık, en az bir nokta). */
+    val turEtkin: Boolean get() = foto && kenBurns && (yuzTur?.noktalar?.isNotEmpty() == true)
 }
+
+/** 3.74: turdaki bir durak. x, y: fotoğrafta 0…1 (durağın merkezi); z: yakınlık (1 = kadrajı dolduran tam görünüm, 2 = iki kat yakın);
+ *  yb: yüz yüksekliği (fotoğraf yüksekliğinin oranı; 0 = elle seçilen nokta, yüz değil). */
+@Serializable
+data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: Float = 0f)
+
+/** 3.74: yüz turu ayarları (web Kareden Videoya "Odak" sisteminin gelişmiş hâli; karartma/bulanıklık yok).
+ *  bekleSn: her durakta kalma · gecis: yavas | orta | hizli (duraklar arası süre) · yaklas: durakta kalırken ek yavaş yaklaşma (0 = yok)
+ *  bastaTumu / sondaTumu: tur fotoğrafın tamamıyla başlar / biter · kavis: geçişte hafif geri çekilip yeniden yaklaşma (sinematik)
+ *  bulunan: fotoğrafta bulunan yüzler (önizlemede halka olarak gösterilir). */
+@Serializable
+data class YuzTuru(
+    val noktalar: List<OdakNoktasi> = emptyList(),
+    val bekleSn: Float = 3f, val gecis: String = "yavas", val yaklas: Float = 0.12f,
+    val bastaTumu: Boolean = true, val sondaTumu: Boolean = true, val kavis: Boolean = true,
+    val bulunan: List<OdakNoktasi> = emptyList(), val arandi: Boolean = false,
+)
 
 @Serializable
 data class Muzik(val uri: String, val ad: String = "", val ses: Float = 0.5f, val dongu: Boolean = true, val sureMs: Long = 0,

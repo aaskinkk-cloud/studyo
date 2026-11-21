@@ -169,7 +169,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
         when (o.tur) {
             "metin" -> {
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
+                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "kanca" to "Kanca", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
                         SecimKarti(ad, "", o.stil == st, Modifier.width(76.dp), etkin = e, sira = j, simge = "metin") { d { it.copy(stil = st) } }
                     }
                 }
@@ -380,7 +380,9 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int, alt: String? = null) {
     if (alt == null || alt == "ekle") Kart("Yazı ekle") {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SimgeDugme("metin", "Yazı ekle", Modifier.width(72.dp), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
-            Text("Yazı oynatıcının bulunduğu andan başlar. Katman › Yazı ekle ile aynı yazıdır.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            // 3.74: Kanca yazısı (web Kareden Videoya) — girişten hemen sonra 3 sn, ortada, dikkat çeken kısa söz
+            SimgeDugme("kanca", "Kanca yazısı", Modifier.width(78.dp), renk = tonRenk(1, "")) { vm.kancaEkle() }
+            Text("Yazı oynatıcının bulunduğu andan başlar. Kanca yazısı girişten hemen sonra gelir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
         }
         Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
         HazirYazilar(vm, hareketli = alt == null)

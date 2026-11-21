@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.73." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.74." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {
@@ -54,6 +54,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
     // 3.61: konuya göre müzik — ML Kit görüntü etiketleme (ücretsiz, cihaz içinde; model Play Hizmetleri ile)
     implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
+    // 3.74: yüz turu — yüz algılama (Google Play hizmetleri, ücretsiz, cihaz içinde)
+    implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
     // Otomatik altyazı: Vosk (Apache-2.0), çevrimdışı konuşma tanıma; Türkçe model uygulama içinden bir kez iner
     implementation("net.java.dev.jna:jna:5.13.0@aar")
     implementation("com.alphacephei:vosk-android:0.3.47@aar")

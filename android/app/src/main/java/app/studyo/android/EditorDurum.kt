@@ -2028,13 +2028,14 @@ class EditorDurum(private val ctx: Context, id: String) {
     private fun sfxHazirla() {
         val p = proje.value
         val g = p.giris
-        val anahtar = g.hashCode() * 31 + p.toplamMs.hashCode()
+        val anahtar = g.hashCode() * 31 + p.toplamMs.hashCode() + p.katmanlar.filter { it.stil.startsWith("r_") }.hashCode() * 7
         if (anahtar == sfxAnahtar) return
         sfxAnahtar = anahtar
         sfxAnlari = if (g.acik && g.reels && g.efektSes) {
             val (a, b) = Zaman.girisAralik(p)
             Reels.sesAnlari(g, Reels.seritler(g, 540, 960).size, a, b)
         } else emptyList()
+        sfxAnlari = (sfxAnlari + KatmanCizim.sesAnlari(p)).sortedBy { it.first }   // 3.92: şablon yazı sesleri
         if (sfxAnlari.isNotEmpty() && sesHavuzu == null) {
             val h = android.media.SoundPool.Builder().setMaxStreams(4).build()
             for (t in listOf("vuus", "pop", "tok")) sesKimlik[t] = h.load(Sfx.dosya(ctx, t).path, 1)

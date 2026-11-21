@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.91 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.92 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.92 (21.11.2026, deneme · `yerel-android` dalı): şablon yazılar hareketli ve sesli (Yazı katmanı)
+- 3.91'de Yazı katmanındaki şablon yazılar düz (durağan) görünüyordu. Artık kendi hareketiyle gelir (`KatmanCizim.hareketliStil`, kare kare): parçalar sırayla — ilk parça (pop) küçükten büyüyüp hafif taşarak, diğerleri yandan kayarak, saydamdan; giriş 1,3 sn, çıkışta ters yönde.
+- **Efekt sesi:** her parça gelirken vuuş/pop, çıkışta vuuş (`KatmanCizim.sesAnlari`); dışa aktarma ve akıcı önizlemede girişin efekt sesleriyle aynı dizide, standart önizlemede ses havuzundan. Katman başına aç/kapat: "Efekt sesi (parçalar gelirken)" (`KatmanOge.efektSes`).
+- Giriş başlığındaki şablonlar zaten giriş hareketi ve efekt sesleriyle geliyordu (Görünüm › Şablon › Giriş › Hareket / Efekt sesi).
 
 ## 3.91 (21.11.2026, deneme · `yerel-android` dalı): şablon yazılar (giriş + Yazı katmanı ortak), InShot teması temel
 - **6 şablon yazı** (Ahmet'in videosundaki stiller; `SablonYazi` / `ReelsCiz`): Beyaz eğik kutu (TODAY) · Ateş balon (TITLE HERE: kırmızı→turuncu→sarı, kalın beyaz kontur) · Menü bandı (TODAY'S SPECIAL MENU: ortada sarı eğik bant) · Canlı bant (COOKING LIVE LAB) · Sarı-beyaz italik (BLACK FRIDAY + sarı etiket) · Yıpranmış (SHORT STORY: siyah, beyaz kontur, lekeler).

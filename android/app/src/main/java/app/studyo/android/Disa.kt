@@ -412,18 +412,21 @@ object Disa {
             Kayit.yaz("  Ses katmanı: ${o.ad} ${bas}-${son} ms, hız=$hiz, ses=${o.ses}")
         }
         // ---- reels başlık efekt sesleri ----
-        if (seritler.isNotEmpty()) {
-            val anlar = Reels.sesAnlari(p.giris, seritler.size, gA, gB).filter { it.first < toplam - 100 }.sortedBy { it.first }
+        // 3.92: şablon yazı katmanlarının efekt sesleri de aynı dizide
+        run {
+            val gSes = p.giris.sesSeviye * 1.4f
+            val anlar = ((if (seritler.isNotEmpty()) Reels.sesAnlari(p.giris, seritler.size, gA, gB).map { Triple(it.first, it.second, gSes) } else emptyList()) +
+                KatmanCizim.sesAnlari(p).map { Triple(it.first, it.second, 0.85f) }).filter { it.first in 0 until toplam - 100 }.sortedBy { it.first }
             if (anlar.isNotEmpty()) {
                 val b = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
                 var imlec = 0L
-                for ((an, tur) in anlar) {
+                for ((an, tur, svy) in anlar) {
                     if (an < imlec) continue
                     if (an > imlec) b.addGap((an - imlec) * 1000)
                     val f = Sfx.dosya(ctx, tur)
                     val sure = if (tur == "vuus") 360L else if (tur == "pop") 110L else 70L
                     b.addItem(EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(f))).sureli(ctx, onizleme, Uri.fromFile(f).toString(), 0L, sure)
-                        .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(p.giris.sesSeviye * 1.4f)), listOf<Effect>())).build())
+                        .setEffects(Effects(listOf<AudioProcessor>(sesIsleyici(svy)), listOf<Effect>())).build())
                     imlec = an + sure
                 }
                 diziler += b.sonaKadar(imlec).build()
@@ -719,7 +722,7 @@ class DisaServisi : Service() {
         val eski = if (devam) sp.getString("yol", null)?.let { File(it) }?.takeIf { it.exists() && it.length() > 0 } else null
         // Kaldığı yerden devam (Transformer.resume) yalnız tek diziyle çalışır: müzik, seslendirme, efekt sesi ve üst üste binen geçiş yoksa
         val tek = p.muzik == null && p.sesler.isEmpty() && Gecisler.pencereler(p).isEmpty() &&
-            !(p.giris.acik && p.giris.reels && p.giris.efektSes)
+            !(p.giris.acik && p.giris.reels && p.giris.efektSes) && KatmanCizim.sesAnlari(p).isEmpty()
         val cikti = File(dizin, "studyo_${System.currentTimeMillis()}.mp4")
         yol = cikti; eskiYol = eski
         sp.edit().putString("proje", pid).putInt("kisa", kisa).putFloat("kalite", kalite).putString("yol", cikti.path)

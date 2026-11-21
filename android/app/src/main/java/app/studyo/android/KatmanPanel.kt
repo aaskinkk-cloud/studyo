@@ -245,7 +245,7 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
         val o = secO
         if (o != null && !o.kilitli) {
             vm.katmanDegis(o.id) { it.copy(stil = h.stil, renk = h.renk, olcek = h.olcek, ad = h.ad,
-                anim = when { h.stil in KatmanCizim.HAREKETLI -> "yok"; h.stil == "kanca" -> "pop"; it.anim == "yok" || it.anim == "pop" -> "kay"; else -> it.anim }) }
+                anim = when { KatmanCizim.hareketliStil(h.stil) -> "yok"; h.stil == "kanca" -> "pop"; it.anim == "yok" || it.anim == "pop" -> "kay"; else -> it.anim }) }
             vm.mesaj.value = "Stil: ${h.ad}"
         } else {
             vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, anim = anim, ad = h.ad)
@@ -310,6 +310,8 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
         HazirYazi("Sarı-beyaz italik", "r_cuma", "Taze\nfındık\nyeni sezon", 0.5f, 0.3f, 0.055f, 4000, 0xFFFFD60A),
         HazirYazi("Yıpranmış", "r_hikaye", "Kısa hikâye", 0.5f, 0.3f, 0.055f, 4000, 0xFF111111),
     ) }
+    // 3.92: seçili şablon yazının efekt sesi (parçalar gelirken vuuş · pop)
+    if (secO != null && secO.stil.startsWith("r_")) AnahtarSatiri("Efekt sesi (parçalar gelirken)", secO.efektSes) { v -> vm.katmanDegis(secO.id) { it.copy(efektSes = v) } }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         hl.forEach { h ->
             val ornek = remember(h) { KatmanOge(tur = "metin", metin = h.metin, stil = h.stil, renk = h.renk, olcek = h.olcek * 1.6f) }

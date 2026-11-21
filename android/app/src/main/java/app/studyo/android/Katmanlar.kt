@@ -39,13 +39,31 @@ object KatmanCizim {
     val HAREKETLI = setOf("acilan", "serit", "daktilo", "ciftkutu", "altcizgi")
     /** Giriş ve çıkış animasyonunun kare sayısı (ADIM = tam görünüm). */
     const val ADIM = 30
-    fun hareketli(o: KatmanOge): Boolean = o.tur == "metin" && o.stil in HAREKETLI
+    fun hareketli(o: KatmanOge): Boolean = o.tur == "metin" && hareketliStil(o.stil)
+    /** 3.92: şablon yazılar (r_*) da kendi hareketiyle gelir: parçalar sırayla — ilki büyüyerek, diğerleri yandan kayarak. */
+    fun hareketliStil(s: String) = s in HAREKETLI || s.startsWith("r_")
+
+    /** 3.92: şablon yazının efekt sesi anları (zaman çizelgesi ms, tür): her parça gelirken bir ses, çıkışta vuuş. */
+    fun sesAnlari(p: Proje): List<Pair<Long, String>> {
+        val l = ArrayList<Pair<Long, String>>()
+        for (o in p.katmanlar) {
+            if (o.tur != "metin" || !o.stil.startsWith("r_") || !o.efektSes || o.gizli || o.metin.isBlank()) continue
+            val og = runCatching { ReelsCiz.ogeler(o.stil, o.metin.replace("\n", "|"), "", 540, 960, (o.olcek / 0.055f).coerceIn(0.4f, 2.5f)) }.getOrNull() ?: continue
+            val g = minOf(SABLON_GIR, (o.sonMs - o.basMs) * 2 / 3)
+            og.forEachIndexed { i, x -> l += (o.basMs + (parcaBas(i, og.size) * g).toLong() + 40L) to (if (x.pop) "pop" else "vuus") }
+            if (o.sonMs - o.basMs > 1500) l += (o.sonMs - 380L) to "vuus"
+        }
+        return l.sortedBy { it.first }
+    }
+    const val SABLON_GIR = 1300L
+    /** Parça i'nin girişteki başlangıç oranı (0…1 içinde; son parça %45'te başlar). */
+    fun parcaBas(i: Int, n: Int): Float = if (n <= 1) 0f else 0.45f * i / (n - 1)
 
     /** O andaki animasyon karesi (0 = hiç görünmez … ADIM = tam). Hareketli olmayan katmanda hep ADIM. */
     fun adim(o: KatmanOge, ms: Long): Int {
         if (!hareketli(o)) return ADIM
         val uzun = o.metin.replace("\n", " ").length
-        val gir = if (o.stil == "daktilo") (uzun * 55L).coerceIn(600L, 2200L) else 900L
+        val gir = if (o.stil == "daktilo") (uzun * 55L).coerceIn(600L, 2200L) else if (o.stil.startsWith("r_")) SABLON_GIR else 900L
         val cik = 400L
         val sure = (o.sonMs - o.basMs).coerceAtLeast(1L)
         val g = minOf(gir, sure * 2 / 3); val c = minOf(cik, sure / 4).coerceAtLeast(1L)
@@ -58,7 +76,7 @@ object KatmanCizim {
         // 3.77: harf biçimi (yazı ve altyazısı) çizimde uygulanır
         val o = if (o0.harf.isNotEmpty() && o0.tur == "metin") o0.copy(metin = Harf.uygula(o0.metin, o0.harf), altyazi = Harf.uygula(o0.altyazi, o0.harf)) else o0
         val b = when (o.tur) {
-            "metin" -> if (o.stil.startsWith("r_")) sablonMetin(o, W, H) else if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
+            "metin" -> if (o.stil.startsWith("r_")) sablonMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
             "cikartma" -> cikartma(o, W)
             "gorsel" -> gorsel(o, W)
             else -> null
@@ -69,14 +87,28 @@ object KatmanCizim {
     }
 
     /** 3.91: şablon yazı (giriş başlığındaki stillerin aynısı: ReelsCiz/SablonYazi). Satırlar Enter ile; parçalar tek bitmapte, kutusuna kırpılır. */
-    private fun sablonMetin(o: KatmanOge, W: Int, H: Int): Bitmap? {
+    private fun sablonMetin(o: KatmanOge, W: Int, H: Int, f: Float = 1f): Bitmap? {
         if (o.metin.isBlank()) return null
         val og = ReelsCiz.ogeler(o.stil, o.metin.replace("\n", "|"), "", W, H, (o.olcek / 0.055f).coerceIn(0.4f, 2.5f))
         if (og.isEmpty()) return null
         val m = min(W, H) * 0.05f
         val x0 = og.minOf { it.x } - m; val y0 = og.minOf { it.y } - m; val x1 = og.maxOf { it.x + it.w } + m; val y1 = og.maxOf { it.y + it.h } + m
         val b = Bitmap.createBitmap((x1 - x0).toInt().coerceAtLeast(2), (y1 - y0).toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
-        val c = Canvas(b); c.translate(-x0, -y0); ReelsCiz.tumunuCiz(c, og)
+        val c = Canvas(b); c.translate(-x0, -y0)
+        if (f >= 0.999f) { ReelsCiz.tumunuCiz(c, og); return b }
+        // 3.92: parçalar sırayla gelir — pop: küçükten büyüyüp hafif taşar; diğerleri yandan (yon) kayarak; hepsi saydamdan
+        og.forEachIndexed { i, x ->
+            val s0 = parcaBas(i, og.size); val k = ((f - s0) / 0.55f).coerceIn(0f, 1f)
+            if (k <= 0f) return@forEachIndexed
+            val e = 1f - (1f - k) * (1f - k) * (1f - k)
+            val cx = x.x + x.w / 2; val cy = x.y + x.h / 2
+            c.save()
+            if (x.pop) { val t = k - 1f; val bo = 1f + 2.7f * t * t * t + 1.7f * t * t; val sc = 0.2f + 0.8f * bo; c.scale(sc, sc, cx, cy) }
+            else c.translate((1f - e) * x.yon * W * 0.22f, 0f)
+            c.saveLayerAlpha(x.x - m, x.y - m, x.x + x.w + m, x.y + x.h + m, (255 * min(1f, k * 1.6f)).roundToInt())
+            x.ciz(c)
+            c.restore(); c.restore()
+        }
         return b
     }
 

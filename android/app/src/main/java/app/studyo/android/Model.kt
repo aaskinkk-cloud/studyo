@@ -259,6 +259,8 @@ data class KatmanOge(
     val satirGizli: Boolean = false,
     /** 3.52: ses katmanı (müzik olarak eklenen) — videoda ses/konuşma varken otomatik kısılır */
     val otoKis: Boolean = true,
+    /** 3.92: şablon yazı (stil r_*) parçaları gelirken efekt sesi (vuuş · pop) */
+    val efektSes: Boolean = true,
 ) {
     val gorsel: Boolean get() = tur != "ses"
 }

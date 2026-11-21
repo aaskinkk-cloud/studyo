@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.79 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.80 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.80 (21.11.2026, deneme · `yerel-android` dalı): durdurunca siyah ekran — kök düzeltme (2. deneme, farklı yöntem)
+- **3.77'deki düzeltme yetmedi** (yüzey hazır olunca yeniden sarma): düzenleme oynatıcısı kareyi çizemediğinde (çözücü akıcı oynatıcıda meşgulken ya da oynatıcı hata verip boşta kalınca) yine siyah kalıyordu; perdesi de siyahtı.
+- **Yeni yöntem:** duraklatınca akıcı oynatıcının yüzeyi kaldırılmaz; **donmuş son kare** düzenleme önizlemesinin altında kalır (`kompDurgun`). Oynatıcı perdesi saydam (siyah değil). Düzenleme oynatıcısı kendi karesini çizince (`onRenderedFirstFrame`; fotoğrafta 1,2 sn sonra) alttaki yüzey bırakılır, akıcı oynatıcı ▶ için hazır bekler. Düzenleme oynatıcısı boşta kalmışsa durdururken yeniden hazırlanır; akıcı oynatıcı bırakılınca (bir düzenleme yapılınca) o anki kare yeniden çizilir.
 
 ## 3.79 (21.11.2026, deneme · `yerel-android` dalı): dönen ışık tamamen kaldırıldı
 - Ahmet'in kararı: 3.77'deki "dönen ışık · gövde" özelliği iptal (istenen gövde hattını izleyen ışık değildi; yüz klibinde uygulama kapanıyordu). Kaldırılanlar: gövde bulma (`Govde.kt`, ML Kit çoklu nesne ayırma), ışık çizimi, `TurIsikBindirme`, biçim seçimi, `YuzTuru.vurguStil`, `OdakNoktasi.govde/govdeArandi`. Eski projelerdeki bu alanlar okunurken yok sayılır.

@@ -80,6 +80,8 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     init {
         player.addListener(object : Player.Listener {
+            // 3.80: düzenleme oynatıcısı kendi karesini çizdi → alttaki donmuş akıcı kare artık gerekmez (yüzey bırakılır, oynatıcı kalır)
+            override fun onRenderedFirstFrame() { if (kompDurgun.value) kompDurgun.value = false }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 sira.value = player.currentMediaItemIndex
                 // 3.42: seçili klip = oynatıcının üstündeki klip (izlerken ve sararken); klip şeridi buna göre kayar
@@ -224,6 +226,9 @@ class EditorDurum(private val ctx: Context, id: String) {
     val kompAktif = MutableStateFlow(false)
     /** İlk kare çizildi: düzenleme önizlemesi gizlenir (o ana kadar eski görüntü üstte kalır → siyah ekran görünmez). */
     val kompGorunur = MutableStateFlow(false)
+    /** 3.80 KÖK DÜZELTME (durdurunca siyah ekran): akıcı oynatıcı duraklatılınca yüzeyi kaldırılmaz; donmuş son kare düzenleme
+     *  önizlemesinin ALTINDA kalır. Düzenleme oynatıcısı kendi karesini çizene kadar (ya da hiç çizemezse) bu kare görünür → siyah yok. */
+    val kompDurgun = MutableStateFlow(false)
     private var kompYuzey: android.view.SurfaceView? = null
     private var kompHazirlaniyor = false
     private var kompTikIs: Job? = null
@@ -313,6 +318,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
 
     private fun kompOynat(cp: androidx.media3.transformer.CompositionPlayer, bas: Long, t0: Long) {
+        kompDurgun.value = false
         kompAktif.value = true
         kompYuzey?.let { try { cp.setVideoSurfaceView(it) } catch (_: Exception) {} }
         MuzikZarf.sar(bas)
@@ -374,8 +380,17 @@ class EditorDurum(private val ctx: Context, id: String) {
         val pos = if (konumaGit >= 0) konumaGit else cp?.currentPosition?.coerceAtLeast(0) ?: konum.value
         try { cp?.pause() } catch (_: Exception) {}
         kompTikIs?.cancel(); kompBekciIs?.cancel()
+        kompDurgun.value = cp != null
         kompAktif.value = false; kompGorunur.value = false; oynuyor.value = false
+        // düzenleme oynatıcısı hata yüzünden durmuşsa (ör. çözücü yetmedi) yeniden hazırlanır; yoksa sarma kare çizmez
+        if (player.playbackState == Player.STATE_IDLE && player.mediaItemCount > 0) { Kayit.yaz("Durdur: önizleme oynatıcısı boştaydı, yeniden hazırlandı"); player.prepare() }
         git(pos)
+        // fotoğrafta kare bildirimi gelmeyebilir: fotoğraf hazırsa kısa süre sonra alttaki kare bırakılır (Sığdır'da kenarda görünmesin)
+        if (cp != null) kapsam.launch {
+            delay(1200)
+            val k = proje.value.klipler.getOrNull(player.currentMediaItemIndex)
+            if (kompDurgun.value && !kompAktif.value && k?.foto == true && player.playbackState == Player.STATE_READY) kompDurgun.value = false
+        }
     }
 
     /** Kompozisyon değişti ya da ekran kapanıyor: akıcı oynatıcı bırakılır. */
@@ -385,9 +400,14 @@ class EditorDurum(private val ctx: Context, id: String) {
         kompHazirlaniyor = false
         kompTikIs?.cancel(); kompBekciIs?.cancel()
         val cp = komp; komp = null
-        kompAktif.value = false; kompGorunur.value = false
+        kompAktif.value = false; kompGorunur.value = false; kompDurgun.value = false
         oynuyor.value = player.isPlaying
         if (cp != null) try { cp.release() } catch (_: Exception) {}
+        // akıcı oynatıcının çözücüleri bırakıldı: düzenleme oynatıcısı o anki kareyi yeniden çizsin (siyah kalmasın)
+        if (cp != null && !player.isPlaying && player.mediaItemCount > 0) try {
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+            player.seekTo(player.currentMediaItemIndex, player.currentPosition.coerceAtLeast(0))
+        } catch (e: Exception) { Kayit.hata("önizleme kare yenile", e) }
     }
 
     fun sec(i: Int) {

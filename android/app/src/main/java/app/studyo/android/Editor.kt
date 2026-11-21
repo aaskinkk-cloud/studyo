@@ -463,7 +463,7 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
                         useController = false
                         player = vm.player
                         kareyiYenile(vm.player)
-                        setShutterBackgroundColor(android.graphics.Color.BLACK)
+                        setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)   // 3.80: kare gelene kadar alttaki görüntü görünsün
                         setKeepContentOnPlayerReset(true)
                     }
                 },

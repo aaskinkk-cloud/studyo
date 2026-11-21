@@ -142,12 +142,12 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // ilk kare gelince yalnız yüzey kalır.
             val kompA by vm.kompAktif.collectAsState()
             val kompG by vm.kompGorunur.collectAsState()
-            if (kompA) {
-                AndroidView(factory = { c -> android.view.SurfaceView(c).also { vm.kompYuzeyBagla(it) } },
-                    onRelease = { vm.kompYuzeyBagla(null) }, modifier = Modifier.fillMaxSize())
-                // 3.68: akıcı oynatmada önizlemeye dokun = dur
-                if (kompG) { Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { vm.oynatDurdur() } }); return@BoxWithConstraints }
-            }
+            val kompD by vm.kompDurgun.collectAsState()
+            // 3.80: duraklatılınca da yüzey yerinde kalır (donmuş son kare düzenleme önizlemesinin altında) — siyah ekran yok
+            if (kompA || kompD) AndroidView(factory = { c -> android.view.SurfaceView(c).also { vm.kompYuzeyBagla(it) } },
+                onRelease = { vm.kompYuzeyBagla(null) }, modifier = Modifier.fillMaxSize())
+            // 3.68: akıcı oynatmada önizlemeye dokun = dur
+            if (kompA && kompG) { Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { vm.oynatDurdur() } }); return@BoxWithConstraints }
             val ref = remember(p.bicim) { Disa.boyut(p.bicim, 1080) }
             val RW = ref.first; val RH = ref.second
             val olcek = constraints.maxWidth.toFloat() / RW

@@ -17,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +43,7 @@ fun Prompter(vm: EditorDurum, kapat: () -> Unit) {
     var hiz by remember { mutableFloatStateOf(p.okumaHiz) }
     var boy by remember { mutableFloatStateOf(p.okumaBoy) }
     var akiyor by remember { mutableStateOf(false) }
+    var tutuyor by remember { mutableStateOf(false) }   // 3.93: metne basılı tut = dur, bırak = devam; sürüklerken kayma bekler
     val gorunum = LocalView.current
     DisposableEffect(Unit) { gorunum.keepScreenOn = true; onDispose { gorunum.keepScreenOn = false; if (vm.kaydediyor.value) vm.kayitDurdur() } }
     val izin = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
@@ -47,9 +51,9 @@ fun Prompter(vm: EditorDurum, kapat: () -> Unit) {
     }
     // kendiliğinden kaydırma: saniyede "hiz" dp
     val yog = androidx.compose.ui.platform.LocalDensity.current
-    LaunchedEffect(akiyor, hiz) {
+    LaunchedEffect(akiyor, hiz, tutuyor) {
         var once = 0L
-        while (akiyor) {
+        while (akiyor && !tutuyor) {
             withFrameNanos { t ->
                 if (once != 0L) {
                     val dt = (t - once) / 1e9f
@@ -71,13 +75,17 @@ fun Prompter(vm: EditorDurum, kapat: () -> Unit) {
                         color = if (kaydediyor) Renk.kirmizi else Color(0xFFAAAAAA), fontSize = 13.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     TextButton(onClick = { akiyor = false; vm.kapsam.launch { kaydir.scrollTo(0) } }) { Text("Baştan", color = Color.White, fontSize = 13.sp) }
                 }
-                Box(Modifier.fillMaxWidth().weight(1f)) {
+                Box(Modifier.fillMaxWidth().weight(1f).pointerInput(Unit) {
+                    awaitEachGesture { awaitFirstDown(requireUnconsumed = false); tutuyor = true
+                        do { val e = awaitPointerEvent() } while (e.changes.any { it.pressed }); tutuyor = false } }) {
                     Column(Modifier.fillMaxSize().verticalScroll(kaydir).padding(horizontal = 22.dp)) {
                         Spacer(Modifier.height(260.dp))
                         Text(p.okumaMetni.ifBlank { "Seslendirme panelinde okuyacağın metni yaz." }, color = Color.White,
                             fontSize = boy.sp, lineHeight = (boy * 1.35f).sp, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(600.dp))
                     }
+                    if (tutuyor && akiyor) Text("Durdu · bırak = devam", color = Color.White, fontSize = 12.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp)
+                        .clip(RoundedCornerShape(10.dp)).background(Color(0x99000000)).padding(horizontal = 10.dp, vertical = 3.dp))
                     // okuma çizgisi
                     Box(Modifier.align(Alignment.TopCenter).padding(top = 250.dp).fillMaxWidth().height(2.dp).background(Renk.turuncu.copy(alpha = 0.7f)))
                 }

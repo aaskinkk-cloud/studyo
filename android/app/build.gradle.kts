@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "3.92." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "3.93." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {
@@ -58,6 +58,13 @@ dependencies {
     implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
     // 3.87: yüz turu ışığı için kişi silüeti (ücretsiz, model uygulamanın içinde, cihazda çalışır)
     implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
+    // 3.93: kamerayla prompter çekimi (ücretsiz, Android Jetpack)
+    val camerax = "1.4.1"
+    implementation("androidx.camera:camera-core:$camerax")
+    implementation("androidx.camera:camera-camera2:$camerax")
+    implementation("androidx.camera:camera-lifecycle:$camerax")
+    implementation("androidx.camera:camera-video:$camerax")
+    implementation("androidx.camera:camera-view:$camerax")
     // Otomatik altyazı: Vosk (Apache-2.0), çevrimdışı konuşma tanıma; Türkçe model uygulama içinden bir kez iner
     implementation("net.java.dev.jna:jna:5.13.0@aar")
     implementation("com.alphacephei:vosk-android:0.3.47@aar")

@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.92 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.93 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.93 (22.11.2026, deneme · `yerel-android` dalı): kamerayla prompter çekimi, prompter'da basılı tut = dur
+- **Kamerayla çek** (`KameraPrompter.kt`, CameraX 1.4.1, ücretsiz): tam ekran kamera (ön/arka), okunacak metin üstte merceğe yakın yarı saydam bantta akar (Ahmet'in seçimi). 3 sn geri sayım → kayıt (FHD, olmazsa HD). Bitince video projeye klip olarak eklenir (uygulama içi dosya, `medya/`) ve kopyası galeriye (Movies/Stüdyo) yazılır. Hız prompter'la ortak.
+  - Yerler: Ses › Seslendirme › Prompter › "Kamerayla çek" ve klip şeridinde Albüm'ün yanında "Kamera".
+  - İzinler: CAMERA (+ RECORD_AUDIO); kamera zorunlu donanım değil.
+- **Metne basılı tut = durur, bırak = kaldığı yerden devam; sürüklerken kayma bekler** (hem kameralı hem sesli prompter).
 
 ## 3.92 (21.11.2026, deneme · `yerel-android` dalı): şablon yazılar hareketli ve sesli (Yazı katmanı)
 - 3.91'de Yazı katmanındaki şablon yazılar düz (durağan) görünüyordu. Artık kendi hareketiyle gelir (`KatmanCizim.hareketliStil`, kare kare): parçalar sırayla — ilk parça (pop) küçükten büyüyüp hafif taşarak, diğerleri yandan kayarak, saydamdan; giriş 1,3 sn, çıkışta ters yönde.

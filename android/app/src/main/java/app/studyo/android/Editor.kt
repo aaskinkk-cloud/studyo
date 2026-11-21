@@ -764,6 +764,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     var dx by remember { mutableFloatStateOf(0f) }
     var silOnayId by remember { mutableStateOf<String?>(null) }
     var albumAcik by remember { mutableStateOf(false) }
+    var kameraAcik by remember { mutableStateOf(false) }
     LazyRow(
         state = durum,
         modifier = Modifier.fillMaxWidth().height(yukseklik).padding(vertical = 4.dp),
@@ -926,8 +927,20 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                 }
             }
         }
+        // 3.93: kamerayla çek (prompter'lı)
+        if (!kucuk) item {
+            Box(Modifier.width(96.dp).fillMaxHeight(0.6f).clip(RoundedCornerShape(14.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(14.dp)).clickable { kameraAcik = true },
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("klip", Renk.yazi, 24.dp)
+                    Text("Kamera", color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+                    Text("prompter ile çek", color = Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
+                }
+            }
+        }
     }
     if (albumAcik) AlbumPenceresi(vm) { albumAcik = false }
+    if (kameraAcik) KameraPrompter(vm) { kameraAcik = false }
     val ek = buildList {
         p.muzik?.let { add("♪ ${it.ad}") }
         if (p.sesler.isNotEmpty()) add("🎙 ${p.sesler.size} seslendirme")
@@ -1484,14 +1497,17 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
         }
     }
     var prompter by remember { mutableStateOf(false) }
+    var kameraP by remember { mutableStateOf(false) }
     if (alt == null || alt == "prompter") Kart("Kayan yazıdan oku (prompter)") {
         var m by remember(p.id) { mutableStateOf(p.okumaMetni) }
         OutlinedTextField(m, { m = it; vm.okumaDegis { pp -> pp.copy(okumaMetni = it) } }, Modifier.fillMaxWidth().heightIn(min = 110.dp),
             placeholder = { Text("Okuyacağın metni buraya yaz ya da yapıştır") }, maxLines = 8)
         GenisDugme("Tam ekran oku ve kaydet", "prompter", Modifier.padding(top = 8.dp), vurgulu = true) { vm.player.pause(); prompter = true }
+        GenisDugme("Kamerayla çek (metin üstte akar)", "klip", Modifier.padding(top = 6.dp)) { vm.player.pause(); kameraP = true }
         AcilirNot("Metin kayarken okursun; sesin önizlemedeki andan itibaren seslendirme olarak eklenir. Hız ve yazı boyutu ekranda ayarlanır.")
     }
     if (prompter) Prompter(vm) { prompter = false }
+    if (kameraP) KameraPrompter(vm) { kameraP = false }
     if (alt == "kayitlar" && p.sesler.isEmpty()) Text("Henüz seslendirme kaydı yok. Kayıt ya da Prompter sayfasından kaydet.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
     if ((alt == null || alt == "kayitlar") && p.sesler.isNotEmpty()) Kart("Kayıtlar (${p.sesler.size})") {
         p.sesler.forEach { s ->

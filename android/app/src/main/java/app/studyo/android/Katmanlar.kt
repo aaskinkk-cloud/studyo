@@ -58,7 +58,7 @@ object KatmanCizim {
         // 3.77: harf biçimi (yazı ve altyazısı) çizimde uygulanır
         val o = if (o0.harf.isNotEmpty() && o0.tur == "metin") o0.copy(metin = Harf.uygula(o0.metin, o0.harf), altyazi = Harf.uygula(o0.altyazi, o0.harf)) else o0
         val b = when (o.tur) {
-            "metin" -> if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
+            "metin" -> if (o.stil.startsWith("r_")) sablonMetin(o, W, H) else if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
             "cikartma" -> cikartma(o, W)
             "gorsel" -> gorsel(o, W)
             else -> null
@@ -66,6 +66,18 @@ object KatmanCizim {
         if (b != null && o.altyazi.isNotBlank()) altyaziEkle(b, o.altyazi, W, H) else b
     } catch (e: Throwable) {
         Kayit.hata("katman çizimi ${o0.tur}", e); null
+    }
+
+    /** 3.91: şablon yazı (giriş başlığındaki stillerin aynısı: ReelsCiz/SablonYazi). Satırlar Enter ile; parçalar tek bitmapte, kutusuna kırpılır. */
+    private fun sablonMetin(o: KatmanOge, W: Int, H: Int): Bitmap? {
+        if (o.metin.isBlank()) return null
+        val og = ReelsCiz.ogeler(o.stil, o.metin.replace("\n", "|"), "", W, H, (o.olcek / 0.055f).coerceIn(0.4f, 2.5f))
+        if (og.isEmpty()) return null
+        val m = min(W, H) * 0.05f
+        val x0 = og.minOf { it.x } - m; val y0 = og.minOf { it.y } - m; val x1 = og.maxOf { it.x + it.w } + m; val y1 = og.maxOf { it.y + it.h } + m
+        val b = Bitmap.createBitmap((x1 - x0).toInt().coerceAtLeast(2), (y1 - y0).toInt().coerceAtLeast(2), Bitmap.Config.ARGB_8888)
+        val c = Canvas(b); c.translate(-x0, -y0); ReelsCiz.tumunuCiz(c, og)
+        return b
     }
 
     /** Katman altyazısı (3.46): katman bitmapinin altına ortalı, koyu yarı saydam kutulu yazı; tek bitmap olduğu için

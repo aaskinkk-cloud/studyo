@@ -389,6 +389,8 @@ object ReelsCiz {
                     }
                     y += h + gap }
             }
+            "r_bugun", "r_baloncuk", "r_menu", "r_canli", "r_cuma", "r_hikaye" ->
+                SablonYazi.ciz(stil, bol(baslik.replace("*", "")) + bands, Wf, Hf, fs0, maxW, CY, liste)   // 3.91: Ahmet'in videosundaki şablonlar
             else -> haber(title, bands, Wf, Hf, olcek, CY, liste)   // r_haber: Renkli kutular (Stüdyo'ya özgü)
         }
         // taşma koruması: bütün blok karenin içinde kalsın (alt/üst konumda)
@@ -555,5 +557,131 @@ object KlasikCiz {
             }
         }
         return b
+    }
+}
+
+
+/** 3.91: Ahmet'in gösterdiği şablon yazılar (giriş başlığı, kapak ve Yazı katmanında ortak). sat: satırlar (başlık satırları + bantlar).
+ *  Bugün (beyaz eğik kutu) · Baloncuk (kırmızı-turuncu-sarı geçişli, kalın beyaz kontur) · Menü (üç satır, ortada sarı bant)
+ *  · Canlı (turuncu geçişli italik + kırmızı bantlı alt yazı) · Kara Cuma (sarı/beyaz italik + sarı etiket) · Hikâye (siyah, beyaz kontur, yıpranmış). */
+object SablonYazi {
+    private const val BEYAZ = 0xFFFFFFFF.toInt(); private const val INK = 0xFF111111.toInt(); private const val SARI = 0xFFFFD60A.toInt()
+    private val ATES = intArrayOf(0xFFFF4A1C.toInt(), 0xFFFF7A1A.toInt(), 0xFFFFC23A.toInt())
+    private val TURUNCU = intArrayOf(0xFFFF5A1F.toInt(), 0xFFFFA126.toInt())
+
+    private fun boya(tf: Typeface, fs: Float, renk: Int = INK) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { typeface = tf; textSize = max(6f, fs); color = renk }
+    private fun sigdir(s: String, tf: Typeface, fs0: Float, maxW: Float): Float { var fs = fs0; while (fs > 10f && boya(tf, fs).measureText(s) > maxW) fs *= 0.95f; return fs }
+
+    /** Yazıyı (ortalı, taban çizgisi y) dolgu geçişi + kontur + gölgeyle çizer. */
+    private fun yaz(c: Canvas, s: String, cx: Float, y: Float, tf: Typeface, fs: Float, dolgu: IntArray, kontur: Int = 0, konturKal: Float = 0f, golge: Boolean = true) {
+        val p = boya(tf, fs).apply { textAlign = Paint.Align.CENTER }
+        if (golge) {
+            val g = TextPaint(p).apply { color = 0x73000000; style = Paint.Style.FILL_AND_STROKE; strokeWidth = konturKal; setShadowLayer(fs * 0.12f, 0f, fs * 0.08f, 0x99000000.toInt()) }
+            c.drawText(s, cx, y + fs * 0.05f, g)
+        }
+        if (konturKal > 0f) c.drawText(s, cx, y, TextPaint(p).apply { color = kontur; style = Paint.Style.STROKE; strokeWidth = konturKal; strokeJoin = Paint.Join.ROUND })
+        if (dolgu.size > 1) p.shader = android.graphics.LinearGradient(0f, y - fs * 0.8f, 0f, y + fs * 0.1f, dolgu, null, android.graphics.Shader.TileMode.CLAMP) else p.color = dolgu[0]
+        c.drawText(s, cx, y, p)
+    }
+    /** Eğik bant (paralelkenar). */
+    private fun bant(c: Canvas, x: Float, y: Float, w: Float, h: Float, renkler: IntArray, egim: Float) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        if (renkler.size > 1) p.shader = android.graphics.LinearGradient(x, 0f, x + w, 0f, renkler, null, android.graphics.Shader.TileMode.CLAMP) else p.color = renkler[0]
+        p.setShadowLayer(h * 0.18f, 0f, h * 0.1f, 0x55000000)
+        c.drawPath(Path().apply { moveTo(x + egim, y); lineTo(x + w, y); lineTo(x + w - egim, y + h); lineTo(x, y + h); close() }, p)
+    }
+
+    fun ciz(stil: String, sat0: List<String>, Wf: Float, Hf: Float, fs0: Float, maxW: Float, CY: Float, liste: MutableList<BaslikOge>) {
+        val sat = sat0.ifEmpty { listOf("Başlık") }
+        val cx = Wf / 2
+        fun add(pop: Boolean, yon: Int, x: Float, y: Float, w: Float, h: Float, f: (Canvas) -> Unit) { liste += BaslikOge(x, y, w, h, pop, yon, f) }
+        when (stil) {
+            "r_bugun" -> {   // beyaz eğik kutu, siyah ağır yazı; altında beyaz italik alt yazı
+                val tf = Yazilar.mont900; val fs = sigdir(sat[0], tf, fs0 * 1.05f, maxW * 0.9f)
+                val tw = boya(tf, fs).measureText(sat[0]); val padX = fs * 0.32f; val bh = fs * 1.25f; val bw = tw + padX * 2
+                val alt = sat.drop(1).joinToString(" ").uppercase(TR); val afs = fs * 0.36f
+                val top = CY - (bh + (if (alt.isNotEmpty()) afs * 1.6f else 0f)) / 2; val bx = cx - bw / 2
+                add(true, -1, bx - fs * 0.2f, top - fs * 0.25f, bw + fs * 0.4f, bh + fs * 0.5f) { c ->
+                    c.save(); c.rotate(-5f, cx, top + bh / 2)
+                    c.drawRect(bx, top, bx + bw, top + bh, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BEYAZ; setShadowLayer(fs * 0.15f, 0f, fs * 0.08f, 0x66000000) })
+                    c.drawText(sat[0], cx, top + bh / 2 + fs * 0.36f, boya(tf, fs, INK).apply { textAlign = Paint.Align.CENTER })
+                    c.restore()
+                }
+                if (alt.isNotEmpty()) { val y = top + bh + afs * 1.25f
+                    add(false, 1, bx, y - afs, bw, afs * 1.4f) { c ->
+                        c.save(); c.rotate(-5f, cx, top + bh / 2)
+                        c.drawText(alt, cx + fs * 0.4f, y, boya(Yazilar.mont900i, afs, BEYAZ).apply { textAlign = Paint.Align.CENTER; letterSpacing = 0.06f; setShadowLayer(afs * 0.3f, 0f, afs * 0.15f, 0x99000000.toInt()) })
+                        c.restore()
+                    } }
+            }
+            "r_baloncuk" -> {   // kırmızı → turuncu → sarı geçişli kalın yazı, kalın beyaz kontur, koyu gölge (satır satır)
+                val tf = Yazilar.mont900; val l = sat.take(3)
+                val fsl = l.mapIndexed { i, t -> sigdir(t, tf, fs0 * (if (i == 0) 1.25f else 1.05f), maxW) }
+                val lh = fsl.map { it * 1.08f }; var y = CY - lh.sum() / 2
+                l.forEachIndexed { i, t -> val fs = fsl[i]; val yy = y; val w = boya(tf, fs).measureText(t) + fs * 0.4f
+                    add(i == 0, if (i % 2 == 0) -1 else 1, cx - w / 2, yy, w, lh[i]) { c -> yaz(c, t, cx, yy + fs * 0.86f, tf, fs, if (i == 0) ATES else intArrayOf(0xFFFF8A1E.toInt(), 0xFFFFD23A.toInt()), BEYAZ, fs * 0.2f) }
+                    y += lh[i] }
+            }
+            "r_menu" -> {   // üç satır dar yazı: üst ve alt turuncu geçişli (koyu kontur), ortadaki beyaz yazı sarı eğik bant üstünde
+                val tf = Yazilar.anton; val l = sat.take(3)
+                val fsl = l.mapIndexed { i, t -> sigdir(t.uppercase(TR).takeIf { i > 0 } ?: t, tf, fs0 * (if (i == 1) 1.0f else 0.82f), maxW * 0.9f) }
+                val lh = fsl.map { it * 1.18f }; var y = CY - lh.sum() / 2
+                l.forEachIndexed { i, t0 -> val t = if (i > 0) t0.uppercase(TR) else t0; val fs = fsl[i]; val yy = y; val w = boya(tf, fs).measureText(t) + fs * 0.6f
+                    add(i == 1, if (i % 2 == 0) -1 else 1, cx - w / 2, yy, w, lh[i]) { c ->
+                        if (i == 1) { bant(c, cx - w / 2, yy + lh[i] * 0.08f, w, lh[i] * 0.86f, intArrayOf(0xFFFFE04A.toInt(), SARI), fs * 0.25f)
+                            yaz(c, t, cx, yy + lh[i] * 0.08f + lh[i] * 0.43f + fs * 0.36f, tf, fs, intArrayOf(BEYAZ), INK, fs * 0.08f) }
+                        else yaz(c, t, cx, yy + fs * 1.0f, tf, fs, TURUNCU, 0xFF3A1206.toInt(), fs * 0.1f)
+                    }
+                    y += lh[i] }
+            }
+            "r_canli" -> {   // büyük italik turuncu geçişli yazı (koyu kontur) + altında kırmızı-turuncu eğik bantta beyaz dar yazı
+                val tf = Yazilar.mont900i; val fs = sigdir(sat[0], tf, fs0 * 1.15f, maxW); val alt = sat.drop(1).joinToString(" ").uppercase(TR)
+                val bfs = fs * 0.5f; val bh = bfs * 1.45f; val h1 = fs * 1.15f
+                val top = CY - (h1 + if (alt.isNotEmpty()) bh else 0f) / 2; val w1 = boya(tf, fs).measureText(sat[0]) + fs * 0.4f
+                add(true, -1, cx - w1 / 2, top, w1, h1) { c -> yaz(c, sat[0], cx, top + fs * 0.92f, tf, fs, TURUNCU, 0xFF3A1206.toInt(), fs * 0.09f) }
+                if (alt.isNotEmpty()) { val bf = Yazilar.barlow800; val bw = boya(bf, bfs).measureText(alt) + bfs * 1.4f; val y = top + h1
+                    add(false, 1, cx - bw / 2, y, bw, bh) { c ->
+                        bant(c, cx - bw / 2, y, bw, bh, intArrayOf(0xFFE3101B.toInt(), 0xFFFF7A1A.toInt()), bfs * 0.3f)
+                        c.drawText(alt, cx, y + bh / 2 + bfs * 0.36f, boya(bf, bfs, BEYAZ).apply { textAlign = Paint.Align.CENTER; letterSpacing = 0.04f })
+                    } }
+            }
+            "r_cuma" -> {   // sarı italik üst satır, beyaz büyük italik ikinci satır, altta sarı yuvarlak etiket (siyah yazı)
+                val tf = Yazilar.mont900i
+                val l1 = sat[0].uppercase(TR); val l2 = sat.getOrNull(1)?.uppercase(TR); val tag = sat.drop(2).joinToString(" ")
+                val f1 = sigdir(l1, tf, fs0 * (if (l2 != null) 0.82f else 1.1f), maxW); val f2 = l2?.let { sigdir(it, tf, fs0 * 1.1f, maxW) } ?: 0f
+                val tfs = fs0 * 0.32f; val th = tfs * 1.6f
+                val H = f1 * 1.05f + (if (l2 != null) f2 * 1.05f else 0f) + (if (tag.isNotEmpty()) th + tfs * 0.4f else 0f)
+                var y = CY - H / 2
+                val y1 = y; val w1 = boya(tf, f1).measureText(l1) + f1 * 0.4f
+                add(true, -1, cx - w1 / 2, y1, w1, f1 * 1.05f) { c -> yaz(c, l1, cx, y1 + f1 * 0.9f, tf, f1, intArrayOf(SARI), 0, 0f) }
+                y += f1 * 1.05f
+                if (l2 != null) { val y2 = y; val w2 = boya(tf, f2).measureText(l2) + f2 * 0.4f
+                    add(false, 1, cx - w2 / 2, y2, w2, f2 * 1.05f) { c -> yaz(c, l2, cx, y2 + f2 * 0.9f, tf, f2, intArrayOf(BEYAZ), 0, 0f) }
+                    y += f2 * 1.05f }
+                if (tag.isNotEmpty()) { val y3 = y + tfs * 0.4f; val tw = boya(Yazilar.mont800, tfs).measureText(tag) + tfs * 1.4f
+                    add(false, -1, cx - tw / 2, y3, tw, th) { c ->
+                        c.drawRoundRect(RectF(cx - tw / 2, y3, cx + tw / 2, y3 + th), th * 0.3f, th * 0.3f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = SARI; setShadowLayer(th * 0.2f, 0f, th * 0.1f, 0x66000000) })
+                        c.drawText(tag, cx, y3 + th / 2 + tfs * 0.36f, boya(Yazilar.mont800, tfs, INK).apply { textAlign = Paint.Align.CENTER })
+                    } }
+            }
+            else -> {   // r_hikaye: siyah ağır yazı, kalın beyaz kontur, beyaz yıpranma lekeleri (satır satır)
+                val tf = Yazilar.archivo800; val l = sat.take(3)
+                val fsl = l.mapIndexed { i, t -> sigdir(t, tf, fs0 * (if (i == 0) 1.2f else 0.9f), maxW) }
+                val lh = fsl.map { it * 1.12f }; var y = CY - lh.sum() / 2
+                l.forEachIndexed { i, t -> val fs = fsl[i]; val yy = y; val w = boya(tf, fs).measureText(t) + fs * 0.5f
+                    add(i == 0, if (i % 2 == 0) -1 else 1, cx - w / 2, yy, w, lh[i]) { c ->
+                        val by = yy + fs * 0.88f
+                        yaz(c, t, cx, by, tf, fs, intArrayOf(INK), BEYAZ, fs * 0.2f)
+                        // yıpranma: harflerin içine düşen küçük beyaz lekeler (yazının yoluna kırpılır; aynı yazı hep aynı lekeler)
+                        val yol = Path(); boya(tf, fs).apply { textAlign = Paint.Align.CENTER }.getTextPath(t, 0, t.length, cx, by, yol)
+                        c.save(); c.clipPath(yol)
+                        val r = java.util.Random(t.hashCode().toLong() * 31 + i); val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xD9FFFFFF.toInt() }
+                        val bw = boya(tf, fs).measureText(t)
+                        repeat((bw / fs * 22).toInt().coerceIn(20, 260)) { c.drawCircle(cx - bw / 2 + r.nextFloat() * bw, by - fs * 0.78f + r.nextFloat() * fs * 0.85f, fs * (0.008f + r.nextFloat() * r.nextFloat() * 0.035f), p) }
+                        c.restore()
+                    }
+                    y += lh[i] }
+            }
+        }
     }
 }

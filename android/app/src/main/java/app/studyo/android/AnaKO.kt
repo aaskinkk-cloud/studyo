@@ -101,7 +101,7 @@ private fun AyarKutusu(geriYukle: () -> Unit) {
         if (acik) Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
             Text("TEMA", color = Renk.soluk, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
             Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(3 to "Karanlık Oda", 0 to "Gece", 1 to "Gündüz", 2 to "Siyah-beyaz").forEach { (t, ad) ->
+                listOf(4 to "InShot", 3 to "Karanlık Oda", 0 to "Gece", 1 to "Gündüz", 2 to "Siyah-beyaz").forEach { (t, ad) ->
                     val on = Renk.tema == t
                     Text(ad, color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(CircleShape)
                         .background(if (on) Renk.turuncu else Renk.kart2).border(1.dp, if (on) Renk.turuncu else Renk.cizgi, CircleShape)

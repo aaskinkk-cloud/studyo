@@ -292,7 +292,7 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
     }
     // 3.64: hareketli yazılar (Ahmet'in örneği: turuncu kareden sağa açılan alıntı) — farklı renkler; renk sonra Renk ayarından değişir
     if (!hareketli) return
-    if (duz) Text("Hareketli yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+    if (duz) Text("Hareketli ve şablon yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
     val hl = remember { listOf(
         HazirYazi("Alıntı açılır", "acilan", "tam sertifikalı organik ürünler", 0.5f, 0.72f, 0.042f, 4000, 0xFFF08A24),
         HazirYazi("Alıntı · mavi", "acilan", "doğanın kalbinden", 0.5f, 0.72f, 0.042f, 4000, 0xFF27D3FF),
@@ -302,6 +302,13 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
         HazirYazi("Çift kutu", "ciftkutu", "Şefin Doğası\nKaradeniz mutfağı", 0.36f, 0.82f, 0.055f, 4000, 0xFF7E57C2),
         HazirYazi("Çift kutu · turuncu", "ciftkutu", "Bölüm 1\nHasat zamanı", 0.36f, 0.82f, 0.055f, 4000, 0xFFF5A524),
         HazirYazi("Altı çizili", "altcizgi", "YAYLA YOLU\nhaziran 2026", 0.5f, 0.45f, 0.08f, 4000, 0xFFFFD400),
+        // 3.91: şablon yazılar (giriş başlığındaki stillerin aynısı; satırları Enter ile ayır)
+        HazirYazi("Beyaz eğik kutu", "r_bugun", "Bugün\nyaylaya dönüş", 0.5f, 0.3f, 0.055f, 4000, 0xFFFFFFFF),
+        HazirYazi("Ateş balon", "r_baloncuk", "Kabataş\nBUGÜN", 0.5f, 0.3f, 0.055f, 4000, 0xFFFF7A1A),
+        HazirYazi("Menü bandı", "r_menu", "Bugün\nözel\nmenü", 0.5f, 0.3f, 0.055f, 4000, 0xFFFFD60A),
+        HazirYazi("Canlı bant", "r_canli", "Fındık\ncanlı yayın", 0.5f, 0.3f, 0.055f, 4000, 0xFFFF5A1F),
+        HazirYazi("Sarı-beyaz italik", "r_cuma", "Taze\nfındık\nyeni sezon", 0.5f, 0.3f, 0.055f, 4000, 0xFFFFD60A),
+        HazirYazi("Yıpranmış", "r_hikaye", "Kısa hikâye", 0.5f, 0.3f, 0.055f, 4000, 0xFF111111),
     ) }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         hl.forEach { h ->

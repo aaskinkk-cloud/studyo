@@ -218,6 +218,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit, webUrl: 
                     if (Renk.tema != 0) DropdownMenuItem(text = { Text("Gece teması") }, onClick = { menu = false; Renk.sec(ctx, 0) })
                     if (Renk.tema != 1) DropdownMenuItem(text = { Text("Gündüz teması") }, onClick = { menu = false; Renk.sec(ctx, 1) })
                     if (Renk.tema != 2) DropdownMenuItem(text = { Text("Siyah-beyaz tema (VITA düzeni)") }, onClick = { menu = false; Renk.sec(ctx, 2) })
+                    if (Renk.tema != 4) DropdownMenuItem(text = { Text("InShot teması (koyu, turkuaz)") }, onClick = { menu = false; Renk.sec(ctx, 4) })
                     DropdownMenuItem(text = { Text("Stüdyo ana sayfası (açık, mavi-turuncu)") }, onClick = { menu = false; Duzen.anaStudyoSec(ctx, true) })
                     DropdownMenuItem(text = { Text("Karanlık Oda teması (yeni)") }, onClick = { menu = false; Renk.sec(ctx, 3) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })

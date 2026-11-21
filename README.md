@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.90 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.91 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.91 (21.11.2026, deneme · `yerel-android` dalı): şablon yazılar (giriş + Yazı katmanı ortak), InShot teması temel
+- **6 şablon yazı** (Ahmet'in videosundaki stiller; `SablonYazi` / `ReelsCiz`): Beyaz eğik kutu (TODAY) · Ateş balon (TITLE HERE: kırmızı→turuncu→sarı, kalın beyaz kontur) · Menü bandı (TODAY'S SPECIAL MENU: ortada sarı eğik bant) · Canlı bant (COOKING LIVE LAB) · Sarı-beyaz italik (BLACK FRIDAY + sarı etiket) · Yıpranmış (SHORT STORY: siyah, beyaz kontur, lekeler).
+  - Tek çizim, üç yer: **Giriş başlığı** ve **Kapak** stil listesi (Reels.STILLER) ve **Metin › Yazı** "Hareketli ve şablon yazılar" satırı (katman `stil = r_*`, `KatmanCizim.sablonMetin`). Satırlar Enter ile; girişte bant satırları da sıradaki satır olarak kullanılır. Parçalar girişte sırayla gelir (mevcut giriş hareketleri).
+- **InShot teması** (`Renk.tema = 4`, temel tema — bir kez otomatik geçilir): grafit zemin `#1C1C1C`, paneller `#252525/#2F2F2F`, beyaz yazı, gri simgeler `#B4B4B4` (seçili beyaz), turkuaz vurgu `#3FC1B8`; seçili alt menünün altında sekme çizgisi. Yerleşim VITA düzeniyle aynı (oynatıcı kontrolleri vb.). Önceki temalar (Siyah-beyaz, Gece, Gündüz, Karanlık Oda) Ayarlar'da / ⋯ menüsünde seçilebilir.
+  - Not: simgeler çizgi biçiminde kaldı (InShot'taki dolu simge takımı yok).
 
 ## 3.90 (21.11.2026, deneme · `yerel-android` dalı): seslendirme efektleri (Doğal · Net · Temiz · Radyo · Kalın)
 - **Yer:** Ses › Seslendirme › Kayıtlar — her kayıtta "Ses efekti" hapları + "Bu efekti bütün kayıtlara uygula". Mevcut ses düzeyi ayarı ve kayıt yöntemi değişmedi.

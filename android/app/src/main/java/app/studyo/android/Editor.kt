@@ -1574,7 +1574,8 @@ class AltOge(val ad: String, val simge: String, val renk: Color, val secili: Boo
 
 @Composable
 private fun AltDugme(o0: AltOge) {
-    val o = if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
+    val o = if (Renk.ins) AltOge(o0.ad, o0.simge, if (o0.secili) Color.White else Color(0xFFB4B4B4), o0.secili, o0.isaret, o0.tik)   // 3.91: InShot — gri, seçili beyaz
+        else if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
     Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp)
@@ -1583,7 +1584,9 @@ private fun AltDugme(o0: AltOge) {
             Text(o.ad, color = if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
             if (o.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
         }
-        Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (o.secili) o.renk else Color.Transparent))
+        // 3.91: InShot temasında seçili alt menünün altında çizgi (sekme gibi); diğerlerinde nokta
+        if (Renk.ins) Box(Modifier.padding(top = 3.dp).width(26.dp).height(2.dp).clip(RoundedCornerShape(1.dp)).background(if (o.secili) Color.White else Color.Transparent))
+        else Box(Modifier.padding(top = 2.dp).size(4.dp).clip(CircleShape).background(if (o.secili) o.renk else Color.Transparent))
     }
 }
 

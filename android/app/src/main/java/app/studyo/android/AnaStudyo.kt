@@ -386,8 +386,8 @@ private fun AyarSekme(geriYukle: () -> Unit) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text("Editör teması", color = AS.yazi, fontSize = 15.sp)
                     Text("Video düzenleme ekranları", color = AS.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
-                    val sira = listOf(2, 0, 1, 3)
-                    Seg(listOf("Siyah-beyaz", "Gece", "Gündüz", "Karanlık Oda"), sira.indexOf(Renk.tema).coerceAtLeast(0)) { Renk.sec(ctx, sira[it]) }
+                    val sira = listOf(4, 2, 0, 1, 3)
+                    Seg(listOf("InShot", "Siyah-beyaz", "Gece", "Gündüz", "Karanlık Oda"), sira.indexOf(Renk.tema).coerceAtLeast(0)) { Renk.sec(ctx, sira[it]) }
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(AS.cizgi))
                 Satir("Ana sayfa görünümü", "Önceki görünüme dön (geri gelmek için oradaki menü/Ayarlar)", tik = { Duzen.anaStudyoSec(ctx, false) }) { WSimge("ok", AS.soluk, 20.dp) }

@@ -364,33 +364,25 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     ALT_SAYFALAR[h]?.let { altListe -> AltSayfaCipleri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }) { a -> AltHafiza.sec(h, a) } }
                 }
             }
-            // 3.87: Düzenle sabit (Ahmet'in isteği) — başka bölümdeyken de Düzenle'nin menüsü (Klip, Nesne ve Klip'in sayfaları) ana menü gibi altta durur
-            if (Duzen.duzenleSabit && bolum != "duzenle") {
-                val dz = BOLUMLER.first { it.anahtar == "duzenle" }
-                Row(Modifier.fillMaxWidth().background(Renk.kart).padding(start = 4.dp, end = 4.dp, top = 3.dp, bottom = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.width(52.dp).clip(RoundedCornerShape(10.dp)).clickable { git("duzenle", haplar["duzenle"] ?: "klip", null) }.padding(vertical = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        Simge("makas", Renk.turuncu, 20.dp)
-                        Text("Düzenle", color = Renk.turuncu, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    }
-                    Box(Modifier.padding(end = 2.dp).width(1.dp).height(30.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
-                    Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-                        val ogeler = buildList {
-                            dz.haplar.filter { it.first != "klip" }.forEach { (k, ad) -> add(Triple(k, null as String?, ad to (HAP_SIMGE[k] ?: "ekle"))) }
-                            ALT_SAYFALAR["klip"]?.forEach { add(Triple("klip", it.anahtar as String?, it.ad to it.simge)) }
-                        }
-                        ogeler.forEachIndexed { sira, (h, a, ads) ->
-                            AltDugme(AltOge(ads.first, ads.second, Color(ALT_RENK[sira % ALT_RENK.size]), false, false) { git("duzenle", h, a) })
-                        }
-                    }
-                    Box(Modifier.size(36.dp).clip(CircleShape).clickable { Duzen.duzenleSabitSec(ctxD, false) }, contentAlignment = Alignment.Center) { Simge("kapat", Renk.soluk, 16.dp) }
+            // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
+            @Composable fun SabitDuzenle() {
+                val on = bolum == "duzenle"
+                Column(Modifier.padding(end = 4.dp).width(62.dp).clip(RoundedCornerShape(11.dp))
+                    .background(Renk.turuncu.copy(alpha = if (on) 0.22f else 0.08f)).border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(11.dp))
+                    .clickable { bolum = "duzenle"; panelAcik = true; altMod = true }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("makas", Renk.turuncu, 21.dp)
+                    Text("Düzenle", color = Renk.turuncu, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
                 }
+            }
+            @Composable fun SabitArama() {
+                if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
             }
             if (altMod && panelAcik) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
                 // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
                 Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(start = 2.dp, end = 6.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (Duzen.duzenleSabit && bolum != "duzenle") SabitDuzenle()
                     Column(Modifier.width(44.dp).clip(RoundedCornerShape(10.dp)).clickable { altMod = false }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Simge("sol", Renk.soluk, 20.dp)
@@ -402,12 +394,12 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     // 3.87: Düzenle'yi sabitle — ana menü gibi her bölümde altta kalır
                     if (bolum == "duzenle") Column(Modifier.width(46.dp).clip(RoundedCornerShape(10.dp)).clickable {
                         Duzen.duzenleSabitSec(ctxD, !Duzen.duzenleSabit)
-                        vm.mesaj.value = if (Duzen.duzenleSabit) "Düzenle sabitlendi · her bölümde altta durur" else "Düzenle sabitlemesi kaldırıldı"
+                        vm.mesaj.value = if (Duzen.duzenleSabit) "Düzenle düğmesi sabitlendi · her bölümde solda durur" else "Düzenle sabitlemesi kaldırıldı"
                     }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Simge("baglanti", if (Duzen.duzenleSabit) Renk.turuncu else Renk.soluk, 19.dp)
                         Text(if (Duzen.duzenleSabit) "Sabit" else "Sabitle", color = if (Duzen.duzenleSabit) Renk.turuncu else Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
                     }
-                    if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
+                    SabitArama()
                 }
             } else {
                 if (Duzen.yaziliMenu && (altlar.size > 1 || bolum == "renk")) {   // 3.71: yeni düzende ana menünün üstünde ayrı alt menü satırı yok
@@ -425,20 +417,23 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
                 // ana bölümler (yana kayar); dokununca alt menü modu açılır
                 val anaKaydir = rememberScrollState()
-                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).horizontalScroll(anaKaydir)
-                    .padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    BOLUMLER.forEach { bb ->
+                // 3.89: sabit Düzenle solda (sabitliyse), sabit menü arama sağda; diğer bölümler aradan kayar
+                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).padding(start = 6.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                if (Duzen.duzenleSabit) SabitDuzenle()
+                Row(Modifier.weight(1f).horizontalScroll(anaKaydir), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BOLUMLER.filter { !(Duzen.duzenleSabit && it.anahtar == "duzenle") }.forEach { bb ->
                         val on = bb.anahtar == bolum
-                        val oncu = bb.anahtar == "duzenle"   // 3.87: Düzenle öncü menü — geniş, vurgu renginde, hafif dolgulu
+                        val oncu = bb.anahtar == "duzenle"   // 3.87: Düzenle öncü menü — vurgu renginde, hafif dolgulu · 3.89: daha küçük (84 → 70 dp)
                         Column(
-                            Modifier.width(if (oncu) 84.dp else 74.dp).clip(RoundedCornerShape(12.dp))
+                            Modifier.width(if (oncu) 70.dp else 74.dp).clip(RoundedCornerShape(12.dp))
                                 .background(if (on) Renk.turuncu.copy(alpha = if (oncu) 0.22f else 0.12f) else if (oncu) Renk.turuncu.copy(alpha = 0.08f) else Color.Transparent)
                                 .then(if (oncu) Modifier.border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(12.dp)) else Modifier).clickable {
                                 bolum = bb.anahtar; panelAcik = true; altMod = true
                             }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, if (oncu) 26.dp else 24.dp)
+                            Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, if (oncu) 22.dp else 24.dp)
                             Spacer(Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
@@ -446,6 +441,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             }
                         }
                     }
+                }
+                SabitArama()
                 }
             }
         }
@@ -851,15 +848,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                                 }, contentAlignment = Alignment.Center) {
                                     Simge(hareketSimgesi(k), Color(0xFFFFD54F), 21.dp)
                                     if (yonMenu) HareketYonMenusu(k, kapat = { yonMenu = false }, ayarlar = { yonMenu = false; hareketId = k.id },
-                                        yuzTuru = { yonMenu = false; AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip") }) { yeni ->
-                                        yonMenu = false
-                                        val turVardi = k.turEtkin
-                                        vm.klipGuncelle(true) { kk ->
-                                            val t = if (turVardi) kk.yuzTur?.copy(noktalar = emptyList()) else kk.yuzTur
-                                            if (yeni == "sabit") kk.copy(kenBurns = false, yuzTur = t) else kk.copy(kenBurns = true, hareket = yeni, yuzTur = t)
-                                        }
-                                        vm.mesaj.value = "Hareket: " + (HAREKET_ADI[yeni] ?: "Otomatik") + if (turVardi) " · yüz turu kapandı (geri al ile döner)" else ""
-                                    }
+                                        yuzTuru = { yonMenu = false; AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip") }) { yeni -> yonMenu = false; hareketSec(vm, k, yeni) }
                                 }
                                 val dogal = k.renk == DOGAL_RENK
                                 SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000), boy = B, cift = git("renk", "hazir")) {
@@ -887,6 +876,17 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     Text(sureOndalik(k.sureMs), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC0E151B)).padding(horizontal = 6.dp, vertical = 1.dp))
                     if (sessiz) Box(Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).clip(CircleShape).background(Color(0xB3000000)), contentAlignment = Alignment.Center) { Simge("sessiz", Color(0xFF5DCAA5), 12.dp) }
+                }
+                // 3.89 (Ahmet'in isteği): hareket düğmesi her klip resminde (hareket kapalı olsa da) — dokun = klibi seç + yön menüsü
+                if (!(secili && !kucuk)) {
+                    var yonMenuK by remember(k.id) { mutableStateOf(false) }
+                    val bk = if (kucuk) 22.dp else 26.dp
+                    Box(Modifier.align(Alignment.BottomStart).padding(4.dp).size(bk).clip(CircleShape).background(Color(0xB3000000))
+                        .border(1.dp, Color(0x40FFFFFF), CircleShape).clickable { vm.sec(i); yonMenuK = true }, contentAlignment = Alignment.Center) {
+                        Simge(hareketSimgesi(k), Color(0xFFFFD54F), if (kucuk) 13.dp else 15.dp)
+                        if (yonMenuK) HareketYonMenusu(k, kapat = { yonMenuK = false }, ayarlar = { yonMenuK = false; hareketId = k.id },
+                            yuzTuru = { yonMenuK = false; AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip") }) { yeni -> yonMenuK = false; hareketSec(vm, k, yeni) }
+                    }
                 }
             }
             // klipler arasındaki geçiş simgesi: dokun = Geçişler paneli (bu ara)
@@ -1094,6 +1094,16 @@ private fun hareketSimgesi(k: Klip): String = if (k.turEtkin) "yuz" else if (!k.
     "uzak" -> "h_uzak"; "sag" -> "h_sag"; "sol" -> "h_sol"; "yukari" -> "h_yukari"; "asagi" -> "h_asagi"
     else -> "h_yakin"   // yakın ve otomatik: ikisi de odağa doğru yaklaşır (3.68: sihir değneği yerine gerçek yön)
 }
+/** 3.89: yön menüsünden seçim (seçili klibe uygulanır; yüz turu açıksa kapanır, geri al ile döner). */
+private fun hareketSec(vm: EditorDurum, k: Klip, yeni: String) {
+    val turVardi = k.turEtkin
+    vm.klipGuncelle(true) { kk ->
+        val t = if (turVardi) kk.yuzTur?.copy(noktalar = emptyList()) else kk.yuzTur
+        if (yeni == "sabit") kk.copy(kenBurns = false, yuzTur = t) else kk.copy(kenBurns = true, hareket = yeni, yuzTur = t)
+    }
+    vm.mesaj.value = "Hareket: " + (HAREKET_ADI[yeni] ?: "Otomatik") + if (turVardi) " · yüz turu kapandı (geri al ile döner)" else ""
+}
+
 /** 3.87: klip kartındaki hareket simgesinden açılan küçük yön menüsü (3×3: yönler okların yerinde, ortada Sabit). */
 @Composable
 private fun HareketYonMenusu(k: Klip, kapat: () -> Unit, ayarlar: () -> Unit, yuzTuru: () -> Unit, sec: (String) -> Unit) {

@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.88 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.89 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.89 (21.11.2026, deneme · `yerel-android` dalı): sabit Düzenle düğmesi, sabit menü arama, her klipte hareket düğmesi
+- **Düzenle sabit = yalnız düğme** (3.87'deki alt menü satırı kaldırıldı): ana menü satırında ve başka bölümlerin alt menü satırında Düzenle solda kaymadan durur; daha küçük (62 dp, 21 dp simge). Varsayılan açık; Düzenle alt menüsündeki "Sabit/Sabitle" ile değişir (`duzenleSabit2`). Sabit değilken ana menüdeki Düzenle 84 → 70 dp.
+- **Menü arama** (büyüteç) sağda sabit: hem ana menü satırında hem alt menü satırında; bölümler aradan kayar.
+- **Hareket düğmesi her klip resminde:** seçili olmayan (ve küçük) klip kartlarında sol altta küçük hareket simgesi — hareket kapalı olsa da (Sabit simgesi). Dokun = klibi seç + yön menüsü. Seçili büyük kartta önceki düğme duruyor. Yön seçimi tek işlevde (`hareketSec`).
 
 ## 3.88 (21.11.2026, deneme · `yerel-android` dalı): Büyük logo geçişi Yayın › Logo'da — plan (kaç kez / hangi aralıkla), geçiş türünden bağımsız
 - **Yer:** Yayın › Logo › **Büyük logo geçişi** (anahtarlı açılır kart). Efekt › Geçiş'te yalnız durum satırı kaldı (aynı ayar iki yerde olmasın).

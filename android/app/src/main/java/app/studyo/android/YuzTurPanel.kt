@@ -146,18 +146,7 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             }
             // 3.76: odaklanan kişiyi öne çıkarma
             TurBaslik("ÖNE ÇIKARMA")
-            AnahtarSatiri("Kişiyi öne çıkar", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
-            // 3.77: biçim — gövdenin çevresinde dönen ışık (varsayılan) ya da başın çevresinde ince çizgi (3.76)
-            if (t.vurgu) Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("isik" to "Dönen ışık · gövde", "cizgi" to "İnce çizgi · yüz").forEach { (v, ad2) ->
-                    val on = (if (t.vurguStil == "cizgi") "cizgi" else "isik") == v
-                    Text(ad2, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
-                        .background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(16.dp))
-                        .clickable { vm.turAyar { it.copy(vurguStil = v) } }.padding(horizontal = 14.dp, vertical = 7.dp))
-                }
-            }
-            // gövde çevresi gerekirse bir kez bulunur (ML Kit, cihaz içinde)
-            LaunchedEffect(k.id, t.vurgu, t.vurguStil, t.noktalar.count { !it.govdeArandi }) { vm.turGovdeHazirla() }
+            AnahtarSatiri("Kişinin etrafında ince çizgi (dolaşır, kaybolur)", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
             AnahtarSatiri("İsim kutusu", t.isim) { v -> vm.turAyar { it.copy(isim = v) } }
             if (t.isim) Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(false to "2 saniye", true to "Durak boyunca").forEach { (v, ad2) ->

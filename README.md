@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.78 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.79 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.79 (21.11.2026, deneme · `yerel-android` dalı): dönen ışık tamamen kaldırıldı
+- Ahmet'in kararı: 3.77'deki "dönen ışık · gövde" özelliği iptal (istenen gövde hattını izleyen ışık değildi; yüz klibinde uygulama kapanıyordu). Kaldırılanlar: gövde bulma (`Govde.kt`, ML Kit çoklu nesne ayırma), ışık çizimi, `TurIsikBindirme`, biçim seçimi, `YuzTuru.vurguStil`, `OdakNoktasi.govde/govdeArandi`. Eski projelerdeki bu alanlar okunurken yok sayılır.
+- Kalan: başın çevresinde ince çizgi (3.76, aç/kapat), isim kutusu, Ayrı video. 3.78'deki çizim korumaları duruyor.
 
 ## 3.78 (21.11.2026, deneme · `yerel-android` dalı): yüz klibinde kapanma için koruma, Yüzler › Ayrı video (Reels/yatay/kare)
 - **Kapanma (yüzlerin olduğu klibe gelince):** cihaz kaydı olmadan kesin neden görülemedi; yüz turundaki bütün yeni çizim/hesap yolları korumaya alındı: `TurVurgu.durum` (sonlu olmayan değerler elenir), ışık ve çizgi çizimi, isim kutusu (koşullu `remember` yerine önbellek), dışa aktarma/akıcı önizleme bindirmeleri (hata olursa o kare boş, kayda bir kez yazılır). Gövde bulma (ML Kit nesne ayırma) için kapanma bekçisi: başlarken işaret konur, bitince kaldırılır; işaret kalmışsa (uygulama o sırada kapanmışsa) bir daha çalışmaz, ışık baş-omuz biçiminde döner. Kayda "Gövde bulma başladı" yazılır. Bozuk gövde değeri kaydedilmez.
@@ -15,7 +19,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Durdurunca siyah ekran (kök neden):** akıcı önizlemede düzenleme oynatıcısının görünümü ekrandan kalkıyor; durdurunca yeniden kuruluyor ama duraklatılmış oynatıcı kareyi yüzey (TextureView) hazır olmadan çiziyordu. Yüzey hazır olunca aynı konuma bir kez sarılır → fotoğraf/video karesi görünür (`PlayerView.kareyiYenile`, iki önizleme görünümünde).
 - **Klip kartı:** ortası boş — fotoğraf görünür. Üstte numara · süre · ses · kırp · sil; altta iki satır: böl · çoğalt · nesne kes · kadraj · hareket · doğal renk / takip · yazı · hareketli yazı · giriş · oynat. ← → kenarlarda küçük. Karartma üstte ve altta koyu, ortada açık (dikey geçişli).
 - **Ekran açık:** düğme görünümü yok; simge + "Ekran açık" yazısı — açıkken hafif beyaz, kapalıyken gri (temanın renkleriyle).
-- **Yüz turu — dönen ışık (yeni, varsayılan):** kişinin gövdesinin çevresinde (yalnız yüz değil) parlak, kuyruklu bir ışık ~1,25 tur döner; çevrede çok soluk bir hat belirir, sonra solar (~3 sn; durak kısaysa sıkışır). Gövde çevresi ML Kit nesne ayırmayla (nesne kesmedeki model, ücretsiz, cihaz içinde) bir kez bulunur: durağın üstündeki kişinin maskesi → merkezden 120 ışın → yumuşatılmış, biraz dışa açılmış kapalı eğri (`Govde.kt`). Bulunamazsa baş-omuz kapsülü. Önceki ince çizgi seçenek olarak duruyor ("Dönen ışık · gövde" / "İnce çizgi · yüz"). Dışa aktarmada `TurIsikBindirme` (iki bitmap nöbetleşe, 4K'da yarım çözünürlük); önizleme aynı çizim.
+- **[3.79'da kaldırıldı] Yüz turu — dönen ışık:** kişinin gövdesinin çevresinde (yalnız yüz değil) parlak, kuyruklu bir ışık ~1,25 tur döner; çevrede çok soluk bir hat belirir, sonra solar (~3 sn; durak kısaysa sıkışır). Gövde çevresi ML Kit nesne ayırmayla (nesne kesmedeki model, ücretsiz, cihaz içinde) bir kez bulunur: durağın üstündeki kişinin maskesi → merkezden 120 ışın → yumuşatılmış, biraz dışa açılmış kapalı eğri (`Govde.kt`). Bulunamazsa baş-omuz kapsülü. Önceki ince çizgi seçenek olarak duruyor ("Dönen ışık · gövde" / "İnce çizgi · yüz"). Dışa aktarmada `TurIsikBindirme` (iki bitmap nöbetleşe, 4K'da yarım çözünürlük); önizleme aynı çizim.
 - **Harf biçimi (yazılar):** yazı kartında Olduğu gibi · Cümle başı · Baş Harfler · BÜYÜK · küçük. Çizimde uygulanır (Türkçe i/İ kurallarıyla) — klavyeyle ya da sesle yazılsa da videoda aynı; klavye de bu biçimde açılır. Giriş/kapak yazılarında klavye cümle başını büyük açar.
 
 ## 3.76 (21.11.2026, deneme · `yerel-android` dalı): yazıyı klibine bağla, yüz turunda tek kişiye odak + öne çıkarma çizgisi + isim kutusu, Kırp'ta kes/böl

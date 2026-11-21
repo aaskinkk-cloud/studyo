@@ -600,38 +600,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
 
     fun turNoktaTasi(i: Int, x: Float, y: Float) = turDegis(false) { t ->
-        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (j == i) n.copy(x = x.coerceIn(0f, 1f), y = y.coerceIn(0f, 1f), govde = emptyList(), govdeArandi = false) else n }) }
-
-    /** 3.77: gövde çevresi bakılmamış duraklar için (ışık biçimi) — ML Kit nesne ayırma bir kez çalışır, sonuç duraklara yazılır. */
-    private var govdeIs: Job? = null
-    fun turGovdeHazirla() {
-        val s = secili.value
-        val k = proje.value.klipler.getOrNull(s)?.takeIf { it.foto } ?: return
-        val t = k.yuzTur ?: return
-        if (t.vurguStil == "cizgi" || !t.vurgu || t.noktalar.none { !it.govdeArandi } || govdeIs?.isActive == true) return
-        // 3.78 güvenlik: gövde bulma (ML Kit) önceki denemede uygulamayı kapattıysa bir daha çalışmaz; ışık baş-omuz biçiminde döner
-        val sp = ctx.getSharedPreferences("ayar", 0)
-        if (sp.getBoolean("govdeCalisiyor", false)) {
-            sp.edit().putBoolean("govdeKapali", true).putBoolean("govdeCalisiyor", false).apply()
-            Kayit.yaz("Gövde bulma önceki denemede yarım kaldı (uygulama kapanmış olabilir) → kapatıldı; ışık baş-omuz biçiminde")
-        }
-        if (sp.getBoolean("govdeKapali", false)) {
-            guncelle(false) { p -> p.copy(klipler = p.klipler.map { if (it.id == k.id) it.copy(yuzTur = t.copy(noktalar = t.noktalar.map { n -> n.copy(govdeArandi = true) })) else it }) }
-            return
-        }
-        govdeIs = kapsam.launch {
-            sp.edit().putBoolean("govdeCalisiyor", true).commit()
-            Kayit.yaz("Gövde bulma başladı: ${t.noktalar.size} durak")
-            val l = try { Govde.cevreler(k.uri, t.noktalar) } catch (e: Throwable) { Kayit.hata("gövde", e); t.noktalar.map { emptyList() } }
-            sp.edit().putBoolean("govdeCalisiyor", false).apply()
-            val simdi = proje.value.klipler.getOrNull(s)?.takeIf { it.id == k.id } ?: return@launch
-            val tt = simdi.yuzTur ?: return@launch
-            // bu arada duraklar değiştiyse yalnız aynı yerdeki duraklara yazılır
-            val yeni = tt.noktalar.map { n -> val j = t.noktalar.indexOfFirst { it.x == n.x && it.y == n.y }
-                if (j >= 0 && !n.govdeArandi) n.copy(govde = l.getOrElse(j) { emptyList() }, govdeArandi = true) else n }
-            guncelle(false) { p -> p.copy(klipler = p.klipler.map { if (it.id == k.id) it.copy(yuzTur = tt.copy(noktalar = yeni)) else it }) }
-        }
-    }
+        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (j == i) n.copy(x = x.coerceIn(0f, 1f), y = y.coerceIn(0f, 1f)) else n }) }
 
     fun turYakinlik(i: Int, z: Float, hepsi: Boolean = false) = turDegis(false) { t ->
         t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (hepsi || j == i) n.copy(z = z.coerceIn(1f, 6f)) else n }) }

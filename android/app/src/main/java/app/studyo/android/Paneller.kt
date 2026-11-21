@@ -571,8 +571,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                 } while (ev.changes.any { it.pressed })
                             }
                             if (!tasindi) {
-                                vm.seciliKatman.value = hedef?.id
-                                if (hedef?.tur == "metin") vm.katmanDuzenle.value = hedef.id
+                                vm.seciliKatman.value = hedef?.id   // 3.75: yalnız seçer (klavye açılmaz) — yazı kartı açılır, stile dokun = stil değişir
                             }
                         }
                     }
@@ -648,7 +647,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                     katmanIsabet(ko, (bw * sc).toInt(), (bh * sc).toInt(), px, py, RW, RH)
                                 } ?: run { vm.oynatDurdur(); return@detectTapGestures }   // 3.68: boş yere dokun = dur / oynat
                                 vm.seciliKatman.value = bul.id; vm.katmanSayfasi.value++
-                                if (bul.tur == "metin") vm.katmanDuzenle.value = bul.id
+                                // 3.75: yazıya dokun = seç; düzenleme Katman ekle kartının başında (klavye ✎ ile açılır)
                                 return@detectTapGestures
                             }
                             val ks = kSon

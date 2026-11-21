@@ -28,6 +28,8 @@ object Simgeler {
         "tv" to "M3 5h18v11H3zM8 20h8M12 16v4",
         // 3.74: yüz turu · kanca yazısı
         "yuz" to "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 10h.01M15 10h.01M8.5 14.5c1.9 1.8 5.1 1.8 7 0",
+        // 3.75: ekran sürekli açık (telefon + ışık)
+        "ekran_acik" to "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2M12 7v3M10.2 8.5h3.6",
         "kanca" to "M14 3v11a5 5 0 1 1-10 0v-2M14 3l3 3M4 12l2.5 2.5",
         "kucult" to "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
         "izgara" to "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",

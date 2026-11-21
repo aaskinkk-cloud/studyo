@@ -2,9 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.74 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.75 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.75 (21.11.2026, deneme · `yerel-android` dalı): karartılmış klip kartı + büyük simgeler, tek yazı kartı, ekran sürekli açık, Katman Renk'in solunda
+- **Klip kartı (Düzenle › Klip):** seçili kartın resmi karartıldı (%62; diğer kartlar %28) — üstteki oynatıcıyla yarışmaz. Simgeler 28 → 36 dp, ince açık kenarlı, dört satırda: **üst** numara · süre · ses · süre/kırp · sil; **ortanın üstü** ← · böl · çoğalt · nesne kes · kadraj · →; **orta** hareket · büyük oynat (46 dp) · doğal renk; **alt** takip (video) · yazı · hareketli yazı · giriş başlığı. Kart yüksekliği 176 → 216 dp. İşlevler, çift dokunuşlar ve sürükleyerek taşıma aynı.
+- **Tek yazı kartı (ayrı pencere yok):** "Yazıyı düzenle" penceresi kaldırıldı. Ekle ve düzenle aynı kartta: Metin › Yazı'da "Yazı ekle / Yazıyı düzenle" kartı, Katman bölümünde "Katman ekle" kartının başı. Seçili yazıda: yazı alanı (Enter = alt satır), renkler, (Düz'de) arka kutu, Bitti.
+- **Stil değiştirme:** ekrandaki yazıya dokun (yalnız seçer, klavye açılmaz) → bir stile dokun = aynı yazı o stile geçer (metin ve yer korunur; stilin boyutu ve rengi gelir). Seçili stil beyaz çerçeveli. Hazır stillere Kanca ve Düz eklendi; sabit ve hareketli stiller aynı kartta. Klavye yalnız ✎ (önizleme tutamacı, çizelge menüsü, listedeki Düzenle) ve yeni yazıda açılır.
+- **Metin › Yazı alt sayfaları:** Yazı · Videodaki ("Hareketli" Yazı kartına katıldı). Seçili katmanın zaman/boyut/giriş-çıkış ayarları aynen (yazı/stil/renk satırları üstteki karta taşındı).
+- **Ekran sürekli açık:** üst çubukta Kaydet'in solunda "Ekran" düğmesi; açıkken beyaz "Açık". Düzenleme ekranındayken telefon kararmaz (View.keepScreenOn); seçim hatırlanır, editörden çıkınca bırakılır.
+- **Ana menü:** Katman, Renk'in soluna alındı (Düzenle · Görünüm · Katman · Renk · Efekt · Ses · Metin · Yayın).
 
 ## 3.74 (21.11.2026, deneme · `yerel-android` dalı): yüzlere sırayla yaklaşma (yüz turu), kanca yazısı
 - **Yeri:** Düzenle › Klip › **Yüzler** (yeni alt sayfa; fotoğraf kliplerinde). Klip kartındaki hareket simgesi tur varken yüz simgesine döner; dokununca bu sayfa açılır.

@@ -639,34 +639,12 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
     }
 }
 
-/** Hızlı yazı düzenleme (3.44): eklenince, çizelgede seçili yazıya ya da ekrandaki yazıya dokununca açılır. */
+/** 3.75: ayrı yazı düzenleme penceresi kaldırıldı (Ahmet'in isteği: tek kart). Düzenleme isteği seçili katmana çevrilir;
+ *  yazı alanı Katman ekle / Metin › Yazı kartının başında açılır ve odaklanır (YaziDuzenleBlok). */
 @Composable
 internal fun YaziDuzenleDiyalog(vm: EditorDurum, p: Proje) {
     val id by vm.katmanDuzenle.collectAsState()
-    val o = p.katmanlar.firstOrNull { it.id == id && it.tur == "metin" } ?: return
-    var m by remember(o.id) { mutableStateOf(o.metin) }
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = { vm.katmanDuzenle.value = null },
-        containerColor = Renk.kart,
-        title = { Text("Yazıyı düzenle", color = Renk.yazi, fontSize = 16.sp) },
-        text = {
-            Column {
-                androidx.compose.material3.OutlinedTextField(m, { m = it; vm.katmanDegis(o.id) { k -> k.copy(metin = it) } }, Modifier.fillMaxWidth(),
-                    label = { Text("Yazı (2. satır = küçük alt satır)") }, maxLines = 3, enabled = !o.kilitli)
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
-                        SecimKarti(ad, "", o.stil == st, Modifier.width(72.dp), etkin = !o.kilitli, sira = j, simge = "metin") { vm.katmanDegis(o.id) { it.copy(stil = st) } }
-                    }
-                }
-                var ay by remember(o.id) { mutableStateOf(o.altyazi) }
-                androidx.compose.material3.OutlinedTextField(ay, { ay = it; vm.katmanDegis(o.id) { k -> k.copy(altyazi = it) } }, Modifier.fillMaxWidth().padding(top = 6.dp),
-                    label = { Text("Altyazı (yazının altında)") }, maxLines = 2, enabled = !o.kilitli)
-                Text("${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)} · ${sureOndalik(o.sonMs - o.basMs)}", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
-                UcDugmeleri(vm, o)
-            }
-        },
-        confirmButton = { androidx.compose.material3.TextButton(onClick = { vm.katmanDuzenle.value = null }) { Text("Tamam", color = Renk.turuncu) } },
-    )
+    LaunchedEffect(id) { val o = p.katmanlar.firstOrNull { it.id == id && it.tur == "metin" }; if (o != null && vm.seciliKatman.value != o.id) vm.seciliKatman.value = o.id }
 }
 
 /** Ses düzeyi penceresi (3.48): müzik ya da ses katmanı — düzey, kapat/aç, otomatik kısma; uç işlemleri çubuğun uçlarında. */

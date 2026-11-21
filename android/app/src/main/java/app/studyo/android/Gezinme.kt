@@ -36,7 +36,7 @@ val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
     "hareket" to listOf(AltSayfa("yakin", "Yakınlaştırma", "h_yakin"), AltSayfa("kay", "Kaydırma", "h_sag"), AltSayfa("odak", "Odak", "h_odak")),
     "muzik" to listOf(AltSayfa("hazir", "Hazır", "sihir"), AltSayfa("dosya", "Dosyadan", "yukle"), AltSayfa("ayar", "Ayar", "ses")),
     "seslendirme" to listOf(AltSayfa("kayit", "Kayıt", "mikrofon"), AltSayfa("prompter", "Prompter", "prompter"), AltSayfa("kayitlar", "Kayıtlar", "nota")),
-    "yazi" to listOf(AltSayfa("ekle", "Ekle", "metin"), AltSayfa("hareketli", "Hareketli", "hareketli_yazi"), AltSayfa("liste", "Videodaki", "katman")),
+    "yazi" to listOf(AltSayfa("ekle", "Yazı", "metin"), AltSayfa("liste", "Videodaki", "katman")),   // 3.75: Hareketli, Yazı kartına katıldı
     "altyazi" to listOf(AltSayfa("oto", "Otomatik", "sihir"), AltSayfa("satir", "Satırlar", "altyazi"), AltSayfa("duzelt", "Toplu düzelt", "degistir"), AltSayfa("gorunum", "Görünüm", "gorunum")),
     "kapak" to listOf(AltSayfa("kare", "Kare", "kapak"), AltSayfa("yazi", "Yazı", "metin"), AltSayfa("stil", "Stil", "sihir"), AltSayfa("efekt", "Efekt", "yildiz")),
 )

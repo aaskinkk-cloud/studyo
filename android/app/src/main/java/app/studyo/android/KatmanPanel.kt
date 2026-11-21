@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,7 +55,10 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
         Text("Önce en az bir klip ekle; katmanlar videonun üstüne yerleşir.", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(16.dp))
         return
     }
-    Kart("Katman ekle") {
+    val secYazi = p.katmanlar.firstOrNull { it.id == secId && it.tur == "metin" }
+    Kart(if (secYazi != null) "Yazıyı düzenle" else "Katman ekle") {
+        // 3.75: yazı ekleme ve düzenleme aynı kartta (ayrı pencere yok); stile dokun = seçili yazı o stile geçer
+        if (secYazi != null) YaziDuzenleBlok(vm, secYazi)
         // tek sıra, sağa kayar
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             val g = Modifier.width(68.dp)
@@ -167,25 +171,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
         }
 
         when (o.tur) {
-            "metin" -> {
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("baslik" to "Başlık", "konum" to "Konum", "altbant" to "Alt bant", "etiket" to "Etiket", "kanca" to "Kanca", "duz" to "Düz").forEachIndexed { j, (st, ad) ->
-                        SecimKarti(ad, "", o.stil == st, Modifier.width(76.dp), etkin = e, sira = j, simge = "metin") { d { it.copy(stil = st) } }
-                    }
-                }
-                var m by remember(o.id) { mutableStateOf(o.metin) }
-                OutlinedTextField(m, { m = it; d { k -> k.copy(metin = it) } }, enabled = e, label = { Text("Yazı") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    KatmanCizim.RENKLER.forEach { r ->
-                        Box(Modifier.size(28.dp).clip(CircleShape).background(Color(r))
-                            .border(if (o.renk == r) 3.dp else 1.dp, if (o.renk == r) Renk.turuncu else Renk.cizgi, CircleShape)
-                            .clickable(enabled = e) { d { it.copy(renk = r) } })
-                    }
-                }
-                if (o.stil == "duz") AnahtarSatiri("Arka kutu", o.kutu) { v -> if (e) d { it.copy(kutu = v) } }
-                else Text("2. satır (alt satır) küçük yazılır. Renk = vurgu rengi.", color = Renk.soluk, fontSize = 11.sp)
-            }
+            "metin" -> Text("Yazı, stil ve renk üstteki yazı kartında.", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))   // 3.75: tek yazı kartı
             "ses" -> {
                 KatSlider("Ses seviyesi", o.ses, 0f..1.5f, { "%${(it * 100).roundToInt()}" }, e) { v -> d { it.copy(ses = v) } }
                 Etiketli("Hız", "${o.hiz}×")
@@ -251,6 +237,20 @@ private data class HazirYazi(val ad: String, val stil: String, val metin: String
 @Composable
 private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolean = true) {
     val bugun = remember { java.text.SimpleDateFormat("d MMMM yyyy", java.util.Locale("tr")).format(java.util.Date()) }
+    val pp by vm.proje.collectAsState(); val sId by vm.seciliKatman.collectAsState()
+    val secO = pp.katmanlar.firstOrNull { it.id == sId && it.tur == "metin" }
+    /** 3.75: yazı seçiliyse aynı yazı bu stile geçer (metin ve yer korunur); değilse yeni yazı eklenir. */
+    fun uygula(h: HazirYazi, anim: String) {
+        val o = secO
+        if (o != null && !o.kilitli) {
+            vm.katmanDegis(o.id) { it.copy(stil = h.stil, renk = h.renk, olcek = h.olcek, ad = h.ad,
+                anim = when { h.stil in KatmanCizim.HAREKETLI -> "yok"; h.stil == "kanca" -> "pop"; it.anim == "yok" || it.anim == "pop" -> "kay"; else -> it.anim }) }
+            vm.mesaj.value = "Stil: ${h.ad}"
+        } else {
+            vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, anim = anim, ad = h.ad)
+            vm.katmanDegis(vm.seciliKatman.value ?: "") { it.copy(renk = h.renk) }
+        }
+    }
     val l = remember(bugun) { listOf(
         HazirYazi("Konum", "konum", "Kabataş, Ordu\nKaradeniz", 0.3f, 0.84f, 0.055f, 3500, 0xFFF5A524),
         HazirYazi("Başlık", "baslik", "Başlık yazın\n$bugun", 0.5f, 0.5f, 0.085f, 3000, 0xFFF5A524),
@@ -258,13 +258,16 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
         HazirYazi("Etiket", "etiket", "Doğa", 0.18f, 0.14f, 0.05f, 3000, 0xFF86C06E),
         HazirYazi("Tarih", "etiket", bugun, 0.78f, 0.12f, 0.045f, 3000, 0xFFFFFFFF),
         HazirYazi("Yer adı", "konum", "Yayla yolu", 0.5f, 0.15f, 0.05f, 3000, 0xFFFF6B6B),
+        HazirYazi("Kanca", "kanca", "Sonuna kadar izle!\nBu manzarayı kaçırma", 0.5f, 0.5f, 0.07f, 3000, 0xFFFFFFFF),   // 3.75
+        HazirYazi("Düz", "duz", "Yazınız", 0.5f, 0.5f, 0.075f, 3000, 0xFFFFFFFF),
     ) }
     if (duz) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         l.forEach { h ->
             val v = Color(if (h.renk == 0xFFFFFFFFL) 0xFFF5A524 else h.renk)
             val ilk = h.metin.substringBefore('\n')
-            Column(Modifier.width(96.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B242D)).border(0.5.dp, v.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                .clickable { vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, ad = h.ad).also { vm.katmanDegis(vm.seciliKatman.value ?: "") { it.copy(renk = h.renk) } } }
+            val on = secO != null && secO.stil == h.stil && secO.renk == h.renk
+            Column(Modifier.width(96.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B242D)).border(if (on) 2.dp else 0.5.dp, if (on) Color.White else v.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                .clickable { uygula(h, "kay") }
                 .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.fillMaxWidth().height(34.dp), contentAlignment = Alignment.Center) {
                     when (h.stil) {
@@ -273,6 +276,8 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
                             Text(ilk, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         "altbant" -> Row(Modifier.height(18.dp)) { Box(Modifier.width(3.dp).fillMaxHeight().background(v))
                             Text(ilk, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.background(Color(0xE6121A22)).padding(horizontal = 4.dp)) }
+                        "kanca" -> Text(ilk, color = Color(0xFFFFD27A), fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0x8C000000)).padding(horizontal = 6.dp, vertical = 3.dp))
                         "etiket" -> Text(ilk.uppercase(), color = Color(0xFF121A22), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(v).padding(horizontal = 7.dp, vertical = 2.dp))
                         else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -301,11 +306,9 @@ private fun HazirYazilar(vm: EditorDurum, duz: Boolean = true, hareketli: Boolea
         hl.forEach { h ->
             val ornek = remember(h) { KatmanOge(tur = "metin", metin = h.metin, stil = h.stil, renk = h.renk, olcek = h.olcek * 1.6f) }
             val bmp by produceState<android.graphics.Bitmap?>(null, h) { value = withContext(Dispatchers.Default) { KatmanCizim.bitmap(ornek, 360, 640) } }
-            Column(Modifier.width(120.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF2A2F35)).border(0.5.dp, Color(h.renk).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                .clickable {
-                    vm.katmanMetinEkle(h.stil, h.metin, h.sure, h.x, h.y, h.olcek, anim = "yok", ad = h.ad)
-                    vm.katmanDegis(vm.seciliKatman.value ?: "") { it.copy(renk = h.renk) }
-                }
+            val on = secO != null && secO.stil == h.stil && secO.renk == h.renk
+            Column(Modifier.width(120.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF2A2F35)).border(if (on) 2.dp else 0.5.dp, if (on) Color.White else Color(h.renk).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                .clickable { uygula(h, "yok") }
                 .padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.fillMaxWidth().height(46.dp), contentAlignment = Alignment.Center) {
                     bmp?.let { androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit) }
@@ -371,28 +374,27 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int, alt: String? = null) {
     val konum by vm.konum.collectAsState()
     val duzenle by vm.katmanDuzenle.collectAsState()
     // 3.66: önizlemedeki ✎ tutamacı ve listedeki Düzenle aynı hızlı düzenleme penceresini açar (Katman bölümündekiyle aynı)
-    if (duzenle != null) YaziDuzenleDiyalog(vm, p)
     if (p.klipler.isEmpty()) {
         Text("Önce en az bir klip ekle; yazılar videonun üstüne yerleşir.", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(16.dp)); return
     }
     val yazilar = p.katmanlar.filter { it.tur == "metin" }
-    // 3.70: alt sayfalar — Ekle · Hareketli · Videodaki (eski düzende hepsi bir arada)
-    if (alt == null || alt == "ekle") Kart("Yazı ekle") {
+    // 3.75: tek yazı kartı — ekle, düzenle ve bütün stiller (sabit + hareketli) bir arada; seçili yazı varken stile dokun = o stile geçer.
+    // Alt sayfalar: Yazı · Videodaki (eski "Hareketli" sayfası bu karta katıldı). Seçili yazı varsa kart her alt sayfada en üstte.
+    val secYazi = yazilar.firstOrNull { it.id == secId }
+    if (secYazi != null || alt == null || alt == "ekle" || alt == "hareketli") Kart(if (secYazi != null) "Yazıyı düzenle" else "Yazı ekle") {
+        if (secYazi != null) YaziDuzenleBlok(vm, secYazi)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            SimgeDugme("metin", "Yazı ekle", Modifier.width(72.dp), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
+            SimgeDugme("metin", if (secYazi != null) "Yeni yazı" else "Yazı ekle", Modifier.width(72.dp), renk = tonRenk(0, "")) { vm.katmanMetinEkle() }
             // 3.74: Kanca yazısı (web Kareden Videoya) — girişten hemen sonra 3 sn, ortada, dikkat çeken kısa söz
             SimgeDugme("kanca", "Kanca yazısı", Modifier.width(78.dp), renk = tonRenk(1, "")) { vm.kancaEkle() }
-            Text("Yazı oynatıcının bulunduğu andan başlar. Kanca yazısı girişten hemen sonra gelir.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            Text(if (secYazi != null) "Aşağıdaki stile dokun = seçili yazı o stile geçer." else "Yeni yazı oynatıcının olduğu andan başlar; ekrandaki yazıya dokun = düzenle.",
+                color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
         }
-        Text("Hazır yazılar", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        HazirYazilar(vm, hareketli = alt == null)
-    }
-    if (alt == "hareketli") Kart("Hareketli yazılar") {
-        AcilirNot("Dokun = oynatıcının olduğu andan 4 sn'lik hareketli yazı eklenir; metin hemen düzenlenir. Renk yazı ayarlarından değişir.")
-        HazirYazilar(vm, duz = false)
+        Text("Stiller", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        HazirYazilar(vm)
     }
     yazilar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
-    if (alt == "liste" && yazilar.isEmpty()) Text("Videoda henüz yazı yok. Ekle ya da Hareketli sayfasından ekle.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
+    if (alt == "liste" && yazilar.isEmpty()) Text("Videoda henüz yazı yok. Yazı sayfasından ekle.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
     if ((alt == null || alt == "liste") && yazilar.isNotEmpty()) Kart("Videodaki yazılar (${yazilar.size})") {
         for (o in yazilar) key(o.id) {
             val secili = o.id == secId
@@ -430,5 +432,38 @@ fun EskiKlipYazisi(vm: EditorDurum, k: Klip, i: Int) {
             "Yazı katmanına taşı" to { vm.klipYazisiniKatmanaTasi(i) },
             "Kaldır" to { vm.klipGuncelle { it.copy(yazi = null) } },
         )
+    }
+}
+
+
+/** 3.75: seçili yazının düzenlenmesi — ayrı pencere yok; Katman ekle / Yazı kartının başında açılır.
+ *  Yazı alanı (Enter = alt satır), renk, (Düz stilde) arka kutu, Bitti. Stil, altındaki stil kartlarına dokunarak değişir. */
+@Composable
+internal fun YaziDuzenleBlok(vm: EditorDurum, o: KatmanOge) {
+    val e = !o.kilitli
+    val istek by vm.katmanDuzenle.collectAsState()
+    val odak = remember { androidx.compose.ui.focus.FocusRequester() }
+    var m by remember(o.id) { mutableStateOf(o.metin) }
+    LaunchedEffect(o.id, o.metin) { if (o.metin != m) m = o.metin }   // ekranda düzenleme vb. başka yerden değişirse
+    LaunchedEffect(istek, o.id) { if (istek == o.id) { kotlinx.coroutines.delay(150); runCatching { odak.requestFocus() }; vm.katmanDuzenle.value = null } }
+    Column(Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart2).padding(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Simge("metin", Renk.yazi, 16.dp); Spacer(Modifier.width(6.dp))
+            Text("${o.ad.ifBlank { "Yazı" }} · ${sureOndalik(o.basMs)}–${sureOndalik(o.sonMs)}", color = Renk.soluk, fontSize = 12.sp, maxLines = 1,
+                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text("Bitti", color = Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.seciliKatman.value = null; vm.katmanDuzenle.value = null }.padding(horizontal = 10.dp, vertical = 6.dp))
+        }
+        if (o.kilitli) Text("Kilitli: değiştirmek için çizelgede kilidi aç.", color = Renk.turuncu, fontSize = 12.sp)
+        OutlinedTextField(m, { m = it; vm.katmanDegis(o.id) { k -> k.copy(metin = it) } }, enabled = e, maxLines = 3,
+            label = { Text("Yazı (Enter = alt satır)") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(odak))
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            KatmanCizim.RENKLER.forEach { r ->
+                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(r))
+                    .border(if (o.renk == r) 3.dp else 1.dp, if (o.renk == r) Renk.yazi else Renk.cizgi, CircleShape)
+                    .clickable(enabled = e) { vm.katmanDegis(o.id) { it.copy(renk = r) } })
+            }
+        }
+        if (o.stil == "duz") AnahtarSatiri("Arka kutu", o.kutu) { v -> if (e) vm.katmanDegis(o.id) { it.copy(kutu = v) } }
     }
 }

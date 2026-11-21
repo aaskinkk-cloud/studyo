@@ -65,7 +65,7 @@ object KatmanCizim {
         }
         if (b != null && o.altyazi.isNotBlank()) altyaziEkle(b, o.altyazi, W, H) else b
     } catch (e: Throwable) {
-        Kayit.hata("katman çizimi ${o.tur}", e); null
+        Kayit.hata("katman çizimi ${o0.tur}", e); null
     }
 
     /** Katman altyazısı (3.46): katman bitmapinin altına ortalı, koyu yarı saydam kutulu yazı; tek bitmap olduğu için

@@ -2,9 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.75 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.76 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.76 (21.11.2026, deneme · `yerel-android` dalı): yazıyı klibine bağla, yüz turunda tek kişiye odak + öne çıkarma çizgisi + isim kutusu, Kırp'ta kes/böl
+- **Klibine bağlı katman:** yazı (ve görsel, çıkartma, ses katmanı) ait olduğu klibe bağlanır; araya klip eklenince, klip taşınınca, silinince ya da önceki klip kırpılınca katman o klibin başlangıcı kadar kayar (`EditorDurum.bagliKatmanlar`, her güncellemede). Katman o adımda elle değiştirildiyse dokunulmaz; klibi silinirse bağ çözülür, katman yerinde kalır. Yeni yazılar (Yazı ekle, hazır/hareketli stiller, Kanca) bulunduğu klibe bağlı başlar. Anahtar: yazı kartında ve Seçili katman kartında "Klibine bağlı · klip N"; Videodaki yazılar'da "Hepsini klibine bağla". "Bu klip boyunca" = o klibe bağlar; "Tüm video / Şimdiden sona / Baştan şimdiye" bağı çözer. Kayıt: `KatmanOge.klipId`.
+- **Yüz turu — tek kişiye odak:** varsayılan yakınlık artık başın kadraj yüksekliğinin %55'i (önce %32; bir kişiye yaklaşınca yanındakiler de kadrajda kalıyordu). Yakınlık aralığı 1×–6×. Seçili durakta "Yüzlere: Geniş · Yüz · Yakın" bütün yüz duraklarına birden uygulanır (eski projelerde de bununla düzelir).
+- **Öne çıkarma çizgisi (aç/kapat):** kamera bir yüze varınca başın etrafında ince beyaz çizgi tepeden saat yönünde dolaşır (öndeki küçük ışık noktasıyla), kısa kalır, solarak kaybolur (~2,3 sn; durak kısaysa sıkışır). Bulanıklık/karartma yok.
+- **İsim kutusu (aç/kapat):** Yüzler sayfasında numaraya dokun → "N. kişinin adı" alanına yaz (kelime başları büyük). Kameranın o kişiye vardığı anda başın altında (yer yoksa üstünde) yarı saydam koyu kutu, solda ince çizgi, Montserrat; yükselerek gelir, **2 saniye** ya da **durak boyunca** kalır. Ad numara şeridinde ve önizleme editöründe numaranın altında görünür.
+- **Tek hesap:** `TurVurgu.durum()` — önizleme (Paneller) ve dışa aktarma/akıcı önizleme (`TurHalkaBindirme`, `TurIsimBindirme`, klibe ait bindirme) aynı. Çizgi bitmapi ilerleme adımlı ve yalnız görünürken çizilir; isim kutusu her durak için bir kez.
+- **Kırp sayfası (klip kartındaki kırp simgesi ve Düzenle › Klip › Kırp):** sağdan/soldan kırpma kaydırıcısının altına "Çizgi" kaydırıcısı (klip içinde oynatıcıyı taşır) ve **Başı kes · Böl · Sonu kes** (çizgiden). Fotoğrafta süreyi kısaltır/böler. Klip kartındaki böl simgesi kısayol olarak kaldı.
 
 ## 3.75 (21.11.2026, deneme · `yerel-android` dalı): karartılmış klip kartı + büyük simgeler, tek yazı kartı, ekran sürekli açık, Katman Renk'in solunda
 - **Klip kartı (Düzenle › Klip):** seçili kartın resmi karartıldı (%62; diğer kartlar %28) — üstteki oynatıcıyla yarışmaz. Simgeler 28 → 36 dp, ince açık kenarlı, dört satırda: **üst** numara · süre · ses · süre/kırp · sil; **ortanın üstü** ← · böl · çoğalt · nesne kes · kadraj · →; **orta** hareket · büyük oynat (46 dp) · doğal renk; **alt** takip (video) · yazı · hareketli yazı · giriş başlığı. Kart yüksekliği 176 → 216 dp. İşlevler, çift dokunuşlar ve sürükleyerek taşıma aynı.

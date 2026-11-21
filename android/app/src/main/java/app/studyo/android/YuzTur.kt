@@ -51,9 +51,11 @@ object YuzTur {
         return uc * UC + n * t.bekleSn + (n - 1 + uc) * gecisSn(t)
     }
 
-    /** Yüze göre varsayılan yakınlık: yüz (baş) kadraj yüksekliğinin ~%32'si olsun. scC: kadrajı dolduran ölçek. */
-    fun yuzYakinlik(yb: Float, fotoYuk: Float, scC: Float, H: Int): Float =
-        (0.32f / max(0.02f, yb * fotoYuk * scC / H)).coerceIn(1.2f, 3.5f).let { Math.round(it * 10f) / 10f }
+    /** Yüze göre yakınlık: baş kadraj yüksekliğinin `hedef` payı olsun (3.76 varsayılanı %55 — yalnız o kişi kadrajda; önce %32 idi,
+     *  bir kişiye yaklaşınca yanındakiler de kadrajda kalıyordu). scC: kadrajı dolduran ölçek. */
+    val YUZ_HEDEF = listOf(0.36f to "Geniş", 0.55f to "Yüz", 0.75f to "Yakın")
+    fun yuzYakinlik(yb: Float, fotoYuk: Float, scC: Float, H: Int, hedef: Float = 0.55f): Float =
+        (hedef / max(0.02f, yb * fotoYuk * scC / H)).coerceIn(1.2f, 6f).let { Math.round(it * 10f) / 10f }
 
     private class Durak(val x: Float, val y: Float, val z: Float, val h: Float, val p: Float, val ay: Float)
     /** O anki kamera: fotoğraftaki nokta (x, y), yakınlık z (kadrajı doldurana göre), noktanın ekrandaki yüksekliği ay (0…1). */
@@ -67,7 +69,7 @@ object YuzTur {
         val M = gecisSn(t)
         val seq = ArrayList<Durak>()
         if (t.bastaTumu) seq += Durak(tx, ty, tz, UC, 0.015f, 0.5f)
-        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 5f), t.bekleSn, t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
+        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 6f), t.bekleSn, t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
         if (t.sondaTumu) seq += Durak(tx, ty, tz, UC, 0f, 0.5f)
         if (seq.size == 1) { val a = seq[0]; val q = (sn / max(0.3f, D)).coerceIn(0f, 1f); return Kamera(a.x, a.y, a.z * (1f + a.p * kos(q)), a.ay) }
         val top = toplamSn(t).coerceAtLeast(0.1f)
@@ -91,6 +93,26 @@ object YuzTur {
             s -= M
         }
         val z = seq.last(); return Kamera(z.x, z.y, z.z, z.ay)
+    }
+
+    /** 3.76: şu an bir durakta mı? durak: noktalar sırası · gecen: o durağa varılalı geçen süre · sure: durakta kalma (plan saniyesi). */
+    class Asama(val durak: Int, val gecen: Float, val sure: Float)
+    fun asama(t: YuzTuru, sn: Float, D: Float): Asama? {
+        val n = t.noktalar.size; if (n == 0) return null
+        val M = gecisSn(t)
+        val sira = ArrayList<Pair<Int, Float>>()     // (durak; -1 = tam görünüm, süre)
+        if (t.bastaTumu) sira += -1 to UC
+        repeat(n) { sira += it to t.bekleSn }
+        if (t.sondaTumu) sira += -1 to UC
+        var s = (sn / max(0.3f, D)).coerceIn(0f, 1f) * toplamSn(t).coerceAtLeast(0.1f)
+        for (j in sira.indices) {
+            val (d, h) = sira[j]
+            if (s <= h || j == sira.lastIndex) return if (d >= 0) Asama(d, s, h) else null
+            s -= h
+            if (s <= M) return null
+            s -= M
+        }
+        return null
     }
 
     // ---------------- yüz bulma ----------------

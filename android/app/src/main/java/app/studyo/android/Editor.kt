@@ -941,6 +941,28 @@ private fun KlipSureKirp(vm: EditorDurum, k: Klip) {
             Text("${sureOndalik(aralik.start.toLong())} – ${sureOndalik(aralik.endInclusive.toLong())}", color = Renk.soluk, fontSize = 11.sp,
                 modifier = Modifier.padding(start = 64.dp))
         }
+        // 3.76: oynatıcı çizgisinden kes / böl (InShot'taki Kırp · Böl gibi). Çizgi kaydırıcıyla klip içinde taşınır.
+        val konum by vm.konum.collectAsState()
+        val pp by vm.proje.collectAsState()
+        val i = pp.klipler.indexOfFirst { it.id == k.id }
+        if (i >= 0) {
+            val st = vm.baslangic(i); val yerel = (konum - st).coerceIn(0L, k.sureMs)
+            val icinde = konum - st in 250..(k.sureMs - 250)
+            Box(Modifier.fillMaxWidth().padding(top = 10.dp).height(1.dp).background(Renk.cizgi))
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Çizgi", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.width(64.dp))
+                InceSlider(yerel.toFloat(), { v -> if (vm.secili.value != i) vm.sec(i); vm.git(st + v.toLong()) }, Modifier.weight(1f), valueRange = 0f..k.sureMs.coerceAtLeast(1).toFloat())
+                Text(sureOndalik(yerel), color = Renk.yazi, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.width(60.dp))
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                fun hazir(f: () -> Unit) { if (vm.secili.value != i) vm.sec(i); f() }
+                SimgeDugme("basa", "Başı kes", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = icinde) { hazir { vm.klipUcKes(bas = true) } }
+                SimgeDugme("makas", "Böl", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = icinde) { hazir { vm.klipBolSecili() } }
+                SimgeDugme("sonraki", "Sonu kes", Modifier.weight(1f), renk = tonRenk(2, ""), etkin = icinde) { hazir { vm.klipUcKes(bas = false) } }
+            }
+            Text(if (icinde) "Başı kes: çizgiden öncesi gider · Sonu kes: çizgiden sonrası gider · Böl: çizgiden ikiye ayırır."
+                else "Kesmek ya da bölmek için çizgiyi klibin içine getir.", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+        }
     }
 }
 

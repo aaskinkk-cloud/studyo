@@ -446,6 +446,11 @@ object Disa {
         val kendi = ArrayList<TextureOverlay>()
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kendi += bindir(it, W, H) }
         if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kendi += TakipBindirme(k, t, it, W, H, cizelgeBas, ofsMs) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
+        // 3.76: yüz turu — odaklanan kişinin etrafında öne çıkarma çizgisi ve isim kutusu (klibe ait; geçişte klip ile birlikte gider)
+        if (k.turEtkin) k.yuzTur?.let { t ->
+            if (t.vurgu && t.noktalar.any { it.yb > 0f }) kendi += TurHalkaBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)
+            if (t.isim && t.noktalar.any { it.ad.isNotBlank() }) kendi += TurIsimBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)
+        }
         val ust = ArrayList<TextureOverlay>()
         ust += zamanli
         logo?.let { ust += bindir(it, W, H) }

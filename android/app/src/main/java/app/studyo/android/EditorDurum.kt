@@ -454,7 +454,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         val once = proje.value; val simdi = System.currentTimeMillis()
         if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
         sonAdim = simdi; ileriYigin.clear(); yiginBildir()
-        proje.value = f(once).copy(guncelleme = simdi)
+        proje.value = bagliKatmanlar(once, f(once)).copy(guncelleme = simdi)
         if (yapi) listeKur(i, ms) else sesUygula()
         kaydetPlanla()
     }
@@ -473,6 +473,64 @@ class EditorDurum(private val ctx: Context, id: String) {
         kaydetIs?.cancel()
         Depo.kaydet(proje.value)
         if (bildir) mesaj.value = "Kaydedildi"
+    }
+
+    // ---------- 3.76: klibe bağlı katmanlar ----------
+    private fun klipBaslari(p: Proje): Map<String, Long> {
+        val m = HashMap<String, Long>(); var t = 0L
+        p.klipler.forEachIndexed { j, k -> m[k.id] = t; t += p.zKlip(j).sureMs }
+        return m
+    }
+
+    /** Araya klip eklenince, klip silinince/taşınınca/kırpılınca: bağlı katman, klibinin başlangıcı ne kadar kaydıysa o kadar kayar.
+     *  Katmanın kendisi bu adımda elle değiştirildiyse dokunulmaz. Klibi silinen katmanın bağı çözülür (katman yerinde kalır). */
+    private fun bagliKatmanlar(once: Proje, yeni: Proje): Proje {
+        if (yeni.katmanlar.none { it.klipId.isNotEmpty() }) return yeni
+        val a = klipBaslari(once); val b = klipBaslari(yeni)
+        if (a == b) return yeni
+        val eski = once.katmanlar.associateBy { it.id }
+        var degisti = false
+        val l = yeni.katmanlar.map { o ->
+            if (o.klipId.isEmpty()) return@map o
+            val bs = b[o.klipId] ?: run { degisti = true; return@map o.copy(klipId = "") }
+            val as0 = a[o.klipId] ?: return@map o
+            val e = eski[o.id]
+            if (e == null || e.basMs != o.basMs || e.sonMs != o.sonMs) return@map o
+            val d = bs - as0
+            if (d == 0L) o else { degisti = true; o.copy(basMs = (o.basMs + d).coerceAtLeast(0), sonMs = (o.sonMs + d).coerceAtLeast(300)) }
+        }
+        return if (degisti) yeni.copy(katmanlar = l) else yeni
+    }
+
+    /** ms anındaki klibin kimliği (yoksa boş). */
+    fun klipIdAnda(ms: Long): String {
+        val p = proje.value; var t = 0L
+        p.klipler.forEachIndexed { j, k -> val d = p.zKlip(j).sureMs; if (ms < t + d) return k.id; t += d }
+        return p.klipler.lastOrNull()?.id ?: ""
+    }
+
+    fun katmanKlibeBagla(id: String, bagla: Boolean) {
+        val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return
+        katmanDegis(id) { it.copy(klipId = if (bagla) klipIdAnda(o.basMs) else "") }
+        val n = proje.value.klipler.indexOfFirst { it.id == proje.value.katmanlar.firstOrNull { k -> k.id == id }?.klipId } + 1
+        mesaj.value = if (bagla) "Klip $n'e bağlandı · araya klip eklenince birlikte kayar" else "Klip bağı kaldırıldı"
+    }
+
+    fun yazilariKlibeBagla() {
+        guncelle(yapi = false) { p -> p.copy(katmanlar = p.katmanlar.map { if (it.tur == "metin" && it.klipId.isEmpty()) it.copy(klipId = klipIdAnda(it.basMs)) else it }) }
+        mesaj.value = "Bütün yazılar klibine bağlandı"
+    }
+
+    /** 3.76: Kırp sayfası — oynatıcı çizgisinden başı ya da sonu kes. */
+    fun klipUcKes(bas: Boolean) {
+        val s = secili.value; val k = proje.value.klipler.getOrNull(s) ?: return
+        val st = baslangic(s); val yerel = konum.value - st
+        if (yerel !in 250..(k.sureMs - 250)) { mesaj.value = "Önce çizgiyi klibin içinde kesilecek yere getir"; return }
+        if (k.foto) {
+            klipGuncelle(true) { it.copy(fotoSureMs = if (bas) k.fotoSureMs - yerel else yerel) }
+            git(if (bas) st else st + yerel - 300)
+        } else if (bas) kirp(k.basMs + yerel, k.sonMs) else kirp(k.basMs, k.basMs + yerel)
+        mesaj.value = if (bas) "Baştan kesildi · geri al ile döner" else "Sondan kesildi · geri al ile döner"
     }
 
     fun klipGuncelle(yapi: Boolean = false, f: (Klip) -> Klip) {
@@ -545,7 +603,16 @@ class EditorDurum(private val ctx: Context, id: String) {
         t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (j == i) n.copy(x = x.coerceIn(0f, 1f), y = y.coerceIn(0f, 1f)) else n }) }
 
     fun turYakinlik(i: Int, z: Float, hepsi: Boolean = false) = turDegis(false) { t ->
-        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (hepsi || j == i) n.copy(z = z.coerceIn(1f, 4f)) else n }) }
+        t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (hepsi || j == i) n.copy(z = z.coerceIn(1f, 6f)) else n }) }
+
+    /** 3.76: bütün yüz duraklarına hazır yakınlık (hedef: başın kadraj yüksekliğindeki payı). Elle noktalar değişmez. */
+    fun turYuzOdak(hedef: Float) {
+        val k = proje.value.klipler.getOrNull(secili.value) ?: return
+        val (scC, hh, H) = turOlcek(k)
+        turDegis(false) { t -> t.copy(noktalar = t.noktalar.map { n -> if (n.yb > 0f) n.copy(z = YuzTur.yuzYakinlik(n.yb, hh, scC, H, hedef)) else n }) }
+    }
+
+    fun turIsim(i: Int, ad: String) = turDegis(false) { t -> t.copy(noktalar = t.noktalar.mapIndexed { j, n -> if (j == i) n.copy(ad = ad) else n }) }
 
     /** Sırayı değiştir: yon −1 = öne, +1 = sona doğru. */
     fun turSira(i: Int, yon: Int) {
@@ -887,7 +954,8 @@ class EditorDurum(private val ctx: Context, id: String) {
             "basa" -> 0L to maxOf(k, 300L)
             else -> 0L to T
         }
-        return o.copy(basMs = a, sonMs = minOf(b, a + enUzun).coerceAtLeast(a + 300))
+        return o.copy(basMs = a, sonMs = minOf(b, a + enUzun).coerceAtLeast(a + 300),
+            klipId = if (tur == "klip") (p.klipler.getOrNull(secili.value)?.id ?: o.klipId) else "")   // 3.76: klip boyunca = o klibe bağlı; diğerleri bağsız
     }
 
     /** KÖK DÜZELTME (3.43): iki parmak hareketinde NaN/sonsuz değer (parmaklar aynı noktadan başlayınca) katmana yazılıp
@@ -921,7 +989,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun katmanMetinEkle(stil: String = "baslik", metin: String = "Yazınız", sure: Long = 3000, x: Float = 0.5f, y: Float = 0.5f,
                         olcek: Float = 0.075f, anim: String = "kay", ad: String = "Yazı") {
         val (a, b) = yeniAralik(sure)
-        val o = KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b)
+        val o = KatmanOge(tur = "metin", ad = ad, metin = metin, olcek = olcek, kutu = false, stil = stil, anim = anim, x = x, y = y, basMs = a, sonMs = b,
+            klipId = klipIdAnda(a))   // 3.76: yazı bulunduğu klibe bağlı başlar (araya klip eklenince birlikte kayar)
         katmanEkleOge(o)
         katmanDuzenle.value = o.id   // 3.44: eklenince yazı hemen düzenlenir
     }
@@ -933,7 +1002,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         val a = (if (p.giris.acik) Zaman.girisAralik(p).second else 0L).coerceIn(0, (T - 1000).coerceAtLeast(0))
         val dikey = p.bicim == "9:16"
         val o = KatmanOge(tur = "metin", ad = "Kanca", metin = "Sonuna kadar izle!\nBu manzarayı kaçırma", olcek = if (dikey) 0.063f else 0.07f, stil = "kanca", anim = "pop",
-            y = if (dikey) 0.4f else 0.5f, basMs = a, sonMs = minOf(T, a + 3000))
+            y = if (dikey) 0.4f else 0.5f, basMs = a, sonMs = minOf(T, a + 3000), klipId = klipIdAnda(a))
         katmanEkleOge(o); katmanDuzenle.value = o.id
         git(a + 400)
     }

@@ -90,7 +90,9 @@ data class Klip(
 /** 3.74: turdaki bir durak. x, y: fotoğrafta 0…1 (durağın merkezi); z: yakınlık (1 = kadrajı dolduran tam görünüm, 2 = iki kat yakın);
  *  yb: yüz yüksekliği (fotoğraf yüksekliğinin oranı; 0 = elle seçilen nokta, yüz değil). */
 @Serializable
-data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: Float = 0f)
+data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: Float = 0f,
+    /** 3.76: kişinin adı (isim kutusunda görünür; boş = kutu yok) */
+    val ad: String = "")
 
 /** 3.74: yüz turu ayarları (web Kareden Videoya "Odak" sisteminin gelişmiş hâli; karartma/bulanıklık yok).
  *  bekleSn: her durakta kalma · gecis: yavas | orta | hizli (duraklar arası süre) · yaklas: durakta kalırken ek yavaş yaklaşma (0 = yok)
@@ -102,6 +104,8 @@ data class YuzTuru(
     val bekleSn: Float = 3f, val gecis: String = "yavas", val yaklas: Float = 0.12f,
     val bastaTumu: Boolean = true, val sondaTumu: Boolean = true, val kavis: Boolean = true,
     val bulunan: List<OdakNoktasi> = emptyList(), val arandi: Boolean = false,
+    /** 3.76: öne çıkarma çizgisi (odaklanan kişinin etrafında ince çizgi dolaşıp kaybolur) · isim kutusu · isimDurak: kutu durak boyunca (false = 2 sn) */
+    val vurgu: Boolean = true, val isim: Boolean = true, val isimDurak: Boolean = false,
 )
 
 @Serializable
@@ -221,6 +225,8 @@ data class KatmanOge(
     val aci: Float = 0f,                  // saat yönünde derece
     val opaklik: Float = 1f,
     val gizli: Boolean = false, val kilitli: Boolean = false,
+    /** 3.76: bağlı olduğu klip (boş = bağlı değil). Araya klip eklenince / sıra değişince katman klibiyle birlikte kayar. */
+    val klipId: String = "",
     val anim: String = "solma",           // yok | solma | kay | buyu | zipla  (giriş ve çıkış)
     val filtre: String = "yok",           // yok | sb | sepya | canli | soguk | sicak
     val kirpL: Float = 0f, val kirpT: Float = 0f, val kirpR: Float = 0f, val kirpB: Float = 0f,

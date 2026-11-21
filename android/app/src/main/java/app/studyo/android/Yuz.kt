@@ -230,6 +230,14 @@ object Yuz {
         return An(fw / dw, (cx - W / 2f) / (dw / 2f), -(cy - H / 2f) / (dh / 2f), W / dw, H / dh)
     }
 
+    /** 3.76: An'dan ekrandaki görüntü dikdörtgeni: [fw, fh, cx, cy] (çıkış pikseli; cx/cy = görüntünün ortası). */
+    fun ekranGeo(k: Klip, W: Int, H: Int, a: An): FloatArray {
+        val g = (if (k.gen > 0) k.gen else W).toFloat(); val h = (if (k.yuk > 0) k.yuk else H).toFloat()
+        val sc0 = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
+        val dw = g * sc0; val dh = h * sc0
+        return floatArrayOf(a.s * dw, a.s * dh, W / 2f + a.tx * dw / 2f, H / 2f - a.ty * dh / 2f)
+    }
+
     /** Yaklaşmanın odak noktası (kaynak karede 0…1): elle seçilen → yüz → ana nesne → orta. */
     fun odakNokta(k: Klip): Pair<Float, Float> = when {
         k.odakSecX >= 0f && k.odakSecY >= 0f -> k.odakSecX to k.odakSecY

@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -322,6 +323,23 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             val yaziY = remember(k?.yazi, ref) { k?.yazi?.let { Kaplama.yazi(it, RW, RH) } }
             val logoY = remember(p.logo, ref) { p.logo?.let { Kaplama.logo(it, RW, RH) } }
             yaziY?.let { if (sira < p.klipler.size) Ciz(it, 1f) }
+            // 3.76: yüz turu — öne çıkarma çizgisi ve isim kutusu (dışa aktarmadaki TurVurgu hesabının aynısı)
+            if (k != null && k.turEtkin && sira < p.klipler.size && !yuzPaneli) {
+                val D = k.sureMs / 1000f
+                val tv = TurVurgu.durum(k, RW, RH, kbF * D, D)
+                if (tv != null) {
+                    if (tv.yuz && tv.halkaAlfa > 0.002f) Canvas(Modifier.fillMaxSize()) {
+                        val nc = drawContext.canvas.nativeCanvas
+                        nc.save(); nc.scale(olcek, olcek); TurVurgu.halkaCiz(nc, tv, kotlin.math.min(RW, RH).toFloat()); nc.restore()
+                    }
+                    if (tv.adAlfa > 0.002f && tv.ad.isNotEmpty()) {
+                        val ib = remember(tv.ad, ref) { TurVurgu.isimBitmap(tv.ad, RW, RH) }
+                        val (ix, iy) = TurVurgu.isimYeri(tv, ib.width, ib.height, RW, RH)
+                        val (zx, zy) = TurVurgu.ndc(ix, iy, RW, RH)
+                        Ciz(Yerlesim(ib, zx, zy, 0f, 0f), tv.adAlfa)
+                    }
+                }
+            }
             // nesneler · 3.72: parmakla taşıma/büyütme sırasında geçici dönüşüm (bitmap yeniden çizilmez, parmağı akıcı izler); bırakınca kaydedilir
             var nesGecici by remember { mutableStateOf<NesneGecici?>(null) }
             val nesBoyut = remember { HashMap<String, Pair<Int, Int>>() }

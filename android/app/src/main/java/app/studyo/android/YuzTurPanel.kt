@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,7 +83,8 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                             contentAlignment = Alignment.Center) {
                             Text("${j + 1}", color = if (on) Renk.zemin else Renk.yazi, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
-                        Text(if (d.yb > 0f) "yüz" else "nokta", color = Renk.soluk, fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp))
+                        Text(d.ad.trim().substringBefore(' ').take(8).ifEmpty { if (d.yb > 0f) "yüz" else "nokta" }, color = if (d.ad.isNotBlank()) Renk.yazi else Renk.soluk,
+                            fontSize = 10.sp, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
                         Text("${yuvarla1(d.z)}×", color = if (on) Renk.yazi else Renk.soluk, fontSize = 10.sp)
                     }
                     if (j < n - 1) Simge("ileri", Renk.soluk.copy(alpha = 0.5f), 12.dp)
@@ -93,12 +97,26 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                     SimgeDugme("sag", "Sona al", Modifier.weight(1f), renk = Color(TON[1]), etkin = s < n - 1) { vm.turSira(s, 1) }
                     SimgeDugme("sil", "Durağı sil", Modifier.weight(1f), renk = Renk.kirmizi) { vm.turNoktaSil(s) }
                 }
+                // 3.76: isim kutusu — kişinin adı (boş bırakılırsa kutu çıkmaz)
+                var ad by remember(k.id, s) { mutableStateOf(d.ad) }
+                OutlinedTextField(ad, { ad = it; vm.turIsim(s, it) }, Modifier.fillMaxWidth().padding(top = 6.dp), singleLine = true,
+                    label = { Text("${s + 1}. kişinin adı · isim kutusu") }, placeholder = { Text("Ad Soyad") },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
                 TurBaslik("YAKINLIK · ${s + 1}. DURAK")
                 var z by remember(k.id, s, d.z) { mutableFloatStateOf(d.z) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Uzak", color = Renk.soluk, fontSize = 11.sp)
-                    InceSlider(z, { z = it; vm.turYakinlik(s, it) }, Modifier.weight(1f).padding(horizontal = 8.dp), valueRange = 1f..4f)
+                    InceSlider(z, { z = it; vm.turYakinlik(s, it) }, Modifier.weight(1f).padding(horizontal = 8.dp), valueRange = 1f..6f)
                     Text("${yuvarla1(z)}×", color = Renk.yazi, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(40.dp))
+                }
+                // 3.76: bütün yüz duraklarına hazır yakınlık — yalnız o kişi kadrajda olsun
+                Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Yüzlere:", color = Renk.soluk, fontSize = 11.5.sp)
+                    YuzTur.YUZ_HEDEF.forEach { (h, ad2) ->
+                        Text(ad2, color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Renk.kart2)
+                            .border(1.dp, Renk.cizgi, RoundedCornerShape(16.dp)).clickable { vm.turYuzOdak(h); vm.mesaj.value = "Bütün yüzler: $ad2" }
+                            .padding(horizontal = 12.dp, vertical = 6.dp))
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Önizlemedeki kesik çerçeve bu durakta görünecek alandır.", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.weight(1f))
@@ -126,13 +144,28 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
                         .clickable { vm.turAyar { it.copy(yaklas = v) } }.padding(horizontal = 14.dp, vertical = 7.dp))
                 }
             }
+            // 3.76: odaklanan kişiyi öne çıkarma
+            TurBaslik("ÖNE ÇIKARMA")
+            AnahtarSatiri("Kişinin etrafında ince çizgi (dolaşır, kaybolur)", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
+            AnahtarSatiri("İsim kutusu", t.isim) { v -> vm.turAyar { it.copy(isim = v) } }
+            if (t.isim) Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(false to "2 saniye", true to "Durak boyunca").forEach { (v, ad2) ->
+                    val on = t.isimDurak == v
+                    Text(ad2, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                        .background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(16.dp))
+                        .clickable { vm.turAyar { it.copy(isimDurak = v) } }.padding(horizontal = 14.dp, vertical = 7.dp))
+                }
+            }
+            if (t.isim && t.noktalar.none { it.ad.isNotBlank() }) Text("İsim için bir numaraya dokun, adını yaz.", color = Renk.soluk, fontSize = 11.sp)
+            TurBaslik("BAŞ · SON")
             AnahtarSatiri("Önce fotoğrafın tamamı", t.bastaTumu) { v -> vm.turAyar { it.copy(bastaTumu = v) } }
             AnahtarSatiri("Sonda fotoğrafın tamamı", t.sondaTumu) { v -> vm.turAyar { it.copy(sondaTumu = v) } }
             AnahtarSatiri("Sinematik kavis (geçişte hafif geri çekil)", t.kavis) { v -> vm.turAyar { it.copy(kavis = v) } }
         }
         AcilirNot("Duraklar numara sırasıyla gezilir. Kamera her durakta biraz kalır ve çok yavaş yaklaşır, sonra yumuşakça (birden değil) bir sonrakine geçer. " +
             "Fotoğrafın geri kalanı olduğu gibi kalır: karartma ya da bulanıklık yok. Yüz yoksa da istediğin yerlere dokunarak durak ekleyebilirsin. " +
-            "Tur sığmazsa fotoğrafın süresi kendiliğinden uzar (Kırp sayfasından değişir). Hareket 'Sabit' yapılırsa tur durur, duraklar silinmez.")
+            "Bir numaraya dokunup adını yazarsan kameranın o kişiye vardığı anda isim kutusu çıkar; öne çıkarma çizgisi kişinin etrafında bir tur atıp kaybolur. " +
+            "Yüzler: Geniş/Yüz/Yakın bütün yüz duraklarının yakınlığını birden ayarlar. Tur sığmazsa fotoğrafın süresi kendiliğinden uzar (Kırp sayfasından değişir). Hareket 'Sabit' yapılırsa tur durur, duraklar silinmez.")
     }
 }
 
@@ -219,6 +252,11 @@ fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modi
                 if (on) drawCircle(Color.White, r, c, style = Stroke(2.dp.toPx()))
                 yazi.color = if (on) android.graphics.Color.WHITE else android.graphics.Color.BLACK
                 drawContext.canvas.nativeCanvas.drawText("${j + 1}", c.x, c.y - (yazi.descent() + yazi.ascent()) / 2f, yazi)
+                if (n.ad.isNotBlank()) {   // 3.76: adı numaranın altında
+                    val ip = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER; textSize = 11.sp.toPx(); color = android.graphics.Color.WHITE
+                        setShadowLayer(4f, 0f, 1f, android.graphics.Color.BLACK) }
+                    drawContext.canvas.nativeCanvas.drawText(n.ad.trim().take(18), c.x, c.y + r + 14.sp.toPx(), ip)
+                }
             }
         }
         Text(if (t.noktalar.isEmpty()) "Yüze ya da yere dokun = durak ekle" else "Dokun = durak ekle · numarayı sürükle = taşı",

@@ -147,6 +147,7 @@ private fun KatmanAyarlari(vm: EditorDurum, p: Proje, o: KatmanOge, konum: Long)
     Kart("Seçili katman · ${turAdi(o.tur)}") {
         if (o.kilitli) Text("Kilitli: değiştirmek için çizelgenin üstündeki “Kilidi aç”a dokun.", color = Renk.turuncu, fontSize = 12.sp)
         Etiketli("Zaman", "${sureOndalik(o.basMs)} – ${sureOndalik(o.sonMs)}  ·  ${sureOndalik(o.sonMs - o.basMs)}")
+        if (o.tur != "metin") KlipBagi(vm, o)   // 3.76 (yazılarda üstteki yazı kartında)
         Row(Modifier.fillMaxWidth().padding(top = 2.dp)) {
             SimgeDugme("basa", "Başı = şimdi", Modifier.weight(1f), renk = tonRenk(0, ""), etkin = e && konum < o.sonMs - 300) { d { it.copy(basMs = konum.coerceAtLeast(0)) } }
             SimgeDugme("sonraki", "Sonu = şimdi", Modifier.weight(1f), renk = tonRenk(1, ""), etkin = e && konum > o.basMs + 300) { d { it.copy(sonMs = konum.coerceAtMost(p.toplamMs)) } }
@@ -396,6 +397,8 @@ fun YaziSayfasi(vm: EditorDurum, p: Proje, sec: Int, alt: String? = null) {
     yazilar.firstOrNull { it.id == secId }?.let { KatmanAyarlari(vm, p, it, konum) }
     if (alt == "liste" && yazilar.isEmpty()) Text("Videoda henüz yazı yok. Yazı sayfasından ekle.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
     if ((alt == null || alt == "liste") && yazilar.isNotEmpty()) Kart("Videodaki yazılar (${yazilar.size})") {
+        if (yazilar.any { it.klipId.isEmpty() }) Text("Hepsini klibine bağla", color = Renk.yazi, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.yazilariKlibeBagla() }.padding(vertical = 6.dp, horizontal = 4.dp))
         for (o in yazilar) key(o.id) {
             val secili = o.id == secId
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp))
@@ -465,5 +468,15 @@ internal fun YaziDuzenleBlok(vm: EditorDurum, o: KatmanOge) {
             }
         }
         if (o.stil == "duz") AnahtarSatiri("Arka kutu", o.kutu) { v -> if (e) vm.katmanDegis(o.id) { it.copy(kutu = v) } }
+        KlipBagi(vm, o)
     }
+}
+
+/** 3.76: katmanı ait olduğu klibe bağla — araya klip eklenince / sıra değişince katman o klibin üstünde kalır. */
+@Composable
+internal fun KlipBagi(vm: EditorDurum, o: KatmanOge) {
+    val pp by vm.proje.collectAsState()
+    val n = pp.klipler.indexOfFirst { it.id == o.klipId } + 1
+    AnahtarSatiri(if (n > 0) "Klibine bağlı · klip $n (araya klip eklense de kaymaz)" else "Klibine bağla (araya klip eklenince yerinde kalsın)", o.klipId.isNotEmpty()) { v ->
+        if (!o.kilitli) vm.katmanKlibeBagla(o.id, v) }
 }

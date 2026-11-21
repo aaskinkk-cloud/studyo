@@ -121,7 +121,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
     val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(id) { if (Depo.acilincaDisa == id) { Depo.acilincaDisa = null; disaAcik = true } }   // 3.78: Ayrı video'dan gelen taslak
+    LaunchedEffect(id) { if (Depo.acilincaDisa == id) { Depo.acilincaDisa = null; disaAcik = true } }
+    val albumIstek by AlbumIndir.istek.collectAsState()   // 3.81: Google Fotoğraflar'dan paylaşılan albüm bağlantısı
+    LaunchedEffect(albumIstek) { albumIstek?.let { AlbumIndir.istek.value = null; vm.albumAl(it) } }   // 3.78: Ayrı video'dan gelen taslak
     var kapakAcik by rememberSaveable { mutableStateOf(false) }   // 3.63: tam ekran Kapak düzenleyici
     var aramaAcik by remember { mutableStateOf(false) }           // 3.70: ayar arama
     var tamEkranV by rememberSaveable { mutableStateOf(false) }   // 3.71: video tam ekran
@@ -418,6 +420,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     CircularProgressIndicator(color = Renk.turuncu)
                     Spacer(Modifier.height(10.dp))
                     Text(m, color = Renk.yazi)
+                    val iptal by vm.mesgulIptal.collectAsState()   // 3.81
+                    iptal?.let { f -> Text("Vazgeç", color = Renk.soluk, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp).clip(RoundedCornerShape(8.dp)).clickable { f() }.padding(8.dp)) }
                 }
             }
         }
@@ -727,6 +731,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     var surukleId by remember { mutableStateOf<String?>(null) }
     var dx by remember { mutableFloatStateOf(0f) }
     var silOnayId by remember { mutableStateOf<String?>(null) }
+    var albumAcik by remember { mutableStateOf(false) }
     LazyRow(
         state = durum,
         modifier = Modifier.fillMaxWidth().height(yukseklik).padding(vertical = 4.dp),
@@ -870,7 +875,19 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                 }
             }
         }
+        // 3.81: Google Fotoğraflar albüm bağlantısından ekle
+        if (!kucuk) item {
+            Box(Modifier.width(96.dp).fillMaxHeight(0.6f).clip(RoundedCornerShape(14.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(14.dp)).clickable { albumAcik = true },
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge("baglanti", Renk.yazi, 24.dp)
+                    Text("Albüm", color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+                    Text("Google Fotoğraflar", color = Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
+                }
+            }
+        }
     }
+    if (albumAcik) AlbumPenceresi(vm) { albumAcik = false }
     val ek = buildList {
         p.muzik?.let { add("♪ ${it.ad}") }
         if (p.sesler.isNotEmpty()) add("🎙 ${p.sesler.size} seslendirme")
@@ -1551,4 +1568,29 @@ private fun EkranAcikDugmesi(vm: EditorDurum) {
         Text("Ekran açık", color = renk, fontSize = 11.5.sp, maxLines = 1)
     }
     Spacer(Modifier.width(2.dp))
+}
+
+
+/** 3.81: Google Fotoğraflar albüm bağlantısı — panodaki bağlantı kendiliğinden gelir; "Fotoğrafları al" indirir ve ekler. */
+@Composable
+private fun AlbumPenceresi(vm: EditorDurum, kapat: () -> Unit) {
+    val ctx = LocalContext.current
+    val pano = remember { runCatching { (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+        .primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString() }.getOrNull() }
+    var metin by remember { mutableStateOf(AlbumIndir.bagla(pano) ?: "") }
+    val link = AlbumIndir.bagla(metin)
+    AlertDialog(onDismissRequest = kapat, containerColor = Renk.kart,
+        title = { Text("Google Fotoğraflar albümü", color = Renk.yazi, fontSize = 16.sp) },
+        text = {
+            Column {
+                OutlinedTextField(metin, { metin = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Albüm bağlantısı") },
+                    placeholder = { Text("https://photos.app.goo.gl/…") })
+                Text(if (link != null) "Albümdeki fotoğraflar özgün boyutlarında indirilip videoya eklenir." else "Bağlantıyı yapıştır (photos.app.goo.gl ya da photos.google.com/share).",
+                    color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                AcilirNot("Google Fotoğraflar'da albümü aç › Paylaş › Bağlantı oluştur › kopyala (ya da doğrudan Stüdyo'yu seç). " +
+                    "Bağlantı \"bağlantıya sahip olan herkes\" ile paylaşılmış olmalı. Yalnız birkaç fotoğraf istiyorsan: Google Fotoğraflar'da seç › Paylaş › Stüdyo.")
+            }
+        },
+        confirmButton = { TextButton(enabled = link != null, onClick = { link?.let { vm.albumAl(it) }; kapat() }) { Text("Fotoğrafları al", color = if (link != null) Renk.yazi else Renk.soluk) } },
+        dismissButton = { TextButton(onClick = kapat) { Text("Vazgeç", color = Renk.soluk) } })
 }

@@ -750,6 +750,29 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun bicim(b: String) = guncelle { it.copy(bicim = b) }
 
     // ---------- içe aktarma ----------
+    /** 3.81: meşgul penceresinde "Vazgeç" (verilirse). */
+    val mesgulIptal = MutableStateFlow<(() -> Unit)?>(null)
+    private var albumIs: Job? = null
+
+    /** 3.81: Google Fotoğraflar paylaşılan albüm bağlantısından fotoğrafları indirip projeye ekler (AlbumIndir). */
+    fun albumAl(link: String) {
+        if (albumIs?.isActive == true) return
+        albumIs = kapsam.launch {
+            var l: List<Uri> = emptyList(); var h: String? = null; var iptal = false
+            try {
+                mesgul.value = "Google Fotoğraflar albümü açılıyor…"
+                mesgulIptal.value = { albumIs?.cancel() }
+                val r = AlbumIndir.indir(ctx, link) { i, n -> mesgul.value = "Albümden alınıyor $i / $n…" }
+                l = r.first; h = r.second
+            } catch (e: kotlinx.coroutines.CancellationException) { iptal = true }
+            finally { mesgulIptal.value = null; mesgul.value = null }
+            if (iptal) { mesaj.value = "Albüm alma durduruldu"; return@launch }
+            if (l.isEmpty()) { uyari.value = h ?: "Albümden bir şey alınamadı."; return@launch }
+            h?.let { mesaj.value = it }
+            ekle(l)
+        }
+    }
+
     fun ekle(uriler: List<Uri>) {
         if (uriler.isEmpty()) return
         kapsam.launch {

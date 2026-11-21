@@ -44,6 +44,12 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
+            <!-- 3.81: Google Fotoğraflar albüm bağlantısı (Paylaş › Stüdyo) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <!-- Web Stüdyo (fotoğraf editörü, önceki video editörü ve web projeleri) — 2.x ile aynı ayarlar -->

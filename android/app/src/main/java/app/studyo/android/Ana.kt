@@ -90,7 +90,9 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(i, Intent.EXTRA_STREAM, Uri::class.java)?.let { l += it }
             Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(i, Intent.EXTRA_STREAM, Uri::class.java)?.let { l.addAll(it) }
         }
-        if (l.isNotEmpty()) { sonPaylasim = i; paylasilan.value = l }
+        if (l.isNotEmpty()) { sonPaylasim = i; paylasilan.value = l; return }
+        // 3.81: Google Fotoğraflar › Paylaş › Stüdyo (albüm bağlantısı, düz metin) → açık projeye ya da yeni projeye eklenir
+        if (i.action == Intent.ACTION_SEND && i.type?.startsWith("text/") == true) AlbumIndir.bagla(i.getStringExtra(Intent.EXTRA_TEXT))?.let { AlbumIndir.istek.value = it }
     }
 
     /** Web Stüdyo (fotoğraf editörü, önceki video editörü, web projeleri) — Chrome ile, 2.x'teki gibi. */
@@ -106,6 +108,11 @@ class MainActivity : ComponentActivity() {
 fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) -> Unit) {
     var acik by rememberSaveable { mutableStateOf<String?>(null) }
     var bekleyen by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    // 3.81: paylaşılan albüm bağlantısı — editör açık değilse yeni proje açılır, editör bağlantıyı alıp indirir
+    val albumIstek by AlbumIndir.istek.collectAsState()
+    LaunchedEffect(albumIstek, acik) {
+        if (albumIstek != null && acik == null) { val p = Proje(ad = "Albüm " + SimpleDateFormat("d MMM HH:mm", TR).format(Date())); Depo.kaydet(p); acik = p.id }
+    }
 
     if (paylasilan.isNotEmpty()) {
         AlertDialog(

@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.80 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.81 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.81 (21.11.2026, deneme · `yerel-android` dalı): Google Fotoğraflar albüm bağlantısından fotoğraf alma
+- **Editörde:** klip şeridinde "+ Ekle"nin yanında **Albüm · Google Fotoğraflar** kutusu → pencere (panodaki albüm bağlantısı kendiliğinden yazılır) → "Fotoğrafları al": albümdeki fotoğraflar özgün boyutunda (çekim tarihiyle) indirilir ve projeye eklenir; ilerleme "Albümden alınıyor 12 / 30", "Vazgeç" ile durur. Daha önce indirilenler yeniden indirilmez.
+- **Google Fotoğraflar'dan paylaşarak:** albüm › Paylaş › Bağlantı (Stüdyo'yu seç) → açık projeye eklenir; proje açık değilse "Albüm …" adlı yeni proje açılır.
+- **Yöntem (`AlbumIndir.kt`):** ücretsiz, hesap/anahtar yok. Bağlantı yönlendirmeleri izlenir, paylaşılan albüm sayfasındaki görsel adresleri (lh3.googleusercontent.com/pw/…) okunur, her biri `=d` (özgün) ile indirilir; dosya türüne göre .jpg/.png/.heic/.mp4. Dosyalar uygulama içinde `albumler/` klasöründe. Resmî bir Google arayüzü değildir (Google Fotoğraflar'ın albüm okuma arayüzü 2025'ten beri yeni uygulamalara kapalı); Google sayfa yapısını değiştirirse bu yol çalışmayabilir — o zaman fotoğrafları seçip Paylaş › Stüdyo (mevcut özellik) her zaman çalışır.
+- Bağlantı "bağlantıya sahip olan herkes" ile paylaşılmış olmalı.
 
 ## 3.80 (21.11.2026, deneme · `yerel-android` dalı): durdurunca siyah ekran — kök düzeltme (2. deneme, farklı yöntem)
 - **3.77'deki düzeltme yetmedi** (yüzey hazır olunca yeniden sarma): düzenleme oynatıcısı kareyi çizemediğinde (çözücü akıcı oynatıcıda meşgulken ya da oynatıcı hata verip boşta kalınca) yine siyah kalıyordu; perdesi de siyahtı.

@@ -121,7 +121,7 @@ object YuzTur {
         addOnSuccessListener { c.resume(it) }; addOnFailureListener { c.resumeWithException(it) }
     }
 
-    private fun oku(uri: String, enCok: Int): Bitmap? {
+    internal fun oku(uri: String, enCok: Int): Bitmap? {
         val f = Uri.parse(uri).path?.let { File(it) } ?: return null
         if (!f.exists()) return null
         val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }

@@ -97,6 +97,7 @@ private fun EkranMetinAlani(a: EkranAlan, modifier: Modifier) {
             cursorBrush = SolidColor(Renk.turuncu),
             singleLine = !a.cokSatir,
             maxLines = if (a.cokSatir) 3 else 1,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),   // 3.77
         )
         if (tfv.text.isNotEmpty()) Box(Modifier.padding(start = 2.dp).size(28.dp).clip(CircleShape).clickable { tfv = TextFieldValue(""); a.yaz("") },
             contentAlignment = Alignment.Center) { Simge("kapat", Renk.soluk, 13.dp) }

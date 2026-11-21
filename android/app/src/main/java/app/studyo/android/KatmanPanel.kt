@@ -459,7 +459,17 @@ internal fun YaziDuzenleBlok(vm: EditorDurum, o: KatmanOge) {
         }
         if (o.kilitli) Text("Kilitli: değiştirmek için çizelgede kilidi aç.", color = Renk.turuncu, fontSize = 12.sp)
         OutlinedTextField(m, { m = it; vm.katmanDegis(o.id) { k -> k.copy(metin = it) } }, enabled = e, maxLines = 3,
-            label = { Text("Yazı (Enter = alt satır)") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(odak))
+            label = { Text("Yazı (Enter = alt satır)") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(odak),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = Harf.klavye(o.harf)))
+        // 3.77: harf biçimi — videoda bu biçimde görünür (klavyeyle ya da sesle yazılsa da)
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Harf.SECENEK.forEach { (kip, ad) ->
+                val on = o.harf == kip
+                Text(ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.sp, maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(14.dp))
+                    .background(if (on) Renk.yazi else Renk.kart).border(1.dp, if (on) Renk.yazi else Renk.cizgi, RoundedCornerShape(14.dp))
+                    .clickable(enabled = e) { vm.katmanDegis(o.id) { it.copy(harf = kip) } }.padding(horizontal = 11.dp, vertical = 6.dp))
+            }
+        }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
             KatmanCizim.RENKLER.forEach { r ->
                 Box(Modifier.size(28.dp).clip(CircleShape).background(Color(r))

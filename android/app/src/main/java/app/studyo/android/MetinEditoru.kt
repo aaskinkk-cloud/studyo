@@ -73,6 +73,7 @@ fun MetinEditoru(
             value = tfv, onValueChange = { yaz(it) }, modifier = Modifier.fillMaxWidth(),
             label = { Text(etiket) }, minLines = 2, maxLines = enCokSatir,
             visualTransformation = if (vurguVar) VurguGorunumu(vurguRenk) else VisualTransformation.None,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),   // 3.77
         )
         Text("Enter = alt satır (yeni blok)" + if (vurguVar) " · kelimeyi seç → Kalın" else "", color = Renk.soluk, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
     }

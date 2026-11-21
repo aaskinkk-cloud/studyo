@@ -54,7 +54,9 @@ object KatmanCizim {
     }
 
     /** W×H çıktı karesi için katmanın bitmapi (ses katmanı ve boş metin için null). adim: hareketli yazının karesi. */
-    fun bitmap(o: KatmanOge, W: Int, H: Int, adim: Int = ADIM): Bitmap? = try {
+    fun bitmap(o0: KatmanOge, W: Int, H: Int, adim: Int = ADIM): Bitmap? = try {
+        // 3.77: harf biçimi (yazı ve altyazısı) çizimde uygulanır
+        val o = if (o0.harf.isNotEmpty() && o0.tur == "metin") o0.copy(metin = Harf.uygula(o0.metin, o0.harf), altyazi = Harf.uygula(o0.altyazi, o0.harf)) else o0
         val b = when (o.tur) {
             "metin" -> if (hareketli(o)) hareketliMetin(o, W, H, adim.coerceIn(0, ADIM) / ADIM.toFloat()) else metin(o, W, H)
             "cikartma" -> cikartma(o, W)

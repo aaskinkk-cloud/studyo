@@ -460,6 +460,7 @@ private fun Onizleme(vm: EditorDurum, p: Proje, modifier: Modifier) {
                     PlayerView(c).apply {
                         useController = false
                         player = vm.player
+                        kareyiYenile(vm.player)
                         setShutterBackgroundColor(android.graphics.Color.BLACK)
                         setKeepContentOnPlayerReset(true)
                     }
@@ -759,7 +760,10 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
             ) {
                 KlipKaresi(p, k, i, Modifier.fillMaxSize(), sigdir = secili && !kucuk)   // 3.72: önizlemedeki kadrajın aynısı
                 // 3.75: karartma — üstteki oynatıcıyla yarışmasın (seçili kart belirgin koyu, diğerleri hafif); simgeler öne çıkar
-                if (!kucuk) Box(Modifier.fillMaxSize().background(Color(if (secili) 0x9E000000L else 0x47000000L)))
+                // 3.77: seçili kartta üst ve alt (simgeler) koyu, orta daha açık — fotoğraf ortada görünür
+                if (!kucuk) Box(Modifier.fillMaxSize().background(if (secili) androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to Color(0xA6000000), 0.3f to Color(0x59000000), 0.5f to Color(0x4D000000), 0.62f to Color(0x66000000), 1f to Color(0xB3000000))
+                    else androidx.compose.ui.graphics.SolidColor(Color(0x47000000))))
                 val sessiz = k.sessiz || (!k.foto && !k.sesVar)
                 if (!(secili && !kucuk)) Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(if (kucuk) 18.dp else 24.dp).clip(CircleShape).background(Color(0xCC0E151B)), contentAlignment = Alignment.Center) {
                     Text("${i + 1}", color = Color.White, fontSize = if (kucuk) 10.sp else 12.sp, fontWeight = FontWeight.Bold)
@@ -768,6 +772,10 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                     // 3.75 (Ahmet'in isteği): simgeler büyük (36 dp) ve dört satırda — üst · ortanın üstü · orta (oynat) · alt
                     val B = 36.dp
                     KartIlerleme(vm, i, Modifier.align(Alignment.BottomStart))
+                    if (i > 0) Box(Modifier.align(Alignment.CenterStart).padding(start = 4.dp).size(30.dp).clip(CircleShape).background(Color(0xB3000000)).clickable { vm.tasi(-1) },
+                        contentAlignment = Alignment.Center) { Simge("sol", Color(0xFF97C459), 18.dp) }
+                    if (i < p.klipler.lastIndex) Box(Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).size(30.dp).clip(CircleShape).background(Color(0xB3000000)).clickable { vm.tasi(1) },
+                        contentAlignment = Alignment.Center) { Simge("ileri", Color(0xFF97C459), 18.dp) }
                     Column(Modifier.fillMaxSize().padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 8.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         // 1) üst: numara · süre bilgisi · ses · süre/kırp · sil
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -784,49 +792,47 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                                 if (onay) { silOnayId = null; vm.klipSil() } else silOnayId = k.id
                             }
                         }
-                        // 2) ortanın üstü: ← · böl · çoğalt · nesne kes · kadraj · →
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            if (i > 0) SimgeDugmesi("sol", 0xFF97C459, boy = B) { vm.tasi(-1) } else Spacer(Modifier.size(B))
-                            SimgeDugmesi("makas", 0xFFF0997B, boy = B, cift = git("duzenle", "klip")) { vm.klipBolSecili() }
-                            SimgeDugmesi("cogalt", 0xFF85B7EB, boy = B, cift = git("duzenle", "klip")) { vm.klipCogalt() }
-                            // 3.68: Nesne kes (fotoğraftan/videodan kesme); Kadraj (Sığdır/Doldur) ayrı tuval simgesinde
-                            if (nesneAc != null) SimgeDugmesi("kadraj", 0xFF97C459, boy = B, cift = nesneAc) { nesneAc() }
-                            SimgeDugmesi("tuval", 0xFF5DCAA5, boy = B, cift = { kadrajId = k.id }) { kadrajId = k.id }
-                            if (i < p.klipler.lastIndex) SimgeDugmesi("ileri", 0xFF97C459, boy = B) { vm.tasi(1) } else Spacer(Modifier.size(B))
-                        }
-                        // 3) orta: hareket · oynat · doğal renk
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
-                            // 3.68: ok klibin gerçek hareket yönünü gösterir; dokun = sıradaki yön, basılı tut = Hareket sayfası
-                            Box(Modifier.size(B).clip(CircleShape).background(Color(0xB3000000)).border(1.dp, Color(0x40FFFFFF), CircleShape).pointerInput(k.id, k.hareket, k.kenBurns, k.turEtkin) {
-                                detectTapGestures(onTap = {
-                                    // 3.74: yüz turu varken dokun = Düzenle › Klip › Yüzler (tur, yön düğmesiyle bozulmasın)
-                                    if (k.turEtkin) { AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip"); vm.mesaj.value = "Yüz turu · ${k.yuzTur?.noktalar?.size ?: 0} durak" } else {
-                                    val sira = listOf("yakin", "uzak", "sag", "sol", "yukari", "asagi", "sabit")
-                                    val simdi = if (!k.kenBurns) "sabit" else k.hareket.ifEmpty { "otomatik" }.let { if (it == "otomatik") "yakin" else it }
-                                    val yeni = sira[(sira.indexOf(simdi) + 1) % sira.size]
-                                    vm.klipGuncelle { if (yeni == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = yeni) }
-                                    vm.mesaj.value = "Hareket: " + HAREKET_ADI.getValue(yeni) + " · basılı tut = ayarlar"
-                                    }
-                                }, onLongPress = { hareketId = k.id }, onDoubleTap = { bolumAc?.invoke("gorunum", "hareket") ?: run { hareketId = k.id } })
-                            }, contentAlignment = Alignment.Center) { Simge(hareketSimgesi(k), Color(0xFFFFD54F), 21.dp) }
-                            KartOynat(vm, i, Modifier)
-                            val dogal = k.renk == DOGAL_RENK
-                            SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000), boy = B, cift = git("renk", "hazir")) {
-                                vm.klipGuncelle { it.copy(renk = if (dogal) null else DOGAL_RENK) }
-                                vm.mesaj.value = if (dogal) "Doğal renk kaldırıldı" else "Doğal renk uygulandı"
+                        // 3.77: orta boş kalır (fotoğraf görünsün); simgeler altta iki satır
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            // 2) alttan ikinci: böl · çoğalt · nesne kes · kadraj · hareket · doğal renk
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
+                                SimgeDugmesi("makas", 0xFFF0997B, boy = B, cift = git("duzenle", "klip")) { vm.klipBolSecili() }
+                                SimgeDugmesi("cogalt", 0xFF85B7EB, boy = B, cift = git("duzenle", "klip")) { vm.klipCogalt() }
+                                // 3.68: Nesne kes (fotoğraftan/videodan kesme); Kadraj (Sığdır/Doldur) ayrı tuval simgesinde
+                                if (nesneAc != null) SimgeDugmesi("kadraj", 0xFF97C459, boy = B, cift = nesneAc) { nesneAc() }
+                                SimgeDugmesi("tuval", 0xFF5DCAA5, boy = B, cift = { kadrajId = k.id }) { kadrajId = k.id }
+                                // 3.68: ok klibin gerçek hareket yönünü gösterir; dokun = sıradaki yön, basılı tut = Hareket sayfası
+                                Box(Modifier.size(B).clip(CircleShape).background(Color(0xB3000000)).border(1.dp, Color(0x40FFFFFF), CircleShape).pointerInput(k.id, k.hareket, k.kenBurns, k.turEtkin) {
+                                    detectTapGestures(onTap = {
+                                        // 3.74: yüz turu varken dokun = Düzenle › Klip › Yüzler (tur, yön düğmesiyle bozulmasın)
+                                        if (k.turEtkin) { AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip"); vm.mesaj.value = "Yüz turu · ${k.yuzTur?.noktalar?.size ?: 0} durak" } else {
+                                        val sira = listOf("yakin", "uzak", "sag", "sol", "yukari", "asagi", "sabit")
+                                        val simdi = if (!k.kenBurns) "sabit" else k.hareket.ifEmpty { "otomatik" }.let { if (it == "otomatik") "yakin" else it }
+                                        val yeni = sira[(sira.indexOf(simdi) + 1) % sira.size]
+                                        vm.klipGuncelle { if (yeni == "sabit") it.copy(kenBurns = false) else it.copy(kenBurns = true, hareket = yeni) }
+                                        vm.mesaj.value = "Hareket: " + HAREKET_ADI.getValue(yeni) + " · basılı tut = ayarlar"
+                                        }
+                                    }, onLongPress = { hareketId = k.id }, onDoubleTap = { bolumAc?.invoke("gorunum", "hareket") ?: run { hareketId = k.id } })
+                                }, contentAlignment = Alignment.Center) { Simge(hareketSimgesi(k), Color(0xFFFFD54F), 21.dp) }
+                                val dogal = k.renk == DOGAL_RENK
+                                SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000), boy = B, cift = git("renk", "hazir")) {
+                                    vm.klipGuncelle { it.copy(renk = if (dogal) null else DOGAL_RENK) }
+                                    vm.mesaj.value = if (dogal) "Doğal renk kaldırıldı" else "Doğal renk uygulandı"
+                                }
                             }
-                        }
-                        // 4) alt: takip · yazı · hareketli yazı · giriş başlığı
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
-                            if (takipAc != null && !k.foto) SimgeDugmesi("takip", 0xFF85B7EB, boy = B, cift = takipAc) { takipAc() }
-                            if (yaziEkle != null) SimgeDugmesi("metin", 0xFFFFFFFF, boy = B, cift = git("metin", "yazi")) { yaziEkle() }
-                            if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43, boy = B, cift = git("metin", "yazi")) { hareketliEkle() }
-                            // 3.69: Giriş yazısı — dokun = aç/kapat, çift dokun = Görünüm › Şablon › Giriş
-                            SimgeDugmesi("baslik", if (p.giris.acik) 0xFF000000 else 0xFFD9CF5A, if (p.giris.acik) Color(0xFFD9CF5A) else Color(0xB3000000), boy = B,
-                                cift = { vm.sablonSekme.value = "giris"; AltHafiza.sec("sablon", "giris"); bolumAc?.invoke("gorunum", "sablon") }) {
-                                val ac = !p.giris.acik
-                                vm.girisDegis { it.copy(acik = ac) }
-                                vm.mesaj.value = if (ac) "Giriş yazısı açıldı · çift dokun = ayarlar" else "Giriş yazısı kapandı"
+                            // 3) en alt: takip · yazı · hareketli yazı · giriş başlığı · oynat
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
+                                if (takipAc != null && !k.foto) SimgeDugmesi("takip", 0xFF85B7EB, boy = B, cift = takipAc) { takipAc() }
+                                if (yaziEkle != null) SimgeDugmesi("metin", 0xFFFFFFFF, boy = B, cift = git("metin", "yazi")) { yaziEkle() }
+                                if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43, boy = B, cift = git("metin", "yazi")) { hareketliEkle() }
+                                // 3.69: Giriş yazısı — dokun = aç/kapat, çift dokun = Görünüm › Şablon › Giriş
+                                SimgeDugmesi("baslik", if (p.giris.acik) 0xFF000000 else 0xFFD9CF5A, if (p.giris.acik) Color(0xFFD9CF5A) else Color(0xB3000000), boy = B,
+                                    cift = { vm.sablonSekme.value = "giris"; AltHafiza.sec("sablon", "giris"); bolumAc?.invoke("gorunum", "sablon") }) {
+                                    val ac = !p.giris.acik
+                                    vm.girisDegis { it.copy(acik = ac) }
+                                    vm.mesaj.value = if (ac) "Giriş yazısı açıldı · çift dokun = ayarlar" else "Giriş yazısı kapandı"
+                                }
+                                KartOynat(vm, i, Modifier)
                             }
                         }
                     }
@@ -1499,14 +1505,14 @@ private fun KlipKaresi(p: Proje, k: Klip, i: Int, modifier: Modifier, sigdir: Bo
 @Composable
 private fun KartOynat(vm: EditorDurum, i: Int, modifier: Modifier) {
     val oyn by vm.oynuyor.collectAsState()
-    Box(modifier.size(46.dp).clip(CircleShape).background(Color(0x99000000)).border(1.5.dp, Color(0x66FFFFFF), CircleShape).clickable {
+    Box(modifier.size(38.dp).clip(CircleShape).background(Color(0x99000000)).border(1.5.dp, Color(0x66FFFFFF), CircleShape).clickable {
         if (oyn) vm.oynatDurdur()
         else {
             val bas = vm.baslangic(i); val son = bas + (vm.proje.value.klipler.getOrNull(i)?.let { vm.proje.value.zKlip(i).sureMs } ?: 0L)
             if (vm.konum.value !in bas until son) vm.git(bas)
             vm.oynatDurdur()
         }
-    }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Color.White, 24.dp) }
+    }, contentAlignment = Alignment.Center) { Simge(if (oyn) "durdur" else "oynat", Color.White, 22.dp) }
 }
 
 /** 3.73: klip içindeki oynatma konumu — kartın alt kenarında ince çubuk (yalnız bu kendini yeniden çizer). */
@@ -1530,16 +1536,16 @@ private fun EkranAcikDugmesi(vm: EditorDurum) {
     val gorunum = androidx.compose.ui.platform.LocalView.current
     var acik by remember { mutableStateOf(ctx.getSharedPreferences("ayar", 0).getBoolean("ekranAcik", false)) }
     DisposableEffect(acik) { gorunum.keepScreenOn = acik; onDispose { gorunum.keepScreenOn = false } }
-    Row(Modifier.clip(RoundedCornerShape(14.dp)).background(if (acik) Renk.yazi else Color.Transparent)
-        .border(1.dp, if (acik) Renk.yazi else Renk.cizgi, RoundedCornerShape(14.dp))
-        .clickable {
+    // 3.77: düğme görünümü yok — yalnız simge + yazı; açıkken hafif beyaz, kapalıyken gri (temaya göre)
+    val renk = if (acik) Renk.yazi.copy(alpha = 0.88f) else Renk.soluk.copy(alpha = 0.6f)
+    Row(Modifier.clip(RoundedCornerShape(8.dp)).clickable {
             acik = !acik
             ctx.getSharedPreferences("ayar", 0).edit().putBoolean("ekranAcik", acik).apply()
             vm.mesaj.value = if (acik) "Ekran sürekli açık" else "Ekran normal (kendiliğinden kararır)"
-        }.padding(horizontal = 7.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-        Simge("ekran_acik", if (acik) Renk.zemin else Renk.soluk, 15.dp)
+        }.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Simge("ekran_acik", renk, 15.dp)
         Spacer(Modifier.width(3.dp))
-        Text(if (acik) "Açık" else "Ekran", color = if (acik) Renk.zemin else Renk.soluk, fontSize = 11.sp, maxLines = 1)
+        Text("Ekran açık", color = renk, fontSize = 11.5.sp, maxLines = 1)
     }
     Spacer(Modifier.width(2.dp))
 }

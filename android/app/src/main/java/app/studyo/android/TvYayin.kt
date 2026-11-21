@@ -33,6 +33,7 @@ import com.google.android.gms.cast.framework.OptionsProvider
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.cast.framework.SessionProvider
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.BufferedOutputStream
 import java.io.BufferedReader
 import java.io.FileInputStream
@@ -58,6 +59,27 @@ object TvYayin {
     @Volatile private var yayinUri: Uri? = null
     @Volatile private var anahtar: String = ""
     private var dinleyiciKuruldu = false
+    // 3.77 KÖK NEDEN (TV'de takılma): ekran kararınca telefonun Wi-Fi'ı güç tasarrufuna geçip veriyi yavaş/kesik gönderiyordu.
+    // Yayın sürerken Wi-Fi yüksek başarımda ve işlemci uyanık tutulur; yayın bitince bırakılır.
+    private var wifiKilit: android.net.wifi.WifiManager.WifiLock? = null
+    private var uyanik: android.os.PowerManager.WakeLock? = null
+
+    private fun kilitle(ctx: Context) {
+        try {
+            if (wifiKilit?.isHeld != true) {
+                val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+                @Suppress("DEPRECATION") val kip = if (android.os.Build.VERSION.SDK_INT >= 29) android.net.wifi.WifiManager.WIFI_MODE_FULL_LOW_LATENCY else android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF
+                wifiKilit = wm.createWifiLock(kip, "studyo:tv").apply { setReferenceCounted(false); acquire() }
+            }
+            if (uyanik?.isHeld != true) uyanik = (ctx.applicationContext.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
+                .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "studyo:tv").apply { setReferenceCounted(false); acquire(4 * 3600_000L) }
+        } catch (e: Exception) { Kayit.hata("TV: Wi-Fi kilidi", e) }
+    }
+    private fun birak() {
+        try { if (wifiKilit?.isHeld == true) wifiKilit?.release() } catch (_: Exception) {}
+        try { if (uyanik?.isHeld == true) uyanik?.release() } catch (_: Exception) {}
+        wifiKilit = null; uyanik = null
+    }
 
     /** Son dışa aktarılan video (proje başına): "uri|ad". */
     fun ciktiKaydet(ctx: Context, projeId: String, uri: String, ad: String) {
@@ -76,6 +98,7 @@ object TvYayin {
     @Synchronized
     fun yayinla(ctx: Context, uri: Uri): String? {
         val ip = ip() ?: return null
+        kilitle(ctx)
         yayinUri = uri
         anahtar = java.util.UUID.randomUUID().toString().replace("-", "").take(16)
         if (sunucu == null || sunucu?.isClosed == true) {
@@ -96,11 +119,13 @@ object TvYayin {
     fun durdur() {
         try { sunucu?.close() } catch (_: Exception) {}
         sunucu = null; yayinUri = null
+        birak()
     }
 
     /** HTTP: GET/HEAD, Range (TV ileri/geri sarabilsin). Yalnız rastgele adresteki tek video verilir. */
     private fun hizmet(ctx: Context, s: Socket) {
         s.soTimeout = 30_000
+        try { s.sendBufferSize = 1 shl 20; s.tcpNoDelay = true } catch (_: Exception) {}
         val gir = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1))
         val ilk = gir.readLine() ?: return
         val p = ilk.split(" ")
@@ -112,7 +137,7 @@ object TvYayin {
             if (l.isEmpty()) break
             if (l.startsWith("Range:", ignoreCase = true)) aralik = l.substringAfter(':').trim()
         }
-        val out = BufferedOutputStream(s.getOutputStream(), 64 * 1024)
+        val out = BufferedOutputStream(s.getOutputStream(), 256 * 1024)
         fun yanit(kod: String) { out.write("HTTP/1.1 $kod\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toByteArray(Charsets.ISO_8859_1)); out.flush() }
         val u = yayinUri
         if (u == null || yol.substringBefore('?') != "/$anahtar.mp4") { yanit("404 Not Found"); return }
@@ -139,7 +164,7 @@ object TvYayin {
             out.write(bas.toString().toByteArray(Charsets.ISO_8859_1))
             if (yontem.equals("GET", ignoreCase = true)) FileInputStream(pfd.fileDescriptor).use { fis ->
                 fis.channel.position(a)
-                val tampon = ByteArray(64 * 1024); var kalan = n
+                val tampon = ByteArray(256 * 1024); var kalan = n
                 while (kalan > 0) {
                     val r = fis.read(tampon, 0, minOf(tampon.size.toLong(), kalan).toInt())
                     if (r <= 0) break
@@ -147,6 +172,68 @@ object TvYayin {
                 }
             }
             out.flush()
+        }
+    }
+
+    /** 3.77: TV için akıcı kopya — 4K/64 Mbps dosya Wi-Fi'da ve TV'nin çözücüsünde zorlanıyordu. Kısa kenar 1080, H.264 ~10 Mbps
+     *  (her Chromecast / Google TV oynatır). Bir kez hazırlanır, önbellekte kalır (son 3 kopya). Zaten küçükse özgün dosya kullanılır. */
+    suspend fun akiciKopya(ctx: Context, uri: Uri, ilerleme: (Int) -> Unit): Uri? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+        val dizin = java.io.File(ctx.cacheDir, "tv").apply { mkdirs() }
+        val boy = runCatching { ctx.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L }.getOrDefault(0L)
+        val ad = ((uri.toString() + boy).hashCode().toLong() and 0xffffffffL).toString(16)
+        val hedef = java.io.File(dizin, "$ad.mp4")
+        if (hedef.exists() && hedef.length() > 0) { hedef.setLastModified(System.currentTimeMillis()); return@withContext Uri.fromFile(hedef) }
+        val (w, h, bit) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val r = android.media.MediaMetadataRetriever()
+                try {
+                    r.setDataSource(ctx, uri)
+                    val ww = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                    val hh = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                    val don = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+                    val b = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull() ?: 0
+                    if (don == 90 || don == 270) Triple(hh, ww, b) else Triple(ww, hh, b)
+                } finally { r.release() }
+            }.getOrDefault(Triple(0, 0, 0))
+        }
+        if (w <= 0 || h <= 0) return@withContext null
+        val kisa = minOf(w, h)
+        if (kisa <= 1080 && bit in 1..16_000_000) return@withContext uri          // zaten akıcı
+        dizin.listFiles()?.filter { it.name.endsWith(".mp4") }?.sortedByDescending { it.lastModified() }?.drop(2)?.forEach { it.delete() }
+        val yarim = java.io.File(dizin, "$ad.yarim.mp4").apply { delete() }
+        val k = 1080f / kisa
+        val tw = (w * k / 2).toInt() * 2; val th = (h * k / 2).toInt() * 2
+        Kayit.yaz("TV kopyası: ${w}x$h ${bit / 1000} kbps → ${tw}x$th 10 Mbps")
+        kotlinx.coroutines.suspendCancellableCoroutine<Uri?> { c ->
+            val el = android.os.Handler(android.os.Looper.getMainLooper())
+            var tr: androidx.media3.transformer.Transformer? = null
+            val tut = androidx.media3.transformer.ProgressHolder()
+            val izle = object : Runnable { override fun run() {
+                val t = tr ?: return
+                if (t.getProgress(tut) == androidx.media3.transformer.Transformer.PROGRESS_STATE_AVAILABLE) ilerleme(tut.progress)
+                el.postDelayed(this, 400)
+            } }
+            tr = androidx.media3.transformer.Transformer.Builder(ctx)
+                .setVideoMimeType(androidx.media3.common.MimeTypes.VIDEO_H264).setAudioMimeType(androidx.media3.common.MimeTypes.AUDIO_AAC)
+                .setEncoderFactory(androidx.media3.transformer.DefaultEncoderFactory.Builder(ctx)
+                    .setRequestedVideoEncoderSettings(androidx.media3.transformer.VideoEncoderSettings.Builder().setBitrate(10_000_000).build())
+                    .setEnableFallback(true).build())
+                .addListener(object : androidx.media3.transformer.Transformer.Listener {
+                    override fun onCompleted(composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult) {
+                        el.removeCallbacks(izle); tr = null
+                        if (yarim.renameTo(hedef)) { if (c.isActive) c.resume(Uri.fromFile(hedef)) } else { yarim.delete(); if (c.isActive) c.resume(null) }
+                    }
+                    override fun onError(composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult,
+                                         exportException: androidx.media3.transformer.ExportException) {
+                        el.removeCallbacks(izle); tr = null
+                        Kayit.hata("TV kopyası", exportException); yarim.delete(); if (c.isActive) c.resume(null)
+                    }
+                }).build()
+            val oge = androidx.media3.transformer.EditedMediaItem.Builder(androidx.media3.common.MediaItem.fromUri(uri))
+                .setEffects(androidx.media3.transformer.Effects(listOf(), listOf(androidx.media3.effect.Presentation.createForWidthAndHeight(tw, th,
+                    androidx.media3.effect.Presentation.LAYOUT_SCALE_TO_FIT)))).build()
+            try { tr?.start(oge, yarim.path); el.post(izle) } catch (e: Exception) { Kayit.hata("TV kopyası başlatılamadı", e); if (c.isActive) c.resume(null) }
+            c.invokeOnCancellation { el.post { el.removeCallbacks(izle); tr?.cancel(); tr = null; yarim.delete() } }
         }
     }
 
@@ -191,9 +278,14 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
     var konum by remember { mutableLongStateOf(0L) }
     var sure by remember { mutableLongStateOf(0L) }
     var yuklendi by remember { mutableStateOf(false) }
+    // 3.77: kalite — Akıcı (1080p kopya, varsayılan) · Özgün (4K dosyanın kendisi). Seçim hatırlanır.
+    var ozgun by remember { mutableStateOf(ctx.getSharedPreferences("ayar", 0).getBoolean("tvOzgun", false)) }
+    var hazirlik by remember { mutableStateOf(-1) }      // -1 = yok, 0…100 = TV kopyası hazırlanıyor
+    val kapsam = rememberCoroutineScope()
+    var isGonder by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
-    fun yukle(s: CastSession) {
-        val url = TvYayin.yayinla(ctx, Uri.parse(uri))
+    fun gonder(s: CastSession, kaynak: Uri) {
+        val url = TvYayin.yayinla(ctx, kaynak)
         if (url == null) { durum = "Telefon Wi-Fi'ye bağlı değil. TV ile aynı Wi-Fi'a bağlan."; return }
         val md = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply { putString(MediaMetadata.KEY_TITLE, ad) }
         val mi = MediaInfo.Builder(url).setStreamType(MediaInfo.STREAM_TYPE_BUFFERED).setContentType("video/mp4").setMetadata(md).build()
@@ -201,7 +293,20 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
         if (rmc == null) { durum = "TV oynatıcısı hazır değil, yeniden dene."; return }
         rmc.load(MediaLoadRequestData.Builder().setMediaInfo(mi).setAutoplay(true).build())
         yuklendi = true; durum = "TV'de oynatılıyor"
-        Kayit.yaz("TV'ye gönderildi: $ad → ${s.castDevice?.friendlyName}")
+        Kayit.yaz("TV'ye gönderildi: $ad → ${s.castDevice?.friendlyName} (${if (kaynak.toString() == uri) "özgün" else "akıcı kopya"})")
+    }
+
+    fun yukle(s: CastSession) {
+        isGonder?.cancel()
+        isGonder = kapsam.launch {
+            val kaynak = if (ozgun) Uri.parse(uri) else {
+                durum = "TV için akıcı kopya hazırlanıyor…"; hazirlik = 0
+                val k = TvYayin.akiciKopya(ctx, Uri.parse(uri)) { hazirlik = it }
+                hazirlik = -1
+                k ?: Uri.parse(uri).also { durum = "Akıcı kopya hazırlanamadı; özgün dosya gönderiliyor" }
+            }
+            gonder(s, kaynak)
+        }
     }
 
     if (cast != null) {
@@ -258,6 +363,23 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
                 Text("Google Cast bu telefonda başlatılamadı (Google Play Hizmetleri gerekli).", color = Renk.kirmizi, fontSize = 13.sp)
                 return@Column
             }
+            // 3.77: kalite seçimi (TV'de takılırsa Akıcı)
+            Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(false to "Akıcı · 1080p", true to "Özgün · ${if (ozgun) "tam kalite" else "4K"}").forEach { (v, ad2) ->
+                    val on = ozgun == v
+                    Text(ad2, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                        .background(if (on) Renk.yazi else Renk.kart2).clickable {
+                            if (ozgun != v) {
+                                ozgun = v; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("tvOzgun", v).apply()
+                                cast?.sessionManager?.currentCastSession?.takeIf { it.isConnected && yuklendi }?.let { yukle(it) }
+                            }
+                        }.padding(horizontal = 14.dp, vertical = 7.dp))
+                }
+            }
+            if (hazirlik >= 0) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+                CircularProgressIndicator(Modifier.size(18.dp), color = Renk.turuncu, strokeWidth = 2.dp)
+                Text("TV için hazırlanıyor %$hazirlik (bir kez; sonra hemen açılır)", color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.padding(start = 10.dp))
+            }
             if (!bagli) {
                 Text(durum, color = Renk.soluk, fontSize = 12.5.sp)
                 Spacer(Modifier.height(8.dp))
@@ -305,7 +427,8 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
                     SimgeDugme("kapat", "Bağlantıyı kes", Modifier.weight(1f), renk = Renk.kirmizi) { cast.sessionManager.endCurrentSession(true); TvYayin.durdur(); bagli = false }
                     SimgeDugme("uygula", "Pencereyi kapat", Modifier.weight(1f)) { kapat() }
                 }
-                AcilirNot("Pencereyi kapatınca TV oynamaya devam eder. Video telefondan okunduğu için Stüdyo'yu kapatma; telefonu şarjda tutman iyi olur.")
+                AcilirNot("Akıcı: video bir kez 1080p'ye çevrilir (Wi-Fi'da ve TV'de takılmaz). Özgün: 4K dosyanın kendisi (hızlı Wi-Fi ve 4K TV gerekir). " +
+                    "Pencereyi kapatınca TV oynamaya devam eder. Video telefondan okunduğu için Stüdyo'yu kapatma; telefonu şarjda tutman iyi olur.")
             }
         }
     }

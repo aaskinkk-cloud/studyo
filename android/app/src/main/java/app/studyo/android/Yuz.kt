@@ -266,3 +266,18 @@ fun androidx.media3.ui.PlayerView.kadraj(doldur: Boolean) {
     try { setImageDisplayMode(if (doldur) androidx.media3.ui.PlayerView.IMAGE_DISPLAY_MODE_FILL else androidx.media3.ui.PlayerView.IMAGE_DISPLAY_MODE_FIT) }
     catch (e: IllegalStateException) { Kayit.yaz("Oynatıcıda görüntü katmanı yok: ${e.message}") }
 }
+
+/** 3.77 KÖK DÜZELTME (durdurunca siyah ekran): akıcı önizlemede düzenleme oynatıcısının görünümü ekrandan kalkar; durdurunca yeniden
+ *  kurulur ama duraklatılmış oynatıcı kareyi, yüzey (TextureView) hazır olmadan sarma sırasında çizdiği için ekran siyah kalıyordu.
+ *  Yüzey hazır olunca aynı konuma bir kez sarılır → o anki kare (fotoğraf ya da video) yeniden çizilir. */
+fun androidx.media3.ui.PlayerView.kareyiYenile(pl: androidx.media3.common.Player) {
+    val tv = videoSurfaceView as? android.view.TextureView
+    fun dene(n: Int) {
+        postDelayed({
+            if (pl.isPlaying || pl.playbackState == androidx.media3.common.Player.STATE_IDLE || pl.mediaItemCount == 0) return@postDelayed
+            if (tv == null || tv.isAvailable) pl.seekTo(pl.currentMediaItemIndex, pl.currentPosition.coerceAtLeast(0))
+            else if (n < 30) dene(n + 1)
+        }, if (n == 0) 80L else 60L)
+    }
+    dene(0)
+}

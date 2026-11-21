@@ -174,7 +174,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 AndroidView(
                     factory = { c ->
-                        (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player }
+                        (LayoutInflater.from(c).inflate(R.layout.oynatici, null, false) as PlayerView).apply { player = vm.player; kareyiYenile(vm.player) }
                     },
                     update = { v -> v.kadraj(false) },
                     modifier = Modifier.requiredSize(gorunumGen(kbAn), gorunumYuk(kbAn)).graphicsLayer {
@@ -328,9 +328,12 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 val D = k.sureMs / 1000f
                 val tv = TurVurgu.durum(k, RW, RH, kbF * D, D)
                 if (tv != null) {
-                    if (tv.yuz && tv.halkaAlfa > 0.002f) Canvas(Modifier.fillMaxSize()) {
+                    if ((tv.yuz && tv.halkaAlfa > 0.002f) || (tv.isik != null && tv.isikAlfa > 0.002f)) Canvas(Modifier.fillMaxSize()) {
                         val nc = drawContext.canvas.nativeCanvas
-                        nc.save(); nc.scale(olcek, olcek); TurVurgu.halkaCiz(nc, tv, kotlin.math.min(RW, RH).toFloat()); nc.restore()
+                        nc.save(); nc.scale(olcek, olcek)
+                        TurVurgu.halkaCiz(nc, tv, kotlin.math.min(RW, RH).toFloat())
+                        TurVurgu.isikCiz(nc, tv, kotlin.math.min(RW, RH).toFloat())   // 3.77
+                        nc.restore()
                     }
                     if (tv.adAlfa > 0.002f && tv.ad.isNotEmpty()) {
                         val ib = remember(tv.ad, ref) { TurVurgu.isimBitmap(tv.ad, RW, RH) }

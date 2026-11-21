@@ -2,9 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.84 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.85 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.85 (21.11.2026, deneme · `yerel-android` dalı): "Stüdyo" ana sayfası (web Stüdyo görünümü)
+- Ahmet'in istediği tema: web Stüdyo 2.16 ana ekranının yerel hâli (`AnaStudyo.kt`). **Yalnız ana sayfa** — editör kendi temasında (Renk.tema) kalır.
+- Renkler web'in değişkenleri (`AS`): gündüz zemin `#F3F5F7`, kart `#FFF`, çizgi `#DFE4E8`, yazı `#141A1F`, vurgu `#E8681C`; ay düğmesiyle gece (`#121A21`…). Seçim hatırlanır (`anaGece`).
+- Ana sayfa: uygulama simgesi + harf aralıklı "STÜDYO", ay/güneş düğmesi; "Yaratıcılığını keşfet." · "Fotoğraf ve video, tek bir yerde."; Fotoğraf (web editörü) ve Video (dosya seç → yeni proje) kartları, sağ üstte soluk daire;
+  mavi geçişli **Karanlık Oda** (web Karanlık Oda'yı açar) ve turuncu geçişli **Kareden Videoya** (varsayılanlarla yeni video) kartları; dışa aktarma şeridi; **Son çalışmalar** kenardan kenara şerit (150×190 küçük resim, "Video" rozeti, Bugün/Dün), "Tümünü gör".
+  Simgeler web'deki SVG yollarıyla çizilir. Kamera bölgesi aynı zeminde. Web'deki "Fotoğraf araçları" (Kabataş Haber vb.) yerel uygulamada karşılığı olmadığı için konmadı.
+- Alt gezinme: **Ana sayfa · Projelerim · Taslaklar · Ayarlar** (seçili simge turuncu). Projelerim: iki sütunlu kartlar (süre rozeti, ⋯ menüsü, TV düğmesi), çipler Tümü/YouTube/Reels/Kare/Arşiv/Seç, uzun bas = toplu seçim (arşivle, sil). Taslaklar: henüz dışa aktarılmamış projeler. Ayarlar: ana sayfa teması, editör teması, önceki görünüme dön, alt başlıklar, yedekten geri yükle, pil, hata kaydı, sürüm. Geri tuşu önce Ana sayfa sekmesine döner.
+- Varsayılan açık (`Duzen.anaStudyo`). 3.84 Karanlık Oda ana sayfası ve önceki ana sayfa duruyor: Ayarlar › Ana sayfa görünümü; geri gelmek için ⋯ menüsü / Ayarlar kutusunda "Stüdyo ana sayfası".
 
 ## 3.84 (21.11.2026, deneme · `yerel-android` dalı): "Karanlık Oda" teması
 - Dördüncü tema (`Renk.tema = 3`, `Renk.ko`): Karanlık Oda ve Kareden Videoya'nın ortak görünümü — grafit zemin `#0F1213`, yüzey `#171B1D/#21262A`,

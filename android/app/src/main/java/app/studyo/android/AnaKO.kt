@@ -116,6 +116,7 @@ private fun AyarKutusu(geriYukle: () -> Unit) {
                     if (not.isNotEmpty()) Text(not, color = Renk.soluk, fontSize = 11.5.sp, fontFamily = FontFamily.Monospace)
                 }
             }
+            Satir("kapak", "Stüdyo ana sayfası (açık, mavi-turuncu)") { Duzen.anaStudyoSec(ctx, true) }
             Satir("menu", if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") { Duzen.degistir(ctx) }
             Satir("yukle", "Yedekten geri yükle", "ayarlar · logolar", geriYukle)
             Satir("pil", "Pil kısıtlamasını kaldır") { pilAyari(ctx) }

@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
         paylasimAl(intent)
         setContent {
             StudyoTema {
-                Uygulama(paylasilan.value, { paylasilan.value = emptyList() }, ::webAc)
+                Uygulama(paylasilan.value, { paylasilan.value = emptyList() }, ::webAc, ::webUrl)
             }
         }
     }
@@ -102,10 +102,15 @@ class MainActivity : ComponentActivity() {
         else Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(WEB_ADRES))
         try { startActivity(i) } catch (e: Exception) { Kayit.hata("web aç", e) }
     }
+
+    /** 3.85: belirli bir web sayfası (ör. Karanlık Oda) — aynı Chrome kabuğuyla. */
+    fun webUrl(adres: String) {
+        try { startActivity(Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(adres))) } catch (e: Exception) { Kayit.hata("web aç", e) }
+    }
 }
 
 @Composable
-fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) -> Unit) {
+fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) -> Unit, webUrl: (String) -> Unit = {}) {
     var acik by rememberSaveable { mutableStateOf<String?>(null) }
     var bekleyen by remember { mutableStateOf<List<Uri>>(emptyList()) }
     // 3.81: paylaşılan albüm bağlantısı — editör açık değilse yeni proje açılır, editör bağlantıyı alıp indirir
@@ -138,6 +143,11 @@ fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) 
                 Depo.kaydet(p); acik = p.id
             },
             webAc = { webAc(false) },
+            webUrl = webUrl,
+            yeniSecimle = { l ->
+                val p = Proje(ad = "Video " + SimpleDateFormat("d MMM HH:mm", TR).format(Date()))
+                Depo.kaydet(p); bekleyen = l; acik = p.id
+            },
         )
     } else {
         key(a) {
@@ -148,7 +158,7 @@ fun Uygulama(paylasilan: List<Uri>, paylasimBitti: () -> Unit, webAc: (Boolean) 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
+fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit, webUrl: (String) -> Unit = {}, yeniSecimle: (List<Uri>) -> Unit = {}) {
     val ctx = LocalContext.current
     var projeler by remember { mutableStateOf(Depo.listele()) }
     var silinecek by remember { mutableStateOf<Proje?>(null) }
@@ -177,7 +187,12 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
         }.start()
     }
 
-    if (Renk.ko) AnaSayfaKO(
+    if (Duzen.anaStudyo) AnaSayfaStudyo(
+        projeler = projeler, gorunen = gorunen, arsivde = arsivde, arsivSayisi = arsivSayisi, secim = secim, disa = disa,
+        arsivDegis = { arsivde = it }, secimDegis = { secim = it }, yeni = yeni, yeniSecimle = yeniSecimle, webAc = webAc, webUrl = webUrl, ac = ac,
+        yenile = { projeler = Depo.listele() }, topluSil = { topluSilOnay = true }, geriYukle = { geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
+        silIste = { silinecek = it }, adIste = { adDegis = it }, tvIste = { tvVideo = it },
+    ) else if (Renk.ko) AnaSayfaKO(
         projeler = projeler, gorunen = gorunen, arsivde = arsivde, arsivSayisi = arsivSayisi, secim = secim, disa = disa,
         arsivDegis = { arsivde = it }, secimDegis = { secim = it }, yeni = yeni, webAc = webAc, ac = ac,
         yenile = { projeler = Depo.listele() }, topluSil = { topluSilOnay = true }, geriYukle = { geriYukle.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
@@ -203,6 +218,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit) {
                     if (Renk.tema != 0) DropdownMenuItem(text = { Text("Gece teması") }, onClick = { menu = false; Renk.sec(ctx, 0) })
                     if (Renk.tema != 1) DropdownMenuItem(text = { Text("Gündüz teması") }, onClick = { menu = false; Renk.sec(ctx, 1) })
                     if (Renk.tema != 2) DropdownMenuItem(text = { Text("Siyah-beyaz tema (VITA düzeni)") }, onClick = { menu = false; Renk.sec(ctx, 2) })
+                    DropdownMenuItem(text = { Text("Stüdyo ana sayfası (açık, mavi-turuncu)") }, onClick = { menu = false; Duzen.anaStudyoSec(ctx, true) })
                     DropdownMenuItem(text = { Text("Karanlık Oda teması (yeni)") }, onClick = { menu = false; Renk.sec(ctx, 3) })
                     DropdownMenuItem(text = { Text(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") }, onClick = { menu = false; Duzen.degistir(ctx) })
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })

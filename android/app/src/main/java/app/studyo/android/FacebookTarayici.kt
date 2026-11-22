@@ -51,6 +51,7 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
     var yukleniyor by remember { mutableIntStateOf(0) }
     var webRef by remember { mutableStateOf<WebView?>(null) }
     var indiriliyor by remember { mutableStateOf<String?>(null) }
+    var hataYazi by remember { mutableStateOf<String?>(null) }
     BackHandler { val w = webRef; if (w != null && w.canGoBack()) w.goBack() else kapat() }
 
     fun secDegis(u: String) {
@@ -115,17 +116,28 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                         settings.javaScriptEnabled = true; settings.domStorageEnabled = true
                         settings.loadWithOverviewMode = true; settings.useWideViewPort = true
                         settings.builtInZoomControls = false; settings.setSupportZoom(false)
+                        settings.javaScriptCanOpenWindowsAutomatically = false; settings.setSupportMultipleWindows(false)
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                        // 3.98 KÖK DÜZELTME: Facebook uygulama içi tarayıcıyı kimlikteki "; wv" ve "Version/4.0" işaretlerinden tanıyıp sayfa vermiyordu
+                        settings.userAgentString = settings.userAgentString.replace("; wv", "").replace(Regex("Version/[\\d.]+ "), "")
                         WebViewUa.ua = settings.userAgentString
                         CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                         addJavascriptInterface(kopru, "Studyo")
                         webViewClient = object : WebViewClient() {
+                            // 3.98 KÖK DÜZELTME: giriş artık meta.com vb. alan adlarından da geçiyor — yalnız facebook.com'a izin vermek girişi engelliyordu.
+                            // Bütün http(s) sayfaları içeride açılır; yalnız Facebook uygulamasına atan intent:// fb:// gibi bağlantılar açılmaz.
                             override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean {
-                                if (r.url.scheme != "https" && r.url.scheme != "http") return true   // intent:// fb:// (Facebook uygulamasına yönlendirme) açılmaz
-                                val h = r.url.host ?: return true
-                                // yalnız Facebook ve oturum açma sayfaları içeride; diğer bağlantılar açılmaz
-                                return !(h.endsWith("facebook.com") || h.endsWith("fbcdn.net") || h.endsWith("fb.com") || h.endsWith("facebook.net"))
+                                val sema = r.url.scheme ?: return true
+                                if (sema != "https" && sema != "http") { Kayit.yaz("Facebook: uygulama bağlantısı açılmadı ($sema)"); return true }
+                                return false
                             }
-                            override fun onPageStarted(v: WebView, url: String?, f: Bitmap?) { yukleniyor = 5 }
+                            override fun onReceivedError(v: WebView, r: WebResourceRequest, e: android.webkit.WebResourceError) {
+                                if (r.isForMainFrame) { hataYazi = "Sayfa açılamadı: ${e.description} (${e.errorCode})"; Kayit.yaz("Facebook hata: ${e.errorCode} ${e.description} ${r.url}") }
+                            }
+                            override fun onReceivedHttpError(v: WebView, r: WebResourceRequest, e: android.webkit.WebResourceResponse) {
+                                if (r.isForMainFrame) { hataYazi = "Facebook yanıtı: ${e.statusCode}"; Kayit.yaz("Facebook HTTP ${e.statusCode} ${r.url}") }
+                            }
+                            override fun onPageStarted(v: WebView, url: String?, f: Bitmap?) { yukleniyor = 5; hataYazi = null; Kayit.yaz("Facebook sayfa: ${url?.take(120)}") }
                             override fun onPageFinished(v: WebView, url: String?) { yukleniyor = 100; CookieManager.getInstance().flush() }
                         }
                         webChromeClient = object : WebChromeClient() { override fun onProgressChanged(v: WebView, p: Int) { yukleniyor = p } }
@@ -136,10 +148,16 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                                 h.extra?.let { u -> secDegis(u) }; true
                             } else false
                         }
-                        loadUrl("https://m.facebook.com/me/photos")
+                        loadUrl("https://m.facebook.com/")   // 3.98: ana sayfa (girişliyse akış, değilse giriş formu) — fotoğraflara üstteki düğmelerle
                         webRef = this
                     }
                 }, modifier = Modifier.fillMaxSize(), onRelease = { it.destroy(); webRef = null })
+                hataYazi?.let { h -> Column(Modifier.align(Alignment.Center).padding(24.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xE6000000)).padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(h, color = Color.White, fontSize = 13.sp)
+                    Text("Yeniden dene", color = Renk.turuncu, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp)
+                        .clip(RoundedCornerShape(8.dp)).clickable { hataYazi = null; webRef?.loadUrl("https://m.facebook.com/") }.padding(8.dp))
+                } }
                 indiriliyor?.let { Text(it, color = Color.White, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center)
                     .clip(RoundedCornerShape(12.dp)).background(Color(0xCC000000)).padding(horizontal = 18.dp, vertical = 12.dp)) }
             }

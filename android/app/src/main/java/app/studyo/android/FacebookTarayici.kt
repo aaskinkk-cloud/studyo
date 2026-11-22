@@ -104,9 +104,13 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                 .padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 SimgeDugme("kapat", "Kapat", renk = Renk.yazi) { kapat() }
                 SimgeDugme("geri", "Geri", renk = Renk.yazi) { webRef?.let { if (it.canGoBack()) it.goBack() } }
-                SimgeDugme("kisi", "Fotoğraflarım", renk = Renk.yazi) { webRef?.loadUrl("https://m.facebook.com/me/photos") }
-                SimgeDugme("katman", "Albümlerim", renk = Renk.yazi) { webRef?.loadUrl("https://m.facebook.com/me/photos/albums") }
+                SimgeDugme("kisi", "Fotoğraflarım", renk = Renk.yazi) { webRef?.loadUrl("https://www.facebook.com/me/photos") }
+                SimgeDugme("katman", "Albümlerim", renk = Renk.yazi) { webRef?.loadUrl("https://www.facebook.com/me/photos_albums") }
                 Spacer(Modifier.weight(1f))
+                // 3.99: kaçış yolu — açık sayfayı Chrome'da aç (oradan kaydedip Paylaş › Stüdyo)
+                SimgeDugme("disa", "Chrome'da", renk = Renk.yazi) {
+                    runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(webRef?.url ?: "https://www.facebook.com/")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                }
                 SimgeDugme("uygula", "Sayfadakileri seç", renk = Renk.turuncu) { webRef?.evaluateJavascript(SAYFA_JS, null) }
             }
             if (yukleniyor in 1..99) LinearProgressIndicator(progress = { yukleniyor / 100f }, Modifier.fillMaxWidth().height(2.dp), color = Renk.turuncu)
@@ -121,6 +125,11 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                         // 3.98 KÖK DÜZELTME: Facebook uygulama içi tarayıcıyı kimlikteki "; wv" ve "Version/4.0" işaretlerinden tanıyıp sayfa vermiyordu
                         settings.userAgentString = settings.userAgentString.replace("; wv", "").replace(Regex("Version/[\\d.]+ "), "")
                         WebViewUa.ua = settings.userAgentString
+                        // 3.99 KÖK DÜZELTME (giriş sayfası beyaz): uygulama içi tarayıcı her istekte "X-Requested-With: app.studyo.android" gönderiyordu;
+                        // Facebook gömülü tarayıcıyı bundan tanıyıp giriş formunu çizmiyor. Başlık kapatılır (WebView 110+).
+                        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST))
+                            runCatching { androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(settings, emptySet()) }
+                                .onFailure { Kayit.hata("X-Requested-With", it) }
                         CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                         addJavascriptInterface(kopru, "Studyo")
                         webViewClient = object : WebViewClient() {
@@ -138,7 +147,13 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                                 if (r.isForMainFrame) { hataYazi = "Facebook yanıtı: ${e.statusCode}"; Kayit.yaz("Facebook HTTP ${e.statusCode} ${r.url}") }
                             }
                             override fun onPageStarted(v: WebView, url: String?, f: Bitmap?) { yukleniyor = 5; hataYazi = null; Kayit.yaz("Facebook sayfa: ${url?.take(120)}") }
-                            override fun onPageFinished(v: WebView, url: String?) { yukleniyor = 100; CookieManager.getInstance().flush() }
+                            override fun onPageFinished(v: WebView, url: String?) {
+                                yukleniyor = 100; CookieManager.getInstance().flush()
+                                // 3.99: tanı — sayfanın başlığı ve görünen yazı miktarı kayda (boş sayfanın nedeni görülsün)
+                                v.evaluateJavascript("(function(){return document.title+' | yazı='+(document.body?document.body.innerText.length:-1)+' | form='+document.forms.length})()") { r ->
+                                    Kayit.yaz("Facebook yüklendi: ${url?.take(70)} → $r")
+                                }
+                            }
                         }
                         webChromeClient = object : WebChromeClient() { override fun onProgressChanged(v: WebView, p: Int) { yukleniyor = p } }
                         // basılı tut: fotoğrafı seç / seçimi kaldır
@@ -148,7 +163,7 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                                 h.extra?.let { u -> secDegis(u) }; true
                             } else false
                         }
-                        loadUrl("https://m.facebook.com/")   // 3.98: ana sayfa (girişliyse akış, değilse giriş formu) — fotoğraflara üstteki düğmelerle
+                        loadUrl("https://www.facebook.com/")   // 3.98: ana sayfa (girişliyse akış, değilse giriş formu) — fotoğraflara üstteki düğmelerle
                         webRef = this
                     }
                 }, modifier = Modifier.fillMaxSize(), onRelease = { it.destroy(); webRef = null })
@@ -156,7 +171,7 @@ fun FacebookTarayici(vm: EditorDurum, kapat: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(h, color = Color.White, fontSize = 13.sp)
                     Text("Yeniden dene", color = Renk.turuncu, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp)
-                        .clip(RoundedCornerShape(8.dp)).clickable { hataYazi = null; webRef?.loadUrl("https://m.facebook.com/") }.padding(8.dp))
+                        .clip(RoundedCornerShape(8.dp)).clickable { hataYazi = null; webRef?.loadUrl("https://www.facebook.com/") }.padding(8.dp))
                 } }
                 indiriliyor?.let { Text(it, color = Color.White, fontSize = 14.sp, modifier = Modifier.align(Alignment.Center)
                     .clip(RoundedCornerShape(12.dp)).background(Color(0xCC000000)).padding(horizontal = 18.dp, vertical = 12.dp)) }

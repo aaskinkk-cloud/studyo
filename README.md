@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.98 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.99 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.99 (22.11.2026, deneme · `yerel-android` dalı): Facebook giriş sayfası beyaz kalıyordu — ikinci düzeltme
+- **Cihaz kaydı (3.98):** sayfalar yükleniyor ve giriş sayfasına yönleniyordu (`m.facebook.com/login/…refsrc=deprecated`), hata yok; içerik çizilmiyordu.
+- **Çözüm:** (1) uygulama içi tarayıcının her istekte gönderdiği `X-Requested-With: app.studyo.android` başlığı kapatıldı (androidx.webkit, WebView 110+) — Facebook gömülü tarayıcıyı bundan tanıyıp formu boş bırakabiliyor; (2) kullanımdan kalkan m.facebook.com yerine www.facebook.com (Fotoğraflarım: /me/photos, Albümlerim: /me/photos_albums).
+- **Tanı:** her sayfa yüklenince başlık, görünen yazı miktarı ve form sayısı kayda yazılır ("Facebook yüklendi: … → başlık | yazı=… | form=…").
+- **Kaçış yolu:** üstte "Chrome'da" — açık sayfayı Chrome'da açar (oradan kaydedip Paylaş › Stüdyo).
 
 ## 3.98 (22.11.2026, deneme · `yerel-android` dalı): Facebook giriş sayfası gelmiyordu — düzeltme
 - **Neden (muhtemel, iki):** (1) yalnız facebook.com alan adlarına izin veriliyordu; giriş artık meta.com vb. üzerinden yönlendirdiği için engelleniyor, sayfa boş kalıyordu. (2) Facebook uygulama içi tarayıcıyı kimlikteki "; wv" / "Version/4.0" işaretinden tanıyabiliyor.

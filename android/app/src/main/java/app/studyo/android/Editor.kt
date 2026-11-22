@@ -765,6 +765,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     var silOnayId by remember { mutableStateOf<String?>(null) }
     var albumAcik by remember { mutableStateOf(false) }
     var kameraAcik by remember { mutableStateOf(false) }
+    var facebookAcik by remember { mutableStateOf(false) }
     LazyRow(
         state = durum,
         modifier = Modifier.fillMaxWidth().height(yukseklik).padding(vertical = 4.dp),
@@ -927,6 +928,17 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                 }
             }
         }
+        // 3.97: Facebook (Stüdyo içinde tarayıcı; fotoğrafları sen seçersin)
+        if (!kucuk) item {
+            Box(Modifier.width(96.dp).fillMaxHeight(0.6f).clip(RoundedCornerShape(14.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(14.dp)).clickable { facebookAcik = true },
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("f", color = Color(0xFF1877F2), fontSize = 26.sp, fontWeight = FontWeight.Black)
+                    Text("Facebook", color = Renk.yazi, fontSize = 13.sp)
+                    Text("fotoğraflarım", color = Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
+                }
+            }
+        }
         // 3.93: kamerayla çek (prompter'lı)
         if (!kucuk) item {
             Box(Modifier.width(96.dp).fillMaxHeight(0.6f).clip(RoundedCornerShape(14.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(14.dp)).clickable { kameraAcik = true },
@@ -941,6 +953,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
     }
     if (albumAcik) AlbumPenceresi(vm) { albumAcik = false }
     if (kameraAcik) KameraPrompter(vm) { kameraAcik = false }
+    if (facebookAcik) FacebookTarayici(vm) { facebookAcik = false }
     val ek = buildList {
         p.muzik?.let { add("♪ ${it.ad}") }
         if (p.sesler.isNotEmpty()) add("🎙 ${p.sesler.size} seslendirme")

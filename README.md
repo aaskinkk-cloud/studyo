@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.96 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.97 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.97 (22.11.2026, deneme · `yerel-android` dalı): Stüdyo içinde Facebook — kendi fotoğraflarından ekleme
+- Klip şeridinde **Facebook** kutusu → uygulama içi tarayıcı (`FacebookTarayici.kt`, WebView, m.facebook.com). Giriş bir kez yapılır, çerezler saklanır. Üstte: Kapat · Geri · Fotoğraflarım · Albümlerim · Sayfadakileri seç.
+- Seçimi kullanıcı yapar (uygulama sayfaları kendi kendine taramaz): fotoğrafa **basılı tut** = seç/kaldır (açık fotoğraf sayfasında büyük boy); **Sayfadakileri seç** = o an yüklü ≥ 400 px fotoğraflar (srcset'in en büyüğü; küçük simgeler alınmaz).
+- **Videoya ekle:** seçilenler uygulama içine (`albumler/facebook`) indirilir ve klip olarak eklenir; daha önce inenler yeniden indirilmez.
+- Yalnız Facebook alan adları içeride açılır; Facebook uygulamasına yönlendirmeler (intent://, fb://) engellenir. Resmî arayüz değildir: Facebook sayfa yapısını değiştirirse seçim yolu etkilenebilir; basılı tutma her zaman çalışır.
 
 ## 3.96 (22.11.2026, deneme · `yerel-android` dalı): birden fazla Google Fotoğraflar albümü
 - Albüm penceresi çok satırlı: her satıra bir bağlantı; "Panodan ekle" panodaki yeni bağlantıyı alt satıra ekler, bulunan albüm sayısı görünür (`AlbumIndir.baglar`). Sayı sınırı yok.

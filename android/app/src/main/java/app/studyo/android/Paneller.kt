@@ -355,10 +355,22 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // nesneler · 3.72: parmakla taşıma/büyütme sırasında geçici dönüşüm (bitmap yeniden çizilmez, parmağı akıcı izler); bırakınca kaydedilir
             var nesGecici by remember { mutableStateOf<NesneGecici?>(null) }
             val nesBoyut = remember { HashMap<String, Pair<Int, Int>>() }
+            // 4.12: fotoğrafa yapışık nesne — bağlı klibin o anki görünüşü (önizlemedeki klipse arka planla AYNI an: kbAn)
+            fun bagAn(n: Nesne): Pair<Klip, Yuz.An>? {
+                if (!n.bagli) return null
+                val j = p.klipler.indexOfFirst { it.id == n.klipId }; if (j < 0) return null
+                val kk = p.klipler[j]
+                val a = if (j == sira && kbAn != null) kbAn else Yuz.an(kk, RW, RH, ((konum - vm.baslangic(j)).toFloat() / kk.sureMs.coerceAtLeast(1)).coerceIn(0f, 1f), j)
+                return kk to a
+            }
+            val ekranN: (Nesne) -> Nesne = { n -> bagAn(n)?.let { (kk, a) -> NesneBag.ekranda(n, kk, RW, RH, a) } ?: n }
+            val geriYaz: (Nesne, Float, Float, Float) -> Nesne = { n, x, y, o ->
+                bagAn(n)?.let { (kk, a) -> NesneBag.kaynaktan(n, kk, RW, RH, a, x, y, o) } ?: n.copy(x = x, y = y, olcek = o)
+            }
             @Composable
-            fun CizN(y: Yerlesim, alfa: Float, n: Nesne) {
+            fun CizN(y: Yerlesim, alfa: Float, n: Nesne, ek: Float = 1f) {
                 if (alfa <= 0.01f) return
-                nesBoyut[n.id] = y.bmp.width to y.bmp.height
+                nesBoyut[n.id] = (y.bmp.width * ek).roundToInt() to (y.bmp.height * ek).roundToInt()
                 val g = nesGecici?.takeIf { it.id == n.id }
                 val (x0, y0) = y.solUst(RW, RH)
                 val dx = (g?.dx ?: 0f) * RW; val dy = (g?.dy ?: 0f) * RH
@@ -366,10 +378,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 Image(y.bmp.asImageBitmap(), null,
                     Modifier.offset { IntOffset(((x0 + dx) * olcek).roundToInt(), ((y0 + dy) * olcek).roundToInt()) }
                         .size(with(yog) { (y.bmp.width * olcek).toDp() }, with(yog) { (y.bmp.height * olcek).toDp() })
-                        .graphicsLayer { val c = g?.carpan ?: 1f; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
+                        .graphicsLayer { val c = (g?.carpan ?: 1f) * ek; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
                 // 4.08: seçili nesnenin çerçevesi — kesikli çizgi, köşelerde büyüt/küçült tutamaçları, ortada taşıma simgesi (parmağı akıcı izler)
                 if (secili) {
-                    val c = g?.carpan ?: 1f
+                    val c = (g?.carpan ?: 1f) * ek
                     val w = y.bmp.width * olcek * c; val h = y.bmp.height * olcek * c
                     val cx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val cy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f
                     NesneCerceve(cx - w / 2f, cy - h / 2f, w, h)
@@ -387,6 +399,16 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW) } else null
                         }
                         kb2?.let { CizN(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n) }
+                    } else if (n.bagli) {
+                        // 4.12: taban bitmap hareketsiz ölçekte bir kez çizilir; yer ve ölçek her karede arka plandaki fotoğrafın hareketinden
+                        val ba = bagAn(n)
+                        if (ba != null) {
+                            val (kk, a) = ba
+                            val to = NesneBag.tabanOlcek(n, kk, RW, RH)
+                            val tb = remember(n.yol, to, n.golge, ref) { Katman.nesne(n.copy(olcek = to, x = 0.5f, y = 0.5f), RW, RH) }
+                            val e = NesneBag.ekranda(n, kk, RW, RH, a)
+                            tb?.let { CizN(Yerlesim(it.bmp, e.x * 2f - 1f, 1f - e.y * 2f, 0f, 0f), if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs), n, a.s) }
+                        }
                     } else {
                         val ny = remember(n.yol, n.olcek, n.golge, n.x, n.y, ref) { Katman.nesne(n, RW, RH) }
                         ny?.let { CizN(it, if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs), n) }
@@ -563,7 +585,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             } else if (nesnePaneli && katmanPaneli && seciliNesne != null) {
                 // 3.45: Katman bölümünde kesilen nesne seçiliyse sürükle = nesneyi taşı · 3.72: iki parmak = büyüt/küçült
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (katmanPaneli) {
                 val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
                 val payPx = with(yog) { 28.dp.toPx() } / olcek     // 3.45: dokunma alanı katmanın çevresinde genişletilir (küçük yazı kolay tutulur)
@@ -638,7 +660,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             } else if (nesnePaneli && (seciliNesne != null || p.nesneler.isNotEmpty())) {   // 4.08: nesne varken arka plan hiç kaymaz
                 // 3.72: Düzenle › Nesne: nesneye dokun = seç · sürükle = taşı · iki parmak = büyüt/küçült (Kareden Videoya'daki gibi);
                 // boş yere dokun = seçimi kaldır; arka plan sabit kalır
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (sablonSayfa != null && sablonGorunur(p, sablonSayfa, konum)) {
                 // 3.72: Görünüm › Şablon: ekrandaki giriş/abone/kapanış yazısına dokun = ekranda düzenle (önizlemenin altında);
                 // girişte iki parmak = yazı boyutu. Değişiklik anında önizlemeye yansır.
@@ -809,8 +831,11 @@ internal data class NesneGecici(val id: String, val dx: Float, val dy: Float, va
  *  Nesneye değmeyen kısa dokunuş seçimi kaldırır. Arka plan (klip) bu modda kaymaz. */
 @Composable
 private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, RW: Int, RH: Int, boyut: Map<String, Pair<Int, Int>>,
-                         gecici: () -> NesneGecici?, geciciYaz: (NesneGecici?) -> Unit, ek: Modifier) {
+                         gecici: () -> NesneGecici?, geciciYaz: (NesneGecici?) -> Unit, ek: Modifier,
+                         ekranN: (Nesne) -> Nesne = { it }, geriYaz: (Nesne, Float, Float, Float) -> Nesne = { n, x, y, o -> n.copy(x = x, y = y, olcek = o) }) {
     val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
+    // 4.12: fotoğrafa yapışık nesnede ekrandaki yer o anki harekete göre hesaplanır; bırakınca fotoğrafın karesine geri yazılır
+    val ekranG by rememberUpdatedState(ekranN); val geriG by rememberUpdatedState(geriYaz)
     val yog = LocalDensity.current
     val payPx = with(yog) { 22.dp.toPx() } / olcek
     fun isabet(t: Offset): String? {
@@ -818,7 +843,8 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
         return pG.nesneler.lastOrNull { n ->
             if (konumG < n.basMs || konumG > n.sonMs) return@lastOrNull false
             val (bw, bh) = boyut[n.id] ?: return@lastOrNull false
-            kotlin.math.abs(px - n.x * RW) <= bw / 2f + payPx && kotlin.math.abs(py - n.y * RH) <= bh / 2f + payPx
+            val e = ekranG(n)
+            kotlin.math.abs(px - e.x * RW) <= bw / 2f + payPx && kotlin.math.abs(py - e.y * RH) <= bh / 2f + payPx
         }?.id
     }
     Box(Modifier.fillMaxSize().pointerInput(olcek, RW, RH) {
@@ -826,7 +852,7 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
             val ilk = awaitFirstDown(requireUnconsumed = false)
             // 4.08: seçili nesnenin köşe tutamacına basıldıysa tek parmakla büyüt/küçült (merkeze uzaklık oranı)
             val secN = vm.seciliNesne.value?.let { id -> pG.nesneler.firstOrNull { it.id == id } }?.takeIf { konumG in it.basMs..it.sonMs }
-            val merkez = secN?.let { Offset(it.x * RW * olcek, it.y * RH * olcek) }
+            val merkez = secN?.let { ekranG(it) }?.let { Offset(it.x * RW * olcek, it.y * RH * olcek) }
             val koseYakin = with(yog) { 28.dp.toPx() }
             val kose = secN != null && merkez != null && boyut[secN.id]?.let { (bw, bh) ->
                 val hw = bw * olcek / 2f; val hh = bh * olcek / 2f
@@ -843,7 +869,7 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                     geciciYaz(NesneGecici(secN.id, 0f, 0f, c)); degisti = true
                     ev.changes.forEach { it.consume() }
                 } while (ev.changes.any { it.pressed })
-                if (degisti) gecici()?.takeIf { it.id == secN.id }?.let { g -> vm.nesneDegis(secN.id) { n -> n.copy(olcek = (n.olcek * g.carpan).coerceIn(0.02f, 3f)) } }
+                if (degisti) gecici()?.takeIf { it.id == secN.id }?.let { g -> vm.nesneDegis(secN.id) { n -> val e = ekranG(n); geriG(n, e.x, e.y, (e.olcek * g.carpan).coerceIn(0.02f, 3f)) } }
                 geciciYaz(null)
                 return@awaitEachGesture
             }
@@ -868,7 +894,7 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
             // 4.11 KÖK NEDEN (bırakınca yukarı sıçrama): merkez kareye (0…1) kısıtlanıyordu; uzun nesne aşağı çekilince geri itiliyordu. Artık yarısı dışarı taşabilir.
             if (tasindi && hedef != null) {
                 gecici()?.takeIf { it.id == hedef }?.let { g ->
-                    vm.nesneDegis(hedef) { n -> n.copy(x = (n.x + g.dx).coerceIn(-0.5f, 1.5f), y = (n.y + g.dy).coerceIn(-0.5f, 1.5f), olcek = (n.olcek * g.carpan).coerceIn(0.02f, 3f)) }
+                    vm.nesneDegis(hedef) { n -> val e = ekranG(n); geriG(n, (e.x + g.dx).coerceIn(-0.5f, 1.5f), (e.y + g.dy).coerceIn(-0.5f, 1.5f), (e.olcek * g.carpan).coerceIn(0.02f, 3f)) }
                 }
                 geciciYaz(null)
             } else if (topPan.getDistance() <= viewConfiguration.touchSlop) {
@@ -1728,7 +1754,9 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
                     }
                 }
                 if (on) {
-                    Kaydirici("Boyut", n.olcek, 0.05f..2f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
+                    // 4.12: fotoğrafa yapışık nesnede boyut = fotoğraf genişliğine oran
+                    if (n.bagli) Kaydirici("Boyut", n.kw, 0.05f..2f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(kw = v) } }
+                    else Kaydirici("Boyut", n.olcek, 0.05f..2f, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
                     if (!n.hareketli) {
                         AnahtarSatiri("Yumuşak gölge", n.golge) { v -> vm.nesneDegis(n.id) { it.copy(golge = v) } }
                         var firca by remember(n.id) { mutableStateOf(false) }

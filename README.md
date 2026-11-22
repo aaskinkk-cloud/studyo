@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.11 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.12 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.12 (22.11.2026, deneme · `yerel-android` dalı): kesilen nesne arka plandaki fotoğrafa yapışık
+- **Zaman (kök neden):** nesnenin zamanı mutlak zaman çizelgesi ms'siydi; yüzler bulunup öndeki fotoğrafların süresi uzayınca nesne yerinde kalıp başka klibin üstüne düşüyordu. Artık her nesne kendi klibine bağlı (`Nesne.klipId`): klip kayınca birlikte kayar; klibin tamamını kaplayan nesne klip uzayınca/kısalınca onunla uzar/kısalır. Klip silinirse bağ çözülür.
+- **Konum (kök neden):** nesne kare üzerinde sabitti, arka plandaki bulanık fotoğraf yüz turu / yakınlaşma ile hareket edince ayrılıyordu. Ekrandaki fotoğraftan kesilen nesne artık fotoğrafın kendi karesinde tutulur (`kx, ky, kw`); her karede fotoğrafın hareketiyle aynı yer ve ölçeği alır (önizleme, akıcı önizleme ve dışa aktarma: `BagliNesneBindirme`, klibe ait → geçişte klip ile birlikte gider). Kesimde klibin hareketi artık kapatılmaz.
+- Taşıma/büyütme ve Boyut kaydırıcısı fotoğrafa göre yazılır (boyut = fotoğraf genişliğine oran).
+- Eski projeler açılışta bir kez bağlanır: fotoğraftan kesilmiş nesneler en yakın bulanık arka planlı fotoğraf klibine yapışır ve klibin tamamını kaplar; diğerleri başladıkları klibe zaman olarak bağlanır.
 
 ## 4.11 (22.11.2026, deneme · `yerel-android` dalı): nesne bırakılan yerde kalır, önizleme boyu korunur, TV ağ taraması
 - **Nesne (kök neden):** nesnenin merkezi karenin içine (0…1) kısıtlanıyordu; uzun nesne (ör. boy portresi) aşağı çekilip bırakılınca geri yukarı itiliyordu. Artık nesne yarısı kadar kare dışına taşabilir, bırakılan yerde kalır.

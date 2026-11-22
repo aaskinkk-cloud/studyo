@@ -231,7 +231,7 @@ object Disa {
         val hatKart = if (p.hatirlatici.acik && p.hatirlatici.stil != "klasik") Cizim.hatirlaticiKartSet(p.hatirlatici, W, H, p.logo, p.kapanis.kanal) else null
         val (hA, hB) = Zaman.hatirlaticiAralik(p)
         if (hatKart == null) Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { zamanli += Triple(it, hA, hB) }
-        for (ns in p.nesneler) if (!ns.hareketli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
+        for (ns in p.nesneler) if (!ns.hareketli && !ns.bagli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
         // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
         val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
@@ -316,7 +316,8 @@ object Disa {
                     etkiler = etk, yazi = B?.yazi?.let { Kaplama.yazi(it, W, H) },
                     hdrCozucudeCevir = B != null && B.hdr && hdrKip == HDR_COZUCU, onizleme = onizleme))
             } else null
-            ogeler += if (klipMi) parca(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(ogeBas, uz), j, tam, tIn, uz, fps, ogeBas, tekTuval = tekTuval) else {
+            ogeler += if (klipMi) parca(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(ogeBas, uz), j, tam, tIn, uz, fps, ogeBas, tekTuval = tekTuval,
+                bagliNesneler = p.nesneler.filter { it.bagli && it.klipId == p.klipler[j].id }) else {
                 val mi = MediaItem.Builder().setUri(Uri.fromFile(File(kapanisYol!!))).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uz).build()
                 val v = ArrayList<Effect>()
                 v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
@@ -438,7 +439,8 @@ object Disa {
     /** Klibin bir parçası: klip içinde ofsMs'den başlayan uzMs'lik kısım (tamMs: klibin ekrandaki tam süresi).
      *  Hareket/yüz kadrajı ve takip yazısı tam klibe göre hesaplanır → parçalar birbirinin kesintisiz devamıdır. */
     private fun parca(ctx: Context, onizleme: Boolean, k: Klip, W: Int, H: Int, logo: Yerlesim?, gecis: List<Effect>, zamanli: List<TextureOverlay>,
-                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList(), sesKapali: Boolean = false, tekTuval: Effect? = null): EditedMediaItem {
+                      i: Int, tamMs: Long, ofsMs: Long, uzMs: Long, fps: Int, cizelgeBas: Long, sonEtki: List<Effect> = emptyList(), sesKapali: Boolean = false, tekTuval: Effect? = null,
+                      bagliNesneler: List<Nesne> = emptyList()): EditedMediaItem {
         val mib = MediaItem.Builder().setUri(Uri.parse(k.uri))
         val klipSon = (k.basMs + ofsMs + uzMs).coerceAtMost(k.sonMs)
         if (k.foto) mib.setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uzMs)
@@ -459,6 +461,11 @@ object Disa {
         val kendi = ArrayList<TextureOverlay>()
         k.yazi?.let { Kaplama.yazi(it, W, H) }?.let { kendi += bindir(it, W, H) }
         if (!k.foto) k.takip?.let { t -> Katman.takipGorsel(t, W, H)?.let { kendi += TakipBindirme(k, t, it, W, H, cizelgeBas, ofsMs) { ms -> Yuz.an(k, W, H, ms.toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f) } } }
+        // 4.12: fotoğrafa yapışık kesilen nesne — klibe ait, klibin hareketiyle (yüz turu, yakınlaşma) birlikte gider
+        for (ns in bagliNesneler) if (ns.basMs < cizelgeBas + uzMs && ns.sonMs > cizelgeBas)
+            Katman.nesne(ns.copy(olcek = NesneBag.tabanOlcek(ns, k, W, H), x = 0.5f, y = 0.5f), W, H)?.let { y ->
+                kendi += BagliNesneBindirme(ns, k, y.bmp, W, H, cizelgeBas, ofsMs, tamMs, i)
+            }
         // 3.76: yüz turu — odaklanan kişinin etrafında öne çıkarma çizgisi ve isim kutusu (klibe ait; geçişte klip ile birlikte gider)
         if (k.turEtkin) k.yuzTur?.let { t ->
             if (t.vurgu && t.noktalar.any { it.yb > 0f }) kendi += TurHalkaBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)

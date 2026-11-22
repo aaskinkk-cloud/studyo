@@ -30,7 +30,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         // 3.43: önceki sürümde bozuk (NaN) kaydedilmiş katman değerleri açılışta onarılır
         fun Float.ok(v: Float) = if (isNaN() || isInfinite()) v else this
         p.copy(katmanlar = p.katmanlar.map { o -> o.copy(x = o.x.ok(0.5f), y = o.y.ok(0.5f), olcek = o.olcek.ok(if (o.tur == "metin") 0.075f else 0.35f),
-            aci = o.aci.ok(0f), opaklik = o.opaklik.ok(1f), ses = o.ses.ok(1f), hiz = o.hiz.ok(1f)) })
+            aci = o.aci.ok(0f), opaklik = o.opaklik.ok(1f), ses = o.ses.ok(1f), hiz = o.hiz.ok(1f)) }).let { nesneGoc(it) }
     })
     val secili = MutableStateFlow(0)
     val sira = MutableStateFlow(0)          // önizlemede oynayan klip
@@ -474,7 +474,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         val once = proje.value; val simdi = System.currentTimeMillis()
         if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
         sonAdim = simdi; ileriYigin.clear(); yiginBildir()
-        proje.value = bagliKatmanlar(once, f(once)).copy(guncelleme = simdi)
+        proje.value = bagliNesneler(once, bagliKatmanlar(once, f(once))).copy(guncelleme = simdi)
         if (yapi) listeKur(i, ms) else sesUygula()
         kaydetPlanla()
     }
@@ -520,6 +520,66 @@ class EditorDurum(private val ctx: Context, id: String) {
             if (d == 0L) o else { degisti = true; o.copy(basMs = (o.basMs + d).coerceAtLeast(0), sonMs = (o.sonMs + d).coerceAtLeast(300)) }
         }
         return if (degisti) yeni.copy(katmanlar = l) else yeni
+    }
+
+    /** 4.12 KÖK NEDEN ("yüzleri bulunca süresi uzayan fotoğrafta kesilen nesne başka yere kayıyor"): nesnenin zamanı mutlak
+     *  zaman çizelgesi ms'siydi; öndeki klip uzayınca nesne yerinde kalıp başka klibin üstüne düşüyordu. Artık nesne kendi klibine
+     *  bağlı: klip kayınca birlikte kayar, klibin tamamını kaplayan nesne klip uzayınca/kısalınca onunla uzar/kısalır.
+     *  Klip silinirse bağ çözülür (nesne o anki yerinde kalır). Kullanıcının o adımda değiştirdiği nesne zamanına dokunulmaz. */
+    private fun bagliNesneler(once: Proje, yeni: Proje): Proje {
+        if (yeni.nesneler.none { it.klipId.isNotEmpty() }) return yeni
+        val a = klipBaslari(once); val b = klipBaslari(yeni)
+        val da = klipSureleri(once); val db = klipSureleri(yeni)
+        if (a == b && da == db) return yeni
+        val eski = once.nesneler.associateBy { it.id }
+        var degisti = false
+        val l = yeni.nesneler.map { n ->
+            if (n.klipId.isEmpty()) return@map n
+            val bs = b[n.klipId] ?: run {
+                degisti = true
+                val j = once.klipler.indexOfFirst { it.id == n.klipId }
+                if (n.bagli && j >= 0) {
+                    val (RW, RH) = Disa.boyut(yeni.bicim, 1080); val kk = once.klipler[j]
+                    return@map NesneBag.ekranda(n, kk, RW, RH, Yuz.an(kk, RW, RH, 0f, j)).copy(klipId = "", kw = 0f)
+                }
+                return@map n.copy(klipId = "")
+            }
+            val as0 = a[n.klipId] ?: return@map n
+            val e = eski[n.id]
+            if (e == null || e.basMs != n.basMs || e.sonMs != n.sonMs) return@map n
+            val ad = da[n.klipId] ?: 0L; val bd = db[n.klipId] ?: 0L
+            val tamKlip = n.basMs <= as0 + 30 && n.sonMs >= as0 + ad - 30
+            val yeniN = if (tamKlip) n.copy(basMs = bs, sonMs = bs + bd)
+                else { val d = bs - as0; val bb = (n.basMs + d).coerceAtLeast(0); n.copy(basMs = bb, sonMs = (n.sonMs + d).coerceAtMost(bs + bd).coerceAtLeast(bb + 300)) }
+            if (yeniN.basMs != n.basMs || yeniN.sonMs != n.sonMs) degisti = true
+            yeniN
+        }
+        return if (degisti) yeni.copy(nesneler = l) else yeni
+    }
+    private fun klipSureleri(p: Proje): Map<String, Long> = p.klipler.indices.associate { j -> p.klipler[j].id to p.zKlip(j).sureMs }
+
+    /** 4.12: eski projelerdeki nesneler bir kez bağlanır. Ekrandaki fotoğraftan kesilmiş olanlar (özgün kırpımı var, arka planı bulanık
+     *  fotoğraf klibi) o fotoğrafa yapışık olur ve klibin tamamını kaplar; diğerleri başladıkları klibe zaman olarak bağlanır. */
+    private fun nesneGoc(p: Proje): Proje {
+        if (p.nesneler.none { it.klipId.isEmpty() } || p.klipler.isEmpty()) return p
+        val bas = klipBaslari(p); val sure = klipSureleri(p)
+        val (RW, RH) = Disa.boyut(p.bicim, 1080)
+        val l = p.nesneler.map { n ->
+            if (n.klipId.isNotEmpty()) return@map n
+            val adaylar = p.klipler.indices.filter { p.klipler[it].foto && p.klipler[it].arkaBulanik > 0.01f }
+            if (!n.hareketli && n.orjYol.isNotEmpty() && adaylar.isNotEmpty()) {
+                val j = adaylar.minBy { kotlin.math.abs((bas[p.klipler[it].id] ?: 0L) - n.basMs) }
+                val kk = p.klipler[j]; val b0 = bas[kk.id] ?: 0L
+                // kesildiği andaki görünüş: hareketsiz kadraj (kesimde klibin hareketi kapatılıyordu)
+                NesneBag.kaynaktan(n.copy(klipId = kk.id), kk, RW, RH, Yuz.an(kk.copy(kenBurns = false), RW, RH, 0f, j), n.x, n.y, n.olcek)
+                    .copy(basMs = b0, sonMs = b0 + (sure[kk.id] ?: 5000L))
+            } else {
+                var t = 0L; var id = p.klipler.last().id
+                for (j in p.klipler.indices) { val d = p.zKlip(j).sureMs; if (n.basMs < t + d) { id = p.klipler[j].id; break }; t += d }
+                n.copy(klipId = id)
+            }
+        }
+        return p.copy(nesneler = l)
     }
 
     /** ms anındaki klibin kimliği (yoksa boş). */
@@ -2049,7 +2109,8 @@ class EditorDurum(private val ctx: Context, id: String) {
             val p = proje.value
             val a = anlik().coerceIn(0, (p.toplamMs - 500).coerceAtLeast(0))
             val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
-            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(klipSonu(a)).coerceAtLeast(a + 500), orjYol = if (orj.exists()) orj.path else "")
+            val n = Nesne(yol = f.path, basMs = a, sonMs = (a + 5000).coerceAtMost(klipSonu(a)).coerceAtLeast(a + 500), orjYol = if (orj.exists()) orj.path else "",
+                klipId = klipIdAnda(a))
             guncelle { it.copy(nesneler = it.nesneler + n) }
             kaydetSimdi(false)
             seciliNesne.value = n.id
@@ -2146,8 +2207,11 @@ class EditorDurum(private val ctx: Context, id: String) {
             val olc = (alan[2] * gw / RW).coerceIn(0.02f, 3f)
             val bas = baslangic(i); val son = bas + p.zKlip(i).sureMs
             val orj = File(f.parentFile, f.nameWithoutExtension + "_orj.jpg")
-            val n = Nesne(yol = f.path, x = nx, y = ny, olcek = olc, basMs = bas, sonMs = son.coerceAtLeast(bas + 500), golge = true, orjYol = if (orj.exists()) orj.path else "")
-            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(kenBurns = false, arkaBulanik = if (kk.arkaBulanik > 0.01f) kk.arkaBulanik else 0.75f) else kk },
+            // 4.12: nesne arka plandaki fotoğrafa yapışık (fotoğrafın kendi karesinde konum); klibin hareketi artık kapatılmaz — yüz turu /
+            // yakınlaşma fotoğrafı nasıl götürürse nesne de öyle gider, ayrılmaz
+            val n = Nesne(yol = f.path, x = nx, y = ny, olcek = olc, basMs = bas, sonMs = son.coerceAtLeast(bas + 500), golge = true, orjYol = if (orj.exists()) orj.path else "",
+                klipId = k0.id, kx = ux, ky = uy, kw = alan[2])
+            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(arkaBulanik = if (kk.arkaBulanik > 0.01f) kk.arkaBulanik else 0.75f) else kk },
                 nesneler = pp.nesneler + n) }
             kaydetSimdi(false)
             seciliNesne.value = n.id
@@ -2164,7 +2228,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             nesneIlerleme.value = null
             if (n == null) { uyari.value = hata ?: "Nesne kesilemedi."; return }
             val toplam = proje.value.toplamMs
-            val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(klipSonu(an)).coerceAtLeast(an + 500))
+            val yeni = n.copy(basMs = an, sonMs = (an + n.kareSayi * n.kareMs).coerceAtMost(klipSonu(an)).coerceAtLeast(an + 500), klipId = klipIdAnda(an))
             guncelle { it.copy(nesneler = it.nesneler + yeni) }
             kaydetSimdi(false)
             seciliNesne.value = yeni.id

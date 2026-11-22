@@ -21,7 +21,7 @@ object Geometri {
         return (W / 2f + a.tx * dw / 2f + (x - 0.5f) * dw * a.s) to (H / 2f - a.ty * dh / 2f + (y - 0.5f) * dh * a.s)
     }
 
-    private fun boyut(k: Klip, W: Int, H: Int): Pair<Float, Float> {
+    fun boyut(k: Klip, W: Int, H: Int): Pair<Float, Float> {
         val g = (if (k.gen > 0) k.gen else W).toFloat()
         val h = (if (k.yuk > 0) k.yuk else H).toFloat()
         val s = if (k.doldur) max(W / g, H / h) else min(W / g, H / h)
@@ -34,6 +34,53 @@ object Geometri {
         val x = (px - W / 2f - a.tx * dw / 2f) / (dw * a.s) + 0.5f
         val y = (py - H / 2f + a.ty * dh / 2f) / (dh * a.s) + 0.5f
         return if (x in 0f..1f && y in 0f..1f) x to y else null
+    }
+}
+
+/** 4.12: arka plandaki fotoğrafa yapışık nesne — fotoğrafın karesi (kx, ky, kw) ↔ çıktı karesi (x, y, olcek). */
+object NesneBag {
+    /** O andaki görünüşüyle (an) çıktı karesindeki konum ve ölçek. */
+    fun ekranda(n: Nesne, k: Klip, W: Int, H: Int, an: Yuz.An): Nesne {
+        val (px, py) = Geometri.ciktiya(k, n.kx, n.ky, W, H, an)
+        val (dw, _) = Geometri.boyut(k, W, H)
+        return n.copy(x = px / W, y = py / H, olcek = n.kw * dw * an.s / W)
+    }
+    /** Çıktı karesindeki konum/ölçekten fotoğraf karesine (sınır yok: nesne fotoğrafın dışına da taşabilir). */
+    fun kaynaktan(n: Nesne, k: Klip, W: Int, H: Int, an: Yuz.An, x: Float, y: Float, olcek: Float): Nesne {
+        val (dw, dh) = Geometri.boyut(k, W, H)
+        val kx = (x * W - W / 2f - an.tx * dw / 2f) / (dw * an.s) + 0.5f
+        val ky = (y * H - H / 2f + an.ty * dh / 2f) / (dh * an.s) + 0.5f
+        return n.copy(kx = kx, ky = ky, kw = (olcek * W / (dw * an.s)).coerceIn(0.01f, 4f), x = x, y = y, olcek = olcek)
+    }
+    /** s = 1'deki (hareketsiz) bitmap genişliği oranı — taban bitmap bununla bir kez çizilir, hareketle ölçeklenir. */
+    fun tabanOlcek(n: Nesne, k: Klip, W: Int, H: Int): Float = n.kw * Geometri.boyut(k, W, H).first / W
+}
+
+/** 4.12: fotoğrafa yapışık nesne dışa aktarmada/akıcı önizlemede — klibe aittir (geçişte klip ile birlikte gider), her karede
+ *  klibin o anki hareketine (yüz turu, yakınlaşma) göre yer ve ölçek alır. Ölçek %0,5 adımlarla önbelleklenir. */
+class BagliNesneBindirme(private val n: Nesne, private val k: Klip, private val taban: Bitmap, private val W: Int, private val H: Int,
+                         private val cizelgeBas: Long, private val ofsMs: Long, private val tamMs: Long, private val i: Int) : BitmapOverlay() {
+    private val saat = Saat(cizelgeBas)
+    private var anahtar = -1; private var bmp: Bitmap = taban
+    private var sonUs = Long.MIN_VALUE; private var an: Yuz.An? = null; private var yerel = 0L
+    private fun hazirla(us: Long) {
+        if (us == sonUs) return; sonUs = us
+        yerel = saat.yerelMs(us)
+        val a = Yuz.an(k, W, H, (yerel + ofsMs).toFloat() / tamMs.coerceAtLeast(1), i, tamMs / 1000f); an = a
+        val key = (a.s * 200f).roundToInt().coerceAtLeast(1)
+        if (key != anahtar) {
+            anahtar = key
+            val s = key / 200f
+            bmp = if (key == 200) taban else Bitmap.createScaledBitmap(taban, (taban.width * s).roundToInt().coerceAtLeast(2), (taban.height * s).roundToInt().coerceAtLeast(2), true)
+        }
+    }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return bmp }
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+        hazirla(presentationTimeUs)
+        val a = an ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        val (px, py) = Geometri.ciktiya(k, n.kx, n.ky, W, H, a)
+        val alfa = Zaman.solma(cizelgeBas + yerel, n.basMs, n.sonMs)
+        return Yerlesim(bmp, px / W * 2f - 1f, 1f - py / H * 2f, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(alfa).build()
     }
 }
 

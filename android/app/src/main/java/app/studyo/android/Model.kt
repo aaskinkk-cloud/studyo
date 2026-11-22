@@ -228,8 +228,14 @@ data class Nesne(
     val kareDizin: String = "", val kareMs: Long = 0, val kareSayi: Int = 0,
     /** Kesimden önceki özgün görüntü (aynı kırpımla) — cam fırçası "geri getir/cam" için. */
     val orjYol: String = "",
+    /** 4.12: bağlı olduğu klip — klip zaman çizelgesinde kayınca / süresi değişince nesne de birlikte kayar. */
+    val klipId: String = "",
+    /** 4.12: ekrandaki fotoğraftan kesilen nesne arka plandaki fotoğrafa yapışıktır: konum ve genişlik fotoğrafın kendi karesinde (0…1).
+     *  Yüz turu / yakınlaşma fotoğrafı hareket ettirince nesne de aynı hareketle gider (kw > 0 ise). */
+    val kx: Float = -1f, val ky: Float = -1f, val kw: Float = 0f,
 ) {
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
+    val bagli: Boolean get() = klipId.isNotEmpty() && kw > 0f && !hareketli
 }
 
 /** Çok katmanlı düzenleme: serbest katman (metin | gorsel | cikartma | ses). Listedeki sıra = alttan üste.

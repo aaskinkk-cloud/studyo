@@ -111,6 +111,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
 
     val p by vm.proje.collectAsState()
     val sec by vm.secili.collectAsState()
+    // 4.05: "Yüzleri otomatik bul" açıksa yeni eklenen fotoğraflarda da tur kendiliğinden kurulur
+    val fotoSayisi = p.klipler.count { it.foto }
+    LaunchedEffect(fotoSayisi, p.yuzOto) { if (p.yuzOto) vm.turOtomatikYeni() }
     val mesaj by vm.mesaj.collectAsState()
     val uyari by vm.uyari.collectAsState()
     val mesgul by vm.mesgul.collectAsState()
@@ -176,7 +179,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
                 "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim", "okuyucu" to "sesli okuyucu metin oku tts dfki seslendir anlatıcı",
                 "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
-                "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet otomatik yüz bul tümüne", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -1232,8 +1235,12 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))
         } else when (hap) {
             "klip" -> when (alt) {   // 3.70: Düzenle › Klip › Kırp · Kadraj · Hız (Klipler = şerit görünümü)
-                "kirp" -> Kart(if (k.foto) "Süre · klip ${sec + 1}" else "Kırp · klip ${sec + 1}") { KlipSureKirp(vm, k) }
-                "kadraj" -> Kart("Kadraj · klip ${sec + 1}") { KadrajIcerik(vm, k) }
+                // 4.05: ✓✓ tümüne · ✓ yalnız bu klip
+                "kirp" -> Kart(if (k.foto) "Süre · klip ${sec + 1}" else "Kırp · klip ${sec + 1}",
+                    hepsine = if (k.foto) ({ val ms = k.fotoSureMs; vm.hepsine({ if (it.foto) it.copy(fotoSureMs = ms) else it }, yapi = true); vm.mesaj.value = "Süre bütün fotoğraflara uygulandı" }) else null,
+                    buna = { vm.mesaj.value = "Yalnız bu klibe uygulandı" }) { KlipSureKirp(vm, k) }
+                "kadraj" -> Kart("Kadraj · klip ${sec + 1}", hepsine = { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Tüm kliplere uygulandı" },
+                    buna = { vm.mesaj.value = "Yalnız bu klibe uygulandı" }) { KadrajIcerik(vm, k) }
                 "hiz" -> HizSayfasi(vm, k)
                 "yuzler" -> YuzTuruSayfasi(vm, p, sec, k)   // 3.74: yüzlere sırayla yaklaşma
                 "gizle" -> YuzGizleSayfasi(vm, sec, k)   // 3.83: seçilen yüzleri bulanıklaştır (takipli)

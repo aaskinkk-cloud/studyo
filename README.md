@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.04 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.05 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.05 (22.11.2026, deneme · `yerel-android` dalı): Yüzler — tümüne uygula ve otomatik yüz bulma
+- **Düzenle › Klip › Yüzler** başlığında ✓✓ (tümüne) ve ✓ (yalnız bu klip). ✓✓: bu fotoğrafın yüz ayarları (bekleme, geçiş, yaklaşma, ışık/çizgi açık-kapalı ve biçimi, isim kutusu, baş/son tamamı, kavis) bütün fotoğraflara kopyalanır; durağı olmayan fotoğraflarda yüzler bulunup numaralanır (gerekirse fotoğraf süresi uzar). Var olan duraklar korunur.
+- **"Yüzleri otomatik bul (bütün fotoğraflar)" anahtarı** (proje ayarı `yuzOto`): açınca bütün fotoğraflarda yüzler bulunur ve yaklaşma turu kendiliğinden kurulur; açık kaldıkça sonradan eklenen fotoğraflarda da. Ayarlar seçili fotoğraftan (yoksa ayarlanmış ilk fotoğraftan) alınır. İlerleme çubuğu gösterilir; silüet ışığı arkadan sırayla hazırlanır.
+- ✓✓ / ✓ ayrıca **Süre · klip** (fotoğraf süresi bütün fotoğraflara) ve **Kadraj · klip** sayfalarına eklendi.
 
 ## 4.04 (22.11.2026, deneme · `yerel-android` dalı): okuyucu çökmesi düzeltildi
 - Kök neden: sherpa-onnx yerel kodu geri çağrıda `invoke([F)Ljava/lang/Integer;` yöntemini arıyor; Kotlin 2.0 lambdaları invokedynamic ile derlediğinden bu yöntem yoktu → yerel kodda bekleyen istisnayla JNI çağrısı → uygulama kapanıyordu (Dinle ve Ekle ikisi de). Geri çağrı gerçek sınıf (`GeriCagri`) oldu.

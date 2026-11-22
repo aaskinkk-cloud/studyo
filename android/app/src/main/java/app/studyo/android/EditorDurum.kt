@@ -679,18 +679,86 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (t.siluetArandi || t.vurguTur != "siluet" || !t.vurgu) return
         val hedef = (t.bulunan + t.noktalar).filter { it.yb > 0f && it.siluet.isEmpty() }
         if (hedef.isEmpty()) return
-        siluetIs = kapsam.launch {
+        siluetIs = kapsam.launch { siluetIsle(klipId) }
+    }
+    /** 4.05: silüet hesabı (askıya alınabilir; toplu işlemde sırayla çağrılır). */
+    private suspend fun siluetIsle(klipId: String) {
+        val k = proje.value.klipler.firstOrNull { it.id == klipId }?.takeIf { it.foto } ?: return
+        val t = k.yuzTur ?: return
+        if (t.siluetArandi || t.vurguTur != "siluet" || !t.vurgu || !Siluet.kullanilabilir()) return
+        val hedef = (t.bulunan + t.noktalar).filter { it.yb > 0f && it.siluet.isEmpty() }
+        if (hedef.isEmpty()) return
+        run {
             val l = try { Siluet.hesapla(k.uri, hedef) } catch (e: Throwable) { Kayit.hata("silüet", e); hedef.map { emptyList() } }
             fun eslesen(n: OdakNoktasi): List<Float>? = hedef.indices.filter { l[it].isNotEmpty() }
                 .minByOrNull { kotlin.math.hypot(hedef[it].x - n.x, hedef[it].y - n.y) }
                 ?.takeIf { kotlin.math.hypot(hedef[it].x - n.x, hedef[it].y - n.y) < n.yb.coerceAtLeast(0.02f) * 0.8f }?.let { l[it] }
-            val i = proje.value.klipler.indexOfFirst { it.id == klipId }.takeIf { it >= 0 } ?: return@launch
+            val i = proje.value.klipler.indexOfFirst { it.id == klipId }.takeIf { it >= 0 } ?: return
             guncelle { p -> p.copy(klipler = p.klipler.toMutableList().also { kl ->
                 val tt = kl[i].yuzTur ?: return@also
                 kl[i] = kl[i].copy(yuzTur = tt.copy(siluetArandi = true,
                     bulunan = tt.bulunan.map { n -> if (n.siluet.isEmpty() && n.yb > 0f) eslesen(n)?.let { n.copy(siluet = it) } ?: n else n },
                     noktalar = tt.noktalar.map { n -> if (n.siluet.isEmpty() && n.yb > 0f) eslesen(n)?.let { n.copy(siluet = it) } ?: n else n }))
             }) }
+        }
+    }
+
+    // ---------- 4.05: yüzler — bütün fotoğraflara uygula (✓✓) ve otomatik yüz bulma ----------
+    /** Toplu işlem sürerken ilerleme (0…1); null = yok. */
+    val turTopluIlerleme = MutableStateFlow<Float?>(null)
+    private var turTopluIs: Job? = null
+    /** Şablon: seçili fotoğrafın yüz ayarları; yoksa ayarlanmış ilk fotoğrafınki; o da yoksa varsayılan. */
+    private fun turSablon(): YuzTuru = proje.value.klipler.getOrNull(secili.value)?.takeIf { it.foto }?.yuzTur
+        ?: proje.value.klipler.firstOrNull { it.foto && it.yuzTur?.arandi == true }?.yuzTur ?: YuzTuru()
+    /** Duraklar ve bulunan yüzler hedefte kalır; yalnız ayarlar (bekleme, geçiş, yaklaşma, ışık/çizgi, isim, baş/son, kavis) kopyalanır. */
+    private fun turAyarKopya(a: YuzTuru, h: YuzTuru) = h.copy(bekleSn = a.bekleSn, gecis = a.gecis, yaklas = a.yaklas, bastaTumu = a.bastaTumu,
+        sondaTumu = a.sondaTumu, kavis = a.kavis, vurgu = a.vurgu, isim = a.isim, isimDurak = a.isimDurak, vurguTur = a.vurguTur,
+        siluetArandi = if (a.vurguTur != h.vurguTur || a.vurgu != h.vurgu) false else h.siluetArandi)
+
+    /** ✓✓: bu klibin yüz ayarları bütün fotoğraflara; durağı olmayan fotoğraflarda yüzler bulunup numaralanır. */
+    fun turHepsine() = turTopluIsle(turSablon(), bosOlanlar = true, sessiz = false)
+
+    /** "Yüzleri otomatik bul": açıkken bütün fotoğraflarda (sonradan eklenenler dahil) yüzler kendiliğinden bulunur ve tur kurulur. */
+    fun turOtomatik(ac: Boolean) {
+        guncelle { p -> p.copy(yuzOto = ac) }
+        if (ac) turTopluIsle(turSablon(), bosOlanlar = false, sessiz = false)
+    }
+    /** Yeni klip eklenince (otomatik açıksa): hiç aranmamış fotoğraflar. */
+    fun turOtomatikYeni() { if (proje.value.yuzOto) turTopluIsle(turSablon(), bosOlanlar = false, sessiz = true) }
+
+    private fun turTopluIsle(src: YuzTuru, bosOlanlar: Boolean, sessiz: Boolean) {
+        if (turTopluIs?.isActive == true) return
+        turTopluIs = kapsam.launch {
+            // 1) ayarlar: turu olan bütün fotoğraflara (yalnız ✓✓)
+            if (bosOlanlar) guncelle { p -> p.copy(klipler = p.klipler.map { k -> val t = k.yuzTur
+                if (k.foto && t != null) k.copy(yuzTur = turAyarKopya(src, t)) else k }) }
+            // 2) yüz bulma: durağı olmayan fotoğraflar (otomatikte yalnız hiç aranmamış olanlar)
+            val hedef = proje.value.klipler.filter { k -> k.foto && k.yuzTur?.noktalar.isNullOrEmpty() && (bosOlanlar || k.yuzTur?.arandi != true) }
+            var klipSay = 0; var yuzSay = 0
+            for ((n, k) in hedef.withIndex()) {
+                turTopluIlerleme.value = n.toFloat() / hedef.size.coerceAtLeast(1)
+                val onceki = k.yuzTur?.takeIf { it.arandi }?.bulunan
+                val l = onceki ?: try { YuzTur.yuzleriBul(k.uri) } catch (e: Throwable) { Kayit.hata("yüz turu toplu", e); emptyList() }
+                val i = proje.value.klipler.indexOfFirst { it.id == k.id }.takeIf { it >= 0 } ?: continue
+                val k0 = proje.value.klipler[i]
+                val (scC, hh, H) = turOlcek(k0)
+                val baz = k0.yuzTur ?: YuzTuru()
+                val t = turAyarKopya(src, baz).copy(bulunan = l, arandi = true,
+                    noktalar = if (baz.noktalar.isEmpty()) l.map { it.copy(z = YuzTur.yuzYakinlik(it.yb, hh, scC, H)) } else baz.noktalar)
+                val gerek = (kotlin.math.ceil(YuzTur.toplamSn(t) * 10.0) * 100).toLong()
+                val uzat = t.noktalar.isNotEmpty() && k0.fotoSureMs + 50 < gerek
+                guncelle(uzat) { p -> p.copy(klipler = p.klipler.map { if (it.id != k0.id) it else it.copy(yuzTur = t,
+                    kenBurns = if (t.noktalar.isNotEmpty()) true else it.kenBurns, fotoSureMs = if (uzat) gerek else it.fotoSureMs) }) }
+                if (t.noktalar.isNotEmpty()) { klipSay++; yuzSay += t.noktalar.size }
+            }
+            turTopluIlerleme.value = null
+            if (!sessiz || klipSay > 0) mesaj.value = when {
+                bosOlanlar && hedef.isEmpty() -> "Yüz ayarları bütün fotoğraflara uygulandı"
+                klipSay == 0 -> if (bosOlanlar) "Ayarlar uygulandı · diğer fotoğraflarda yüz bulunamadı" else "Yüz bulunamadı"
+                else -> (if (bosOlanlar) "Ayarlar uygulandı · " else "") + "$klipSay fotoğrafta $yuzSay yüz bulundu, yaklaşma kuruldu"
+            }
+            // 3) silüet ışığı (sırayla, arka planda)
+            for (k in proje.value.klipler) if (k.foto && k.yuzTur?.noktalar?.isNotEmpty() == true) try { siluetIsle(k.id) } catch (e: Throwable) { Kayit.hata("silüet toplu", e) }
         }
     }
 

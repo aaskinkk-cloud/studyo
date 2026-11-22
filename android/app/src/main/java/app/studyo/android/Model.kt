@@ -291,6 +291,8 @@ data class Proje(
     val nesneler: List<Nesne> = emptyList(),
     /** Prompter (kayan yazı) metni ve ayarları */
     val okumaMetni: String = "", val okumaHiz: Float = 40f, val okumaBoy: Float = 34f,
+    /** 4.05: Yüzler › Yüzleri otomatik bul — açıkken bütün fotoğraflarda (sonradan eklenenler dahil) yüz turu kendiliğinden kurulur. */
+    val yuzOto: Boolean = false,
     /** Arşivlenen proje ana listede görünmez (Arşiv bölümünde durur). */
     val arsiv: Boolean = false,
     /** Serbest katmanlar (çok katmanlı düzenleme) — sıra alttan üste. */

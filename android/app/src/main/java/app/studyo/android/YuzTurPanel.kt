@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,7 +49,16 @@ private fun yuvarla1(v: Float) = String.format(java.util.Locale("tr"), "%.1f", v
 /** Düzenle › Klip › Yüzler sayfası. */
 @Composable
 fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
-    Kart("Yüzler · klip ${sec + 1}") {
+    // 4.05: ✓✓ = bu klibin yüz ayarları bütün fotoğraflara (durağı olmayanlarda yüzler bulunur) · ✓ = yalnız bu klip
+    Kart("Yüzler · klip ${sec + 1}", hepsine = if (k.foto) ({ vm.turHepsine() }) else null,
+        buna = if (k.foto) ({ vm.mesaj.value = "Yalnız bu fotoğrafa uygulandı" }) else null) {
+        // 4.05: otomatik yüz bulma — bütün fotoğraflar, sonradan eklenenler dahil
+        val toplu by vm.turTopluIlerleme.collectAsState()
+        AnahtarSatiri("Yüzleri otomatik bul (bütün fotoğraflar)", p.yuzOto) { v -> vm.turOtomatik(v) }
+        toplu?.let { f ->
+            Text("Fotoğraflarda yüzler aranıyor… %${(f * 100).roundToInt()}", color = Renk.soluk, fontSize = 12.sp)
+            LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+        }
         if (!k.foto) {
             Text("Yüzlere yaklaşma fotoğraf kliplerinde çalışır. Üstteki şeritten bir fotoğraf seç.", color = Renk.soluk, fontSize = 12.5.sp); return@Kart
         }

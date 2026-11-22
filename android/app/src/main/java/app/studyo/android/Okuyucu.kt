@@ -104,9 +104,9 @@ object Okuyucu {
             try {
                 if (ton != 1f) try { tr.playbackParams = PlaybackParams().setPitch(ton).setSpeed(1f) } catch (_: Throwable) {}
                 tr.play()
-                m.generateWithCallback(metin, 0, hiz.coerceIn(0.5f, 2f)) { parca ->
+                m.generateWithCallback(metin, 0, hiz.coerceIn(0.5f, 2f), GeriCagri { parca ->
                     if (dur) 0 else { tr.write(parca, 0, parca.size, AudioTrack.WRITE_BLOCKING); if (dur) 0 else 1 }
-                }
+                })
                 if (!dur) { tr.stop() }   // stop(): tampondaki son cümle de çalınır
                 !dur
             } finally {
@@ -123,9 +123,9 @@ object Okuyucu {
             val m = motor(ctx); val sr = m.sampleRate()
             val parcalar = ArrayList<FloatArray>(); var n = 0
             val toplamK = metin.length.coerceAtLeast(1)
-            m.generateWithCallback(metin, 0, hiz.coerceIn(0.5f, 2f)) { p -> parcalar += p.copyOf(); n += p.size
+            m.generateWithCallback(metin, 0, hiz.coerceIn(0.5f, 2f), GeriCagri { p -> parcalar += p.copyOf(); n += p.size
                 // ilerleme yaklaşık: üretilen sesin, metnin tahmini süresine oranı (~14 harf/sn)
-                ilerleme((n.toFloat() / sr / (toplamK / 14f / hiz)).coerceIn(0f, 0.95f)); if (dur) 0 else 1 }
+                ilerleme((n.toFloat() / sr / (toplamK / 14f / hiz)).coerceIn(0f, 0.95f)); if (dur) 0 else 1 })
             if (dur) throw kotlinx.coroutines.CancellationException("durduruldu")
             var x = FloatArray(n); var i = 0
             for (p in parcalar) { System.arraycopy(p, 0, x, i, p.size); i += p.size }
@@ -136,4 +136,13 @@ object Okuyucu {
             x.size * 1000L / sr
         }
     }
+}
+
+/**
+ * 4.04 kök neden (çökme): sherpa-onnx yerel kodu geri çağrıda `invoke([F)Ljava/lang/Integer;` yöntemini arar. Kotlin 2.0 lambdaları
+ * invokedynamic ile derlediği için bu yöntem yoktu → yerel kodda bekleyen istisna ile JNI çağrısı → uygulama kapanıyordu.
+ * Gerçek sınıf olarak yazılınca derleyici bu imzayı (kutulu Integer dönüşlü) üretir.
+ */
+class GeriCagri(private val f: (FloatArray) -> Int) : (FloatArray) -> Int {
+    override fun invoke(p1: FloatArray): Int = f(p1)
 }

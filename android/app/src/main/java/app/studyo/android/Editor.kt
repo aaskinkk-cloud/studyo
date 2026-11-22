@@ -275,9 +275,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
             val tamOran = run {
                 val oranV = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
-                ((ekranGen / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
+                ((ekranGen / oranV) / ekranYuk).coerceIn(Duzen.ORAN_EN_AZ, Duzen.ORAN_EN_COK)
             }
-            LaunchedEffect(p.id, p.bicim) { Duzen.onizlemeOran = tamOran }
+            // 4.11 KÖK NEDEN: bu etki tam ekrandan/dışa aktarmadan/kapaktan dönünce ve her açılışta yeniden çalışıp elle verilen boyu silip
+            // videonun oranına oturtuyordu. Artık yalnız elle boy verilmediyse ya da biçim değiştiyse oturtulur.
+            val sonBicim = remember { mutableStateOf(ctx.getSharedPreferences("ayar", 0).getString("sonBicim", null)) }
+            LaunchedEffect(p.id, p.bicim) {
+                val bicimDegisti = sonBicim.value != null && sonBicim.value != p.bicim
+                if (!Duzen.elleOran || bicimDegisti) { Duzen.onizlemeOran = tamOran; if (bicimDegisti) { Duzen.elleOran = false; Duzen.oranKaydet(ctx) } }
+                sonBicim.value = p.bicim; ctx.getSharedPreferences("ayar", 0).edit().putString("sonBicim", p.bicim).apply()
+            }
             // 3.72: Görünüm › Şablon açıkken hangi alt sayfa (giriş/abone/kapanış) — önizlemede yazıya dokun = ekranda düzenle
             val sablonSekmeS by vm.sablonSekme.collectAsState()
             val sablonSayfa = if (panelAcik && bolum == "gorunum" && haplar["gorunum"] == "sablon")
@@ -320,13 +327,13 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val yog = LocalDensity.current
             Box(Modifier.fillMaxWidth().height(26.dp)
                 .pointerInput(Unit) {
-                    detectVerticalDragGestures(onDragEnd = { Duzen.oranKaydet(ctxT) }) { ch, d ->
+                    detectVerticalDragGestures(onDragEnd = { Duzen.elleOran = true; Duzen.oranKaydet(ctxT) }) { ch, d ->
                         ch.consume()
                         val yukPx = with(yog) { ekranYuk.toPx() }
-                        Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(Duzen.ORAN_EN_AZ, 0.75f)
+                        Duzen.onizlemeOran = (Duzen.onizlemeOran + d / yukPx).coerceIn(Duzen.ORAN_EN_AZ, Duzen.ORAN_EN_COK)
                     }
                 }
-                .pointerInput(tamOran) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = tamOran; Duzen.oranKaydet(ctxT) }) },
+                .pointerInput(tamOran) { detectTapGestures(onDoubleTap = { Duzen.onizlemeOran = tamOran; Duzen.elleOran = false; Duzen.oranKaydet(ctxT) }) },
                 contentAlignment = Alignment.Center) {
                 Box(Modifier.width(64.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
             }

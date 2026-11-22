@@ -865,9 +865,10 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                     ev.changes.forEach { if (it.positionChanged()) it.consume() }
                 }
             } while (ev.changes.any { it.pressed })
+            // 4.11 KÖK NEDEN (bırakınca yukarı sıçrama): merkez kareye (0…1) kısıtlanıyordu; uzun nesne aşağı çekilince geri itiliyordu. Artık yarısı dışarı taşabilir.
             if (tasindi && hedef != null) {
                 gecici()?.takeIf { it.id == hedef }?.let { g ->
-                    vm.nesneDegis(hedef) { n -> n.copy(x = (n.x + g.dx).coerceIn(0f, 1f), y = (n.y + g.dy).coerceIn(0f, 1f), olcek = (n.olcek * g.carpan).coerceIn(0.02f, 3f)) }
+                    vm.nesneDegis(hedef) { n -> n.copy(x = (n.x + g.dx).coerceIn(-0.5f, 1.5f), y = (n.y + g.dy).coerceIn(-0.5f, 1.5f), olcek = (n.olcek * g.carpan).coerceIn(0.02f, 3f)) }
                 }
                 geciciYaz(null)
             } else if (topPan.getDistance() <= viewConfiguration.touchSlop) {

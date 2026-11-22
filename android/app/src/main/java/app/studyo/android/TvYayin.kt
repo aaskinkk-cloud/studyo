@@ -109,6 +109,28 @@ object TvYayin {
         l.joinToString("\n")
     }.getOrDefault("")
 
+    /** 4.11: Cast kitaplığından bağımsız teşhis — uygulamanın kendisi ev ağında "_googlecast._tcp" (mDNS) yayınlarını dinler.
+     *  Burada TV görünüyorsa ağ sağlam, sorun Cast/Play Hizmetleri tarafında; görünmüyorsa modem/ağ çoklu yayını (mDNS) TV'ye iletmiyor. */
+    suspend fun mdnsTara(ctx: Context, sureMs: Long = 6000): List<String>? {
+        val nsd = ctx.applicationContext.getSystemService(Context.NSD_SERVICE) as? android.net.nsd.NsdManager ?: return null
+        val adlar = java.util.Collections.synchronizedSet(LinkedHashSet<String>())
+        var hata = false
+        val d = object : android.net.nsd.NsdManager.DiscoveryListener {
+            override fun onDiscoveryStarted(t: String) {}
+            override fun onDiscoveryStopped(t: String) {}
+            override fun onStartDiscoveryFailed(t: String, kod: Int) { hata = true; Kayit.yaz("TV mDNS: başlatılamadı, kod $kod") }
+            override fun onStopDiscoveryFailed(t: String, kod: Int) {}
+            override fun onServiceFound(si: android.net.nsd.NsdServiceInfo) { adlar += si.serviceName.substringBeforeLast('-').replace('-', ' ') }
+            override fun onServiceLost(si: android.net.nsd.NsdServiceInfo) {}
+        }
+        return try {
+            nsd.discoverServices("_googlecast._tcp", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, d)
+            delay(sureMs)
+            if (hata) null else adlar.toList()
+        } catch (e: Exception) { Kayit.hata("TV mDNS", e); null }
+        finally { runCatching { nsd.stopServiceDiscovery(d) } }
+    }
+
     /** Videoyu yerel ağda yayınlar; TV'nin açacağı adres. */
     @Synchronized
     fun yayinla(ctx: Context, uri: Uri): String? {
@@ -305,6 +327,7 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
     var aramaSn by remember { mutableIntStateOf(0) }
     var agNotu by remember { mutableStateOf("") }
     var baglanan by remember { mutableStateOf<String?>(null) }
+    var mdnsNotu by remember { mutableStateOf("") }
     var isGonder by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     fun gonder(s: CastSession, kaynak: Uri) {
@@ -398,7 +421,21 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
             while (!bagli) {
                 delay(1000); aramaSn++
                 if (cihazlar.isEmpty()) {
-                    if (aramaSn == 10) agNotu = TvYayin.agDurumu(ctx)
+                    if (aramaSn == 10) {
+                        agNotu = TvYayin.agDurumu(ctx)
+                        kapsam.launch {
+                            mdnsNotu = "• Ağ taraması yapılıyor…"
+                            val l = TvYayin.mdnsTara(ctx)
+                            Kayit.yaz("TV mDNS: ${l?.joinToString() ?: "tarama yapılamadı"}")
+                            mdnsNotu = when {
+                                l == null -> ""
+                                l.isEmpty() -> "• Ağ taraması: ev ağında hiçbir Chromecast/Google TV yanıt vermiyor. Modem, TV'nin duyurusunu telefona iletmiyor " +
+                                    "(TV ile telefon farklı ağda/bantta olabilir: biri 2,4 GHz biri 5 GHz ya da misafir ağı). YouTube'un bağlanması bunu çürütmez: " +
+                                    "YouTube TV'ye Google hesabı üzerinden internetten de bağlanabiliyor. Çözüm: modemi yeniden başlat; telefonu TV'nin bağlı olduğu ağ adına bağla."
+                                else -> "• Ağ taraması: ağda ${l.joinToString()} görünüyor; ağ sağlam. Telefonu yeniden başlatmak Google Play Hizmetleri'nin Cast bulucusunu tazeler."
+                            }
+                        }
+                    }
                     if (aramaSn % 15 == 0) taramaNo++
                 }
             }
@@ -455,11 +492,11 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
                     }
                     if (aramaSn >= 10) {
                         Text("TV bulunamadı. Kontrol et:\n• TV açık mı (uykuda değil)?\n• Telefonda Wi-Fi'ı kapatıp aç.\n• Google Home uygulamasında TV görünüyor mu? Orada da yoksa sorun TV'de/modemde (TV'yi ve modemi yeniden başlat)." +
-                            if (agNotu.isNotEmpty()) "\n$agNotu" else "", color = Renk.turuncu, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
+                            (if (agNotu.isNotEmpty()) "\n$agNotu" else "") + (if (mdnsNotu.isNotEmpty()) "\n$mdnsNotu" else ""), color = Renk.turuncu, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-                    TonHap("Yeniden ara", "yinele", false, Renk.turuncu) { aramaSn = 0; agNotu = ""; taramaNo++; durum = "Televizyon yeniden aranıyor…" }
+                    TonHap("Yeniden ara", "yinele", false, Renk.turuncu) { aramaSn = 0; agNotu = ""; mdnsNotu = ""; taramaNo++; durum = "Televizyon yeniden aranıyor…" }
                 }
                 cihazlar.forEach { r ->
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart2)

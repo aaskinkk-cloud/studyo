@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.10 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.11 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.11 (22.11.2026, deneme · `yerel-android` dalı): nesne bırakılan yerde kalır, önizleme boyu korunur, TV ağ taraması
+- **Nesne (kök neden):** nesnenin merkezi karenin içine (0…1) kısıtlanıyordu; uzun nesne (ör. boy portresi) aşağı çekilip bırakılınca geri yukarı itiliyordu. Artık nesne yarısı kadar kare dışına taşabilir, bırakılan yerde kalır.
+- **Önizleme boyu (kök neden):** tutamaçla verilen boy; tam ekrandan, dışa aktarmadan, kapaktan dönünce ve her açılışta videonun oranına yeniden oturtuluyordu. Artık elle verilen boy korunur (biçim değişirse ya da tutamaca çift dokununca yeniden oturtulur). Üst sınır %75 → %85.
+- **TV:** 10 sn'de TV bulunamazsa uygulama Cast kitaplığından bağımsız kendi mDNS (_googlecast._tcp) taramasını yapar: ağda TV görünüyorsa sorun Play Hizmetleri tarafında (telefonu yeniden başlat), görünmüyorsa modem duyuruyu iletmiyor (farklı bant/misafir ağı). Sonuç pencerede ve Kayıt'ta.
 
 ## 4.10 (22.11.2026, deneme · `yerel-android` dalı): seçili nesne önizlemede görünür
 - **Kök neden:** Kesilenler'de nesneye dokununca nesnenin başına (başlangıç + 1 ms) gidiliyordu; orada giriş solması ~0 olduğu için nesne önizlemede görünmüyordu (0,5 sn gibi kısa nesnelerde hiç tam görünmüyordu). Artık Nesne panelinde seçili nesne, kendi süresi içindeyken ve oynatma dururken tam görünür (çerçeve ve tutamaçlarla). Oynatmada ve dışa aktarmada solma aynen kalır.

@@ -78,11 +78,15 @@ object Duzen {
     /** Önizlemenin ekran yüksekliğine oranı (tutamaçla %10–75; çift dokunuş = %50). Yukarı sürükleyerek video küçültülür, ayar alanı büyür. */
     var onizlemeOran by mutableFloatStateOf(0.5f)
     const val ORAN_EN_AZ = 0.10f
-    fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran2", onizlemeOran).apply() }
+    const val ORAN_EN_COK = 0.85f   // 4.11: daha esnek (önceden %75)
+    /** 4.11: tutamaçla elle boy verildiyse proje açılışında / ekrana dönüşte videonun oranına yeniden oturtulmaz (çift dokunuş = yeniden oturt). */
+    var elleOran by mutableStateOf(false)
+    fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran2", onizlemeOran).putBoolean("elleOran", elleOran).apply() }
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
         yaziliMenu = sp.getBoolean("yaziliMenu", false)
-        onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, 0.75f)
+        onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, ORAN_EN_COK)
+        elleOran = sp.getBoolean("elleOran", false)
         katmanYuk = sp.getFloat("katmanYuk", 240f).coerceIn(120f, 560f)
         cizelgePps = sp.getFloat("cizelgePps", 48f).coerceIn(4f, 400f)
         seritGizli = sp.getBoolean("seritGizli", false)

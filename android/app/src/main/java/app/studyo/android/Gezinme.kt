@@ -110,9 +110,16 @@ class AramaOge(val yol: String, val bolum: String, val hap: String, val alt: Str
 fun AramaPenceresi(liste: List<AramaOge>, git: (AramaOge) -> Unit, kapat: () -> Unit) {
     var q by remember { mutableStateOf("") }
     val tr = java.util.Locale("tr")
+    // 4.01: kelime bazında arama — her kelime ayrı aranır (hepsi geçmeli), Türkçe harfler önemsiz (dogal = doğal), son bölümü kelimeyle başlayanlar önce
+    fun sade(x: String) = x.lowercase(tr).map { when (it) { 'ç' -> 'c'; 'ğ' -> 'g'; 'ı' -> 'i'; 'ö' -> 'o'; 'ş' -> 's'; 'ü' -> 'u'; 'â' -> 'a'; 'î' -> 'i'; 'û' -> 'u'; else -> it } }.joinToString("")
     val sonuc = remember(q) {
-        val s = q.trim().lowercase(tr)
-        if (s.isEmpty()) liste.take(40) else liste.filter { o -> (o.yol + " " + o.kelimeler).lowercase(tr).contains(s) }.take(40)
+        val k = sade(q.trim()).split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (k.isEmpty()) liste.take(40) else liste.mapNotNull { o ->
+            val metin = sade(o.yol + " " + o.kelimeler)
+            val sozcukler = metin.split(Regex("[^a-z0-9]+")).filter { it.isNotEmpty() }
+            if (!k.all { w -> sozcukler.any { it.startsWith(w) } || (w.length >= 3 && metin.contains(w)) }) null
+            else { val son = sade(o.yol.substringAfterLast('›').trim()); o to (if (k.any { son.startsWith(it) }) 0 else if (k.any { son.contains(it) }) 1 else 2) }
+        }.sortedBy { it.second }.map { it.first }.take(40)
     }
     val odak = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { odak.requestFocus() } }

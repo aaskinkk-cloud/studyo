@@ -45,9 +45,15 @@ object Renk {
     val cizgi get() = s(0xFF2E4153, 0xFFC5D1DB, 0xFF343434, 0xFF2D3337, 0xFF3A3A3A)
     val yazi get() = s(0xFFE6EDF3, 0xFF15212C, 0xFFFFFFFF, 0xFFE8E6E0, 0xFFFFFFFF)
     val soluk get() = s(0xFF8AA0B2, 0xFF5A6E80, 0xFF9E9E9E, 0xFF8A939A, 0xFF9A9A9A)
-    val turuncu get() = s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF, 0xFFF0993C, 0xFF3FC1B8)
-    val turuncuM get() = s(0xFF1B1204, 0xFF1B1204, 0xFF000000, 0xFF1B1206, 0xFF06201E)
-    val turkuaz get() = s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6, 0xFF6CB8AC, 0xFF3FC1B8)
+    /** 4.01: InShot temasında vurgu rengi (Ayarlar › Tema rengi; varsayılan turkuaz). Yalnız turkuaz olan yerler değişir. */
+    var vurgu by mutableStateOf(0xFF3FC1B8L)
+    val VURGULAR = listOf(0xFF3FC1B8L to "Turkuaz", 0xFF4C8DF6L to "Mavi", 0xFF9B7BF7L to "Mor", 0xFF4CC38AL to "Yeşil",
+        0xFFF5A524L to "Turuncu", 0xFFEF5350L to "Kırmızı", 0xFFEC6FA5L to "Pembe", 0xFFF2C94CL to "Sarı", 0xFFE6E6E6L to "Beyaz")
+    fun vurguSec(ctx: Context, v: Long) { vurgu = v; ctx.getSharedPreferences("ayar", 0).edit().putLong("vurguIns", v).apply() }
+    private val vurguKoyu get() = (androidx.compose.ui.graphics.Color(vurgu).let { 0.299f * it.red + 0.587f * it.green + 0.114f * it.blue }) > 0.55f
+    val turuncu get() = if (ins) Color(vurgu) else s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF, 0xFFF0993C, 0xFF3FC1B8)
+    val turuncuM get() = if (ins) Color(if (vurguKoyu) 0xFF0E1414 else 0xFFFFFFFF) else s(0xFF1B1204, 0xFF1B1204, 0xFF000000, 0xFF1B1206, 0xFF06201E)
+    val turkuaz get() = if (ins) Color(vurgu) else s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6, 0xFF6CB8AC, 0xFF3FC1B8)
     val kirmizi get() = s(0xFFEF5350, 0xFFD93A36, 0xFFEF5350, 0xFFE0645A, 0xFFEF5350)
     val yesil get() = s(0xFF4CC38A, 0xFF16915A, 0xFF4CC38A, 0xFF7FD3A1, 0xFF4CC38A)
 
@@ -57,6 +63,7 @@ object Renk {
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
         tema = sp.getInt("tema", if (sp.getBoolean("gunduz", false)) 1 else 0).coerceIn(0, 4)
+        vurgu = sp.getLong("vurguIns", 0xFF3FC1B8L)
         // 3.91 (Ahmet'in isteği): InShot renkleri ve düğmeleri temel tema — bir kez geçilir; önceki temalar seçilebilir
         if (!sp.getBoolean("temaIns1", false)) { tema = 4; sp.edit().putInt("tema", 4).putBoolean("gunduz", false).putBoolean("temaIns1", true).apply() }
     }
@@ -81,7 +88,7 @@ object Duzen {
         seritGizli = sp.getBoolean("seritGizli", false)
         kontrolUstte = sp.getBoolean("kontrolUstte3", true)   // 3.72: kontroller varsayılan olarak videonun üstünde
         anaStudyo = sp.getBoolean("anaStudyo", true)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan
-        duzenleSabit = sp.getBoolean("duzenleSabit2", true)   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
+        duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */

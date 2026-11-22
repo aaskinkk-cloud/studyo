@@ -174,7 +174,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
-                "yuzler" to "yüz yaklaş odak nokta tur numara durak", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
+                "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim",
+                "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -187,6 +189,15 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     ALT_SAYFALAR[h]?.forEach { a -> l += AramaOge("${bb.ad} › $ad › ${a.ad}", bb.anahtar, h, a.anahtar, ek[a.anahtar] ?: "") }
                 }
             }
+            // 4.01: sayfaların içindeki seçenekler de aranır (ör. "doğal" → Renk › Hazır › Doğal; "vinyet" → Efekt › Efekt › Vinyet)
+            RENK_HAZIR.forEach { (ad, _) -> l += AramaOge("Renk › Hazır › $ad", "renk", "hazir", "hazir", "renk hazır ayar") }
+            RenkLut.FILTRELER.forEach { (_, ad) -> l += AramaOge("Efekt › Filtre › $ad", "efekt", "filtre", null, "filtre") }
+            Efektler.LISTE.forEach { (_, ad) -> l += AramaOge("Efekt › Efekt › $ad", "efekt", "efekt", null, "efekt") }
+            (GECIS_TEMEL + GECIS_AKICI).forEach { (t, _) -> if (t.first != "yok") l += AramaOge("Efekt › Geçiş › ${t.second}", "efekt", "gecis", null, "geçiş") }
+            GECIS_POPULER.forEach { (_, ad) -> l += AramaOge("Efekt › Geçiş › $ad", "efekt", "gecis", null, "geçiş") }
+            Reels.STILLER.forEach { (_, ad) -> l += AramaOge("Görünüm › Şablon › Giriş › $ad", "gorunum", "sablon", "giris", "giriş başlığı stil") }
+            SesEfekt.HAZIR.forEach { (_, ad) -> l += AramaOge("Ses › Seslendirme › Kayıtlar › $ad", "ses", "seslendirme", "kayitlar", "ses efekti seslendirme") }
+            l += AramaOge("Yayın › Ayarlar › Tema rengi", "yayin", "ayarlar", null, "tema renk vurgu turkuaz")
             l
         }
         AramaPenceresi(liste, { o -> aramaAcik = false; git(o.bolum, o.hap, o.alt) }) { aramaAcik = false }
@@ -391,14 +402,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     Box(Modifier.padding(end = 4.dp).width(1.dp).height(32.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
                     Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)) { altlar.forEach { AltDugme(it) } }
-                    // 3.87: Düzenle'yi sabitle — ana menü gibi her bölümde altta kalır
-                    if (bolum == "duzenle") Column(Modifier.width(46.dp).clip(RoundedCornerShape(10.dp)).clickable {
-                        Duzen.duzenleSabitSec(ctxD, !Duzen.duzenleSabit)
-                        vm.mesaj.value = if (Duzen.duzenleSabit) "Düzenle düğmesi sabitlendi · her bölümde solda durur" else "Düzenle sabitlemesi kaldırıldı"
-                    }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Simge("baglanti", if (Duzen.duzenleSabit) Renk.turuncu else Renk.soluk, 19.dp)
-                        Text(if (Duzen.duzenleSabit) "Sabit" else "Sabitle", color = if (Duzen.duzenleSabit) Renk.turuncu else Renk.soluk, fontSize = 9.5.sp, maxLines = 1)
-                    }
+                    // 4.01: "Sabitle" düğmesi kaldırıldı (Ahmet'in isteği) — Düzenle hep sabit
                     SabitArama()
                 }
             } else {

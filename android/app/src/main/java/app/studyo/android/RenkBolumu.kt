@@ -54,7 +54,7 @@ private val RENK_AYARLARI = listOf(
 /** 3.68: Renk › Hazır › Doğal (klip kartındaki simge de bunu uygular). */
 internal val DOGAL_RENK = RenkAyar(kontrast = 0.08f, doygunluk = 0.1f)
 
-private val RENK_HAZIR = listOf(
+internal val RENK_HAZIR = listOf(
     "Patlamayı azalt" to RenkAyar(vurgular = -0.6f, golgeler = 0.15f, kontrast = -0.05f, beyazlar = -0.3f),
     "Doğal" to DOGAL_RENK,
     "Canlı" to RenkAyar(kontrast = 0.15f, doygunluk = 0.35f, vurgular = -0.2f),

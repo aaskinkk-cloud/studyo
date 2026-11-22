@@ -5,6 +5,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -48,6 +51,20 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         }
     }
 
+    // 4.01: tema rengi (InShot temasındaki turkuaz vurgunun yerine)
+    Kart("Tema rengi") {
+        if (!Renk.ins) Text("Tema rengi InShot temasında geçerli (ana sayfa › Ayarlar › Editör teması).", color = Renk.soluk, fontSize = 12.sp)
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Renk.VURGULAR.forEach { (v, ad) ->
+                val on = Renk.vurgu == v
+                Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { Renk.vurguSec(ctx, v) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(34.dp).clip(CircleShape).background(Color(v)).border(if (on) 2.5.dp else 0.dp, if (on) Color.White else Color.Transparent, CircleShape),
+                        contentAlignment = Alignment.Center) { if (on) Simge("uygula", if (v == 0xFFE6E6E6L || v == 0xFFF2C94CL) Color.Black else Color.White, 18.dp) }
+                    Text(ad, color = if (on) Renk.yazi else Renk.soluk, fontSize = 10.5.sp, modifier = Modifier.padding(top = 3.dp))
+                }
+            }
+        }
+    }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {
         AcilirNot("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.")
         Row(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(12.dp)).background(Color(TON[1]).copy(alpha = 0.16f))

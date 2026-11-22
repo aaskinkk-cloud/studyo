@@ -390,6 +390,15 @@ private fun AyarSekme(geriYukle: () -> Unit) {
                     Seg(listOf("InShot", "Siyah-beyaz", "Gece", "Gündüz", "Karanlık Oda"), sira.indexOf(Renk.tema).coerceAtLeast(0)) { Renk.sec(ctx, sira[it]) }
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(AS.cizgi))
+                // 4.01: InShot temasının vurgu rengi
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text("Tema rengi (InShot)", color = AS.yazi, fontSize = 15.sp)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Renk.VURGULAR.forEach { (v, _) -> val on = Renk.vurgu == v
+                            Box(Modifier.size(30.dp).clip(CircleShape).background(Color(v)).border(if (on) 2.5.dp else 1.dp, if (on) AS.yazi else AS.cizgi, CircleShape).clickable { Renk.vurguSec(ctx, v) }) }
+                    }
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(AS.cizgi))
                 Satir("Ana sayfa görünümü", "Önceki görünüme dön (geri gelmek için oradaki menü/Ayarlar)", tik = { Duzen.anaStudyoSec(ctx, false) }) { WSimge("ok", AS.soluk, 20.dp) }
                 Satir(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)", tik = { Duzen.degistir(ctx) })
                 Satir("Yedekten geri yükle", "Ayarlar ve logolar", tik = geriYukle)

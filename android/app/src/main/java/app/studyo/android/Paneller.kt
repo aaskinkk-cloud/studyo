@@ -1231,15 +1231,15 @@ private fun girisOrnek(g: Giris, W: Int, H: Int): Bitmap? {
 }
 
 /** 3.59: popüler geçişler (klip sınırında, önizlemeli küçük resimlerle). */
-private val GECIS_POPULER = listOf("dondur" to "Döndür", "bulanik" to "Bulanık", "silme" to "Silme", "dalis" to "Dalış", "sizma" to "Işık sızması")
+internal val GECIS_POPULER = listOf("dondur" to "Döndür", "bulanik" to "Bulanık", "silme" to "Silme", "dalis" to "Dalış", "sizma" to "Işık sızması")
 
 /** Geçiş türleri (3.25): (anahtar, ad, simge, renk). Üst üste binenler TEMEL'de, klip sınırındakiler IŞIK VE HAREKET'te. */
-private val GECIS_TEMEL = listOf(
+internal val GECIS_TEMEL = listOf(
     Triple("yok", "Yok", "g_yok") to 0xFFE6EDF3, Triple("erime", "Erime", "g_erime") to 0xFFF5A524,
     Triple("capraz", "Yumuşak", "g_capraz") to 0xFF5DCAA5, Triple("kaydir", "Kaydır", "g_kaydir") to 0xFF85B7EB,
 )
 /** 3.39: kesme hissi vermeyen akıcı geçişler. */
-private val GECIS_AKICI = listOf(
+internal val GECIS_AKICI = listOf(
     Triple("hafif", "Hafif erime", "g_hafif") to 0xFFD9CF5A, Triple("akis", "Akış", "g_akis") to 0xFF3FBFAE,
 )
 private val GECIS_ISIK = listOf(

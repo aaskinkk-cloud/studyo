@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.00 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.01 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.01 (22.11.2026, deneme · `yerel-android` dalı): kelime bazında menü araması, Sabitle kaldırıldı, tema rengi
+- **Menü araması kelime bazında** (`AramaPenceresi`): her kelime ayrı aranır, hepsi geçmeli; Türkçe harfler önemsiz (dogal = doğal); son bölümü kelimeyle başlayanlar önce. Sayfa içindeki seçenekler de aranır ve seçilince o bölüm açılır: Renk hazır ayarları (Doğal, Canlı…), Filtreler, Efektler, Geçişler, Giriş stilleri, Ses efektleri, Tema rengi; ek anahtar kelimeler (takip yazısı, büyük logo geçişi, kamera…).
+- **Sabitle düğmesi kaldırıldı:** Düzenle hep sabit.
+- **Tema rengi** (Yayın › Ayarlar › Tema rengi ve ana sayfa › Ayarlar): InShot temasında turkuaz vurgunun yerine Turkuaz · Mavi · Mor · Yeşil · Turuncu · Kırmızı · Pembe · Sarı · Beyaz (`Renk.vurgu`, "vurguIns"); vurgu üstündeki yazı rengi açık/koyu vurguya göre otomatik.
 
 ## 4.00 (22.11.2026, deneme · `yerel-android` dalı): Facebook eklentisi geri alındı
 - 3.97–3.99'daki uygulama içi Facebook tarayıcısı kaldırıldı (Ahmet'in kararı): Facebook gömülü tarayıcıya sayfayı boş gönderiyordu (cihaz kaydı: giriş sayfası yükleniyor, içerik yok). `FacebookTarayici.kt`, klip şeridindeki Facebook kutusu ve androidx.webkit bağımlılığı çıkarıldı. Diğer özellikler (Albüm, Kamera, 3.93–3.96) aynen duruyor.

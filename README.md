@@ -2,9 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.99 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.00 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.00 (22.11.2026, deneme · `yerel-android` dalı): Facebook eklentisi geri alındı
+- 3.97–3.99'daki uygulama içi Facebook tarayıcısı kaldırıldı (Ahmet'in kararı): Facebook gömülü tarayıcıya sayfayı boş gönderiyordu (cihaz kaydı: giriş sayfası yükleniyor, içerik yok). `FacebookTarayici.kt`, klip şeridindeki Facebook kutusu ve androidx.webkit bağımlılığı çıkarıldı. Diğer özellikler (Albüm, Kamera, 3.93–3.96) aynen duruyor.
 
 ## 3.99 (22.11.2026, deneme · `yerel-android` dalı): Facebook giriş sayfası beyaz kalıyordu — ikinci düzeltme
 - **Cihaz kaydı (3.98):** sayfalar yükleniyor ve giriş sayfasına yönleniyordu (`m.facebook.com/login/…refsrc=deprecated`), hata yok; içerik çizilmiyordu.

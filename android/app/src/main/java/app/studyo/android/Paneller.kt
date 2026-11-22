@@ -377,8 +377,11 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             p.nesneler.forEach { n ->
                 key(n.id) {
+                    // 4.10 KÖK NEDEN: listeden seçince nesnenin başına (basMs+1) gidiliyordu; orada giriş solması ~0 → nesne önizlemede görünmüyordu
+                    // (kısa nesnede hiç tam görünmüyordu). Nesne panelinde seçili nesne, kendi süresi içindeyken ve oynatma dururken tam görünür.
+                    val tamGor = nesnePaneli && seciliNesne == n.id && !oynuyorAkis && konum in n.basMs..n.sonMs
                     if (n.hareketli) {
-                        val a = Zaman.solma(konum, n.basMs, n.sonMs, 200)
+                        val a = if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs, 200)
                         val idx = Katman.kareNo(n, konum)
                         val kb2 by produceState<Bitmap?>(null, n.id, idx, n.olcek, a > 0f) {
                             value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW) } else null
@@ -386,7 +389,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         kb2?.let { CizN(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n) }
                     } else {
                         val ny = remember(n.yol, n.olcek, n.golge, n.x, n.y, ref) { Katman.nesne(n, RW, RH) }
-                        ny?.let { CizN(it, Zaman.solma(konum, n.basMs, n.sonMs), n) }
+                        ny?.let { CizN(it, if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs), n) }
                     }
                 }
             }

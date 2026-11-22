@@ -2,9 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.09 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.10 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.10 (22.11.2026, deneme · `yerel-android` dalı): seçili nesne önizlemede görünür
+- **Kök neden:** Kesilenler'de nesneye dokununca nesnenin başına (başlangıç + 1 ms) gidiliyordu; orada giriş solması ~0 olduğu için nesne önizlemede görünmüyordu (0,5 sn gibi kısa nesnelerde hiç tam görünmüyordu). Artık Nesne panelinde seçili nesne, kendi süresi içindeyken ve oynatma dururken tam görünür (çerçeve ve tutamaçlarla). Oynatmada ve dışa aktarmada solma aynen kalır.
 
 ## 4.09 (22.11.2026, deneme · `yerel-android` dalı): Nesne çerçevesi ve tutamaçlar, önizlemede klip silme
 - **Düzenle › Nesne:** seçili nesnenin çevresinde kesikli çerçeve, 4 köşede büyüt/küçült tutamacı (köşeyi tek parmakla sürükle), ortada taşıma simgesi. Nesneyi sürükle = taşı, iki parmak = büyüt/küçült (önceki gibi). Projede nesne varken arka plan (bulanık zemin dahil) hiç kaymaz. Katman bölümünde de aynı çerçeve.

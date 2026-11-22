@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.95 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.96 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 3.96 (22.11.2026, deneme · `yerel-android` dalı): birden fazla Google Fotoğraflar albümü
+- Albüm penceresi çok satırlı: her satıra bir bağlantı; "Panodan ekle" panodaki yeni bağlantıyı alt satıra ekler, bulunan albüm sayısı görünür (`AlbumIndir.baglar`). Sayı sınırı yok.
+- "N albümü al": albümler sırayla indirilir (ilerleme "Albüm 2/4 · alınıyor 12/30"), hepsi albüm sırasıyla tek seferde projeye eklenir; alınamayan albüm diğerlerini durdurmaz, sonunda hangisinin alınamadığı yazılır. Daha önce indirilenler yeniden indirilmez; Vazgeç'te o ana kadar alınanlar eklenir.
+- Düzeltme: seslendirme hız düğmeleri 0,9× · 1,1× · 1,5× gibi gereksiz sıfırsız yazılır.
 
 ## 3.95 (22.11.2026, deneme · `yerel-android` dalı): seslendirme hızı, sessizlik kırpma, yer kaydırma
 - **Hız** (Ses › Seslendirme › Kayıtlar): 0,75× · 0,9× · 1× · 1,1× · 1,25× · 1,5× — ses tonu korunur (Media3 Sonic, süre değişir, kaydın süresi güncellenir). Efektle birlikte tek işlemde (`SesEfekt.isle(efekt, hiz, kirp)`).

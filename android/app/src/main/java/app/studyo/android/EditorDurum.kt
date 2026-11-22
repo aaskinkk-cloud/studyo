@@ -849,20 +849,26 @@ class EditorDurum(private val ctx: Context, id: String) {
     private var albumIs: Job? = null
 
     /** 3.81: Google Fotoğraflar paylaşılan albüm bağlantısından fotoğrafları indirip projeye ekler (AlbumIndir). */
-    fun albumAl(link: String) {
-        if (albumIs?.isActive == true) return
+    fun albumAl(link: String) = albumAl(listOf(link))
+    /** 3.96: birden fazla albüm — sırayla indirilir, hepsi albüm sırasıyla tek seferde eklenir; biri alınamazsa diğerleri devam eder. */
+    fun albumAl(linkler: List<String>) {
+        if (albumIs?.isActive == true || linkler.isEmpty()) return
         albumIs = kapsam.launch {
-            var l: List<Uri> = emptyList(); var h: String? = null; var iptal = false
+            val l = ArrayList<Uri>(); val notlar = ArrayList<String>(); var iptal = false
             try {
-                mesgul.value = "Google Fotoğraflar albümü açılıyor…"
                 mesgulIptal.value = { albumIs?.cancel() }
-                val r = AlbumIndir.indir(ctx, link) { i, n -> mesgul.value = "Albümden alınıyor $i / $n…" }
-                l = r.first; h = r.second
+                for ((j, link) in linkler.withIndex()) {
+                    val ön = if (linkler.size > 1) "Albüm ${j + 1}/${linkler.size} · " else ""
+                    mesgul.value = ön + "Google Fotoğraflar albümü açılıyor…"
+                    val r = runCatching { AlbumIndir.indir(ctx, link) { i, n -> mesgul.value = ön + "alınıyor $i / $n…" } }
+                    r.exceptionOrNull()?.let { if (it is kotlinx.coroutines.CancellationException) throw it; Kayit.hata("albüm ${j + 1}", it); notlar += "Albüm ${j + 1}: alınamadı" }
+                    r.getOrNull()?.let { (u, h) -> l += u.filter { it !in l }; if (u.isEmpty()) notlar += "Albüm ${j + 1}: ${h ?: "boş"}" else h?.let { notlar += "Albüm ${j + 1}: $it" } }
+                }
             } catch (e: kotlinx.coroutines.CancellationException) { iptal = true }
             finally { mesgulIptal.value = null; mesgul.value = null }
-            if (iptal) { mesaj.value = "Albüm alma durduruldu"; return@launch }
-            if (l.isEmpty()) { uyari.value = h ?: "Albümden bir şey alınamadı."; return@launch }
-            h?.let { mesaj.value = it }
+            if (iptal) { mesaj.value = "Albüm alma durduruldu"; if (l.isEmpty()) return@launch }
+            if (l.isEmpty()) { uyari.value = notlar.joinToString("\n").ifEmpty { "Albümden bir şey alınamadı." }; return@launch }
+            if (notlar.isNotEmpty()) uyari.value = "${l.size} dosya alındı.\n" + notlar.joinToString("\n")
             ekle(l)
         }
     }

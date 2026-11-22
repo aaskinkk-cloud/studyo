@@ -26,6 +26,8 @@ object AlbumIndir {
     private const val TARAYICI = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
     fun bagla(metin: String?): String? = metin?.let { LINK.find(it)?.value?.trimEnd('.', ',', ')', '"') }
+    /** 3.96: metindeki bütün albüm bağlantıları (sırayla, tekrarsız). */
+    fun baglar(metin: String?): List<String> = metin?.let { m -> LINK.findAll(m).map { it.value.trimEnd('.', ',', ')', '"') }.distinct().toList() } ?: emptyList()
 
     private fun ac(adres: String): HttpURLConnection {
         var u = adres

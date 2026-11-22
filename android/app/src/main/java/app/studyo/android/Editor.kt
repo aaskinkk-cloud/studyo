@@ -1536,7 +1536,7 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0.75f, 0.9f, 1f, 1.1f, 1.25f, 1.5f).forEach { h ->
                         val on = kotlin.math.abs(s.hiz - h) < 0.01f
-                        Text(if (h == 1f) "1×" else String.format(TR, "%.2f×", h).replace(",00", "").trimEnd('0').replace(Regex("[,.]×$"), "×"),
+                        Text(if (h == 1f) "1×" else String.format(TR, "%.2f", h).trimEnd('0').trimEnd(',', '.') + "×",
                             color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
                             .background(if (on) Renk.turuncu else Renk.kart).border(1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(16.dp))
                             .clickable { vm.sesIsle(s.id) { it.copy(hiz = h) } }.padding(horizontal = 12.dp, vertical = 7.dp))
@@ -1715,20 +1715,33 @@ private fun AlbumPenceresi(vm: EditorDurum, kapat: () -> Unit) {
     val ctx = LocalContext.current
     val pano = remember { runCatching { (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
         .primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString() }.getOrNull() }
+    // 3.96: birden fazla bağlantı — her satıra bir bağlantı; "Panodan ekle" yeni satıra yapıştırır
     var metin by remember { mutableStateOf(AlbumIndir.bagla(pano) ?: "") }
-    val link = AlbumIndir.bagla(metin)
+    val linkler = AlbumIndir.baglar(metin)
+    val link = linkler.firstOrNull()
+    fun panodan() {
+        val yeni = runCatching { (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+            .primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString() }.getOrNull()
+        val eklenecek = AlbumIndir.baglar(yeni).filter { it !in linkler }
+        if (eklenecek.isEmpty()) vm.mesaj.value = "Panoda yeni albüm bağlantısı yok" else metin = (metin.trimEnd() + "\n" + eklenecek.joinToString("\n")).trim()
+    }
     AlertDialog(onDismissRequest = kapat, containerColor = Renk.kart,
-        title = { Text("Google Fotoğraflar albümü", color = Renk.yazi, fontSize = 16.sp) },
+        title = { Text("Google Fotoğraflar albümleri", color = Renk.yazi, fontSize = 16.sp) },
         text = {
             Column {
-                OutlinedTextField(metin, { metin = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Albüm bağlantısı") },
-                    placeholder = { Text("https://photos.app.goo.gl/…") })
-                Text(if (link != null) "Albümdeki fotoğraflar özgün boyutlarında indirilip videoya eklenir." else "Bağlantıyı yapıştır (photos.app.goo.gl ya da photos.google.com/share).",
+                OutlinedTextField(metin, { metin = it }, Modifier.fillMaxWidth().heightIn(min = 96.dp), singleLine = false, minLines = 3, maxLines = 8,
+                    label = { Text("Albüm bağlantıları (her satıra bir tane)") }, placeholder = { Text("https://photos.app.goo.gl/…") })
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (linkler.isEmpty()) "Bağlantı yok" else "${linkler.size} albüm", color = if (linkler.isEmpty()) Renk.soluk else Renk.turuncu, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
+                    SimgeDugme("yukle", "Panodan ekle", renk = Renk.turuncu) { panodan() }
+                }
+                Text(if (link != null) "Albümlerdeki fotoğraf ve videolar sırayla, özgün boyutlarında indirilip videoya eklenir (albüm sırasıyla)." else "Bağlantıları yapıştır (photos.app.goo.gl ya da photos.google.com/share).",
                     color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
                 AcilirNot("Google Fotoğraflar'da albümü aç › Paylaş › Bağlantı oluştur › kopyala (ya da doğrudan Stüdyo'yu seç). " +
                     "Bağlantı \"bağlantıya sahip olan herkes\" ile paylaşılmış olmalı. Yalnız birkaç fotoğraf istiyorsan: Google Fotoğraflar'da seç › Paylaş › Stüdyo.")
             }
         },
-        confirmButton = { TextButton(enabled = link != null, onClick = { link?.let { vm.albumAl(it) }; kapat() }) { Text("Fotoğrafları al", color = if (link != null) Renk.yazi else Renk.soluk) } },
+        confirmButton = { TextButton(enabled = link != null, onClick = { vm.albumAl(linkler); kapat() }) {
+            Text(if (linkler.size > 1) "${linkler.size} albümü al" else "Fotoğrafları al", color = if (link != null) Renk.yazi else Renk.soluk) } },
         dismissButton = { TextButton(onClick = kapat) { Text("Vazgeç", color = Renk.soluk) } })
 }

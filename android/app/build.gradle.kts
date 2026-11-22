@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000 + (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "4.01." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionName = "4.02." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
         ndk { abiFilters += listOf("arm64-v8a") }   // telefon arm64; Vosk/JNA yerel kitaplıkları yalnız bu mimaride (APK küçük kalır)
     }
     signingConfigs {
@@ -71,4 +71,6 @@ dependencies {
     // 3.73: Televizyonda izle — Google Cast (ücretsiz Varsayılan medya alıcısı; Google TV / Chromecast)
     implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
     implementation("androidx.mediarouter:mediarouter:1.7.0")
+    // 4.02: sesli okuyucu — sherpa-onnx v1.12.40 (Apache-2.0) yerel kitaplıkları derlemede indirilir (jniLibs), ses modelinin arşivini açmak için:
+    implementation("org.apache.commons:commons-compress:1.27.1")
 }

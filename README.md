@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.01 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.02 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.02 (22.11.2026, deneme · `yerel-android` dalı): sesli okuyucu (metinden ses, DFKI)
+- **Ses › Seslendirme › Okuyucu** (Prompter'ın yanında): metni Okur / Karanlık Oda'daki DFKI sesiyle (Piper `tr_TR-dfki-medium`, Türkçe · erkek) okur. Motor: sherpa-onnx v1.12.40 (Apache-2.0), tamamen telefonda, ücretsiz. Ses modeli ilk kullanımda bir kez GitHub'dan iner (~67 MB, `filesDir/okuyucu`); yerel kitaplıklar (arm64) derlemede Actions tarafından indirilip APK'ya konur (repoya girmez).
+- **Ses tonu:** İnce · Normal · Tok · Daha tok (perde, süre değişmez). **Okuma hızı:** 0,8–1,25×. **Eklenirken efekt:** Doğal/Net/Temiz/Radyo/Kalın (varsayılan Tok + Radyo = tok anlatıcı). Seçimler hatırlanır.
+- **Dinle:** cümle cümle üretilip hemen çalınır; motor sayfa açılınca önceden yüklenir (bekleme kısalır). **Seslendirme olarak ekle:** okunan ses oynatma çizgisindeki andan itibaren `SesKaydi` olur (WAV); Kayıtlar'daki efekt, hız, kırpma, kaydırma aynen çalışır. Metin Prompter metniyle ortak.
+- `SesEfekt`: kendi WAV dosyalarını çözücüsüz okur (`wavOku`), `tonla`/`wavKaydet` okuyucuya açıldı. Menü aramasına "okuyucu / metin oku / tts" eklendi.
 
 ## 4.01 (22.11.2026, deneme · `yerel-android` dalı): kelime bazında menü araması, Sabitle kaldırıldı, tema rengi
 - **Menü araması kelime bazında** (`AramaPenceresi`): her kelime ayrı aranır, hepsi geçmeli; Türkçe harfler önemsiz (dogal = doğal); son bölümü kelimeyle başlayanlar önce. Sayfa içindeki seçenekler de aranır ve seçilince o bölüm açılır: Renk hazır ayarları (Doğal, Canlı…), Filtreler, Efektler, Geçişler, Giriş stilleri, Ses efektleri, Tema rengi; ek anahtar kelimeler (takip yazısı, büyük logo geçişi, kamera…).

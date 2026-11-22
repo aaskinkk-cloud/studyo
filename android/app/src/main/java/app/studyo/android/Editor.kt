@@ -174,7 +174,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             val l = ArrayList<AramaOge>()
             val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
-                "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim",
+                "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim", "okuyucu" to "sesli okuyucu metin oku tts dfki seslendir anlatıcı",
                 "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
                 "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
@@ -1510,6 +1510,8 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
         GenisDugme("Kamerayla çek (metin üstte akar)", "klip", Modifier.padding(top = 6.dp)) { vm.player.pause(); kameraP = true }
         AcilirNot("Metin kayarken okursun; sesin önizlemedeki andan itibaren seslendirme olarak eklenir. Hız ve yazı boyutu ekranda ayarlanır.")
     }
+    // 4.02: sesli okuyucu — metni DFKI sesiyle okur, seslendirme olarak ekler (Okur / Karanlık Oda'daki ses)
+    if (alt == null || alt == "okuyucu") OkuyucuKart(vm, p)
     if (prompter) Prompter(vm) { prompter = false }
     if (kameraP) KameraPrompter(vm) { kameraP = false }
     if (alt == "kayitlar" && p.sesler.isEmpty()) Text("Henüz seslendirme kaydı yok. Kayıt ya da Prompter sayfasından kaydet.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(8.dp))
@@ -1564,6 +1566,70 @@ private fun PanelSeslendirme(vm: EditorDurum, p: Proje, alt: String? = null) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OkuyucuKart(vm: EditorDurum, p: Proje) {
+    val ctx = LocalContext.current
+    val is_ by vm.okuIs.collectAsState()
+    val ilerleme by vm.okuIlerleme.collectAsState()
+    val pr = remember { ctx.getSharedPreferences("okuyucu", android.content.Context.MODE_PRIVATE) }
+    var hazir by remember { mutableStateOf(Okuyucu.hazir(ctx)) }
+    LaunchedEffect(is_) { if (is_ == null) hazir = Okuyucu.hazir(ctx); if (hazir && is_ == null) Okuyucu.isit(ctx) }
+    DisposableEffect(Unit) { onDispose { if (vm.okuIs.value == "dinle") vm.okuyucuDurdur() } }
+    var metin by remember(p.id) { mutableStateOf(p.okumaMetni) }
+    var ton by remember { mutableFloatStateOf(pr.getFloat("ton", 0.94f)) }
+    var hiz by remember { mutableFloatStateOf(pr.getFloat("hiz", 1f)) }
+    var efekt by remember { mutableStateOf(pr.getString("efekt", "radyo") ?: "radyo") }
+    @Composable fun Cip(ad: String, on: Boolean, tik: () -> Unit) = Text(ad, color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp,
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(if (on) Renk.turuncu else Renk.kart)
+            .border(1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(16.dp)).clickable(onClick = tik).padding(horizontal = 13.dp, vertical = 7.dp))
+    Kart("Sesli okuyucu (metinden ses)") {
+        Text("Ses: DFKI (Türkçe · erkek)", color = Renk.yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+        if (!hazir) {
+            if (is_ == "indir") {
+                Text("Ses indiriliyor… %${(ilerleme * 100).roundToInt()}", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 6.dp))
+                LinearProgressIndicator(progress = { ilerleme }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+                Dugme("Vazgeç", Modifier.fillMaxWidth()) { vm.okuyucuDurdur() }
+            } else {
+                Text("İlk kullanımda ses bir kez indirilir (~67 MB, GitHub). Sonra internetsiz, telefonda çalışır.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 6.dp))
+                Dugme("Sesi indir", Modifier.fillMaxWidth(), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.okuyucuIndir() }
+            }
+            return@Kart
+        }
+        OutlinedTextField(metin, { metin = it; vm.okumaDegis { pp -> pp.copy(okumaMetni = it) } }, Modifier.fillMaxWidth().heightIn(min = 110.dp).padding(top = 6.dp),
+            placeholder = { Text("Okunacak metni yaz ya da yapıştır (Prompter metniyle ortak)") }, maxLines = 8)
+        Text("Ses tonu", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Okuyucu.TONLAR.forEach { (t, ad) -> Cip(ad, kotlin.math.abs(ton - t) < 0.005f) { ton = t; pr.edit().putFloat("ton", t).apply() } }
+        }
+        Text("Okuma hızı", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(0.8f, 0.9f, 1f, 1.1f, 1.25f).forEach { h ->
+                Cip(if (h == 1f) "1×" else String.format(TR, "%.2f", h).trimEnd('0').trimEnd(',', '.') + "×", kotlin.math.abs(hiz - h) < 0.01f) { hiz = h; pr.edit().putFloat("hiz", h).apply() }
+            }
+        }
+        Text("Eklenirken uygulanacak efekt", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SesEfekt.HAZIR.forEach { (k, ad) -> Cip(ad, efekt == k) { efekt = k; pr.edit().putString("efekt", k).apply() } }
+        }
+        Text("Tok, profesyonel anlatıcı için: Ses tonu Tok + Radyo ya da Kalın.", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
+        when (is_) {
+            "ekle" -> {
+                Text("Okunuyor ve ekleniyor… %${(ilerleme * 100).roundToInt()}", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp))
+                LinearProgressIndicator(progress = { ilerleme }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+                Dugme("Durdur", Modifier.fillMaxWidth()) { vm.okuyucuDurdur() }
+            }
+            "dinle" -> Dugme("■ Durdur", Modifier.fillMaxWidth().padding(top = 8.dp), renk = Renk.kirmizi, yaziRenk = Color.White) { vm.okuyucuDurdur() }
+            else -> Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Dugme("▶ Dinle", Modifier.weight(1f), etkin = metin.isNotBlank()) { vm.okuyucuDinle(metin, hiz, ton) }
+                Dugme("Seslendirme olarak ekle", Modifier.weight(1.6f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM, etkin = metin.isNotBlank() && p.klipler.isNotEmpty()) {
+                    vm.okuyucuEkle(metin, hiz, ton, efekt) }
+            }
+        }
+        AcilirNot("Metin telefonda sese çevrilir (Piper DFKI sesi, ücretsiz, internet gerekmez). Dinle cümle cümle hemen okur. " +
+            "Ekle: okunan ses, oynatma çizgisinin olduğu andan itibaren seslendirme kaydı olur; Kayıtlar'da efekt, hız, kırpma ve yer kaydırma uygulanabilir.")
     }
 }
 

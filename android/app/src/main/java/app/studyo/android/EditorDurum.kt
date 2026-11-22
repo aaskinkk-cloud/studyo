@@ -1357,6 +1357,52 @@ class EditorDurum(private val ctx: Context, id: String) {
         mesaj.value = "Seslendirme eklendi (${sureYaz(sure)})"
     }
 
+    // ---------------- 4.02: sesli okuyucu (metinden ses, DFKI) ----------------
+    /** null | "indir" | "dinle" | "ekle" */
+    val okuIs = MutableStateFlow<String?>(null)
+    val okuIlerleme = MutableStateFlow(0f)
+    private var okuJob: Job? = null
+    fun okuyucuIndir() {
+        if (okuIs.value != null) return
+        okuIs.value = "indir"; okuIlerleme.value = 0f
+        okuJob = kapsam.launch {
+            try { Okuyucu.indir(ctx) { okuIlerleme.value = it }; mesaj.value = "Okuyucu sesi indirildi"; Okuyucu.isit(ctx) }
+            catch (e: kotlinx.coroutines.CancellationException) { }
+            catch (e: Throwable) { Kayit.hata("okuyucu indir", e); uyari.value = "Ses indirilemedi: ${e.message}" }
+            finally { okuIs.value = null }
+        }
+    }
+    fun okuyucuDinle(metin: String, hiz: Float, ton: Float) {
+        if (okuIs.value != null || metin.isBlank()) return
+        player.pause(); okuIs.value = "dinle"
+        okuJob = kapsam.launch {
+            try { Okuyucu.dinle(ctx, metin, hiz, ton) }
+            catch (e: kotlinx.coroutines.CancellationException) { }
+            catch (e: Throwable) { Kayit.hata("okuyucu dinle", e); uyari.value = "Okunamadı: ${e.message}" }
+            finally { okuIs.value = null }
+        }
+    }
+    /** Metni okuyup oynatma çizgisinin olduğu yere seslendirme kaydı olarak ekler; efekt seçiliyse işlenir (özgün WAV korunur). */
+    fun okuyucuEkle(metin: String, hiz: Float, ton: Float, efekt: String) {
+        if (okuIs.value != null || metin.isBlank()) return
+        player.pause(); val bas = anlik()
+        okuIs.value = "ekle"; okuIlerleme.value = 0f
+        okuJob = kapsam.launch {
+            val f = File(Depo.dizin("ses"), "okuyucu_" + yeniId() + ".wav")
+            try {
+                val sure = Okuyucu.dosyaya(ctx, metin, hiz, ton, f) { okuIlerleme.value = it }
+                val s = SesKaydi(yol = f.path, basMs = bas, sureMs = sure, ozgunMs = sure)
+                guncelle { p -> p.copy(sesler = (p.sesler + s).sortedBy { it.basMs }) }
+                kaydetSimdi(false)
+                mesaj.value = "Okunan metin seslendirme olarak eklendi (${sureYaz(sure)}) · Kayıtlar"
+                if (efekt != "dogal") sesIsle(s.id) { it.copy(efekt = efekt) }
+            } catch (e: kotlinx.coroutines.CancellationException) { f.delete() }
+            catch (e: Throwable) { f.delete(); Kayit.hata("okuyucu ekle", e); uyari.value = "Okunamadı: ${e.message}" }
+            finally { okuIs.value = null }
+        }
+    }
+    fun okuyucuDurdur() { Okuyucu.durdur(); if (okuIs.value == "indir") okuJob?.cancel() }
+
     fun okumaDegis(f: (Proje) -> Proje) = guncelle(false, f)
     fun sesDegis(id: String, f: (SesKaydi) -> SesKaydi) = guncelle { p -> p.copy(sesler = p.sesler.map { if (it.id == id) f(it) else it }) }
     fun sesSil(id: String) = guncelle { p -> p.copy(sesler = p.sesler.filter { it.id != id }) }

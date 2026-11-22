@@ -18,6 +18,15 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.11.1' }
+      - name: Sesli okuyucu kitaplıkları (sherpa-onnx v1.12.40, arm64)
+        shell: bash
+        run: |
+          set -e
+          curl -sSL --retry 3 -o /tmp/so.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.40/sherpa-onnx-v1.12.40-android.tar.bz2
+          mkdir -p /tmp/so android/app/src/main/jniLibs/arm64-v8a
+          tar xjf /tmp/so.tar.bz2 -C /tmp/so ./jniLibs/arm64-v8a/libsherpa-onnx-jni.so ./jniLibs/arm64-v8a/libonnxruntime.so
+          cp /tmp/so/jniLibs/arm64-v8a/*.so android/app/src/main/jniLibs/arm64-v8a/
+          ls -la android/app/src/main/jniLibs/arm64-v8a
       - name: Derle
         working-directory: android
         shell: bash

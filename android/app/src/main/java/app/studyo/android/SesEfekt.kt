@@ -78,7 +78,33 @@ object SesEfekt {
                        val esik: Float = 0f, val oran: Float = 1f, val perde: Float = 1f)
 
     // ---------------- çözme (m4a/AAC → mono float) ----------------
+    /** 4.02: okuyucu için — perde değişimi (süre aynı) ve WAV yazma. */
+    fun tonla(x: FloatArray, sr: Int, oran: Float): FloatArray = perde(x, sr, oran, 1f)
+    fun wavKaydet(f: File, x: FloatArray, sr: Int) = wavYaz(f, x, sr)
+
+    /** 4.02: kendi yazdığımız 16 bit PCM WAV'ı doğrudan okur (çözücüye gerek yok). Değilse null. */
+    private fun wavOku(yol: String): Pair<FloatArray, Int>? {
+        val f = File(yol); if (!yol.endsWith(".wav", true) || f.length() < 44) return null
+        val b = ByteBuffer.wrap(f.readBytes()).order(ByteOrder.LITTLE_ENDIAN)
+        if (String(b.array(), 0, 4) != "RIFF" || String(b.array(), 8, 4) != "WAVE") return null
+        var i = 12; var sr = 0; var ch = 1; var bit = 16; var tur = 1
+        while (i + 8 <= b.limit()) {
+            val id = String(b.array(), i, 4); val n = b.getInt(i + 4); val v = i + 8
+            if (id == "fmt ") { tur = b.getShort(v).toInt(); ch = b.getShort(v + 2).toInt(); sr = b.getInt(v + 4); bit = b.getShort(v + 14).toInt() }
+            else if (id == "data") {
+                if (tur != 1 || bit != 16 || sr <= 0 || ch < 1) return null
+                val adet = minOf(n, b.limit() - v) / 2 / ch
+                val x = FloatArray(adet)
+                for (k in 0 until adet) { var t = 0f; for (c in 0 until ch) t += b.getShort(v + (k * ch + c) * 2) / 32768f; x[k] = t / ch }
+                return x to sr
+            }
+            i = v + n + (n and 1)
+        }
+        return null
+    }
+
     private fun coz(yol: String): Pair<FloatArray, Int> {
+        wavOku(yol)?.let { return it }
         val ex = MediaExtractor(); ex.setDataSource(yol)
         val iz = (0 until ex.trackCount).firstOrNull { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
             ?: throw IllegalStateException("ses izi yok")

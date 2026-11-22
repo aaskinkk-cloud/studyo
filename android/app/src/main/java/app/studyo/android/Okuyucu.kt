@@ -95,10 +95,12 @@ object Okuyucu {
             dur = false
             val m = motor(ctx); val sr = m.sampleRate()
             val min = AudioTrack.getMinBufferSize(sr, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT)
+            // 4.03 kök neden: tampon bayt sayısı kare boyunun (float mono = 4 bayt) katı olmalı; 22050 bayt 4'e bölünmüyordu → "Invalid audio buffer size".
+            val tampon = maxOf(if (min > 0) min else 0, sr * 4 / 2).let { it - it % 4 }
             val tr = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
                 .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_FLOAT).setSampleRate(sr).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setBufferSizeInBytes(maxOf(min, sr)).setTransferMode(AudioTrack.MODE_STREAM).build()
+                .setBufferSizeInBytes(tampon).setTransferMode(AudioTrack.MODE_STREAM).build()
             try {
                 if (ton != 1f) try { tr.playbackParams = PlaybackParams().setPitch(ton).setSpeed(1f) } catch (_: Throwable) {}
                 tr.play()

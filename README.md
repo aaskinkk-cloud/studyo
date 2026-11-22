@@ -2,9 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.02 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.03 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.03 (22.11.2026, deneme · `yerel-android` dalı): okuyucu "Invalid audio buffer size" düzeltmesi
+- Kök neden: Dinle'deki AudioTrack tamponu örnek hızı kadar bayt (22050) veriliyordu; float mono kare 4 bayt, tampon 4'ün katı olmalı. Şimdi en az 0,5 sn ve 4'ün katı.
 
 ## 4.02 (22.11.2026, deneme · `yerel-android` dalı): sesli okuyucu (metinden ses, DFKI)
 - **Ses › Seslendirme › Okuyucu** (Prompter'ın yanında): metni Okur / Karanlık Oda'daki DFKI sesiyle (Piper `tr_TR-dfki-medium`, Türkçe · erkek) okur. Motor: sherpa-onnx v1.12.40 (Apache-2.0), tamamen telefonda, ücretsiz. Ses modeli ilk kullanımda bir kez GitHub'dan iner (~67 MB, `filesDir/okuyucu`); yerel kitaplıklar (arm64) derlemede Actions tarafından indirilip APK'ya konur (repoya girmez).

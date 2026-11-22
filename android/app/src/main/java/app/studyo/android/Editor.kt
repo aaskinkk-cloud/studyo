@@ -179,7 +179,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
                 "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim", "okuyucu" to "sesli okuyucu metin oku tts dfki seslendir anlatıcı",
                 "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
-                "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet otomatik yüz bul tümüne", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
+                "yuzler" to "yüz yaklaş odak nokta tur numara durak ışık silüet otomatik yüz bul tümüne grupla seçerek yakınlaşma yok kapat", "gizle" to "yüz gizle bulanık flu sansür kişi mahremiyet", "ayri" to "reels dikey ayrı video yüz kişi dışa aktar", "ekle" to "kanca dikkat hazır yazı")
             BOLUMLER.forEach { bb ->
                 if (bb.anahtar == "renk") {
                     RENK_GRUPLARI.forEach { g ->
@@ -381,6 +381,19 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
             @Composable fun SabitDuzenle() {
                 val on = bolum == "duzenle"
+                // 4.06: sade görünüm — kutu/çerçeve yok, diğer menülerle aynı boyda; yalnız açıkken vurgu renginde; sabit olduğu ince ayırıcıyla belli
+                if (Duzen.duzenleSade) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.width(54.dp).clip(RoundedCornerShape(10.dp)).clickable { bolum = "duzenle"; panelAcik = true; altMod = true }.padding(vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp)
+                            Spacer(Modifier.height(3.dp))
+                            Text("Düzenle", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                        }
+                        Box(Modifier.padding(start = 2.dp, end = 4.dp).width(1.dp).height(30.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
+                    }
+                    return
+                }
                 Column(Modifier.padding(end = 4.dp).width(62.dp).clip(RoundedCornerShape(11.dp))
                     .background(Renk.turuncu.copy(alpha = if (on) 0.22f else 0.08f)).border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(11.dp))
                     .clickable { bolum = "duzenle"; panelAcik = true; altMod = true }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {

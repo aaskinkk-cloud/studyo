@@ -88,6 +88,7 @@ object Duzen {
         seritGizli = sp.getBoolean("seritGizli", false)
         kontrolUstte = sp.getBoolean("kontrolUstte3", true)   // 3.72: kontroller varsayılan olarak videonun üstünde
         anaStudyo = sp.getBoolean("anaStudyo", true)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan
+        duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
     fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
@@ -102,6 +103,9 @@ object Duzen {
     fun kontrolDegis(ctx: Context) { kontrolUstte = !kontrolUstte; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kontrolUstte3", kontrolUstte).apply() }
     /** 3.85: ana sayfa web Stüdyo görünümünde mi (açık zemin, mavi/turuncu kartlar, alt gezinme). false = önceki ana sayfalar. */
     var anaStudyo by mutableStateOf(true)
+    /** 4.06: sabit Düzenle düğmesi — true: sade (diğer menüler gibi, ayırıcı çizgiyle), false: önceki kutulu, renkli çerçeveli görünüm. */
+    var duzenleSade by mutableStateOf(true)
+    fun duzenleSadeSec(ctx: Context, b: Boolean) { duzenleSade = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("duzenleSade", b).apply() }
     fun anaStudyoSec(ctx: Context, b: Boolean) { anaStudyo = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("anaStudyo", b).apply() }
     /** 3.87: Düzenle menüsü sabit — başka bölümdeyken de Düzenle'nin menüsü altta durur. */
     var duzenleSabit by mutableStateOf(true)

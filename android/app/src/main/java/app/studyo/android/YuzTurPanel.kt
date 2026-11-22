@@ -69,6 +69,7 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         val s = secN.takeIf { it in 0 until n }
         // fotoğraf ilk açıldığında yüzler bir kez aranır (halkalar önizlemede görünsün; durak eklemez)
         LaunchedEffect(k.id) { if (!t.arandi && !ariyor) vm.turYuzleriBul(ekle = false) }
+        LaunchedEffect(k.id) { vm.turSecim.value = null }   // 4.06: başka fotoğrafa geçince seçim kapanır
         LaunchedEffect(k.id, t.vurguTur, t.vurgu, t.noktalar.size) { vm.turSiluetHazirla(k.id) }   // 3.87: silüet ışığı için kişi hattı
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -78,17 +79,39 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             }
             YuvarlakSecim("Önizle", "oynat", Color(TON[1]), false) { if (n > 0) vm.turOnizle() else vm.mesaj.value = "Önce bir durak ekle" }
             YuvarlakSecim("Temizle", "sil", Color(TON[4 % TON.size]), false) { if (n > 0) vm.turTemizle() }
+            // 4.06: bu fotoğrafta yakınlaşmayı tamamen kapat (duraklar + yaklaşma hareketi)
+            YuvarlakSecim("Yakınlaşma yok", "kapat", Renk.kirmizi, n == 0 && !k.kenBurns) { vm.turKapat() }
+        }
+        // 4.06: gruplu duraklar — yan yana 3/4/5 kişiden bir durak (grup kadraja sığar)
+        if (t.bulunan.size > 1 || t.noktalar.count { it.yb > 0f } > 1) {
+            TurBaslik("DURAKLARI GRUPLA")
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(1 to "Tek tek", 2 to "2'li", 3 to "3'lü", 4 to "4'lü", 5 to "5'li").forEach { (g, ad) ->
+                    Text(ad, color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Renk.kart2)
+                        .border(1.dp, Renk.cizgi, RoundedCornerShape(16.dp)).clickable { vm.turGrupla(g) }.padding(horizontal = 14.dp, vertical = 7.dp))
+                }
+            }
         }
         Text(if (n == 0) "Önizlemede yüze ya da yaklaşılacak yere dokun = durak ekle." else
             "Tur: $n durak · ${yuvarla1(YuzTur.toplamSn(t))} sn (klip ${yuvarla1(k.fotoSureMs / 1000f)} sn)",
             color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
 
+        val secim by vm.turSecim.collectAsState()
         if (n > 0) {
             TurBaslik("DURAKLAR · SIRA")
+            // 4.06: seçerek yanaşma — numaralara (burada ya da önizlemede) dokun, yalnız onlar kalsın
+            if (secim == null) Text("Seçerek yanaş (ör. 1, 3, 5, 8)", color = Renk.turuncu, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                .clickable { vm.turSecim.value = emptySet(); vm.turSecili.value = -1 }.padding(vertical = 4.dp))
+            else Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (secim!!.isEmpty()) "Yanaşılacak numaralara dokun" else "Seçili: ${secim!!.sorted().joinToString(", ") { "${it + 1}" }}",
+                    color = Renk.yazi, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Dugme("Vazgeç", renk = Renk.kart2) { vm.turSecim.value = null }
+                Dugme("Yalnız bunlar", renk = Renk.turuncu, yaziRenk = Renk.turuncuM, etkin = secim!!.isNotEmpty()) { vm.turSecilenleriTut() }
+            }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 t.noktalar.forEachIndexed { j, d ->
-                    val on = j == s
-                    Column(Modifier.width(52.dp).clip(RoundedCornerShape(12.dp)).clickable { vm.turSecili.value = if (on) -1 else j }.padding(vertical = 2.dp),
+                    val on = if (secim != null) j in secim!! else j == s
+                    Column(Modifier.width(52.dp).clip(RoundedCornerShape(12.dp)).clickable { if (secim != null) vm.turSecimDegis(j) else vm.turSecili.value = if (on) -1 else j }.padding(vertical = 2.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(Modifier.size(42.dp).clip(CircleShape).background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, CircleShape),
                             contentAlignment = Alignment.Center) {
@@ -208,6 +231,7 @@ private fun TurBaslik(metin: String) {
 fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modifier) {
     val bmp by produceState<android.graphics.Bitmap?>(null, k.uri) { value = withContext(Dispatchers.IO) { YuzTur.onizlemeResmi(k.uri) } }
     val secN by vm.turSecili.collectAsState()
+    val secimK by vm.turSecim.collectAsState()
     val t = k.yuzTur ?: YuzTuru()
     val kSon by rememberUpdatedState(k)
     var boyut by remember { mutableStateOf(IntSize.Zero) }
@@ -231,6 +255,7 @@ fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modi
     Box(modifier.background(Color.Black).onSizeChanged { boyut = it }
         .pointerInput(k.id) { detectTapGestures { e ->
             val j = yakin(e, 24.dp.toPx())
+            if (vm.turSecim.value != null) { if (j != null) vm.turSecimDegis(j); return@detectTapGestures }   // 4.06: seçerek yanaşma
             if (j != null) { vm.turSecili.value = if (vm.turSecili.value == j) -1 else j; return@detectTapGestures }
             fotoya(e)?.let { vm.turNoktaEkle(it.x, it.y) }
         } }
@@ -273,7 +298,7 @@ fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modi
             val r = 13.dp.toPx()
             val yazi = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER; textSize = 13.sp.toPx(); typeface = android.graphics.Typeface.DEFAULT_BOLD }
             noktalar.forEachIndexed { j, n ->
-                val c = ekrana(n.x, n.y); val on = j == secN
+                val c = ekrana(n.x, n.y); val on = secimK?.let { j in it } ?: (j == secN)
                 drawCircle(Color.Black.copy(alpha = 0.35f), r + 3.dp.toPx(), c)
                 drawCircle(if (on) Color.Black else Color.White, r, c)
                 if (on) drawCircle(Color.White, r, c, style = Stroke(2.dp.toPx()))
@@ -286,7 +311,7 @@ fun YuzTuruKatmani(vm: EditorDurum, p: Proje, k: Klip, modifier: Modifier = Modi
                 }
             }
         }
-        Text(if (t.noktalar.isEmpty()) "Yüze ya da yere dokun = durak ekle" else "Dokun = durak ekle · numarayı sürükle = taşı",
+        Text(if (secimK != null) "Yanaşılacak numaralara dokun" else if (t.noktalar.isEmpty()) "Yüze ya da yere dokun = durak ekle" else "Dokun = durak ekle · numarayı sürükle = taşı",
             color = Color.White, fontSize = 11.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 6.dp).clip(RoundedCornerShape(10.dp))
                 .background(Color(0x99000000)).padding(horizontal = 9.dp, vertical = 3.dp))
     }

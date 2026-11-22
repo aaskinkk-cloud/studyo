@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.05 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.06 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.06 (22.11.2026, deneme · `yerel-android` dalı): Yüzler — gruplu duraklar, seçerek yanaşma, yakınlaşma yok; sade Düzenle düğmesi
+- **Duraklarını grupla** (Yüzler): Tek tek · 2'li · 3'lü · 4'lü · 5'li. Yüzler soldan sağa gruplanır; her grup tek durak olur (grubun ortası, grup kadraja sığacak yakınlık). Ör. 15 kişi 5'li → 3 durak.
+- **Seçerek yanaş:** "Seçerek yanaş" → numaralara (durak listesinde ya da önizlemede) dokun → "Yalnız bunlar": yalnız seçilen duraklar kalır (ör. 1, 3, 5, 8). Geri al ile eski hâli.
+- **Yakınlaşma yok:** aktif fotoğrafta durakları siler ve yaklaşma hareketini kapatır (fotoğraf sabit). Otomatik yüz bulma bu fotoğrafa yeniden tur kurmaz.
+- **Sabit Düzenle düğmesi sade:** kutu ve renkli çerçeve kaldırıldı, diğer menülerle aynı ölçüde; yalnız açıkken vurgu renginde, yanında ince ayırıcı. Önceki kutulu görünüm: Yayın › Ayarlar › Menü görünümü.
 
 ## 4.05 (22.11.2026, deneme · `yerel-android` dalı): Yüzler — tümüne uygula ve otomatik yüz bulma
 - **Düzenle › Klip › Yüzler** başlığında ✓✓ (tümüne) ve ✓ (yalnız bu klip). ✓✓: bu fotoğrafın yüz ayarları (bekleme, geçiş, yaklaşma, ışık/çizgi açık-kapalı ve biçimi, isim kutusu, baş/son tamamı, kavis) bütün fotoğraflara kopyalanır; durağı olmayan fotoğraflarda yüzler bulunup numaralanır (gerekirse fotoğraf süresi uzar). Var olan duraklar korunur.

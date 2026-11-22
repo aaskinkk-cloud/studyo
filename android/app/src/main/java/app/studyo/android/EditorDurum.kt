@@ -817,6 +817,51 @@ class EditorDurum(private val ctx: Context, id: String) {
         turSecili.value = -1
     }
 
+    // ---------- 4.06: gruplu duraklar · seçerek yanaşma · yakınlaşmayı kapat ----------
+    /** Yüzleri soldan sağa n'erli gruplara ayırır; her grup tek durak (grubun ortası, grup kadraja sığacak yakınlık). n = 1: her yüz ayrı durak. */
+    fun turGrupla(n: Int) {
+        val k = proje.value.klipler.getOrNull(secili.value)?.takeIf { it.foto } ?: return
+        val yuzler = (k.yuzTur?.bulunan?.takeIf { it.isNotEmpty() } ?: k.yuzTur?.noktalar?.filter { it.yb > 0f }).orEmpty().sortedBy { it.x }
+        if (yuzler.isEmpty()) { mesaj.value = "Önce yüzleri bul"; return }
+        val (scC, hh, H) = turOlcek(k)
+        val (W, _) = Disa.boyut(proje.value.bicim, 1080)
+        val g = (if (k.gen > 0) k.gen else W).toFloat()
+        val duraklar = yuzler.chunked(n.coerceAtLeast(1)).map { grup ->
+            if (grup.size == 1) { val f = grup[0]; f.copy(z = YuzTur.yuzYakinlik(f.yb, hh, scC, H)) }
+            else {
+                val ort = grup.maxOf { it.yb }
+                // yatay: grubun iki ucundaki yüzler (+ yarım baş payı) kadraja sığsın; dikey: en büyük baş kadrajın ~%30'u
+                val gen = (grup.maxOf { it.x } - grup.minOf { it.x }) + ort * (hh / g) * 1.6f
+                val zYatay = W / (g * scC * gen.coerceAtLeast(0.05f))
+                val zDikey = YuzTur.yuzYakinlik(ort, hh, scC, H, 0.30f)
+                OdakNoktasi(grup.map { it.x }.average().toFloat(), grup.map { it.y }.average().toFloat(),
+                    (minOf(zYatay, zDikey)).coerceIn(1f, 6f).let { Math.round(it * 10f) / 10f }, ort)
+            }
+        }
+        turDegis { t -> t.copy(noktalar = duraklar, siluetArandi = false) }
+        turSecim.value = null; turSecili.value = -1
+        mesaj.value = if (n <= 1) "${duraklar.size} yüz tek tek durak oldu" else "${yuzler.size} yüz ${n}'erli gruplandı · ${duraklar.size} durak"
+    }
+
+    /** Seçerek yanaşma: null = kapalı; açıkken numaralara dokunmak seçer. */
+    val turSecim = MutableStateFlow<Set<Int>?>(null)
+    fun turSecimDegis(j: Int) { turSecim.value = turSecim.value?.let { if (j in it) it - j else it + j } }
+    /** Yalnız seçilen duraklar kalır (sıra korunur). Geri al ile geri gelir. */
+    fun turSecilenleriTut() {
+        val sec = turSecim.value ?: return
+        if (sec.isEmpty()) { mesaj.value = "Önce yanaşılacak numaralara dokun"; return }
+        turDegis { t -> t.copy(noktalar = t.noktalar.filterIndexed { j, _ -> j in sec }) }
+        turSecim.value = null; turSecili.value = -1
+        mesaj.value = "Yalnız ${sec.sorted().joinToString(", ") { "${it + 1}" }} numaralara yanaşılacak · geri al ile eski hâli"
+    }
+
+    /** Bu fotoğrafta yakınlaşmayı tamamen kapat: duraklar silinir, yaklaşma hareketi (Ken Burns) kapanır; fotoğraf sabit görünür. */
+    fun turKapat() {
+        klipGuncelle { it.copy(yuzTur = (it.yuzTur ?: YuzTuru()).copy(noktalar = emptyList(), arandi = true), kenBurns = false) }
+        turSecim.value = null; turSecili.value = -1
+        mesaj.value = "Bu fotoğrafta yakınlaşma kapatıldı · geri al ile geri gelir"
+    }
+
     fun turAyar(f: (YuzTuru) -> YuzTuru) = turDegis(true, f)
 
     fun turTemizle() { turDegis(false) { t -> t.copy(noktalar = emptyList()) }; turSecili.value = -1; mesaj.value = "Duraklar temizlendi · geri al ile geri gelir" }

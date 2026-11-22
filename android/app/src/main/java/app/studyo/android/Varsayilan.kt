@@ -20,6 +20,16 @@ object Varsayilan {
         listOf("logo", "Logo", "logo", "Sol üst · %14 · %70 · son kullanılan"),   // 3.55
         listOf("muzik", "Müzik", "nota", "Konuya göre yerleşik müzik"),   // 3.61
     )
+    /** 4.08: maddenin ayarlandığı bölüm (bölüm, alt menü, alt sayfa) — düğmenin altındaki "Ayarla ›" bağlantısı. */
+    val BOLUM = mapOf(
+        "kadraj" to Triple("duzenle", "klip", "kadraj"),
+        "yuz" to Triple("duzenle", "klip", "yuzler"),
+        "giris" to Triple("gorunum", "sablon", "giris"),
+        "abone" to Triple("gorunum", "sablon", "abone"),
+        "kapanis" to Triple("gorunum", "sablon", "kapanis"),
+        "logo" to Triple("yayin", "logo", null),
+        "muzik" to Triple("ses", "muzik", "hazir"),
+    )
     /** Sonradan eklenen maddeler: eski kayıtlı seçime bir kez eklenir (kullanıcı sonra kapatabilir). */
     private val YENI_MADDELER = listOf("logo", "muzik")
     fun secili(ctx: Context): Set<String> {

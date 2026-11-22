@@ -864,7 +864,15 @@ private fun VarsayilanSayfa(vm: EditorDurum) {
                 }
                 Text(m[1], color = if (on) Renk.yazi else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                     textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.padding(top = 5.dp))
-                Text(m[3], color = Renk.soluk.copy(alpha = if (on) 0.9f else 0.5f), fontSize = 9.5.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 3)
+                Text(m[3], color = Renk.soluk.copy(alpha = if (on) 0.9f else 0.5f), fontSize = 9.5.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 3, minLines = 3)
+                // 4.08: ilgili bölüme giden bağlantı (seçimi değiştirmez; açıklamalar 3 satıra sabit → bağlantılar tek hizada)
+                Varsayilan.BOLUM[m[0]]?.let { (b, h, a) ->
+                    Text("Ayarla ›", color = ton, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(8.dp)).clickable {
+                            if (h == "sablon" && a != null) vm.sablonSekme.value = a
+                            vm.gitIstek.value = Triple(b, h, a)
+                        }.padding(horizontal = 8.dp, vertical = 3.dp))
+                }
             }
         }
     }

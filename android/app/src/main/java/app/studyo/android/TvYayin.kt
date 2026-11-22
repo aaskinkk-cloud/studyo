@@ -95,6 +95,20 @@ object TvYayin {
         sirali.flatMap { it.inetAddresses.toList() }.firstOrNull { it is Inet4Address && it.isSiteLocalAddress }?.hostAddress
     }.getOrNull()
 
+    /** 4.08: TV bulunamayınca telefon tarafındaki engeller (Wi-Fi yok, VPN açık) ve telefonun ev ağı adresi. */
+    fun agDurumu(ctx: Context): String = runCatching {
+        val cm = ctx.getSystemService(android.net.ConnectivityManager::class.java)
+        val nc = cm?.getNetworkCapabilities(cm.activeNetwork)
+        val l = ArrayList<String>()
+        if (nc == null) l += "• Telefon bir ağa bağlı görünmüyor."
+        else {
+            if (!nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) l += "• Telefon Wi-Fi'de değil (mobil veri). TV'nin bağlı olduğu Wi-Fi'a bağlan."
+            if (nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) l += "• VPN açık: TV'nin bulunmasını engeller. VPN'i kapatıp yeniden ara."
+        }
+        l += "• Telefonun ağ adresi: ${ip() ?: "yok"}"
+        l.joinToString("\n")
+    }.getOrDefault("")
+
     /** Videoyu yerel ağda yayınlar; TV'nin açacağı adres. */
     @Synchronized
     fun yayinla(ctx: Context, uri: Uri): String? {
@@ -283,6 +297,14 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
     var ozgun by remember { mutableStateOf(ctx.getSharedPreferences("ayar", 0).getBoolean("tvOzgun", false)) }
     var hazirlik by remember { mutableStateOf(-1) }      // -1 = yok, 0…100 = TV kopyası hazırlanıyor
     val kapsam = rememberCoroutineScope()
+    val router = remember { MediaRouter.getInstance(ctx) }
+    // 4.08: yeniden bağlanamama kök nedenleri — (1) MediaRouter'ın etkin taraması ~30 sn sonra kendiliğinden biter, pencere açık kalınca TV
+    // sonradan açılsa bile bulunmaz → bulunana kadar periyodik yeniden tarama; (2) önceki oturumdan seçili kalan TV rotası: zaten seçili rotayı
+    // yeniden seçmek hiçbir şey yapmaz → önce bırakılıp yeniden seçilir; (3) asılı kalan (bağlanmayan) eski oturum kapatılır.
+    var taramaNo by remember { mutableIntStateOf(0) }
+    var aramaSn by remember { mutableIntStateOf(0) }
+    var agNotu by remember { mutableStateOf("") }
+    var baglanan by remember { mutableStateOf<String?>(null) }
     var isGonder by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     fun gonder(s: CastSession, kaynak: Uri) {
@@ -310,36 +332,77 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
         }
     }
 
-    if (cast != null) {
-        val router = remember { MediaRouter.getInstance(ctx) }
-        val secici = remember {
-            cast.mergedSelector ?: MediaRouteSelector.Builder()
-                .addControlCategory(CastMediaControlIntent.categoryForCast(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID)).build()
+    val secici = remember {
+        cast?.mergedSelector ?: MediaRouteSelector.Builder()
+            .addControlCategory(CastMediaControlIntent.categoryForCast(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID)).build()
+    }
+    fun baglan(r: MediaRouter.RouteInfo) {
+        durum = "${r.name} bağlanıyor…"; baglanan = r.id
+        Kayit.yaz("TV: ${r.name} seçildi (önceden seçili: ${r.isSelected})")
+        if (r.isSelected) { router.unselect(MediaRouter.UNSELECT_REASON_STOPPED); kapsam.launch { delay(700); router.selectRoute(r) } }
+        else router.selectRoute(r)
+        kapsam.launch {
+            delay(20_000)
+            if (!bagli && baglanan == r.id) {
+                baglanan = null; router.unselect(MediaRouter.UNSELECT_REASON_STOPPED)
+                durum = "${r.name} yanıt vermedi. TV açık mı? Yeniden dokun."
+                Kayit.yaz("TV: ${r.name} 20 sn'de bağlanmadı")
+            }
         }
+    }
+
+    if (cast != null) {
         DisposableEffect(Unit) {
             TvYayin.dinleyiciKur(cast)
-            fun yenile() { cihazlar = router.routes.filter { !it.isDefault && it.isEnabled && it.matchesSelector(secici) } }
+            val dinle = object : OturumDinleyici() {
+                override fun onSessionStarted(session: CastSession, sessionId: String) { baglanan = null; bagli = true; cihazAdi = session.castDevice?.friendlyName ?: ""; yukle(session) }
+                override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) { baglanan = null; bagli = true; cihazAdi = session.castDevice?.friendlyName ?: "" }
+                override fun onSessionStartFailed(session: CastSession, error: Int) {
+                    baglanan = null; bagli = false; durum = "TV'ye bağlanılamadı (kod $error). Yeniden dokun."; Kayit.yaz("TV: oturum başlamadı, kod $error")
+                }
+                override fun onSessionResumeFailed(session: CastSession, error: Int) { bagli = false; Kayit.yaz("TV: eski oturum sürdürülemedi, kod $error") }
+                override fun onSessionEnded(session: CastSession, error: Int) { bagli = false; yuklendi = false; durum = "Bağlantı kesildi" }
+            }
+            cast.sessionManager.addSessionManagerListener(dinle, CastSession::class.java)
+            onDispose { cast.sessionManager.removeSessionManagerListener(dinle, CastSession::class.java) }
+        }
+        // 4.08: tarama — her taramaNo artışında geri çağrı yeniden kurulur (etkin tarama yeniden başlar)
+        DisposableEffect(taramaNo) {
+            fun yenile() {
+                val yeni = router.routes.filter { !it.isDefault && it.isEnabled && it.matchesSelector(secici) }
+                if (yeni.map { it.id } != cihazlar.map { it.id }) Kayit.yaz("TV: bulunan ${yeni.size} — ${yeni.joinToString { it.name }}")
+                cihazlar = yeni
+            }
             val cb = object : MediaRouter.Callback() {
                 override fun onRouteAdded(r: MediaRouter, route: MediaRouter.RouteInfo) = yenile()
                 override fun onRouteRemoved(r: MediaRouter, route: MediaRouter.RouteInfo) = yenile()
                 override fun onRouteChanged(r: MediaRouter, route: MediaRouter.RouteInfo) = yenile()
             }
-            router.addCallback(secici, cb, MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN)
+            router.addCallback(secici, cb, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY or MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN)
             yenile()
-            val dinle = object : OturumDinleyici() {
-                override fun onSessionStarted(session: CastSession, sessionId: String) { bagli = true; cihazAdi = session.castDevice?.friendlyName ?: ""; yukle(session) }
-                override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) { bagli = true; cihazAdi = session.castDevice?.friendlyName ?: "" }
-                override fun onSessionStartFailed(session: CastSession, error: Int) { bagli = false; durum = "TV'ye bağlanılamadı (kod $error). Yeniden dene." }
-                override fun onSessionEnded(session: CastSession, error: Int) { bagli = false; yuklendi = false; durum = "Bağlantı kesildi" }
-            }
-            cast.sessionManager.addSessionManagerListener(dinle, CastSession::class.java)
-            onDispose {
-                router.removeCallback(cb)
-                cast.sessionManager.removeSessionManagerListener(dinle, CastSession::class.java)
+            onDispose { router.removeCallback(cb) }
+        }
+        // açılış: bağlıysa doğrudan gönder; değilse asılı kalan eski oturumu ve seçili kalmış TV rotasını temizle
+        LaunchedEffect(Unit) {
+            val s = cast.sessionManager.currentCastSession
+            if (s?.isConnected == true) yukle(s)
+            else {
+                if (s != null && !s.isConnecting) { Kayit.yaz("TV: asılı eski oturum kapatıldı"); cast.sessionManager.endCurrentSession(false) }
+                val sr = router.selectedRoute
+                if (!sr.isDefault && sr.matchesSelector(secici)) { Kayit.yaz("TV: seçili kalan rota bırakıldı (${sr.name})"); router.unselect(MediaRouter.UNSELECT_REASON_STOPPED) }
             }
         }
-        // zaten bağlıysa doğrudan gönder
-        LaunchedEffect(Unit) { cast.sessionManager.currentCastSession?.takeIf { it.isConnected }?.let { yukle(it) } }
+        // bulunamadıkça: 15 sn'de bir yeniden tara; 10. sn'de telefon tarafı ağ teşhisi
+        LaunchedEffect(bagli) {
+            aramaSn = 0
+            while (!bagli) {
+                delay(1000); aramaSn++
+                if (cihazlar.isEmpty()) {
+                    if (aramaSn == 10) agNotu = TvYayin.agDurumu(ctx)
+                    if (aramaSn % 15 == 0) taramaNo++
+                }
+            }
+        }
         // TV'deki oynatma durumu
         LaunchedEffect(bagli) {
             while (bagli) {
@@ -384,18 +447,29 @@ fun TvPenceresi(uri: String, ad: String, kapat: () -> Unit) {
             if (!bagli) {
                 Text(durum, color = Renk.soluk, fontSize = 12.5.sp)
                 Spacer(Modifier.height(8.dp))
-                if (cihazlar.isEmpty()) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp)) {
-                    CircularProgressIndicator(Modifier.size(20.dp), color = Renk.turuncu, strokeWidth = 2.dp)
-                    Text("Aynı Wi-Fi'daki Google TV / Chromecast aranıyor…", color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
+                if (cihazlar.isEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp)) {
+                        CircularProgressIndicator(Modifier.size(20.dp), color = Renk.turuncu, strokeWidth = 2.dp)
+                        Text("Aynı Wi-Fi'daki Google TV / Chromecast aranıyor…" + if (aramaSn >= 5) " ${aramaSn} sn" else "",
+                            color = Renk.yazi, fontSize = 13.sp, modifier = Modifier.padding(start = 10.dp))
+                    }
+                    if (aramaSn >= 10) {
+                        Text("TV bulunamadı. Kontrol et:\n• TV açık mı (uykuda değil)?\n• Telefonda Wi-Fi'ı kapatıp aç.\n• Google Home uygulamasında TV görünüyor mu? Orada da yoksa sorun TV'de/modemde (TV'yi ve modemi yeniden başlat)." +
+                            if (agNotu.isNotEmpty()) "\n$agNotu" else "", color = Renk.turuncu, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
+                    TonHap("Yeniden ara", "yinele", false, Renk.turuncu) { aramaSn = 0; agNotu = ""; taramaNo++; durum = "Televizyon yeniden aranıyor…" }
                 }
                 cihazlar.forEach { r ->
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart2)
-                        .clickable { durum = "${r.name} bağlanıyor…"; MediaRouter.getInstance(ctx).selectRoute(r) }.padding(12.dp),
+                        .clickable { baglan(r) }.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Simge("tv", Renk.turuncu, 20.dp)
                         Column(Modifier.padding(start = 10.dp).weight(1f)) {
                             Text(r.name, color = Renk.yazi, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            r.description?.let { Text(it, color = Renk.soluk, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                            if (baglanan == r.id) Text("bağlanıyor…", color = Renk.turuncu, fontSize = 11.5.sp)
+                            else r.description?.let { Text(it, color = Renk.soluk, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         }
                         Simge("oynat", Renk.turuncu, 18.dp)
                     }

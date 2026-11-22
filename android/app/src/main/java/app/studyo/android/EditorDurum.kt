@@ -1566,6 +1566,8 @@ class EditorDurum(private val ctx: Context, id: String) {
     fun girisDegis(f: (Giris) -> Giris) = guncelle { it.copy(giris = f(it.giris)) }
     /** 3.69: Görünüm › Şablon'un açık alt sayfası (klip kartındaki Giriş simgesine çift dokununca "giris" açılır). */
     val sablonSekme = MutableStateFlow("paket")
+    /** 4.08: panellerin içinden başka bölüme gitme isteği (bölüm, alt menü, alt sayfa) — Editor karşılar. */
+    val gitIstek = MutableStateFlow<Triple<String, String, String?>?>(null)
     fun hatirlaticiDegis(f: (Hatirlatici) -> Hatirlatici) = guncelle { it.copy(hatirlatici = f(it.hatirlatici)) }
 
     /** 3.82: logo geçişini aç/kapat. Açarken logo yoksa: köşe logosu, yoksa kütüphanedeki son kullanılan / ilk logo. */

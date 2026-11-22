@@ -172,6 +172,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
         else { haplar[b] = h; if (a != null) AltHafiza.sec(h, a) }
         panelAcik = true; altMod = true
     }
+    // 4.08: panel içi bağlantılar (ör. Varsayılan ayarlar › "Ayarla ›") aynı gezinmeyi kullanır
+    val gitIstekS by vm.gitIstek.collectAsState()
+    LaunchedEffect(gitIstekS) { gitIstekS?.let { (b, h, a) -> vm.gitIstek.value = null; git(b, h, a) } }
     if (aramaAcik) {
         val liste = remember {
             val l = ArrayList<AramaOge>()

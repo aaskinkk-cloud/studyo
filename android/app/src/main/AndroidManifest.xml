@@ -5,6 +5,9 @@
        Doğrulama: https://aaskinkk-cloud.github.io/.well-known/assetlinks.json (okur.jks imzası, değişmedi). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 4.08: TV bulunamayınca ağ teşhisi (Wi-Fi / VPN) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />

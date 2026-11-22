@@ -366,8 +366,14 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 Image(y.bmp.asImageBitmap(), null,
                     Modifier.offset { IntOffset(((x0 + dx) * olcek).roundToInt(), ((y0 + dy) * olcek).roundToInt()) }
                         .size(with(yog) { (y.bmp.width * olcek).toDp() }, with(yog) { (y.bmp.height * olcek).toDp() })
-                        .graphicsLayer { val c = g?.carpan ?: 1f; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) }
-                        .then(if (secili) Modifier.border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(2.dp)) else Modifier))
+                        .graphicsLayer { val c = g?.carpan ?: 1f; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
+                // 4.08: seçili nesnenin çerçevesi — kesikli çizgi, köşelerde büyüt/küçült tutamaçları, ortada taşıma simgesi (parmağı akıcı izler)
+                if (secili) {
+                    val c = g?.carpan ?: 1f
+                    val w = y.bmp.width * olcek * c; val h = y.bmp.height * olcek * c
+                    val cx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val cy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f
+                    NesneCerceve(cx - w / 2f, cy - h / 2f, w, h)
+                }
             }
             p.nesneler.forEach { n ->
                 key(n.id) {
@@ -626,7 +632,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         logoSurukle = (x + d.x / (olcek * RW)).coerceIn(yx, 1f - yx) to (y + d.y / (olcek * RH)).coerceIn(yy, 1f - yy)
                     }
                 })
-            } else if (nesnePaneli && (seciliNesne != null || p.nesneler.any { konum in it.basMs..it.sonMs })) {
+            } else if (nesnePaneli && (seciliNesne != null || p.nesneler.isNotEmpty())) {   // 4.08: nesne varken arka plan hiç kaymaz
                 // 3.72: Düzenle › Nesne: nesneye dokun = seç · sürükle = taşı · iki parmak = büyüt/küçült (Kareden Videoya'daki gibi);
                 // boş yere dokun = seçimi kaldır; arka plan sabit kalır
                 NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
@@ -770,6 +776,29 @@ internal fun sablonGorunur(p: Proje, tur: String, konum: Long): Boolean = when (
     else -> false
 }
 
+/** 4.08: seçili nesnenin çerçevesi (ekran pikseli): kesikli dikdörtgen + 4 köşe tutamacı (sürükle = büyüt/küçült) + ortada taşıma simgesi. */
+@Composable
+private fun NesneCerceve(sol: Float, ust: Float, w: Float, h: Float) {
+    val yog = LocalDensity.current
+    val tut = with(yog) { 9.dp.toPx() }
+    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        val kesik = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 9f), 0f)
+        val tl = Offset(sol, ust); val sz = androidx.compose.ui.geometry.Size(w, h)
+        drawRect(Color(0x99000000), tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.5f, pathEffect = kesik))
+        drawRect(Color.White, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.2f, pathEffect = kesik))
+        listOf(tl, Offset(sol + w, ust), Offset(sol, ust + h), Offset(sol + w, ust + h)).forEach { k ->
+            drawCircle(Color(0x66000000), tut + 2.5f, k)
+            drawCircle(Color.White, tut, k)
+            drawCircle(Renk.turuncu, tut * 0.45f, k)
+        }
+    }
+    val r = with(yog) { 15.dp.toPx() }
+    if (w > r * 3 && h > r * 3) Box(Modifier.offset { IntOffset((sol + w / 2f - r).roundToInt(), (ust + h / 2f - r).roundToInt()) }.size(30.dp)
+        .clip(CircleShape).background(Color(0x99000000)).border(1.dp, Color.White.copy(alpha = 0.7f), CircleShape), contentAlignment = Alignment.Center) {
+        Simge("hareket", Color.White, 16.dp)
+    }
+}
+
 /** 3.72: kesilen nesnenin parmakla geçici dönüşümü (normalleştirilmiş kayma + büyütme çarpanı). */
 internal data class NesneGecici(val id: String, val dx: Float, val dy: Float, val carpan: Float)
 
@@ -792,6 +821,29 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
     Box(Modifier.fillMaxSize().pointerInput(olcek, RW, RH) {
         awaitEachGesture {
             val ilk = awaitFirstDown(requireUnconsumed = false)
+            // 4.08: seçili nesnenin köşe tutamacına basıldıysa tek parmakla büyüt/küçült (merkeze uzaklık oranı)
+            val secN = vm.seciliNesne.value?.let { id -> pG.nesneler.firstOrNull { it.id == id } }?.takeIf { konumG in it.basMs..it.sonMs }
+            val merkez = secN?.let { Offset(it.x * RW * olcek, it.y * RH * olcek) }
+            val koseYakin = with(yog) { 28.dp.toPx() }
+            val kose = secN != null && merkez != null && boyut[secN.id]?.let { (bw, bh) ->
+                val hw = bw * olcek / 2f; val hh = bh * olcek / 2f
+                listOf(Offset(-hw, -hh), Offset(hw, -hh), Offset(-hw, hh), Offset(hw, hh)).any { (merkez + it - ilk.position).getDistance() <= koseYakin }
+            } == true
+            if (kose && secN != null && merkez != null) {
+                val d0 = (ilk.position - merkez).getDistance().coerceAtLeast(1f)
+                ilk.consume()
+                var degisti = false
+                do {
+                    val ev = awaitPointerEvent()
+                    val ch = ev.changes.firstOrNull { it.pressed } ?: break
+                    val c = ((ch.position - merkez).getDistance() / d0).coerceIn(0.1f, 10f)
+                    geciciYaz(NesneGecici(secN.id, 0f, 0f, c)); degisti = true
+                    ev.changes.forEach { it.consume() }
+                } while (ev.changes.any { it.pressed })
+                if (degisti) gecici()?.takeIf { it.id == secN.id }?.let { g -> vm.nesneDegis(secN.id) { n -> n.copy(olcek = (n.olcek * g.carpan).coerceIn(0.02f, 3f)) } }
+                geciciYaz(null)
+                return@awaitEachGesture
+            }
             val vurulan = isabet(ilk.position)
             val hedef = vurulan ?: vm.seciliNesne.value?.takeIf { id -> pG.nesneler.any { it.id == id } }
             var tasindi = false; var topPan = Offset.Zero; var parmak2 = false

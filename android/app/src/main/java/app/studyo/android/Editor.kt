@@ -290,6 +290,25 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa,
                     yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler",
                     gizlePaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "gizle")
+                // 4.08: önizlemedeki klibi silme — sağ üstte ✕; 1. dokunuş kırmızı "Sil?", 2. dokunuş ekrandaki klibi siler (klip şeridinden de; geri al çalışır)
+                val oynuyorS by vm.oynuyor.collectAsState()
+                if (p.klipler.isNotEmpty() && !oynuyorS) {
+                    val siraS by vm.sira.collectAsState()
+                    var onizSilOnay by remember { mutableStateOf(false) }
+                    LaunchedEffect(onizSilOnay, siraS) { if (onizSilOnay) { delay(3000); onizSilOnay = false } }
+                    Row(Modifier.align(Alignment.TopEnd).padding(6.dp).height(28.dp).clip(RoundedCornerShape(14.dp))
+                        .background(if (onizSilOnay) Renk.kirmizi else Color(0x99000000)).border(1.dp, Color(0x40FFFFFF), RoundedCornerShape(14.dp))
+                        .clickable {
+                            if (onizSilOnay) {
+                                onizSilOnay = false
+                                vm.sec(siraS.coerceIn(0, p.klipler.lastIndex)); vm.klipSil()
+                                vm.mesaj.value = "Klip silindi · geri al ile geri gelir"
+                            } else onizSilOnay = true
+                        }.padding(horizontal = if (onizSilOnay) 9.dp else 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Simge("kapat", Color.White, 15.dp)
+                        if (onizSilOnay) Text("Sil?", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
+                    }
+                }
                 if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)

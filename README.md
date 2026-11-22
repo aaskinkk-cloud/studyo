@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.08 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.09 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.09 (22.11.2026, deneme · `yerel-android` dalı): Nesne çerçevesi ve tutamaçlar, önizlemede klip silme
+- **Düzenle › Nesne:** seçili nesnenin çevresinde kesikli çerçeve, 4 köşede büyüt/küçült tutamacı (köşeyi tek parmakla sürükle), ortada taşıma simgesi. Nesneyi sürükle = taşı, iki parmak = büyüt/küçült (önceki gibi). Projede nesne varken arka plan (bulanık zemin dahil) hiç kaymaz. Katman bölümünde de aynı çerçeve.
+- **Önizlemede klip silme:** önizlemenin sağ üstünde ✕ (oynatma duruyorken). 1. dokunuş kırmızı "Sil?", 2. dokunuş (3 sn içinde) ekrandaki klibi siler; klip şeridinden de kalkar, geri al ile geri gelir.
 
 ## 4.08 (22.11.2026, deneme · `yerel-android` dalı): TV'ye yeniden bağlanma, Varsayılan ayarlarda bölüm bağlantıları
 - **Televizyonda izle — yeniden bağlanamama (kök nedenler):** (1) MediaRouter'ın etkin taraması ~30 sn sonra bitiyordu; TV sonradan açılsa da listeye gelmiyordu → TV bulunana kadar 15 sn'de bir yeniden tarama, ayrıca "Yeniden ara" düğmesi. (2) Önceki oturumdan seçili kalan TV rotasına dokunmak hiçbir şey yapmıyordu → pencere açılınca seçili kalan rota bırakılır, dokununca gerekirse bırakılıp yeniden seçilir. (3) Asılı kalan eski oturum kapatılır. 20 sn'de bağlanmazsa uyarı.

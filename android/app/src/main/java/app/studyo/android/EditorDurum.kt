@@ -639,11 +639,15 @@ class EditorDurum(private val ctx: Context, id: String) {
     private fun turDegis(mesajYaz: Boolean = true, f: (YuzTuru) -> YuzTuru) {
         val s = secili.value
         val k0 = proje.value.klipler.getOrNull(s)?.takeIf { it.foto } ?: return
-        val t = f(k0.yuzTur ?: YuzTuru())
+        val eski = k0.yuzTur ?: YuzTuru()
+        val t = f(eski)
         val gerek = (kotlin.math.ceil(YuzTur.toplamSn(t) * 10.0) * 100).toLong()
-        val uzat = t.noktalar.isNotEmpty() && k0.fotoSureMs + 50 < gerek
+        // 4.07 kök neden ("5 durakta 30 sn"): klip yalnız uzatılıyordu, hiç kısalmıyordu; tur klip süresine yayıldığı için durak azalınca
+        // her durak uzuyordu. Artık tur planının süresi değişince (durak sayısı, bekleme, geçiş) klip tam o süreye ayarlanır (kısalır da).
+        val planDegisti = t.noktalar.isNotEmpty() && kotlin.math.abs(YuzTur.toplamSn(t) - YuzTur.toplamSn(eski)) > 0.05f
+        val uzat = t.noktalar.isNotEmpty() && (k0.fotoSureMs + 50 < gerek || (planDegisti && k0.fotoSureMs != gerek))
         klipGuncelle(yapi = uzat) { it.copy(yuzTur = t, kenBurns = if (t.noktalar.isNotEmpty()) true else it.kenBurns, fotoSureMs = if (uzat) gerek else it.fotoSureMs) }
-        if (uzat && mesajYaz) mesaj.value = "Geçişler rahat görünsün diye fotoğraf " + String.format(java.util.Locale("tr"), "%.1f", gerek / 1000f) + " sn'ye uzatıldı"
+        if (uzat && mesajYaz && gerek > k0.fotoSureMs) mesaj.value = "Geçişler rahat görünsün diye fotoğraf " + String.format(java.util.Locale("tr"), "%.1f", gerek / 1000f) + " sn'ye uzatıldı"
     }
 
     /** Fotoğraftaki yüzleri bul; tur boşsa hepsini soldan sağa numaralı durak yap. */
@@ -827,7 +831,9 @@ class EditorDurum(private val ctx: Context, id: String) {
         val (W, _) = Disa.boyut(proje.value.bicim, 1080)
         val g = (if (k.gen > 0) k.gen else W).toFloat()
         val duraklar = yuzler.chunked(n.coerceAtLeast(1)).map { grup ->
-            if (grup.size == 1) { val f = grup[0]; f.copy(z = YuzTur.yuzYakinlik(f.yb, hh, scC, H)) }
+            // 4.07: durakta kalma kişi sayısına göre — 1 kişi 2 sn · 2–3 kişi 3 sn · 4–5 kişi 4 sn (en çok 5)
+            val bek = when (grup.size) { 1 -> 2f; 2, 3 -> 3f; 4, 5 -> 4f; else -> 5f }
+            if (grup.size == 1) { val f = grup[0]; f.copy(z = YuzTur.yuzYakinlik(f.yb, hh, scC, H), bekle = bek) }
             else {
                 val ort = grup.maxOf { it.yb }
                 // yatay: grubun iki ucundaki yüzler (+ yarım baş payı) kadraja sığsın; dikey: en büyük baş kadrajın ~%30'u
@@ -835,7 +841,7 @@ class EditorDurum(private val ctx: Context, id: String) {
                 val zYatay = W / (g * scC * gen.coerceAtLeast(0.05f))
                 val zDikey = YuzTur.yuzYakinlik(ort, hh, scC, H, 0.30f)
                 OdakNoktasi(grup.map { it.x }.average().toFloat(), grup.map { it.y }.average().toFloat(),
-                    (minOf(zYatay, zDikey)).coerceIn(1f, 6f).let { Math.round(it * 10f) / 10f }, ort)
+                    (minOf(zYatay, zDikey)).coerceIn(1f, 6f).let { Math.round(it * 10f) / 10f }, ort, bekle = bek)
             }
         }
         turDegis { t -> t.copy(noktalar = duraklar, siluetArandi = false) }

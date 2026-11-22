@@ -898,6 +898,18 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                         modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC0E151B)).padding(horizontal = 6.dp, vertical = 1.dp))
                     if (sessiz) Box(Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).clip(CircleShape).background(Color(0xB3000000)), contentAlignment = Alignment.Center) { Simge("sessiz", Color(0xFF5DCAA5), 12.dp) }
                 }
+                // 4.07: küçük şeritte (Yüzler vb. sayfalar) seçili klipte ✕ — 1. dokunuş kırmızı "Sil?", 2. dokunuş siler
+                if (kucuk && secili) {
+                    val onay = silOnayId == k.id
+                    LaunchedEffect(onay) { if (onay) { kotlinx.coroutines.delay(3000); if (silOnayId == k.id) silOnayId = null } }
+                    Row(Modifier.align(Alignment.TopEnd).padding(3.dp).height(20.dp).clip(RoundedCornerShape(10.dp))
+                        .background(if (onay) Renk.kirmizi else Color(0xB3000000)).border(1.dp, Color(0x40FFFFFF), RoundedCornerShape(10.dp))
+                        .clickable { if (onay) { silOnayId = null; vm.klipSil(); vm.mesaj.value = "Klip silindi · geri al ile geri gelir" } else silOnayId = k.id }
+                        .padding(horizontal = if (onay) 6.dp else 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Simge("kapat", Color.White, 12.dp)
+                        if (onay) Text("Sil?", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 2.dp))
+                    }
+                }
                 // 3.89 (Ahmet'in isteği): hareket düğmesi her klip resminde (hareket kapalı olsa da) — dokun = klibi seç + yön menüsü
                 if (!(secili && !kucuk)) {
                     var yonMenuK by remember(k.id) { mutableStateOf(false) }

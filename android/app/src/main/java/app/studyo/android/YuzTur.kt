@@ -43,12 +43,14 @@ object YuzTur {
     const val UC = 0.9f
 
     fun gecisSn(t: YuzTuru) = GECIS[t.gecis] ?: 2.2f
+    /** 4.07: durakta kalma — durağın kendi süresi (gruplu duraklar) yoksa turun bekleme süresi. */
+    fun durSn(t: YuzTuru, n: OdakNoktasi) = if (n.bekle > 0f) n.bekle else t.bekleSn
 
     /** Turun rahat görünmesi için gereken en kısa süre (sn). Klip bundan kısaysa uzatılır. */
     fun toplamSn(t: YuzTuru): Float {
         val n = t.noktalar.size; if (n == 0) return 0f
         val uc = (if (t.bastaTumu) 1 else 0) + (if (t.sondaTumu) 1 else 0)
-        return uc * UC + n * t.bekleSn + (n - 1 + uc) * gecisSn(t)
+        return uc * UC + t.noktalar.sumOf { durSn(t, it).toDouble() }.toFloat() + (n - 1 + uc) * gecisSn(t)
     }
 
     /** Yüze göre yakınlık: baş kadraj yüksekliğinin `hedef` payı olsun (3.76 varsayılanı %55 — yalnız o kişi kadrajda; önce %32 idi,
@@ -69,7 +71,7 @@ object YuzTur {
         val M = gecisSn(t)
         val seq = ArrayList<Durak>()
         if (t.bastaTumu) seq += Durak(tx, ty, tz, UC, 0.015f, 0.5f)
-        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 6f), t.bekleSn, t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
+        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 6f), durSn(t, n), t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
         if (t.sondaTumu) seq += Durak(tx, ty, tz, UC, 0f, 0.5f)
         if (seq.size == 1) { val a = seq[0]; val q = (sn / max(0.3f, D)).coerceIn(0f, 1f); return Kamera(a.x, a.y, a.z * (1f + a.p * kos(q)), a.ay) }
         val top = toplamSn(t).coerceAtLeast(0.1f)
@@ -102,7 +104,7 @@ object YuzTur {
         val M = gecisSn(t)
         val sira = ArrayList<Pair<Int, Float>>()     // (durak; -1 = tam görünüm, süre)
         if (t.bastaTumu) sira += -1 to UC
-        repeat(n) { sira += it to t.bekleSn }
+        repeat(n) { sira += it to durSn(t, t.noktalar[it]) }
         if (t.sondaTumu) sira += -1 to UC
         var s = (sn / max(0.3f, D)).coerceIn(0f, 1f) * toplamSn(t).coerceAtLeast(0.1f)
         for (j in sira.indices) {

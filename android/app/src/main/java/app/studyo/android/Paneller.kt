@@ -1514,8 +1514,8 @@ fun PanelKapak(vm: EditorDurum, p: Proje, alt: String? = null) {
 
 /** 3.58: Geçişler panelindeki gibi yuvarlak simgeli seçim (seçili/açık = beyaz halka + ✓). */
 @Composable
-internal fun YuvarlakSecim(ad: String, simge: String, ton: Color, on: Boolean, tik: () -> Unit) {
-    Column(Modifier.width(84.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = tik).padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+internal fun YuvarlakSecim(ad: String, simge: String, ton: Color, on: Boolean, modifier: Modifier = Modifier.width(84.dp), tik: () -> Unit) {
+    Column(modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = tik).padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(56.dp)) {
             Box(Modifier.fillMaxSize().clip(CircleShape).background(if (on) Color.Transparent else Renk.kart2)
                 .border(if (on) 2.5.dp else 0.dp, if (on) Renk.yazi else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) { Simge(simge, Renk.tonla(ton), 26.dp) }

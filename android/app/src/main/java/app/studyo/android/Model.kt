@@ -98,7 +98,9 @@ data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: 
     /** 3.76: kişinin adı (isim kutusunda görünür; boş = kutu yok) */
     val ad: String = "",
     /** 3.87: kişinin silüet hattı (fotoğrafa göre 0…1, x,y sırayla; soldan sağa). Boş = bulunmadı (ince çizgi kullanılır). */
-    val siluet: List<Float> = emptyList())
+    val siluet: List<Float> = emptyList(),
+    /** 4.07: bu durakta kalma (sn); 0 = turun bekleme süresi. Gruplu duraklarda kişi sayısına göre 2–4 sn. */
+    val bekle: Float = 0f)
 
 /** 3.74: yüz turu ayarları (web Kareden Videoya "Odak" sisteminin gelişmiş hâli; karartma/bulanıklık yok).
  *  bekleSn: her durakta kalma · gecis: yavas | orta | hizli (duraklar arası süre) · yaklas: durakta kalırken ek yavaş yaklaşma (0 = yok)

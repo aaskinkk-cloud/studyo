@@ -72,15 +72,17 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         LaunchedEffect(k.id) { vm.turSecim.value = null }   // 4.06: başka fotoğrafa geçince seçim kapanır
         LaunchedEffect(k.id, t.vurguTur, t.vurgu, t.noktalar.size) { vm.turSiluetHazirla(k.id) }   // 3.87: silüet ışığı için kişi hattı
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            YuvarlakSecim(if (ariyor) "Aranıyor…" else "Yüzleri bul", "yuz", Color(TON[2]), false) {
+        // 4.07: dört düğme tek satıra eşit genişlikte sığar (önce sabit 84 dp → dördüncü taşıyordu)
+        Row(Modifier.fillMaxWidth()) {
+            val m = Modifier.weight(1f)
+            YuvarlakSecim(if (ariyor) "Aranıyor…" else "Yüzleri bul", "yuz", Color(TON[2]), false, m) {
                 if (n == 0) vm.turYuzleriBul(ekle = true)
                 else { vm.turTemizle(); vm.turYuzleriBul(ekle = true) }
             }
-            YuvarlakSecim("Önizle", "oynat", Color(TON[1]), false) { if (n > 0) vm.turOnizle() else vm.mesaj.value = "Önce bir durak ekle" }
-            YuvarlakSecim("Temizle", "sil", Color(TON[4 % TON.size]), false) { if (n > 0) vm.turTemizle() }
+            YuvarlakSecim("Önizle", "oynat", Color(TON[1]), false, m) { if (n > 0) vm.turOnizle() else vm.mesaj.value = "Önce bir durak ekle" }
+            YuvarlakSecim("Temizle", "sil", Color(TON[4 % TON.size]), false, m) { if (n > 0) vm.turTemizle() }
             // 4.06: bu fotoğrafta yakınlaşmayı tamamen kapat (duraklar + yaklaşma hareketi)
-            YuvarlakSecim("Yakınlaşma yok", "kapat", Renk.kirmizi, n == 0 && !k.kenBurns) { vm.turKapat() }
+            YuvarlakSecim("Yakınlaşma yok", "kapat", Renk.kirmizi, n == 0 && !k.kenBurns, m) { vm.turKapat() }
         }
         // 4.06: gruplu duraklar — yan yana 3/4/5 kişiden bir durak (grup kadraja sığar)
         if (t.bulunan.size > 1 || t.noktalar.count { it.yb > 0f } > 1) {
@@ -162,7 +164,7 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             TurBaslik("AKIŞ")
             var bek by remember(k.id, t.bekleSn) { mutableFloatStateOf(t.bekleSn) }
             Etiketli("Her durakta kalma", "${yuvarla1(bek)} sn")
-            InceSlider(bek, { bek = it }, valueRange = 1.5f..6f, onValueChangeFinished = { vm.turAyar { it.copy(bekleSn = (bek * 10).roundToInt() / 10f) } })
+            InceSlider(bek, { bek = it }, valueRange = 1.5f..6f, onValueChangeFinished = { vm.turAyar { it.copy(bekleSn = (bek * 10).roundToInt() / 10f, noktalar = it.noktalar.map { d -> d.copy(bekle = 0f) }) } })
             Text("Geçiş", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 YuzTur.GECIS.keys.forEachIndexed { j, g ->

@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.06 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.07 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.07 (22.11.2026, deneme · `yerel-android` dalı): Yüzler düğme satırı, durak süreleri, küçük şeritte klip silme
+- Yüzler düğmeleri (Yüzleri bul · Önizle · Temizle · Yakınlaşma yok) tek satıra eşit genişlikte sığar (`YuvarlakSecim` modifier alır).
+- **Durak süreleri (kök neden):** klip yalnız uzatılıyor, hiç kısalmıyordu; tur klip süresine yayıldığı için durak azalınca her durak uzuyordu. Artık tur planı değişince klip tam plan süresine ayarlanır (kısalır da).
+- **Gruplu duraklarda kalma süresi kişi sayısına göre:** 1 kişi 2 sn · 2–3 kişi 3 sn · 4–5 kişi 4 sn (en çok 5). `OdakNoktasi.bekle` (0 = turun bekleme süresi); bekleme kaydırıcısı oynatılınca duraklar yine ortak süreye döner. Geçiş süresi ayrıca eklenir (Yavaş 2,2 · Orta 1,4 · Hızlı 0,85 sn).
+- **Küçük şeritte klip silme:** seçili klibin sağ üstünde ✕ — 1. dokunuş kırmızı "Sil?", 2. dokunuş siler (3 sn içinde; geri al ile geri gelir).
 
 ## 4.06 (22.11.2026, deneme · `yerel-android` dalı): Yüzler — gruplu duraklar, seçerek yanaşma, yakınlaşma yok; sade Düzenle düğmesi
 - **Duraklarını grupla** (Yüzler): Tek tek · 2'li · 3'lü · 4'lü · 5'li. Yüzler soldan sağa gruplanır; her grup tek durak olur (grubun ortası, grup kadraja sığacak yakınlık). Ör. 15 kişi 5'li → 3 durak.

@@ -232,7 +232,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             ) {
                 // 3.63: siyah-beyaz temada VITA dizilişi: ← simge · ad · Kaydet · beyaz Dışa aktar; geri al/yinele oynatıcı satırında
                 if (Renk.sb) Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 20.dp) }
-                else InceDugme("← Geri", Renk.yazi, onClick = cik)
+                else Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.soluk, 20.dp) }   // 4.28: yalnız simge
                 var adMenu by remember { mutableStateOf(false) }
                 var adDuzen by remember { mutableStateOf(false) }
                 Box(Modifier.weight(1f)) {
@@ -254,6 +254,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
                 // 3.75: ekran sürekli açık (düzenlerken ekran kararmasın) — dokun = aç/kapat, seçim hatırlanır
                 EkranAcikDugmesi(vm)
+                // 4.28: arama ve Ayarlar sistem satırında — küçük, soluk simgeler
+                Box(Modifier.size(32.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk.copy(alpha = 0.75f), 18.dp) }
+                Box(Modifier.size(32.dp).clip(CircleShape).clickable { git("yayin", "ayarlar", null) }, contentAlignment = Alignment.Center) {
+                    Simge("menu", if (bolum == "yayin" && haplar["yayin"] == "ayarlar" && panelAcik) Renk.turuncu else Renk.soluk.copy(alpha = 0.75f), 18.dp) }
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
                 if (!Renk.sb) {   // 3.72: siyah-beyaz temada geri al/yinele oynatıcı satırında (videonun üstünde ya da altında)
                 val ub = if (Renk.sb) 30.dp else 34.dp; val us = if (Renk.sb) 17.dp else 18.dp
@@ -472,12 +476,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     Text("Düzenle", color = Renk.turuncu, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
                 }
             }
-            @Composable fun SabitArama() {
-                if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
-                // 4.25: Ayarlar (tema rengi, menü boyutu/görünümü, oynatıcı…) her zaman bir dokunuşta — Yayın menüsü yana kaydırınca görünüyordu
-                Box(Modifier.size(40.dp).clip(CircleShape).clickable { git("yayin", "ayarlar", null) }, contentAlignment = Alignment.Center) {
-                    Simge("menu", if (bolum == "yayin" && haplar["yayin"] == "ayarlar" && panelAcik) Renk.turuncu else Renk.soluk, 20.dp) }
-            }
+            @Composable fun SabitArama() { }   // 4.28: arama ve Ayarlar üstteki sistem satırına taşındı
             if (altMod && panelAcik && !yeniAlt) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
                 // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
@@ -1942,13 +1941,13 @@ private fun EkranAcikDugmesi(vm: EditorDurum) {
     var acik by remember { mutableStateOf(ctx.getSharedPreferences("ayar", 0).getBoolean("ekranAcik", false)) }
     DisposableEffect(acik) { gorunum.keepScreenOn = acik; onDispose { gorunum.keepScreenOn = false } }
     // 3.77: düğme görünümü yok — yalnız simge + yazı; açıkken hafif beyaz, kapalıyken gri (temaya göre)
-    val renk = if (acik) Renk.yazi.copy(alpha = 0.88f) else Renk.soluk.copy(alpha = 0.6f)
+    val renk = if (acik) Renk.soluk else Renk.soluk.copy(alpha = 0.45f)
     Row(Modifier.clip(RoundedCornerShape(8.dp)).clickable {
             acik = !acik
             ctx.getSharedPreferences("ayar", 0).edit().putBoolean("ekranAcik", acik).apply()
             vm.mesaj.value = if (acik) "Ekran sürekli açık" else "Ekran normal (kendiliğinden kararır)"
         }.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Ekran açık", color = renk, fontSize = 11.5.sp, maxLines = 1)   // 4.21: simge kaldırıldı
+        Simge("ekran_acik", renk, 17.dp)   // 4.28: yalnız simge, soluk (açıkken biraz daha belirgin)
     }
     Spacer(Modifier.width(2.dp))
 }

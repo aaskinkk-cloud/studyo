@@ -408,7 +408,7 @@ object Disa {
             ap += if (kis.isNotEmpty()) ZarfIsleyici(o.ses, MUZIK_KIS, kis, bas * 1000) else sesIsleyici(o.ses)
             val b = EditedMediaItemSequence.Builder(listOf<EditedMediaItem>()).experimentalSetForceAudioTrack(true)
             if (bas > 0) b.addGap(bas * 1000)
-            b.addItem(EditedMediaItem.Builder(mi).setRemoveVideo(true).sureli(ctx, onizleme, o.yol, o.kaynakSureMs, kaynakSon)   // 4.17: videodan ayrılan ses de.setEffects(Effects(ap, listOf<Effect>())).build())
+            b.addItem(EditedMediaItem.Builder(mi).setRemoveVideo(true).sureli(ctx, onizleme, o.yol, o.kaynakSureMs, kaynakSon).setEffects(Effects(ap, listOf<Effect>())).build())
             diziler += b.sonaKadar(bas + ((kaynakSon - o.kaynakBasMs) / hiz).toLong()).build()
             Kayit.yaz("  Ses katmanı: ${o.ad} ${bas}-${son} ms, hız=$hiz, ses=${o.ses}")
         }

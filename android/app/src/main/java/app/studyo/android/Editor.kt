@@ -1945,7 +1945,7 @@ private fun EkranAcikDugmesi(vm: EditorDurum) {
             ctx.getSharedPreferences("ayar", 0).edit().putBoolean("ekranAcik", acik).apply()
             vm.mesaj.value = if (acik) "Ekran sürekli açık" else "Ekran normal (kendiliğinden kararır)"
         }.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Ekran açık",   // 4.21: simge kaldırıldı (yalnız yazı) color = renk, fontSize = 11.5.sp, maxLines = 1)
+        Text("Ekran açık", color = renk, fontSize = 11.5.sp, maxLines = 1)   // 4.21: simge kaldırıldı
     }
     Spacer(Modifier.width(2.dp))
 }

@@ -88,9 +88,15 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
         if (t.bulunan.size > 1 || t.noktalar.count { it.yb > 0f } > 1) {
             TurBaslik("DURAKLARI GRUPLA")
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(1 to "Tek tek", 2 to "2'li", 3 to "3'lü", 4 to "4'lü", 5 to "5'li").forEach { (g, ad) ->
+                // 4.27: Otomatik (kişi sayısına göre) + sabit gruplar; ✓✓ = son seçimi bütün fotoğraflara uygula
+                var son by remember { mutableIntStateOf(0) }
+                listOf(0 to "Otomatik", 1 to "Tek tek", 2 to "2'li", 3 to "3'lü", 4 to "4'lü", 5 to "5'li").forEach { (g, ad) ->
                     Text(ad, color = Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Renk.kart2)
-                        .border(1.dp, Renk.cizgi, RoundedCornerShape(16.dp)).clickable { vm.turGrupla(g) }.padding(horizontal = 14.dp, vertical = 7.dp))
+                        .border(1.dp, if (son == g) Renk.turuncu else Renk.cizgi, RoundedCornerShape(16.dp)).clickable { son = g; vm.turGrupla(g) }.padding(horizontal = 14.dp, vertical = 7.dp))
+                }
+                Row(Modifier.clip(RoundedCornerShape(16.dp)).background(Renk.turuncu.copy(alpha = 0.15f)).clickable { vm.turGruplaHepsi(son) }
+                    .padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Simge("cift", Renk.turuncu, 15.dp); Text(" Tümüne", color = Renk.turuncu, fontSize = 12.5.sp)
                 }
             }
         }

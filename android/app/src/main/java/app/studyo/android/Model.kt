@@ -95,6 +95,8 @@ data class Klip(
  *  yb: yüz yüksekliği (fotoğraf yüksekliğinin oranı; 0 = elle seçilen nokta, yüz değil). */
 @Serializable
 data class OdakNoktasi(val x: Float, val y: Float, val z: Float = 1.8f, val yb: Float = 0f,
+    /** 4.27: bu durakta aynı anda gösterilen kişi sayısı (>1 = grup: kadraja hepsi sığar, durakta ek yaklaşma yapılmaz). */
+    val grup: Int = 1,
     /** 3.76: kişinin adı (isim kutusunda görünür; boş = kutu yok) */
     val ad: String = "",
     /** 3.87: kişinin silüet hattı (fotoğrafa göre 0…1, x,y sırayla; soldan sağa). Boş = bulunmadı (ince çizgi kullanılır). */

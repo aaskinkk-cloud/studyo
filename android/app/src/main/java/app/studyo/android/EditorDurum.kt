@@ -907,16 +907,32 @@ class EditorDurum(private val ctx: Context, id: String) {
 
     // ---------- 4.06: gruplu duraklar · seçerek yanaşma · yakınlaşmayı kapat ----------
     /** Yüzleri soldan sağa n'erli gruplara ayırır; her grup tek durak (grubun ortası, grup kadraja sığacak yakınlık). n = 1: her yüz ayrı durak. */
+    /** 4.27: otomatik gruplama (Ahmet'in kuralı): 1–3 kişi tek durak · 4 → 2+2 · 5 → 3+2 · 6 → 3+3 · 7 → 3+4 · 8 → 3+3+2 · sonrası üçer,
+     *  artan 1 kişi son gruba katılır, artan 2 kişi ayrı durak olur. */
+    private fun otoGruplar(n: Int): List<Int> = when {
+        n <= 3 -> listOf(n); n == 4 -> listOf(2, 2)
+        else -> { val l = MutableList(n / 3) { 3 }; when (n % 3) { 1 -> l[l.lastIndex] = 4; 2 -> l += 2 }; l }
+    }
+    /** 4.27: hepsi = ekranda olmayan bütün fotoğraflara da (yüzleri bulunmuş olanlara) uygular. n = 0: otomatik. */
+    fun turGruplaHepsi(n: Int) {
+        val s0 = secili.value
+        val l = proje.value.klipler.indices.filter { j -> proje.value.klipler[j].let { it.foto && (it.yuzTur?.bulunan?.size ?: 0) + (it.yuzTur?.noktalar?.count { n -> n.yb > 0f } ?: 0) > 0 } }
+        l.forEach { j -> secili.value = j; turGrupla(n) }
+        secili.value = s0
+        mesaj.value = "${l.size} fotoğrafa uygulandı"
+    }
     fun turGrupla(n: Int) {
         val k = proje.value.klipler.getOrNull(secili.value)?.takeIf { it.foto } ?: return
-        val yuzler = (k.yuzTur?.bulunan?.takeIf { it.isNotEmpty() } ?: k.yuzTur?.noktalar?.filter { it.yb > 0f }).orEmpty().sortedBy { it.x }
+        // 4.27: önceki gruplamada noktalar grup durağına dönüştüğü için yüzler her zaman bulunanlardan (yoksa tekil yüz duraklarından) alınır
+        val yuzler = (k.yuzTur?.bulunan?.takeIf { it.isNotEmpty() } ?: k.yuzTur?.noktalar?.filter { it.yb > 0f && it.grup <= 1 }).orEmpty().sortedBy { it.x }
         if (yuzler.isEmpty()) { mesaj.value = "Önce yüzleri bul"; return }
         val (scC, hh, H) = turOlcek(k)
         val (W, _) = Disa.boyut(proje.value.bicim, 1080)
         val g = (if (k.gen > 0) k.gen else W).toFloat()
-        val duraklar = yuzler.chunked(n.coerceAtLeast(1)).map { grup ->
-            // 4.07: durakta kalma kişi sayısına göre — 1 kişi 2 sn · 2–3 kişi 3 sn · 4–5 kişi 4 sn (en çok 5)
-            val bek = when (grup.size) { 1 -> 2f; 2, 3 -> 3f; 4, 5 -> 4f; else -> 5f }
+        val parcalar = if (n <= 0) { var i = 0; otoGruplar(yuzler.size).map { b -> yuzler.subList(i, i + b).also { i += b } } } else yuzler.chunked(n)
+        val duraklar = parcalar.map { grup ->
+            // 4.27: tek kişi 2 sn, grup 3 sn (hepsi aynı anda görünür)
+            val bek = if (grup.size == 1) 2f else 3f
             if (grup.size == 1) { val f = grup[0]; f.copy(z = YuzTur.yuzYakinlik(f.yb, hh, scC, H), bekle = bek) }
             else {
                 val ort = grup.maxOf { it.yb }
@@ -924,13 +940,15 @@ class EditorDurum(private val ctx: Context, id: String) {
                 val gen = (grup.maxOf { it.x } - grup.minOf { it.x }) + ort * (hh / g) * 1.6f
                 val zYatay = W / (g * scC * gen.coerceAtLeast(0.05f))
                 val zDikey = YuzTur.yuzYakinlik(ort, hh, scC, H, 0.30f)
+                // 4.27 KÖK NEDEN ("grupta yine tek tek yaklaşıyor"): grup durağında da tur sonunda ek yaklaşma (yaklaş) uygulanıyor ve sığdırma payı darken
+                // uçtaki yüzler kadraj dışına düşüyordu. Artık grup durağı %15 pay ile sığar ve ek yaklaşma yapılmaz (grup = kişi sayısı).
                 OdakNoktasi(grup.map { it.x }.average().toFloat(), grup.map { it.y }.average().toFloat(),
-                    (minOf(zYatay, zDikey)).coerceIn(1f, 6f).let { Math.round(it * 10f) / 10f }, ort, bekle = bek)
+                    (minOf(zYatay, zDikey) * 0.85f).coerceIn(1f, 6f).let { Math.round(it * 10f) / 10f }, ort, bekle = bek, grup = grup.size)
             }
         }
         turDegis { t -> t.copy(noktalar = duraklar, siluetArandi = false) }
         turSecim.value = null; turSecili.value = -1
-        mesaj.value = if (n <= 1) "${duraklar.size} yüz tek tek durak oldu" else "${yuzler.size} yüz ${n}'erli gruplandı · ${duraklar.size} durak"
+        mesaj.value = if (n == 1) "${duraklar.size} yüz tek tek durak oldu" else "${yuzler.size} yüz ${if (n <= 0) "otomatik" else "${n}'erli"} gruplandı · ${duraklar.size} durak"
     }
 
     /** Seçerek yanaşma: null = kapalı; açıkken numaralara dokunmak seçer. */

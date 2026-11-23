@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.26 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.27 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.27 (23.11.2026, deneme · `yerel-android` dalı): gruplu duraklar gerçekten grup
+- **Kök neden:** grup durağında da turun ek yaklaşması uygulanıyor, sığdırma payı dar olduğu için uçtaki yüzler kadraj dışına düşüyordu (tek tek yaklaşıyor gibi). Grup durağı artık %15 payla sığar, ek yaklaşma yok (`OdakNoktasi.grup`); grupta 3 sn, tek kişide 2 sn.
+- **Otomatik gruplama:** 1–3 kişi tek durak · 4 → 2+2 · 5 → 3+2 · 6 → 3+3 · 7 → 3+4 · 8 → 3+3+2 · sonrası üçer (artan 1 son gruba, artan 2 ayrı durak).
+- **Tümüne (✓✓):** son seçilen gruplama yüzleri bulunmuş bütün fotoğraflara uygulanır. Var olan ayarlar değişmez; yalnız düğmeye basınca uygulanır.
 
 ## 4.26 (23.11.2026, deneme · `yerel-android` dalı): tema rengi her temada, ana sayfa kartları
 - **Tema rengi (kök neden):** seçilen renk yalnız InShot temasında kullanılıyordu; diğer temalarda tıklamak hiçbir şey değiştirmiyordu. Artık her temada geçerli (menüler, onay işaretleri, oynatıcı, çerçeveler); "Tema" seçeneği temanın kendi rengine döndürür.

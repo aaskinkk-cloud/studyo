@@ -71,7 +71,7 @@ object YuzTur {
         val M = gecisSn(t)
         val seq = ArrayList<Durak>()
         if (t.bastaTumu) seq += Durak(tx, ty, tz, UC, 0.015f, 0.5f)
-        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 6f), durSn(t, n), t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
+        t.noktalar.forEach { n -> seq += Durak(n.x, n.y, n.z.coerceIn(1f, 6f), durSn(t, n), if (n.grup > 1) 0f else t.yaklas, if (n.yb > 0f) 0.44f else 0.5f) }
         if (t.sondaTumu) seq += Durak(tx, ty, tz, UC, 0f, 0.5f)
         if (seq.size == 1) { val a = seq[0]; val q = (sn / max(0.3f, D)).coerceIn(0f, 1f); return Kamera(a.x, a.y, a.z * (1f + a.p * kos(q)), a.ay) }
         val top = toplamSn(t).coerceAtLeast(0.1f)

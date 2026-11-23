@@ -117,7 +117,7 @@ private fun AyarKutusu(geriYukle: () -> Unit) {
                 }
             }
             Satir("kapak", "Stüdyo ana sayfası (açık, mavi-turuncu)") { Duzen.anaStudyoSec(ctx, true) }
-            Satir("menu", if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)") { Duzen.degistir(ctx) }
+            Satir("menu", if (Duzen.menuStil == "renkli") "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı renkli") { Duzen.degistir(ctx) }
             Satir("yukle", "Yedekten geri yükle", "ayarlar · logolar", geriYukle)
             Satir("pil", "Pil kısıtlamasını kaldır") { pilAyari(ctx) }
             Satir("degistir", "Hata kaydını paylaş") { kayitPaylas(ctx) }

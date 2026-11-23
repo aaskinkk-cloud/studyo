@@ -400,7 +400,7 @@ private fun AyarSekme(geriYukle: () -> Unit) {
                 }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(AS.cizgi))
                 Satir("Ana sayfa görünümü", "Önceki görünüme dön (geri gelmek için oradaki menü/Ayarlar)", tik = { Duzen.anaStudyoSec(ctx, false) }) { WSimge("ok", AS.soluk, 20.dp) }
-                Satir(if (Duzen.yaziliMenu) "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı (önceki)", tik = { Duzen.degistir(ctx) })
+                Satir(if (Duzen.menuStil == "renkli") "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı renkli", tik = { Duzen.degistir(ctx) })
                 Satir("Yedekten geri yükle", "Ayarlar ve logolar", tik = geriYukle)
                 Satir("Pil kısıtlamasını kaldır", tik = { pilAyari(ctx) })
                 Satir("Hata kaydını paylaş", tik = { kayitPaylas(ctx) })

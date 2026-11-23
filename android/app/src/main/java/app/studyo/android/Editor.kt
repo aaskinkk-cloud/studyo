@@ -415,14 +415,16 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
             }
             // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
-            if (panelAcik && !Duzen.yaziliMenu) {
+            // 4.15: yeni düzende ayrı satır yok — çipler alt menü satırında seçili alt menünün hemen yanında (tek satır, sağa kayar)
+            val yeniAlt = Duzen.altUstte && !Duzen.yaziliMenu
+            val cipVeri: CipVeri? = if (panelAcik && !Duzen.yaziliMenu && misafir == null) {
                 if (bolum == "renk") {
                     val g = renkGrubu(renkSekmeS)
                     if (g.sayfalar.size > 1) {
                         val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
-                        AltSayfaCipleri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
-                            renkSekmeS, { renkSekmeDegisti(ra, it) }) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
-                    }
+                        CipVeri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
+                            renkSekmeS, { renkSekmeDegisti(ra, it) }, emptyList()) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
+                    } else null
                 } else {
                     val h = haplar[bolum] ?: ""
                     // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
@@ -432,9 +434,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         Triple("Logo", "logo") { git("yayin", "logo", null) },
                         Triple("Müzik", "nota") { git("ses", "muzik", "hazir") },
                     ) else emptyList()
-                    if (misafir == null) ALT_SAYFALAR[h]?.let { altListe -> AltSayfaCipleri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
+                    ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
                 }
-            }
+            } else null
+            if (!yeniAlt) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
             @Composable fun SabitDuzenle() {
                 val on = bolum == "duzenle"
@@ -461,7 +464,6 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             @Composable fun SabitArama() {
                 if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
             }
-            val yeniAlt = Duzen.altUstte && !Duzen.yaziliMenu   // 4.14
             if (altMod && panelAcik && !yeniAlt) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
                 // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
@@ -503,7 +505,13 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         }
                         Box(Modifier.padding(horizontal = 6.dp).width(1.dp).height(22.dp).background(Renk.cizgi))
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)) { altlar.forEach { AltKucuk(it) } }
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            altlar.forEach { a ->
+                                AltKucuk(a)
+                                // 4.15: seçili alt menünün sayfaları hemen yanında, ince bir grup içinde (tek satır)
+                                if (a.secili) cipVeri?.let { c -> SatirCipleri(c) }
+                            }
+                        }
                     }
                 }
                 // ana bölümler (yana kayar); dokununca alt menü modu açılır
@@ -1784,6 +1792,28 @@ fun PanelYazi(vm: EditorDurum, k: Klip) {
 
 /** 3.61: alt menü düğmesi (ana menü satırında ya da onun üstünde): renkli çizim simge + küçük yazı, seçiliyse nokta, ayar değiştiyse ✓. */
 class AltOge(val ad: String, val simge: String, val renk: Color, val secili: Boolean, val isaret: Boolean, val tik: () -> Unit)
+
+/** 4.15: alt menü satırındaki sayfa çipleri verisi. */
+private class CipVeri(val liste: List<AltSayfa>, val secili: String, val isaret: (String) -> Boolean, val bag: List<Triple<String, String, () -> Unit>>, val sec: (String) -> Unit)
+
+/** 4.15: seçili alt menünün sayfaları — hafif zeminli tek grup, içinde küçük çipler; sonra varsa bağlantılar (ad ›). */
+@Composable
+private fun SatirCipleri(c: CipVeri) {
+    Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        c.liste.forEach { a ->
+            val on = a.anahtar == c.secili
+            Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(if (on) Renk.yazi else Color.Transparent).clickable { c.sec(a.anahtar) }
+                .padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
+                Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+                    modifier = Modifier.padding(start = 4.dp))
+                if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
+            }
+        }
+    }
+    c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) }
+}
 
 /** 4.14: üstteki küçük alt menü satırının düğmesi — simge + ad yan yana; seçili = tema renginde çerçeve ve yazı. */
 @Composable

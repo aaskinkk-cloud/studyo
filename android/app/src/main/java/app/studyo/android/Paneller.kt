@@ -1738,6 +1738,7 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
         }
     }
     if (alt == "kesilen" && p.nesneler.isEmpty()) Not("Henüz kesilen nesne yok. Fotoğraftan ya da Videodan sayfasında kes.")
+    if ((alt == null || alt == "kesilen") && p.nesneler.isNotEmpty() && !Duzen.kesilenEski) { KesilenlerSayfasi(vm, p, secili); return }
     if ((alt == null || alt == "kesilen") && p.nesneler.isNotEmpty()) Kart("Katmanlar (${p.nesneler.size})") {
         p.nesneler.forEach { n -> key(n.id) {
             val on = n.id == secili
@@ -1775,6 +1776,66 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
     }
 }
 
+
+/** 4.15: Kesilenler yeni görünüm — üstte nesne kutucukları (yana kayar, seçili = tema renginde çerçeve), altta seçili nesnenin
+ *  düzenli ayarları: süre satırı (baş · son · klip boyunca), boyut, simge satırı (gölge · cam fırçası · üste al · sil). Eski liste: Ayarlar › Menü görünümü. */
+@Composable
+private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
+    val n = p.nesneler.firstOrNull { it.id == secili }
+    Kart("Kesilenler · ${p.nesneler.size}") {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            p.nesneler.asReversed().forEach { m -> key(m.id) {
+                val on = m.id == secili
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(76.dp).clip(RoundedCornerShape(12.dp))
+                    .clickable { vm.seciliNesne.value = m.id; vm.git(m.basMs + 1) }.padding(bottom = 4.dp)) {
+                    val b by produceState<Bitmap?>(null, m.yol) { value = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(m.yol)?.let { Medya.olcekle(it, 160) } } }
+                    Box(Modifier.size(70.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart2)
+                        .border(if (on) 2.dp else 1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(12.dp)).padding(5.dp), contentAlignment = Alignment.Center) {
+                        b?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+                        if (m.hareketli) Box(Modifier.align(Alignment.BottomEnd).size(16.dp).clip(CircleShape).background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
+                            Simge("klip", Color.White, 10.dp) }
+                    }
+                    Text(sureOndalik(m.basMs), color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                        modifier = Modifier.padding(top = 4.dp))
+                }
+            } }
+        }
+        if (n == null) { Text("Bir nesneye dokun: seçilir, önizlemede çerçevesiyle görünür.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)); return@Kart }
+        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp).height(1.dp).background(Renk.cizgi))
+        // süre
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Simge("klip", Renk.turuncu, 15.dp)
+            Text("${sureOndalik(n.basMs)} → ${sureOndalik(n.sonMs)}", color = Renk.yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 6.dp))
+            Text("  ${String.format(TR, "%.1f", (n.sonMs - n.basMs) / 1000f)} sn" + if (n.hareketli) " · hareketli" else "", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            @Composable fun Hap(ad: String, m: Modifier, tik: () -> Unit) = Box(m.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart2).clickable(onClick = tik),
+                contentAlignment = Alignment.Center) { Text(ad, color = Renk.yazi, fontSize = 12.5.sp, maxLines = 1) }
+            Hap("Baş = şu an", Modifier.weight(1f)) { val t = vm.anlik(); vm.nesneDegis(n.id) { it.copy(basMs = t, sonMs = maxOf(it.sonMs, t + 500)) } }
+            Hap("Son = şu an", Modifier.weight(1f)) { val t = vm.anlik(); vm.nesneDegis(n.id) { it.copy(sonMs = maxOf(t, it.basMs + 500)) } }
+            Hap("Klip boyunca", Modifier.weight(1f)) { vm.nesneKlipBoyunca(n.id) }
+        }
+        // boyut
+        if (n.bagli) TonKaydirici("Boyut", n.kw, 0.05f..2f, 0.01f, Renk.turuncu, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(kw = v) } }
+        else TonKaydirici("Boyut", n.olcek, 0.05f..2f, 0.01f, Renk.turuncu, { "%${(it * 100).roundToInt()}" }) { v -> vm.nesneDegis(n.id) { it.copy(olcek = v) } }
+        // simge satırı — eşit genişlik, tek hizada
+        var firca by remember(n.id) { mutableStateOf(false) }
+        var silOnay by remember(n.id) { mutableStateOf(false) }
+        LaunchedEffect(silOnay) { if (silOnay) { kotlinx.coroutines.delay(3000); silOnay = false } }
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            val w = Modifier.weight(1f)
+            if (!n.hareketli) {
+                SimgeDugme("yarim", if (n.golge) "Gölge açık" else "Gölge kapalı", w, renk = if (n.golge) Renk.turuncu else Renk.soluk) { vm.nesneDegis(n.id) { it.copy(golge = !it.golge) } }
+                SimgeDugme("takip", "Cam fırçası", w) { firca = true }
+            }
+            SimgeDugme("katman", "En üste", w, etkin = p.nesneler.lastOrNull()?.id != n.id) { vm.nesneOneAl(n.id) }
+            SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", w, renk = if (silOnay) Renk.kirmizi else Renk.yazi) { if (silOnay) vm.nesneSil(n.id) else silOnay = true }
+        }
+        if (firca) CamFircasi(vm, n) { firca = false }
+        AcilirNot("Önizlemede: sürükle = taşı · köşe tutamacı ya da iki parmak = büyüt/küçült. Fotoğraftan kesilen nesne arkadaki fotoğrafa yapışıktır; " +
+            "o fotoğraf hareketsiz kalır, nesne oynarken ve dışa aktarmada ayarladığın yerde durur.")
+    }
+}
 
 /** Önizlemede erime: içerik ekran dışı katmanda çizilir, sonra gürültü maskesiyle (DstIn) kırpılır — dışa aktarmadaki maskenin aynısı. */
 fun Modifier.erimeMaskesi(aktif: Boolean, k: Float): Modifier = if (!aktif) this else this

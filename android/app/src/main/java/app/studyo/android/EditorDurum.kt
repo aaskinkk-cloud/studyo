@@ -30,7 +30,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         // 3.43: önceki sürümde bozuk (NaN) kaydedilmiş katman değerleri açılışta onarılır
         fun Float.ok(v: Float) = if (isNaN() || isInfinite()) v else this
         p.copy(katmanlar = p.katmanlar.map { o -> o.copy(x = o.x.ok(0.5f), y = o.y.ok(0.5f), olcek = o.olcek.ok(if (o.tur == "metin") 0.075f else 0.35f),
-            aci = o.aci.ok(0f), opaklik = o.opaklik.ok(1f), ses = o.ses.ok(1f), hiz = o.hiz.ok(1f)) }).let { nesneGoc(it) }
+            aci = o.aci.ok(0f), opaklik = o.opaklik.ok(1f), ses = o.ses.ok(1f), hiz = o.hiz.ok(1f)) }).let { sabitArkaPlan(nesneGoc(it)) }
     })
     val secili = MutableStateFlow(0)
     val sira = MutableStateFlow(0)          // önizlemede oynayan klip
@@ -474,7 +474,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         val once = proje.value; val simdi = System.currentTimeMillis()
         if (yapi || simdi - sonAdim > 800) { geriYigin.addLast(once); if (geriYigin.size > 40) geriYigin.removeFirst() }
         sonAdim = simdi; ileriYigin.clear(); yiginBildir()
-        proje.value = bagliNesneler(once, bagliKatmanlar(once, f(once))).copy(guncelleme = simdi)
+        proje.value = sabitArkaPlan(bagliNesneler(once, bagliKatmanlar(once, f(once)))).copy(guncelleme = simdi)
         if (yapi) listeKur(i, ms) else sesUygula()
         kaydetPlanla()
     }
@@ -556,6 +556,28 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
         return if (degisti) yeni.copy(nesneler = l) else yeni
     }
+    /** 4.15 KÖK NEDEN ("oynarken nesne kayıyor, yukarıda/aşağıda oluyor; durunca ayarladığım yerde"): 4.12'de kesimde klibin otomatik
+     *  hareketi artık kapatılmıyordu; Varsayılan ayarlar da fotoğraflara yakınlaşmayı yeniden açıyordu. Oynarken arka plandaki fotoğraf
+     *  yakınlaştıkça nesne de onunla kayıyordu. Kural: üstünde kesilmiş nesne olan fotoğraf klibi hareketsizdir — nesne oynarken, durunca
+     *  ve dışa aktarmada ayarlandığı yerde durur. Yalnız elle kurulmuş yüz turu (numaralı duraklar) varsa arka plan hareket eder ve nesne
+     *  ona yapışık gider. */
+    private fun sabitArkaPlan(p: Proje): Proje {
+        val ids = p.nesneler.filter { it.bagli }.map { it.klipId }.toSet()
+        if (ids.isEmpty() || p.klipler.none { it.id in ids && it.kenBurns && !it.turEtkin }) return p
+        return p.copy(klipler = p.klipler.map { if (it.id in ids && it.kenBurns && !it.turEtkin) it.copy(kenBurns = false) else it })
+    }
+    /** 4.15: nesneyi en üste al (listede son = en üstte çizilir). */
+    fun nesneOneAl(id: String) = guncelle { p -> p.nesneler.firstOrNull { it.id == id }?.let { n -> p.copy(nesneler = p.nesneler.filter { it.id != id } + n) } ?: p }
+    /** 4.15: nesneyi bulunduğu klibin baştan sona süresine yay. */
+    fun nesneKlipBoyunca(id: String) {
+        val p = proje.value; val n = p.nesneler.firstOrNull { it.id == id } ?: return
+        val kid = n.klipId.ifEmpty { klipIdAnda(n.basMs) }
+        val j = p.klipler.indexOfFirst { it.id == kid }.takeIf { it >= 0 } ?: return
+        val b = baslangic(j)
+        nesneDegis(id) { it.copy(basMs = b, sonMs = b + p.zKlip(j).sureMs, klipId = kid) }
+        mesaj.value = "Nesne klip ${j + 1} boyunca"
+    }
+
     private fun klipSureleri(p: Proje): Map<String, Long> = p.klipler.indices.associate { j -> p.klipler[j].id to p.zKlip(j).sureMs }
 
     /** 4.12: eski projelerdeki nesneler bir kez bağlanır. Ekrandaki fotoğraftan kesilmiş olanlar (özgün kırpımı var, arka planı bulanık

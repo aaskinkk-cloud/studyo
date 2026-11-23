@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.14 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.15 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.15 (23.11.2026, deneme · `yerel-android` dalı): tek satır alt menü, yeni Kesilenler, nesne oynarken yerinde
+- **Tek satır:** yeni menü düzeninde 3. katman sayfaları (ör. Nesne › Fotoğraftan · Videodan · Kesilenler, Şablon › Giriş · Abone · Kapanış + bağlantılar) ayrı satırda değil, alt menü satırında seçili alt menünün hemen yanında hafif zeminli bir grup olarak; satır sağa kayar. Ayar alanı bir satır büyüdü.
+- **Nesne oynarken kayıyordu (kök neden):** 4.12'de kesimde fotoğrafın otomatik hareketi kapatılmıyordu, Varsayılan ayarlar da yakınlaşmayı yeniden açıyordu; oynarken fotoğraf yakınlaştıkça yapışık nesne de kayıyordu. Kural (`sabitArkaPlan`, her değişiklikte ve açılışta): üstünde kesilmiş nesne olan fotoğraf klibi hareketsiz → nesne durunca, oynarken ve dışa aktarmada ayarlandığı yerde. Yalnız elle kurulmuş yüz turu varsa arka plan hareket eder, nesne ona yapışık gider.
+- **Kesilenler yeniden:** üstte nesne kutucukları (yana kayar, seçili tema renginde çerçeve, hareketli olanda rozet), altta seçili nesnenin düzenli ayarları: süre (Baş = şu an · Son = şu an · Klip boyunca), Boyut, simge satırı (Gölge · Cam fırçası · En üste · Sil, iki dokunuş). Önceki liste: Ayarlar › Menü görünümü › "Kesilenler: önceki liste görünümü".
 
 ## 4.14 (23.11.2026, deneme · `yerel-android` dalı): alt menüler üstte, onay işaretleri tema renginde
 - **Yeni menü düzeni:** ana menü hep altta ve serbest kayar; seçili bölüm tema renginde (altında çizgi). Bölümün alt menüleri hemen üstünde küçük düğmeler (simge + ad yan yana); satırın başında bölüm adı tema renginde sabit, alt menüler yanında kayar. 3. katman çipleri en üstte. Önceki düzen (alt menüler ana menünün yerinde, solda "‹ Bölüm"): Yayın › Ayarlar › Menü görünümü › "Alt menüler üstte…" kapalı.

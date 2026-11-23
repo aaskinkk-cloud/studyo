@@ -49,11 +49,15 @@ object Renk {
     var vurgu by mutableStateOf(0xFF3FC1B8L)
     val VURGULAR = listOf(0xFF3FC1B8L to "Turkuaz", 0xFF4C8DF6L to "Mavi", 0xFF9B7BF7L to "Mor", 0xFF4CC38AL to "Yeşil",
         0xFFF5A524L to "Turuncu", 0xFFEF5350L to "Kırmızı", 0xFFEC6FA5L to "Pembe", 0xFFF2C94CL to "Sarı", 0xFFE6E6E6L to "Beyaz")
-    fun vurguSec(ctx: Context, v: Long) { vurgu = v; ctx.getSharedPreferences("ayar", 0).edit().putLong("vurguIns", v).apply() }
+    /** 4.26 KÖK NEDEN ("tema rengine tıklıyorum, değişmiyor"): seçilen renk yalnız InShot temasında kullanılıyordu. Artık her temada:
+     *  elle renk seçilince o renk geçerli; "Tema" seçeneği temanın kendi rengine döndürür. */
+    var vurguElle by mutableStateOf(false)
+    fun vurguSec(ctx: Context, v: Long) { vurgu = v; vurguElle = true; ctx.getSharedPreferences("ayar", 0).edit().putLong("vurguIns", v).putBoolean("vurguElle", true).apply() }
+    fun vurguTema(ctx: Context) { vurguElle = false; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("vurguElle", false).apply() }
     private val vurguKoyu get() = (androidx.compose.ui.graphics.Color(vurgu).let { 0.299f * it.red + 0.587f * it.green + 0.114f * it.blue }) > 0.55f
-    val turuncu get() = if (ins) Color(vurgu) else s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF, 0xFFF0993C, 0xFF3FC1B8)
-    val turuncuM get() = if (ins) Color(if (vurguKoyu) 0xFF0E1414 else 0xFFFFFFFF) else s(0xFF1B1204, 0xFF1B1204, 0xFF000000, 0xFF1B1206, 0xFF06201E)
-    val turkuaz get() = if (ins) Color(vurgu) else s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6, 0xFF6CB8AC, 0xFF3FC1B8)
+    val turuncu get() = if (ins || vurguElle) Color(vurgu) else s(0xFFF5A524, 0xFFEE9A0C, 0xFFFFFFFF, 0xFFF0993C, 0xFF3FC1B8)
+    val turuncuM get() = if (ins || vurguElle) Color(if (vurguKoyu) 0xFF0E1414 else 0xFFFFFFFF) else s(0xFF1B1204, 0xFF1B1204, 0xFF000000, 0xFF1B1206, 0xFF06201E)
+    val turkuaz get() = if (ins || vurguElle) Color(vurgu) else s(0xFF2EC5D3, 0xFF0E9FAD, 0xFFD6D6D6, 0xFF6CB8AC, 0xFF3FC1B8)
     val kirmizi get() = s(0xFFEF5350, 0xFFD93A36, 0xFFEF5350, 0xFFE0645A, 0xFFEF5350)
     val yesil get() = s(0xFF4CC38A, 0xFF16915A, 0xFF4CC38A, 0xFF7FD3A1, 0xFF4CC38A)
 
@@ -64,6 +68,7 @@ object Renk {
         val sp = ctx.getSharedPreferences("ayar", 0)
         tema = sp.getInt("tema", if (sp.getBoolean("gunduz", false)) 1 else 0).coerceIn(0, 4)
         vurgu = sp.getLong("vurguIns", 0xFF3FC1B8L)
+        vurguElle = sp.getBoolean("vurguElle", false)
         // 3.91 (Ahmet'in isteği): InShot renkleri ve düğmeleri temel tema — bir kez geçilir; önceki temalar seçilebilir
         if (!sp.getBoolean("temaIns1", false)) { tema = 4; sp.edit().putInt("tema", 4).putBoolean("gunduz", false).putBoolean("temaIns1", true).apply() }
     }

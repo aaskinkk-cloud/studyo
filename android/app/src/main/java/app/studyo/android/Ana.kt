@@ -383,17 +383,19 @@ fun ProjeKarti(
                 contentAlignment = Alignment.Center,
             ) { if (secili) Text("✓", color = Renk.turuncuM, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         }
-        KlipResmi(p.klipler.firstOrNull(), Modifier.width(118.dp).height(68.dp).clip(RoundedCornerShape(10.dp)))
+        // 4.26: düzenli kart — sabit küçük kapak, yazılar tek satır (taşarsa …), sağda dar simge sütunu (TV üstte, ⋯ altta)
+        KlipResmi(p.klipler.firstOrNull(), Modifier.width(96.dp).height(54.dp).clip(RoundedCornerShape(10.dp)))
         Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(p.ad, color = Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${p.klipler.size} klip · ${sureYaz(p.toplamMs)} · ${p.bicim}", color = Renk.soluk, fontSize = 12.5.sp)
-            Text(SimpleDateFormat("d MMM yyyy HH:mm", TR).format(Date(p.guncelleme)), color = Renk.soluk, fontSize = 12.sp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(p.ad, color = Renk.yazi, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("${p.klipler.size} klip · ${sureYaz(p.toplamMs)} · ${p.bicim}", color = Renk.soluk, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(SimpleDateFormat("d MMM yyyy · HH:mm", TR).format(Date(p.guncelleme)), color = Renk.soluk.copy(alpha = 0.8f), fontSize = 11.5.sp, maxLines = 1)
         }
-        // 3.73: dışa aktarılmış videosu olan projede TV simgesi (dokun = televizyonda izle)
-        if (!secimde && tv != null) Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClick = tv), contentAlignment = Alignment.Center) { Simge("tv", Renk.turuncu, 22.dp) }
-        if (!secimde) Box {
-            TextButton(onClick = { menu = true }) { Text("⋯", color = Renk.yazi, fontSize = 22.sp) }
+        if (!secimde) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 3.73: dışa aktarılmış videosu olan projede TV simgesi (dokun = televizyonda izle)
+            if (tv != null) Box(Modifier.size(34.dp).clip(CircleShape).clickable(onClick = tv), contentAlignment = Alignment.Center) { Simge("tv", Renk.turuncu, 19.dp) }
+            Box {
+            Box(Modifier.size(34.dp).clip(CircleShape).clickable { menu = true }, contentAlignment = Alignment.Center) { Simge("menu", Renk.soluk, 18.dp) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text("Aç") }, onClick = { menu = false; ac() })
                 if (tv != null) DropdownMenuItem(text = { Text("Televizyonda izle") }, onClick = { menu = false; tv() })
@@ -402,6 +404,7 @@ fun ProjeKarti(
                 DropdownMenuItem(text = { Text(if (p.arsiv) "Arşivden çıkar" else "Arşivle") }, onClick = { menu = false; arsivle() })
                 DropdownMenuItem(text = { Text("Seç") }, onClick = { menu = false; uzunBas() })
                 DropdownMenuItem(text = { Text("Sil", color = Renk.kirmizi) }, onClick = { menu = false; sil() })
+            }
             }
         }
     }

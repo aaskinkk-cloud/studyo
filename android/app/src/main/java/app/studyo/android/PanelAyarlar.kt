@@ -53,10 +53,16 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
 
     // 4.01: tema rengi (InShot temasındaki turkuaz vurgunun yerine)
     Kart("Tema rengi") {
-        if (!Renk.ins) Text("Tema rengi InShot temasında geçerli (ana sayfa › Ayarlar › Editör teması).", color = Renk.soluk, fontSize = 12.sp)
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // 4.26: "Tema" = temanın kendi rengi (elle seçim kalkar)
+            if (!Renk.ins) Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { Renk.vurguTema(ctx) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                val on = !Renk.vurguElle
+                Box(Modifier.size(34.dp).clip(CircleShape).background(Renk.kart2).border(if (on) 2.5.dp else 1.dp, if (on) Color.White else Renk.cizgi, CircleShape),
+                    contentAlignment = Alignment.Center) { Simge("sihir", Renk.yazi, 16.dp) }
+                Text("Tema", color = if (on) Renk.yazi else Renk.soluk, fontSize = 10.5.sp, modifier = Modifier.padding(top = 3.dp))
+            }
             Renk.VURGULAR.forEach { (v, ad) ->
-                val on = Renk.vurgu == v
+                val on = (Renk.ins || Renk.vurguElle) && Renk.vurgu == v
                 Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable { Renk.vurguSec(ctx, v) }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(34.dp).clip(CircleShape).background(Color(v)).border(if (on) 2.5.dp else 0.dp, if (on) Color.White else Color.Transparent, CircleShape),
                         contentAlignment = Alignment.Center) { if (on) Simge("uygula", if (v == 0xFFE6E6E6L || v == 0xFFF2C94CL) Color.Black else Color.White, 18.dp) }

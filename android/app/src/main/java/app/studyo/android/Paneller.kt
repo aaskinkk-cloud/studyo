@@ -131,7 +131,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
     val seciliNesne by vm.seciliNesne.collectAsState()
     val k = p.klipler.getOrNull(sira)
     // kare dışı koyu gri, kare sınırı ince açık çizgi: videonun nerede bittiği görünür
-    Box(modifier.background(Color(0xFF1C1E22)), contentAlignment = Alignment.Center) {
+    Box(modifier.background(Color(0xFF1C1E22)), contentAlignment = Alignment.TopCenter) {   // 4.19: önizleme büyütülünce videonun üstü sabit kalır
         if (p.klipler.isEmpty()) {
             Text("Başlamak için alttan “＋ Ekle” ile video veya fotoğraf seç.\nBoyut sınırı yok; dosyalar kopyalanmaz.",
                 color = Renk.soluk, textAlign = TextAlign.Center, fontSize = 14.sp, modifier = Modifier.padding(20.dp))

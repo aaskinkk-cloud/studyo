@@ -93,6 +93,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
             }
         }
         AnahtarSatiri("Oynatma düğmeleri ve kare çizgisi tema renginde", Duzen.oynaticiTema) { Duzen.oynaticiTemaSec(ctx, it) }
+        AnahtarSatiri("Oynatıcı sade (Başa · Önceki · Sonraki gizli)", Duzen.oynaticiSade) { Duzen.oynaticiSadeSec(ctx, it) }   // 4.19
         AnahtarSatiri("Önizlemedeki hızlı düğmeleri gizle", Duzen.hizliGizli) { Duzen.hizliGizli = it; Duzen.hizliKaydet(ctx) }
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }

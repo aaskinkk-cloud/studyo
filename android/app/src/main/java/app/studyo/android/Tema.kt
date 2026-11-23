@@ -97,7 +97,8 @@ object Duzen {
         cipTekSatir = sp.getBoolean("cipTekSatir", false)
         menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
         menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
-        oynaticiTema = sp.getBoolean("oynaticiTema", false)
+        oynaticiTema = sp.getBoolean("oynaticiTema2", true)   // 4.19: varsayılan tema renginde
+        oynaticiSade = sp.getBoolean("oynaticiSade", false)
         hizliGizli = sp.getBoolean("hizliGizli", false); hizliYer = sp.getString("hizliYer", "oto") ?: "oto"
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
@@ -128,8 +129,11 @@ object Duzen {
     var menuStil by mutableStateOf("ikisi")
     fun menuStilSec(ctx: Context, v: String) { menuStil = v; ctx.getSharedPreferences("ayar", 0).edit().putString("menuStil", v).apply() }
     /** 4.18: önizlemedeki oynatma düğmeleri ve kare çizgisi tema renginde. */
-    var oynaticiTema by mutableStateOf(false)
-    fun oynaticiTemaSec(ctx: Context, b: Boolean) { oynaticiTema = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oynaticiTema", b).apply() }
+    var oynaticiTema by mutableStateOf(true)
+    /** 4.19: oynatıcı sade — Başa / Önceki / Sonraki gizli (oynat, süre, geri al, tam ekran kalır). */
+    var oynaticiSade by mutableStateOf(false)
+    fun oynaticiSadeSec(ctx: Context, b: Boolean) { oynaticiSade = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oynaticiSade", b).apply() }
+    fun oynaticiTemaSec(ctx: Context, b: Boolean) { oynaticiTema = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oynaticiTema2", b).apply() }
     /** 4.18: önizlemenin üstündeki hızlı düğmeler (katman seçiliyken): gizli mi, yeri ("oto" · "ust" · "alt" · "sol" · "sag"). */
     var hizliGizli by mutableStateOf(false)
     var hizliYer by mutableStateOf("oto")

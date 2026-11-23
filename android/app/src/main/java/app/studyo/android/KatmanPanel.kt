@@ -485,8 +485,9 @@ internal fun YaziDuzenleBlok(vm: EditorDurum, o: KatmanOge) {
     val e = !o.kilitli
     val istek by vm.katmanDuzenle.collectAsState()
     val odak = remember { androidx.compose.ui.focus.FocusRequester() }
-    var m by remember(o.id) { mutableStateOf(o.metin) }
-    LaunchedEffect(o.id, o.metin) { if (o.metin != m) m = o.metin }   // ekranda düzenleme vb. başka yerden değişirse
+    // 4.19: seçim bilgisi için TextFieldValue — seçili kısım (yoksa tamamı) küçük / BÜYÜK / Baş Harfleri Büyük yapılabilir
+    var tv by remember(o.id) { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(o.metin)) }
+    LaunchedEffect(o.id, o.metin) { if (o.metin != tv.text) tv = androidx.compose.ui.text.input.TextFieldValue(o.metin) }   // ekranda düzenleme vb. başka yerden değişirse
     LaunchedEffect(istek, o.id) { if (istek == o.id) { kotlinx.coroutines.delay(150); runCatching { odak.requestFocus() }; vm.katmanDuzenle.value = null } }
     Column(Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart2).padding(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -497,9 +498,23 @@ internal fun YaziDuzenleBlok(vm: EditorDurum, o: KatmanOge) {
                 modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.seciliKatman.value = null; vm.katmanDuzenle.value = null }.padding(horizontal = 10.dp, vertical = 6.dp))
         }
         if (o.kilitli) Text("Kilitli: değiştirmek için çizelgede kilidi aç.", color = Renk.turuncu, fontSize = 12.sp)
-        OutlinedTextField(m, { m = it; vm.katmanDegis(o.id) { k -> k.copy(metin = it) } }, enabled = e, maxLines = 3,
+        OutlinedTextField(tv, { v -> val degisti = v.text != tv.text; tv = v; if (degisti) vm.katmanDegis(o.id) { k -> k.copy(metin = v.text) } }, enabled = e, maxLines = 3,
             label = { Text("Yazı (Enter = alt satır)") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(odak),
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = Harf.klavye(o.harf)))
+        // 4.19: büyük/küçük harf — seçili kısma (seçim yoksa bütün yazıya); seçim korunur
+        if (e) Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            val tr = java.util.Locale("tr")
+            fun uygula(f: (String) -> String) {
+                val s = tv.selection; val a = minOf(s.start, s.end); val b = maxOf(s.start, s.end)
+                val yeni = if (a == b) f(tv.text) else tv.text.substring(0, a) + f(tv.text.substring(a, b)) + tv.text.substring(b)
+                tv = tv.copy(text = yeni); vm.katmanDegis(o.id) { k -> k.copy(metin = yeni) }
+            }
+            fun basHarf(x: String) = x.lowercase(tr).split(Regex("(?<=\\s)|(?=\\s)")).joinToString("") { w -> w.replaceFirstChar { it.titlecase(tr) } }
+            listOf("küçük" to { x: String -> x.lowercase(tr) }, "BÜYÜK" to { x: String -> x.uppercase(tr) }, "Baş Harf" to { x: String -> basHarf(x) }).forEach { (ad, f) ->
+                Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart).clickable { uygula(f) }, contentAlignment = Alignment.Center) {
+                    Text(ad, color = Renk.yazi, fontSize = 12.5.sp, maxLines = 1) }
+            }
+        }
         // 3.77: harf biçimi — videoda bu biçimde görünür (klavyeyle ya da sesle yazılsa da)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Harf.SECENEK.forEach { (kip, ad) ->

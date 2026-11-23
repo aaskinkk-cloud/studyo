@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.18 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.19 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.19 (23.11.2026, deneme · `yerel-android` dalı): harf düğmeleri, oynatıcı düzenlemeleri
+- **Yazı kutusu:** küçük · BÜYÜK · Baş Harf düğmeleri — seçili kısma (seçim yoksa bütün yazıya), Türkçe harf kurallarıyla.
+- **Önizleme büyütülünce videonun üstü sabit** (video üstte hizalı; ✕ sil düğmesi de videonun tepesinde kalır).
+- **Tema rengi:** oynatma düğmeleri ve kare çizgisi varsayılan olarak tema renginde (alttaki oynatıcı satırı dahil; önceden yalnız ayar açıkken ve yalnız üstteki oynatıcıda). Ayarlar'dan kapatılabilir.
+- Videonun üstündeki oynatıcıda düğmeler net görünsün diye altta silik siyah bant.
+- **Oynatıcı sade** (Ayarlar › Menü görünümü): Başa · Önceki · Sonraki gizlenir, düğmeler rahat sığar.
 
 ## 4.18 (23.11.2026, deneme · `yerel-android` dalı): yazı düzenleme her yerde, hızlı düğmeler gizle/yer, menü görünümü
 - **Yazı düzenleme (kök neden):** 4.13'te yazı kutusu Katman sayfasından kalkmıştı; çift dokunuş yazıyı seçiyor ama kutu görünmüyordu. Standart: seçili yazı varken düzenleme kutusu her bölümde önizlemenin hemen altında (Metin › Yazı'da zaten var, tekrarlanmaz); çift dokunuş / ✎ / "Yazıyı düzenle" klavyeyi açar, "Bitti" kapatır.

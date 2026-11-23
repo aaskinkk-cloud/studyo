@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.16 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.17 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.17 (23.11.2026, deneme · `yerel-android` dalı): çizelge dokunuş kuralı, sesi ayır, menü boyutu
+- **Çizelge (kalıcı kural, bütün katmanlar):** dokun = yalnız seç (uçlarda kalın tutamaçlar) · seçiliyken sürükle = taşı, uçtan sürükle = kısalt/uzat · uzun bas = menü (başına git, klip/video başı-sonu, başa taşı, ses düzeyi, Sil; basılan uca göre sıralı) · çift dokun = ayar (ses → ses penceresi, yazı → düzenle, diğer → başına git). Müzik / ses kaydı çubuğunda dokununca pencere açılmaz; uzun bas / çift dokun açar.
+- **Sesi ayır** (Katman › Ekle): seçili video klibin sesi klibe bağlı ayrı ses katmanı olur, klibin sesi kapanır (geri al çalışır). Dışa aktarmada video kaynaklı ses katmanı `setRemoveVideo` ile.
+- **Menü boyutu** (Ayarlar › Menü görünümü): Küçük · Orta (varsayılan, bir tık küçük) · Büyük · Daha büyük — ana menü, alt menü ve sayfa düğmeleri. Alt menü satırının başındaki bölüm rozeti yalnız simge.
+- Düzenle'ye dokununca alt menüde önce Klip açılır.
 
 ## 4.16 (23.11.2026, deneme · `yerel-android` dalı): ayrı satır varsayılan, Fotoğraftan/Videodan yeniden
 - **Menü:** sayfa düğmeleri yine ayrı satırda (4.14 düzeni, varsayılan). Tek satır seçenek: Yayın › Ayarlar › Menü görünümü › "Sayfa düğmeleri tek satırda (alt menünün yanında)".

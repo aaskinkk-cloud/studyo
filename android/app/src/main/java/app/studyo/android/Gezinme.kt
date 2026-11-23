@@ -94,11 +94,11 @@ fun AltSayfaCipleri(liste: List<AltSayfa>, secili: String, isaret: (String) -> B
         liste.forEach { a ->
             val on = a.anahtar == secili
             val sekil = RoundedCornerShape(16.dp)
-            Row(Modifier.height(32.dp).clip(sekil).background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, sekil)
+            Row(Modifier.height(32.dp * Duzen.menuOlcek).clip(sekil).background(if (on) Renk.yazi else Renk.kart2).border(1.dp, if (on) Renk.yazi else Renk.cizgi, sekil)
                 .clickable { sec(a.anahtar) }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 15.dp)
                 Spacer(Modifier.width(5.dp))
-                Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 12.5.sp * Duzen.menuOlcek, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                 if (isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 5.dp), 13.dp)
             }
         }

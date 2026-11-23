@@ -423,13 +423,16 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
         Modifier.offset { IntOffset(vx.roundToInt(), dy.roundToInt()) }.width(with(yog) { vw.coerceAtLeast(1f).toDp() }).fillMaxHeight()
             .clip(sekil).background(renk.copy(alpha = (if (secili) 0.85f else 0.55f) * (if (o.gizli) 0.5f else 1f)))
             .border(if (secili) 2.dp else 0.dp, if (secili) Color.White else Color.Transparent, sekil)
-            .pointerInput(o.id, secili) { detectTapGestures(onTap = { t ->
-                // 3.72: bütün katmanlarda tek dokunuş = seç + menü (başına git, klip/video başı-sonu…); sol uca dokunmak başları öne alır.
-                // Uzun bas = aynı menü + Sil.
-                val g = t.x - kayG
-                vm.seciliKatman.value = o.id
-                ucMenu = if (g < ucPx * 1.6f) -1 else 1
-            }, onLongPress = { vm.seciliKatman.value = o.id; ucMenu = 2 }) }
+            .pointerInput(o.id, secili) { detectTapGestures(
+                // 4.17 (kalıcı kural, bütün katmanlarda): dokun = yalnız seç (uçlarda kalın tutamaçlar çıkar) · seçiliyken sürükle = sağa/sola taşı,
+                // uçtan sürükle = kısalt/uzat · uzun bas = menü (başına git, klip/video başı-sonu, başa taşı, ses, Sil; basılan uca göre sıralı) ·
+                // çift dokun = ayar (ses → ses düzeyi penceresi, yazı → düzenle, diğerleri → katmanın başına git)
+                onTap = { vm.seciliKatman.value = o.id },
+                onDoubleTap = {
+                    vm.seciliKatman.value = o.id
+                    when (o.tur) { "ses" -> vm.sesPenceresi.value = o.id; "metin" -> if (!o.kilitli) vm.katmanDuzenle.value = o.id else vm.git(o.basMs); else -> vm.git(o.basMs) }
+                },
+                onLongPress = { t -> vm.seciliKatman.value = o.id; ucMenu = if (t.x - kayG < ucPx * 1.6f) -2 else 2 }) }
             .then(if (o.kilitli) Modifier else Modifier.pointerInput(o.id, w, secili) {
                 var yan = 0
                 // 3.45: seçili değilken basılı tut + sürükle = seç ve taşı (yatay kaydırma çizelgeyi sarar); seçiliyken doğrudan sürükle.
@@ -437,7 +440,7 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
                 val surukle: suspend androidx.compose.ui.input.pointer.PointerInputScope.(
                     (Offset) -> Unit, () -> Unit, () -> Unit, (androidx.compose.ui.input.pointer.PointerInputChange, Offset) -> Unit) -> Unit =
                     if (secili) { bas, bit, ipt, h -> detectDragGestures(onDragStart = bas, onDragEnd = bit, onDragCancel = ipt, onDrag = h) }
-                    else { bas, bit, ipt, h -> detectDragGesturesAfterLongPress(onDragStart = { t -> vm.seciliKatman.value = o.id; bas(t) }, onDragEnd = bit, onDragCancel = ipt, onDrag = h) }
+                    else { _, _, _, _ -> }   // 4.17: önce dokun = seç, sonra sürükle (uzun bas menüye ayrıldı)
                 surukle(
                     { t -> val g = t.x - kayG; yan = if (!secili) 0 else if (g < ucPx) -1 else if (g > gwG - ucPx) 1 else 0; gec = Triple(0f, 0f, 0f) },
                     {
@@ -495,6 +498,7 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
         }
         if (o.kilitli) Simge("kapat", Color.White, 12.dp, Modifier.align(Alignment.TopEnd).padding(2.dp))
         Box(Modifier.align(if (ucMenu < 0) Alignment.BottomStart else Alignment.BottomEnd)) {
+            val solUc = ucMenu < 0
             androidx.compose.material3.DropdownMenu(expanded = ucMenu != 0, onDismissRequest = { ucMenu = 0 }, containerColor = Renk.kart) {
                 // 3.51: tek, eksiksiz menü — dokunulan uca göre sıralanır (sağ uç: sonlar önce, sol uç: başlar önce); ses katmanında ses düzeyi
                 // 3.72: başta "Katmanın başına git" (oynatıcı), yazıda "Yazıyı düzenle"; uzun basınca en altta Sil. Kilitliyken yalnız gitme/sil.
@@ -505,11 +509,11 @@ private fun KatmanCubugu(vm: EditorDurum, o: KatmanOge, i: Int, n: Int, x: Float
                     trailingIcon = { Simge("degistir", Renk.turuncu, 16.dp) }, onClick = { ucMenu = 0; vm.katmanDuzenle.value = o.id })
                 val basl = listOf("klipBas" to ("Klip başı" to "|‹"), "videoBas" to ("Video başı" to "|«"))
                 val sonl = listOf("klipSon" to ("Klip sonu" to "›|"), "videoSon" to ("Video sonu" to "»|"))
-                if (!o.kilitli) (if (ucMenu < 0) basl + sonl else sonl + basl).plus("basaTasi" to ("Videonun başına taşı" to "|◀")).forEach { (t, ad) ->
+                if (!o.kilitli) (if (solUc) basl + sonl else sonl + basl).plus("basaTasi" to ("Videonun başına taşı" to "|◀")).forEach { (t, ad) ->
                     androidx.compose.material3.DropdownMenuItem(text = { Text(ad.first, color = Renk.yazi) },
                         trailingIcon = { Text(ad.second, color = Renk.turuncu, fontWeight = FontWeight.Bold) }, onClick = { sec(t) })
                 }
-                if (ucMenu == 2) androidx.compose.material3.DropdownMenuItem(text = { Text("Sil", color = Renk.kirmizi, fontWeight = FontWeight.SemiBold) },
+                if (ucMenu == 2 || ucMenu == -2) androidx.compose.material3.DropdownMenuItem(text = { Text("Sil", color = Renk.kirmizi, fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Simge("sil", Renk.kirmizi, 16.dp) }, onClick = { ucMenu = 0; vm.katmanSil(o.id); vm.mesaj.value = "Silindi · geri al ile geri gelir" })
                 if (o.tur == "ses") androidx.compose.material3.DropdownMenuItem(text = { Text(if (o.ses <= 0.001f) "Ses düzeyi · kapalı" else "Ses düzeyi · %${(o.ses * 100).roundToInt()}", color = Renk.yazi) },
                     trailingIcon = { Simge(if (o.ses <= 0.001f) "sessiz" else "ses", Renk.turkuaz, 18.dp) }, onClick = { ucMenu = 0; vm.sesPenceresi.value = o.id })
@@ -540,7 +544,8 @@ private fun SesCubugu(uri: String, ad: String, x: Float, w: Float, izGen: Float,
     val (vx, vw, kay) = gorunur(x, w.coerceAtLeast(6f), izGen)
     if (vw <= 0f) return
     Box(Modifier.offset { IntOffset(vx.roundToInt(), 0) }.width(with(yog) { vw.toDp() }).fillMaxHeight()
-        .clip(RoundedCornerShape(6.dp)).background(renk.copy(alpha = 0.45f)).clickable(onClick = ac)) {
+        .clip(RoundedCornerShape(6.dp)).background(renk.copy(alpha = 0.45f))
+        .pointerInput(ac) { detectTapGestures(onLongPress = { ac() }, onDoubleTap = { ac() }) }) {   // 4.17: dokununca menü açılmaz; uzun bas / çift dokun = ayarlar
         dalga?.let { DalgaCiz(it, kaynakBas + (-kay / pxMs * hiz).toLong(), hiz, Color.White.copy(alpha = 0.8f), dongu = sure > 0) }
         if (ad.isNotEmpty()) Text(ad, color = Color.White, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.align(Alignment.CenterStart).padding(start = 6.dp))

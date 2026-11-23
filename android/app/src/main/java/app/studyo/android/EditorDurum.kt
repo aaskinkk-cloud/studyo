@@ -1454,6 +1454,19 @@ class EditorDurum(private val ctx: Context, id: String) {
         }
     }
 
+    /** 4.17: seçili video klibin sesini ayrı ses katmanına ayırır (klibe bağlı, aynı yerde ve sürede); klibin kendi sesi kapanır. Geri al çalışır. */
+    fun sesiAyir() {
+        val p = proje.value; val i = secili.value; val k = p.klipler.getOrNull(i)
+        if (k == null || k.foto) { uyari.value = "Önce sesi ayrılacak video klibini seç."; return }
+        if (k.ses <= 0.001f) { uyari.value = "Bu klibin sesi zaten kapalı (ayrılmış olabilir)."; return }
+        val b = baslangic(i)
+        val o = KatmanOge(tur = "ses", ad = "Klip ${i + 1} sesi", yol = k.uri, anim = "yok", basMs = b, sonMs = b + p.zKlip(i).sureMs,
+            kaynakBasMs = k.basMs, kaynakSureMs = k.kaynakSureMs, hiz = k.hiz, ses = k.ses, klipId = k.id)
+        guncelle(true) { pp -> pp.copy(klipler = pp.klipler.mapIndexed { j, kk -> if (j == i) kk.copy(ses = 0f) else kk }, katmanlar = pp.katmanlar + o) }
+        seciliKatman.value = o.id
+        mesaj.value = "Ses ayrıldı · Katmanlar'da ayrı ses katmanı"
+    }
+
     /** Katmanı oynatıcının olduğu yerden ikiye böler (ses katmanında kaynak başlangıcı da kayar). */
     fun katmanBol(id: String) {
         val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return

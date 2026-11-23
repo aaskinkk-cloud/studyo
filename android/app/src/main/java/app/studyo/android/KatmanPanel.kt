@@ -65,6 +65,7 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}, sayfa: S
                 SimgeDugme("logo", "Logo", g, renk = tonRenk(2, "")) { logoAcik = true }
                 SimgeDugme("yildiz", "Çıkartma", g, renk = tonRenk(3, "")) { cikartmaAcik = true }
                 SimgeDugme("nota", "Ses", g, renk = tonRenk(4, "")) { sesSec.launch(arrayOf("audio/*")) }
+                SimgeDugme("sessiz", "Sesi ayır", g, renk = tonRenk(5, "")) { vm.sesiAyir() }   // 4.17: seçili video klibin sesi ayrı katman
             }
             // yazı ve takip yazısı Metin bölümünde: aynı sayfa burada açılır (alttaki Katman menüsü yerinde kalır)
             if (misafirAc != null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {

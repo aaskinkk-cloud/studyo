@@ -445,7 +445,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 // 4.06: sade görünüm — kutu/çerçeve yok, diğer menülerle aynı boyda; yalnız açıkken vurgu renginde; sabit olduğu ince ayırıcıyla belli
                 if (Duzen.duzenleSade) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.width(54.dp).clip(RoundedCornerShape(10.dp)).clickable { bolum = "duzenle"; panelAcik = true; altMod = true }.padding(vertical = 6.dp),
+                        Column(Modifier.width(54.dp).clip(RoundedCornerShape(10.dp)).clickable { bolum = "duzenle"; haplar["duzenle"] = "klip"; panelAcik = true; altMod = true }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally) {
                             Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp)
                             Spacer(Modifier.height(3.dp))
@@ -457,7 +457,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
                 Column(Modifier.padding(end = 4.dp).width(62.dp).clip(RoundedCornerShape(11.dp))
                     .background(Renk.turuncu.copy(alpha = if (on) 0.22f else 0.08f)).border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(11.dp))
-                    .clickable { bolum = "duzenle"; panelAcik = true; altMod = true }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    .clickable { bolum = "duzenle"; haplar["duzenle"] = "klip"; panelAcik = true; altMod = true }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Simge("makas", Renk.turuncu, 21.dp)
                     Text("Düzenle", color = Renk.turuncu, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
                 }
@@ -499,10 +499,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 // 4.14: alt menüler küçük satır olarak ana menünün üstünde; başında bölümün adı sabit (tema renginde), alt menüler yanında kayar
                 if (yeniAlt && panelAcik && altlar.isNotEmpty()) {
                     Row(Modifier.fillMaxWidth().background(Renk.zemin).padding(start = 6.dp, end = 6.dp, top = 3.dp, bottom = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Renk.turuncu.copy(alpha = 0.16f)).padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Simge(b.simge, Renk.turuncu, 16.dp)
-                            Text(b.ad, color = Renk.turuncu, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(start = 5.dp))
+                        // 4.17: yalnız simge (yazısız, dar)
+                        Box(Modifier.size(32.dp * Duzen.menuOlcek).clip(CircleShape).background(Renk.turuncu.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                            Simge(b.simge, Renk.turuncu, 17.dp * Duzen.menuOlcek)
                         }
                         Box(Modifier.padding(horizontal = 6.dp).width(1.dp).height(22.dp).background(Renk.cizgi))
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
@@ -526,17 +525,17 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         val on = bb.anahtar == bolum
                         val oncu = bb.anahtar == "duzenle"   // 3.87: Düzenle öncü menü — vurgu renginde, hafif dolgulu · 3.89: daha küçük (84 → 70 dp)
                         Column(
-                            Modifier.width(if (oncu) 70.dp else 74.dp).clip(RoundedCornerShape(12.dp))
+                            Modifier.width((if (oncu) 70.dp else 74.dp) * Duzen.menuOlcek).clip(RoundedCornerShape(12.dp))
                                 .background(if (on) Renk.turuncu.copy(alpha = if (oncu) 0.22f else 0.12f) else if (oncu) Renk.turuncu.copy(alpha = 0.08f) else Color.Transparent)
                                 .then(if (oncu) Modifier.border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(12.dp)) else Modifier).clickable {
-                                bolum = bb.anahtar; panelAcik = true; altMod = true
+                                bolum = bb.anahtar; if (bb.anahtar == "duzenle") haplar["duzenle"] = "klip"; panelAcik = true; altMod = true
                             }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, if (oncu) 22.dp else 24.dp)
-                            Spacer(Modifier.height(4.dp))
+                            Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, (if (oncu) 22.dp else 24.dp) * Duzen.menuOlcek)
+                            Spacer(Modifier.height(4.dp * Duzen.menuOlcek))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                                Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp * Duzen.menuOlcek, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                                 if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
                             }
                             // 4.14: yeni düzende seçili ana bölümün altında tema renginde çizgi (üstteki alt menü satırı bu bölüme ait)
@@ -1821,11 +1820,12 @@ private fun SatirCipleri(c: CipVeri) {
 @Composable
 private fun AltKucuk(o: AltOge) {
     val sekil = RoundedCornerShape(16.dp)
-    Row(Modifier.height(32.dp).clip(sekil).background(if (o.secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart2)
+    val m = Duzen.menuOlcek
+    Row(Modifier.height(32.dp * m).clip(sekil).background(if (o.secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart2)
         .border(1.dp, if (o.secili) Renk.turuncu.copy(alpha = 0.75f) else Color.Transparent, sekil).clickable(onClick = o.tik).padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp)
-        Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+        Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp * m)
+        Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp * m, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
             modifier = Modifier.padding(start = 5.dp))
         if (o.isaret) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
     }
@@ -1835,7 +1835,7 @@ private fun AltKucuk(o: AltOge) {
 private fun AltDugme(o0: AltOge) {
     val o = if (Renk.ins) AltOge(o0.ad, o0.simge, if (o0.secili) Color.White else Color(0xFFB4B4B4), o0.secili, o0.isaret, o0.tik)   // 3.91: InShot — gri, seçili beyaz
         else if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
-    Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
+    Column(Modifier.width(76.dp * Duzen.menuOlcek).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp)
         Spacer(Modifier.height(3.dp))

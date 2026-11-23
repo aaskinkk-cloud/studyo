@@ -67,6 +67,20 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
     }
     // 4.06: sabit Düzenle düğmesinin görünümü (önceki kutulu görünüm seçenek olarak kalır)
     Kart("Menü görünümü") {
+        // 4.17: menü boyutu — dört seçenek, her birinde o boydaki örnek simge; seçili = tema renginde çerçeve
+        Text("Menü boyutu", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(0.85f to "Küçük", 0.92f to "Orta", 1f to "Büyük", 1.1f to "Daha büyük").forEach { (v, ad) ->
+                val on = kotlin.math.abs(Duzen.menuOlcek - v) < 0.01f
+                Column(Modifier.weight(1f).height(72.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.14f) else Renk.kart2)
+                    .border(if (on) 1.5.dp else 1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(14.dp)).clickable { Duzen.menuOlcekSec(ctx, v) },
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Simge("katman", if (on) Renk.turuncu else Renk.yazi, 22.dp * v)
+                    Text(ad, color = if (on) Renk.turuncu else Renk.soluk, fontSize = 11.sp * v, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+        }
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır

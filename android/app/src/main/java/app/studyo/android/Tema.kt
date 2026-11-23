@@ -95,6 +95,7 @@ object Duzen {
         altUstte = sp.getBoolean("altUstte", true)
         kesilenEski = sp.getBoolean("kesilenEski", false)
         cipTekSatir = sp.getBoolean("cipTekSatir", false)
+        menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.8f, 1.2f)
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
@@ -118,6 +119,9 @@ object Duzen {
     var kesilenEski by mutableStateOf(false)
     /** 4.16: sayfa çipleri — false (varsayılan) = ayrı satır (4.14 düzeni), true = alt menü satırında tek satır (4.15). */
     var cipTekSatir by mutableStateOf(false)
+    /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
+    var menuOlcek by mutableFloatStateOf(0.92f)
+    fun menuOlcekSec(ctx: Context, v: Float) { menuOlcek = v; ctx.getSharedPreferences("ayar", 0).edit().putFloat("menuOlcek", v).apply() }
     fun cipTekSatirSec(ctx: Context, b: Boolean) { cipTekSatir = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("cipTekSatir", b).apply() }
     fun kesilenEskiSec(ctx: Context, b: Boolean) { kesilenEski = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kesilenEski", b).apply() }
     fun altUstteSec(ctx: Context, b: Boolean) { altUstte = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("altUstte", b).apply() }

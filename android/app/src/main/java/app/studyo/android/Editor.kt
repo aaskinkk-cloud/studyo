@@ -324,7 +324,14 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
             }
-            ekranDuzen?.let { t -> EkranYaziDuzenleyici(vm, p, t) }   // 3.72: şablon yazısı ekranda düzenleme (anında önizlemeye yansır)
+            ekranDuzen?.let { t -> EkranYaziDuzenleyici(vm, p, t) }
+            // 4.18 KÖK NEDEN ("çift dokununca yazıyı düzenleyemiyorum"): 4.13'te yazı kutusu Katman sayfasından kaldırılmıştı; çift dokunuş yazıyı
+            // seçiyor ama kutu yalnız Metin › Yazı'da görünüyordu. Standart: seçili yazı varken düzenleme kutusu HER bölümde önizlemenin hemen altında
+            // (Metin › Yazı sayfası zaten gösterdiği için orada tekrarlanmaz). Çift dokunuş / ✎ tutamacı / menüdeki "Yazıyı düzenle" klavyeyi açar.
+            val secKatE by vm.seciliKatman.collectAsState()
+            val secYaziE = p.katmanlar.firstOrNull { it.id == secKatE && it.tur == "metin" }
+            val yaziSayfasi = (bolum == "metin" && haplar["metin"] == "yazi") || misafir?.second == "yazi" || (Duzen.yaziliMenu && bolum == "katman")
+            if (secYaziE != null && !yaziSayfasi && ekranDuzen == null) Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) { YaziDuzenleBlok(vm, secYaziE) }   // 3.72: şablon yazısı ekranda düzenleme (anında önizlemeye yansır)
             if (Renk.sb && !Duzen.kontrolUstte && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p, tamEkran = { tamEkranV = true }) { Duzen.kontrolDegis(ctx) }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
             val ctxT = LocalContext.current
@@ -447,9 +454,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.width(54.dp).clip(RoundedCornerShape(10.dp)).clickable { bolum = "duzenle"; haplar["duzenle"] = "klip"; panelAcik = true; altMod = true }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally) {
-                            Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp)
-                            Spacer(Modifier.height(3.dp))
-                            Text("Düzenle", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                            if (Duzen.menuStil != "yazi") Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp * Duzen.menuOlcek)
+                            if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
+                            if (Duzen.menuStil != "simge") Text("Düzenle", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                         }
                         Box(Modifier.padding(start = 2.dp, end = 4.dp).width(1.dp).height(30.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
                     }
@@ -532,10 +539,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, (if (oncu) 22.dp else 24.dp) * Duzen.menuOlcek)
-                            Spacer(Modifier.height(4.dp * Duzen.menuOlcek))
+                            if (Duzen.menuStil != "yazi") Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, (if (oncu) 22.dp else 24.dp) * Duzen.menuOlcek)
+                            if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(4.dp * Duzen.menuOlcek))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp * Duzen.menuOlcek, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                                if (Duzen.menuStil != "simge") Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp * Duzen.menuOlcek, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                                 if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
                             }
                             // 4.14: yeni düzende seçili ana bölümün altında tema renginde çizgi (üstteki alt menü satırı bu bölüme ait)
@@ -668,7 +675,7 @@ private fun OynaticiKatman(vm: EditorDurum, p: Proje, modifier: Modifier, tamEkr
     val konum by vm.konum.collectAsState()
     val oyn by vm.oynuyor.collectAsState()
     val toplam = p.toplamMs.coerceAtLeast(1)
-    val beyaz = Color(0xF2FFFFFF)
+    val beyaz = if (Duzen.oynaticiTema) Renk.turuncu else Color(0xF2FFFFFF)   // 4.18: tema renginde seçeneği
     // 3.71: şeffaf arka plan (koyu şerit yok); düğmeler parlak görüntüde de seçilsin diye hafif saydam yuvarlak üstünde
     val dz = Color(0x40000000)
     // 3.72: kontroller hep görünür (kendiliğinden gizlenme kaldırıldı — kontrollerin kaybolduğu sanılıyordu)
@@ -1806,8 +1813,8 @@ private fun SatirCipleri(c: CipVeri) {
             val on = a.anahtar == c.secili
             Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(if (on) Renk.yazi else Color.Transparent).clickable { c.sec(a.anahtar) }
                 .padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
-                Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+                if (Duzen.menuStil != "yazi") Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
+                if (Duzen.menuStil != "simge") Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
                     modifier = Modifier.padding(start = 4.dp))
                 if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
             }
@@ -1824,8 +1831,8 @@ private fun AltKucuk(o: AltOge) {
     Row(Modifier.height(32.dp * m).clip(sekil).background(if (o.secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart2)
         .border(1.dp, if (o.secili) Renk.turuncu.copy(alpha = 0.75f) else Color.Transparent, sekil).clickable(onClick = o.tik).padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp * m)
-        Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp * m, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+        if (Duzen.menuStil != "yazi") Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp * m)
+        if (Duzen.menuStil != "simge") Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp * m, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
             modifier = Modifier.padding(start = 5.dp))
         if (o.isaret) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
     }
@@ -1837,10 +1844,10 @@ private fun AltDugme(o0: AltOge) {
         else if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
     Column(Modifier.width(76.dp * Duzen.menuOlcek).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp)
-        Spacer(Modifier.height(3.dp))
+        if (Duzen.menuStil != "yazi") Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp * Duzen.menuOlcek)
+        if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(o.ad, color = if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+            if (Duzen.menuStil != "simge") Text(o.ad, color = if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
             if (o.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
         }
         // 3.91: InShot temasında seçili alt menünün altında çizgi (sekme gibi); diğerlerinde nokta

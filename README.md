@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.17 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.18 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.18 (23.11.2026, deneme · `yerel-android` dalı): yazı düzenleme her yerde, hızlı düğmeler gizle/yer, menü görünümü
+- **Yazı düzenleme (kök neden):** 4.13'te yazı kutusu Katman sayfasından kalkmıştı; çift dokunuş yazıyı seçiyor ama kutu görünmüyordu. Standart: seçili yazı varken düzenleme kutusu her bölümde önizlemenin hemen altında (Metin › Yazı'da zaten var, tekrarlanmaz); çift dokunuş / ✎ / "Yazıyı düzenle" klavyeyi açar, "Bitti" kapatır.
+- **Önizlemedeki hızlı düğmeler:** "Gizle" (sol üstte göz düğmesiyle geri gelir) ve yer: Otomatik · Üstte · Altta · Solda dikey · Sağda dikey (düğmeyle sırayla); hatırlanır. Ayarlar'dan da gizlenebilir.
+- **Ayarlar › Menü görünümü:** menü boyutu 5 seçenek (En küçük … En büyük); menü görünümü Simge + yazı · Yalnız simge · Yalnız yazı (ana, alt menü ve sayfa düğmeleri); oynatma düğmeleri ve kare çizgisi tema renginde (seçenek).
 
 ## 4.17 (23.11.2026, deneme · `yerel-android` dalı): çizelge dokunuş kuralı, sesi ayır, menü boyutu
 - **Çizelge (kalıcı kural, bütün katmanlar):** dokun = yalnız seç (uçlarda kalın tutamaçlar) · seçiliyken sürükle = taşı, uçtan sürükle = kısalt/uzat · uzun bas = menü (başına git, klip/video başı-sonu, başa taşı, ses düzeyi, Sil; basılan uca göre sıralı) · çift dokun = ayar (ses → ses penceresi, yazı → düzenle, diğer → başına git). Müzik / ses kaydı çubuğunda dokununca pencere açılmaz; uzun bas / çift dokun açar.

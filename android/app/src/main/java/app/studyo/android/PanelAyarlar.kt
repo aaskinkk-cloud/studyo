@@ -70,7 +70,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         // 4.17: menü boyutu — dört seçenek, her birinde o boydaki örnek simge; seçili = tema renginde çerçeve
         Text("Menü boyutu", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf(0.85f to "Küçük", 0.92f to "Orta", 1f to "Büyük", 1.1f to "Daha büyük").forEach { (v, ad) ->
+            listOf(0.75f to "En küçük", 0.85f to "Küçük", 0.92f to "Orta", 1f to "Büyük", 1.1f to "En büyük").forEach { (v, ad) ->
                 val on = kotlin.math.abs(Duzen.menuOlcek - v) < 0.01f
                 Column(Modifier.weight(1f).height(72.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Renk.turuncu.copy(alpha = 0.14f) else Renk.kart2)
                     .border(if (on) 1.5.dp else 1.dp, if (on) Renk.turuncu else Renk.cizgi, RoundedCornerShape(14.dp)).clickable { Duzen.menuOlcekSec(ctx, v) },
@@ -81,6 +81,19 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
                 }
             }
         }
+        // 4.18: menü görünümü — simge + yazı · yalnız simge · yalnız yazı (bütün menülerde)
+        Text("Menü görünümü", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart2).padding(3.dp)) {
+            listOf("ikisi" to "Simge + yazı", "simge" to "Yalnız simge", "yazi" to "Yalnız yazı").forEach { (v, ad) ->
+                val on = Duzen.menuStil == v
+                Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Renk.turuncu else Color.Transparent)
+                    .clickable { Duzen.menuStilSec(ctx, v) }, contentAlignment = Alignment.Center) {
+                    Text(ad, color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                }
+            }
+        }
+        AnahtarSatiri("Oynatma düğmeleri ve kare çizgisi tema renginde", Duzen.oynaticiTema) { Duzen.oynaticiTemaSec(ctx, it) }
+        AnahtarSatiri("Önizlemedeki hızlı düğmeleri gizle", Duzen.hizliGizli) { Duzen.hizliGizli = it; Duzen.hizliKaydet(ctx) }
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır

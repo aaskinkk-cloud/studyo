@@ -95,7 +95,10 @@ object Duzen {
         altUstte = sp.getBoolean("altUstte", true)
         kesilenEski = sp.getBoolean("kesilenEski", false)
         cipTekSatir = sp.getBoolean("cipTekSatir", false)
-        menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.8f, 1.2f)
+        menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
+        menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
+        oynaticiTema = sp.getBoolean("oynaticiTema", false)
+        hizliGizli = sp.getBoolean("hizliGizli", false); hizliYer = sp.getString("hizliYer", "oto") ?: "oto"
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
@@ -121,6 +124,16 @@ object Duzen {
     var cipTekSatir by mutableStateOf(false)
     /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
     var menuOlcek by mutableFloatStateOf(0.92f)
+    /** 4.18: menü görünümü — "ikisi" (simge + yazı) · "simge" · "yazi"; bütün menülerde (ana, alt, sayfa düğmeleri). */
+    var menuStil by mutableStateOf("ikisi")
+    fun menuStilSec(ctx: Context, v: String) { menuStil = v; ctx.getSharedPreferences("ayar", 0).edit().putString("menuStil", v).apply() }
+    /** 4.18: önizlemedeki oynatma düğmeleri ve kare çizgisi tema renginde. */
+    var oynaticiTema by mutableStateOf(false)
+    fun oynaticiTemaSec(ctx: Context, b: Boolean) { oynaticiTema = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("oynaticiTema", b).apply() }
+    /** 4.18: önizlemenin üstündeki hızlı düğmeler (katman seçiliyken): gizli mi, yeri ("oto" · "ust" · "alt" · "sol" · "sag"). */
+    var hizliGizli by mutableStateOf(false)
+    var hizliYer by mutableStateOf("oto")
+    fun hizliKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putBoolean("hizliGizli", hizliGizli).putString("hizliYer", hizliYer).apply() }
     fun menuOlcekSec(ctx: Context, v: Float) { menuOlcek = v; ctx.getSharedPreferences("ayar", 0).edit().putFloat("menuOlcek", v).apply() }
     fun cipTekSatirSec(ctx: Context, b: Boolean) { cipTekSatir = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("cipTekSatir", b).apply() }
     fun kesilenEskiSec(ctx: Context, b: Boolean) { kesilenEski = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kesilenEski", b).apply() }

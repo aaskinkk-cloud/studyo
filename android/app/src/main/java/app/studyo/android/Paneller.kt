@@ -4,6 +4,7 @@ package app.studyo.android
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import kotlin.math.abs
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.gestures.calculateRotation
@@ -136,7 +137,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 color = Renk.soluk, textAlign = TextAlign.Center, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
             return@Box
         }
-        BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black).border(1.dp, Color(0x99FFFFFF))) {
+        BoxWithConstraints(Modifier.aspectRatio(oran).clipToBounds().background(Color.Black).border(1.dp, if (Duzen.oynaticiTema) Renk.turuncu.copy(alpha = 0.85f) else Color(0x99FFFFFF))) {
             // Akıcı önizleme (oynarken): dışa aktarmanın aynısı tek boru hattında; düzenleme çizimleri gerekmez
             // Yüzey en altta durur; ilk kare çizilene kadar düzenleme önizlemesi üstte kalır (siyah ekran görünmez),
             // ilk kare gelince yalnız yüzey kalır.
@@ -767,21 +768,39 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         })
                     }
                     // hızlı düğmeler yazının üstünü örtmesin: yazı üst bölgedeyse altta (oynatıcı şeridinin üstünde) dursun
+                    // 4.18: gizle/göster ve yer seçimi (Otomatik · Üstte · Altta · Solda dikey · Sağda dikey); seçim hatırlanır
+                    val ctxH = LocalContext.current
                     val ustte = cy > ghT * 0.35f
-                    Row(Modifier.align(if (ustte) Alignment.TopCenter else Alignment.BottomCenter)
-                        .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = if (ustte) 6.dp else 48.dp).clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xCC000000)).padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val (mn, mx) = if (so.tur == "metin") 0.02f to 0.3f else 0.03f to 1.5f
-                        if (so.kilitli) HizliTus("Kilidi aç", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = false) } }
-                        else {
-                            HizliTus("Küçült", "eksi") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 0.9f).coerceIn(mn, mx)) } }
-                            HizliTus("Büyüt", "ekle") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 1.1f).coerceIn(mn, mx)) } }
-                            HizliTus("Ortala", "h_odak") { vm.katmanDegis(so.id) { it.copy(x = 0.5f) } }
-                            HizliTus("Düzelt", "yinele") { vm.katmanDegis(so.id) { it.copy(aci = 0f) } }
-                            val i = p.katmanlar.indexOfFirst { it.id == so.id }
-                            if (i in 0 until p.katmanlar.lastIndex) HizliTus("Öne al", "katman") { vm.katmanTasi(i, p.katmanlar.lastIndex) }
-                            HizliTus("Kilitle", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = true) }; vm.mesaj.value = "Kilitlendi (taşınmaz)" }
+                    val yer = Duzen.hizliYer
+                    if (Duzen.hizliGizli) {
+                        Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(30.dp).clip(CircleShape).background(Color(0xCC000000))
+                            .clickable { Duzen.hizliGizli = false; Duzen.hizliKaydet(ctxH) }, contentAlignment = Alignment.Center) { Simge("goz", Color.White, 16.dp) }
+                    } else {
+                        val dikey = yer == "sol" || yer == "sag"
+                        val hiza = when (yer) { "ust" -> Alignment.TopCenter; "alt" -> Alignment.BottomCenter; "sol" -> Alignment.CenterStart; "sag" -> Alignment.CenterEnd
+                            else -> if (ustte) Alignment.TopCenter else Alignment.BottomCenter }
+                        val altPay = if (hiza == Alignment.BottomCenter) 48.dp else 6.dp
+                        val kap = Modifier.align(hiza).padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = altPay).clip(RoundedCornerShape(16.dp)).background(Color(0xCC000000))
+                        @Composable fun Dugmeler() {
+                            val (mn, mx) = if (so.tur == "metin") 0.02f to 0.3f else 0.03f to 1.5f
+                            if (so.kilitli) HizliTus("Kilidi aç", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = false) } }
+                            else {
+                                HizliTus("Küçült", "eksi") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 0.9f).coerceIn(mn, mx)) } }
+                                HizliTus("Büyüt", "ekle") { vm.katmanDegis(so.id) { it.copy(olcek = (it.olcek * 1.1f).coerceIn(mn, mx)) } }
+                                HizliTus("Ortala", "h_odak") { vm.katmanDegis(so.id) { it.copy(x = 0.5f) } }
+                                HizliTus("Düzelt", "yinele") { vm.katmanDegis(so.id) { it.copy(aci = 0f) } }
+                                val i = p.katmanlar.indexOfFirst { it.id == so.id }
+                                if (i in 0 until p.katmanlar.lastIndex) HizliTus("Öne al", "katman") { vm.katmanTasi(i, p.katmanlar.lastIndex) }
+                                HizliTus("Kilitle", "kapat") { vm.katmanDegis(so.id) { it.copy(kilitli = true) }; vm.mesaj.value = "Kilitlendi (taşınmaz)" }
+                            }
+                            val sira = listOf("oto", "ust", "alt", "sol", "sag")
+                            val sonraki = sira[(sira.indexOf(yer).coerceAtLeast(0) + 1) % sira.size]
+                            HizliTus(when (sonraki) { "ust" -> "Üste"; "alt" -> "Alta"; "sol" -> "Sola"; "sag" -> "Sağa"; else -> "Otomatik" },
+                                when (sonraki) { "ust" -> "h_yukari"; "alt" -> "h_asagi"; "sol" -> "h_sol"; "sag" -> "h_sag"; else -> "sihir" }) { Duzen.hizliYer = sonraki; Duzen.hizliKaydet(ctxH) }
+                            HizliTus("Gizle", "gozkapali") { Duzen.hizliGizli = true; Duzen.hizliKaydet(ctxH) }
                         }
+                        if (dikey) Column(kap.verticalScroll(rememberScrollState()).padding(vertical = 4.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) { Dugmeler() }
+                        else Row(kap.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) { Dugmeler() }
                     }
                 }
             }

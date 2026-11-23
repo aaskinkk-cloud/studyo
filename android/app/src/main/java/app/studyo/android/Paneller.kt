@@ -1703,38 +1703,42 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
     var dsn by remember { mutableFloatStateOf(5f) }
     val videoSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.videodanNesneDis(it, (dsn * 1000).toLong()) } }
     val secili by vm.seciliNesne.collectAsState()
-    if (alt == null || alt == "foto") Kart("Nesne kes · katman") {
-        // 3.47: ekrandaki fotoğraftan ya da dışarıdan (galeri) fotoğraftan
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Dugme("✂ Ekrandaki fotoğraftan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.ekrandanNesne() }
-            Dugme("✂ Galeriden fotoğraf", Modifier.weight(1f)) { sec.launch(arrayOf("image/*")) }
+    // 4.16: Fotoğraftan / Videodan yeniden — ekrandaki klibin durumu üstte, iki eşit kutu (ekrandaki · galeriden), ayarlar tek bileşenle.
+    // Ekrandaki klip uygun değilse o kutu sönük ve nedenini söyler (dokununca uyarı penceresi açılmaz).
+    val siraS by vm.sira.collectAsState()
+    val ekr = p.klipler.getOrNull(siraS)
+    if (alt == null || alt == "foto") Kart("Fotoğraftan nesne kes") {
+        EkrandakiKlip(ekr, siraS, istenen = "foto")
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            KesKutusu("Ekrandaki fotoğraftan", if (ekr?.foto == true) "Nesne yerinde kalır, arkası bulanıklaşır" else "Önce bir fotoğraf klibine gel",
+                "makas", true, ekr?.foto == true, Modifier.weight(1f).fillMaxHeight()) { vm.ekrandanNesne() }
+            KesKutusu("Galeriden fotoğraf", "Başka fotoğraftaki nesneyi bu videoya ekler", "kapak", false, true, Modifier.weight(1f).fillMaxHeight()) { sec.launch(arrayOf("image/*")) }
         }
-        // 3.61: arka plan bulanıklığı (seçili klip)
-        val sk by vm.secili.collectAsState()
-        p.klipler.getOrNull(sk)?.let { kk ->
-            TonKaydirici("Arka plan", kk.arkaBulanik, 0f..1f, 0.05f, Color(TON[2]), { if (it < 0.01f) "yok" else "%${(it * 100).roundToInt()}" }) { v -> vm.klipGuncelle { it.copy(arkaBulanik = v) } }
-        }
-        // 3.71: uzun açıklama kapalı (dokun = aç)
-        AcilirNot("Ekrandaki fotoğraftan kesince arka plan kendiliğinden bulanıklaşır, nesne tam yerinde ön plana katman olarak gelir (nesnenin oturması için o klibin hareketi kapanır). " +
-            "Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) arka planından ayrılır ve videonun üstüne katman olarak eklenir. " +
-            "Telefonun içinde yapılır (Google ML Kit). İlk kullanımda model bir kez iner. Seçili nesneyi önizlemede parmakla sürükle.")
+        // arka plan bulanıklığı: ekrandaki fotoğraf klibinin (kesimin yapıldığı klip)
+        if (ekr?.foto == true) TonKaydirici("Arka plan bulanıklığı", ekr.arkaBulanik, 0f..1f, 0.05f, Renk.turuncu, { if (it < 0.01f) "yok" else "%${(it * 100).roundToInt()}" }) { v ->
+            vm.klipGuncelleId(ekr.id) { it.copy(arkaBulanik = v) } }
+        AcilirNot("Fotoğraftaki ana nesne (insan, çay bardağı, hayvan…) telefonda ayrılır (Google ML Kit; ilk kullanımda model bir kez iner). " +
+            "Ekrandaki fotoğraftan kesince nesne tam yerinde ön plana gelir, fotoğraf hareketsiz kalır. Kesilenler'de seç, önizlemede sürükle/büyüt.")
     }
     val nIl by vm.nesneIlerleme.collectAsState()
     if (alt == null || alt == "video") Kart("Videodan hareketli nesne", baslangicAcik = alt != null) {
         val f = nIl
         if (f != null) {
-            Text("Kareler kesiliyor… %${(f * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold)
-            LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
-            Dugme("İptal", Modifier.fillMaxWidth()) { vm.nesneIptal() }
-        } else {
-            var sn by remember { mutableFloatStateOf(dsn) }
-            Etiketli("Süre", String.format(TR, "%.0f sn", sn))
-            InceSlider(value = sn, onValueChange = { sn = it; dsn = it }, valueRange = 2f..10f, steps = 7, colors = kaydiriciRenk)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Dugme("✂ Ekrandaki videodan", Modifier.weight(1f), renk = Renk.turuncu, yaziRenk = Renk.turuncuM) { vm.videodanNesne((sn * 1000).toLong()) }
-                Dugme("✂ Galeriden video", Modifier.weight(1f)) { videoSec.launch(arrayOf("video/*")) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(18.dp), color = Renk.turuncu, strokeWidth = 2.dp)
+                Text("Kareler kesiliyor… %${(f * 100).roundToInt()}", color = Renk.yazi, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 10.dp).weight(1f))
+                Text("İptal", color = Renk.kirmizi, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { vm.nesneIptal() }.padding(horizontal = 10.dp, vertical = 6.dp))
             }
-            AcilirNot("Önizlemede nesnenin (insan, hayvan…) göründüğü video ana gel. Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne). 5 sn ≈ 1 dk sürer.")
+            LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = Renk.turuncu, trackColor = Renk.cizgi)
+        } else {
+            EkrandakiKlip(ekr, siraS, istenen = "video")
+            TonKaydirici("Süre", dsn, 2f..10f, 1f, Renk.turuncu, { "${it.roundToInt()} sn · ≈ ${String.format(TR, "%.0f", it * 12)} sn sürer" }) { v -> dsn = v }
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                KesKutusu("Ekrandaki videodan", if (ekr != null && !ekr.foto) "Bulunulan andan başlar" else "Önce bir video klibine gel",
+                    "makas", true, ekr != null && !ekr.foto, Modifier.weight(1f).fillMaxHeight()) { vm.videodanNesne((dsn * 1000).toLong()) }
+                KesKutusu("Galeriden video", "Başka videodaki nesneyi ekler", "klip", false, true, Modifier.weight(1f).fillMaxHeight()) { videoSec.launch(arrayOf("video/*")) }
+            }
+            AcilirNot("Saniyede 15 kare kesilir; sonuç hareketli katman olur, istediğin klibin üstüne koyabilirsin (örneğin başka bir manzaranın önüne).")
         }
     }
     if (alt == "kesilen" && p.nesneler.isEmpty()) Not("Henüz kesilen nesne yok. Fotoğraftan ya da Videodan sayfasında kes.")
@@ -1776,6 +1780,33 @@ fun PanelNesne(vm: EditorDurum, p: Proje, alt: String? = null) {
     }
 }
 
+
+/** 4.16: ekrandaki klibin durumu — kesmeye uygunsa tema renginde, değilse soluk ve ne yapılacağı. */
+@Composable
+private fun EkrandakiKlip(k: Klip?, i: Int, istenen: String) {
+    val uygun = k != null && (if (istenen == "foto") k.foto else !k.foto)
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Renk.kart2).padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(if (uygun) Renk.turuncu else Renk.soluk.copy(alpha = 0.5f)))
+        Text(when {
+            k == null -> "Önizlemede klip yok"
+            uygun -> "Ekranda: klip ${i + 1} · ${if (k.foto) "fotoğraf" else "video"}"
+            else -> "Ekranda: klip ${i + 1} · ${if (k.foto) "fotoğraf" else "video"} — ${if (istenen == "foto") "fotoğraf" else "video"} klibine git"
+        }, color = if (uygun) Renk.yazi else Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+/** 4.16: kesme kutusu — simge, başlık, kısa açıklama; birincil = tema renginde dolgulu, ikincil = çerçeveli; uygun değilse sönük. */
+@Composable
+private fun KesKutusu(baslik: String, alt: String, simge: String, birincil: Boolean, etkin: Boolean, m: Modifier, tik: () -> Unit) {
+    val sekil = RoundedCornerShape(14.dp)
+    val zemin = if (birincil && etkin) Renk.turuncu else Renk.kart2
+    val yazi = if (birincil && etkin) Renk.turuncuM else if (etkin) Renk.yazi else Renk.soluk.copy(alpha = 0.6f)
+    Column(m.clip(sekil).background(zemin).border(1.dp, if (birincil) Color.Transparent else Renk.cizgi, sekil).clickable(enabled = etkin, onClick = tik).padding(12.dp)) {
+        Simge(simge, yazi, 22.dp)
+        Text(baslik, color = yazi, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+        Text(alt, color = yazi.copy(alpha = 0.75f), fontSize = 11.5.sp, lineHeight = 14.sp, modifier = Modifier.padding(top = 2.dp))
+    }
+}
 
 /** 4.15: Kesilenler yeni görünüm — üstte nesne kutucukları (yana kayar, seçili = tema renginde çerçeve), altta seçili nesnenin
  *  düzenli ayarları: süre satırı (baş · son · klip boyunca), boyut, simge satırı (gölge · cam fırçası · üste al · sil). Eski liste: Ayarlar › Menü görünümü. */

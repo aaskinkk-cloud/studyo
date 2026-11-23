@@ -635,6 +635,8 @@ class EditorDurum(private val ctx: Context, id: String) {
         mesaj.value = if (bas) "Baştan kesildi · geri al ile döner" else "Sondan kesildi · geri al ile döner"
     }
 
+    /** 4.16: belli bir klibi (kimliğiyle) günceller — ekrandaki klip seçili klipten farklı olabilir. */
+    fun klipGuncelleId(id: String, f: (Klip) -> Klip) = guncelle { p -> p.copy(klipler = p.klipler.map { if (it.id == id) f(it) else it }) }
     fun klipGuncelle(yapi: Boolean = false, f: (Klip) -> Klip) {
         val s = secili.value
         guncelle(yapi) { p -> if (s !in p.klipler.indices) p else p.copy(klipler = p.klipler.toMutableList().also { it[s] = f(it[s]) }) }

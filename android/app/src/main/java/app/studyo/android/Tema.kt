@@ -94,6 +94,7 @@ object Duzen {
         anaStudyo = sp.getBoolean("anaStudyo", true)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan
         altUstte = sp.getBoolean("altUstte", true)
         kesilenEski = sp.getBoolean("kesilenEski", false)
+        cipTekSatir = sp.getBoolean("cipTekSatir", false)
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
@@ -115,6 +116,9 @@ object Duzen {
     var altUstte by mutableStateOf(true)
     /** 4.15: Kesilenler'in önceki liste görünümü (seçenek). */
     var kesilenEski by mutableStateOf(false)
+    /** 4.16: sayfa çipleri — false (varsayılan) = ayrı satır (4.14 düzeni), true = alt menü satırında tek satır (4.15). */
+    var cipTekSatir by mutableStateOf(false)
+    fun cipTekSatirSec(ctx: Context, b: Boolean) { cipTekSatir = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("cipTekSatir", b).apply() }
     fun kesilenEskiSec(ctx: Context, b: Boolean) { kesilenEski = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("kesilenEski", b).apply() }
     fun altUstteSec(ctx: Context, b: Boolean) { altUstte = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("altUstte", b).apply() }
     fun duzenleSadeSec(ctx: Context, b: Boolean) { duzenleSade = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("duzenleSade", b).apply() }

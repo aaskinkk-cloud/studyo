@@ -34,7 +34,6 @@ val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
     "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
     // 4.13: Katman › Nesne kes / Hareketli — Düzenle › Nesne sayfasının kendisi (alt menü Katman'da kalır)
     "knesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("kesilen", "Kesilenler", "katman")),
-    "khareket" to listOf(AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),
     "hareket" to listOf(AltSayfa("yakin", "Yakınlaştırma", "h_yakin"), AltSayfa("kay", "Kaydırma", "h_sag"), AltSayfa("odak", "Odak", "h_odak")),
     "muzik" to listOf(AltSayfa("hazir", "Hazır", "sihir"), AltSayfa("dosya", "Dosyadan", "yukle"), AltSayfa("ayar", "Ayar", "ses")),

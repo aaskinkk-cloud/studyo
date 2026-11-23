@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.15 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.16 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.16 (23.11.2026, deneme · `yerel-android` dalı): ayrı satır varsayılan, Fotoğraftan/Videodan yeniden
+- **Menü:** sayfa düğmeleri yine ayrı satırda (4.14 düzeni, varsayılan). Tek satır seçenek: Yayın › Ayarlar › Menü görünümü › "Sayfa düğmeleri tek satırda (alt menünün yanında)".
+- **Fotoğraftan / Videodan:** üstte ekrandaki klibin durumu (klip no · fotoğraf/video; uygun değilse ne yapılacağı). İki eşit kutu: "Ekrandaki …" (tema renginde, uygun değilse sönük ve nedenini yazar — artık uyarı penceresi açmaz) · "Galeriden …". Arka plan bulanıklığı ekrandaki fotoğraf klibine uygulanır (önceden seçili klibe uygulanıyordu; ekrandaki klip farklıysa yanlış klip değişiyordu). Videodan: Süre tek kaydırıcı (tahmini kesme süresiyle), ilerleme satırında İptal.
+- **Fazlalık:** Katman › Hareketli'deki ikinci "Kesilenler" çipi kaldırıldı (Kesilenler yalnız Nesne kes'te); Hareketli tek sayfa.
 
 ## 4.15 (23.11.2026, deneme · `yerel-android` dalı): tek satır alt menü, yeni Kesilenler, nesne oynarken yerinde
 - **Tek satır:** yeni menü düzeninde 3. katman sayfaları (ör. Nesne › Fotoğraftan · Videodan · Kesilenler, Şablon › Giriş · Abone · Kapanış + bağlantılar) ayrı satırda değil, alt menü satırında seçili alt menünün hemen yanında hafif zeminli bir grup olarak; satır sağa kayar. Ayar alanı bir satır büyüdü.

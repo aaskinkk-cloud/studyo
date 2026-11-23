@@ -437,7 +437,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
                 }
             } else null
-            if (!yeniAlt) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
+            val tekSatir = yeniAlt && Duzen.cipTekSatir   // 4.16: varsayılan ayrı satır (Ayarlar › Menü görünümü)
+            if (!tekSatir) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
             @Composable fun SabitDuzenle() {
                 val on = bolum == "duzenle"
@@ -509,7 +510,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             altlar.forEach { a ->
                                 AltKucuk(a)
                                 // 4.15: seçili alt menünün sayfaları hemen yanında, ince bir grup içinde (tek satır)
-                                if (a.secili) cipVeri?.let { c -> SatirCipleri(c) }
+                                if (a.secili && tekSatir) cipVeri?.let { c -> SatirCipleri(c) }
                             }
                         }
                     }
@@ -1337,7 +1338,8 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "altyazi" -> PanelAltyazi(vm, p, alt)
         "kapak" -> PanelKapak(vm, p, alt)
         "nesne" -> PanelNesne(vm, p, alt)
-        "knesne", "khareket" -> PanelNesne(vm, p, alt ?: if (hap == "knesne") "foto" else "video")   // 4.13: Düzenle › Nesne'nin kendisi
+        "knesne" -> PanelNesne(vm, p, alt ?: "foto")
+        "khareket" -> PanelNesne(vm, p, "video")   // 4.16: tek sayfa (Kesilenler yalnız Nesne kes'te — tekrar yok)   // 4.13: Düzenle › Nesne'nin kendisi
         "katmanlar" -> PanelKatmanlar(vm, p)
         else -> if (k == null) {
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))

@@ -69,6 +69,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
     Kart("Menü görünümü") {
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
+        AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)
     }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {

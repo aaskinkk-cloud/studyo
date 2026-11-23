@@ -68,6 +68,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
     // 4.06: sabit Düzenle düğmesinin görünümü (önceki kutulu görünüm seçenek olarak kalır)
     Kart("Menü görünümü") {
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
+        AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }   // 4.14 (kapalı = önceki düzen)
     }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {
         AcilirNot("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.")

@@ -174,7 +174,8 @@ fun RenkBolumu(vm: EditorDurum, p: Proje, sec: Int) {
 /** Ayar değiştiyse başlığın yanında görünen yeşil onay. */
 @Composable
 fun OnayIsareti(modifier: Modifier = Modifier, boy: androidx.compose.ui.unit.Dp = 16.dp) =
-    Box(modifier.size(boy).clip(CircleShape).background(Color(0xFF1D9E75)), contentAlignment = Alignment.Center) { Simge("uygula", Color.White, boy * 0.7f) }
+    // 4.14: onay işareti tema renginde (Ayarlar › Tema rengi) — bütün bölümlerde; işaret zıt renkte okunur
+    Box(modifier.size(boy).clip(CircleShape).background(Renk.turuncu), contentAlignment = Alignment.Center) { Simge("uygula", Renk.turuncuM, boy * 0.7f) }
 
 @Composable
 internal fun AyarDugmesi(ad: String, simge: String, renk: Long, secili: Boolean, degisti: Boolean, tik: () -> Unit) {

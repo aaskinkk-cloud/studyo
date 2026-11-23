@@ -461,7 +461,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             @Composable fun SabitArama() {
                 if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
             }
-            if (altMod && panelAcik) {
+            val yeniAlt = Duzen.altUstte && !Duzen.yaziliMenu   // 4.14
+            if (altMod && panelAcik && !yeniAlt) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri
                 // 3.67: Geri sade (zeminsiz, soluk ince ok) ve sabit — alt menüler yanında kayar, Geri yerinde kalır
                 Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars)
@@ -492,6 +493,19 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             horizontalArrangement = Arrangement.spacedBy(2.dp)) { altlar.forEach { AltDugme(it) } }
                     }
                 }
+                // 4.14: alt menüler küçük satır olarak ana menünün üstünde; başında bölümün adı sabit (tema renginde), alt menüler yanında kayar
+                if (yeniAlt && panelAcik && altlar.isNotEmpty()) {
+                    Row(Modifier.fillMaxWidth().background(Renk.zemin).padding(start = 6.dp, end = 6.dp, top = 3.dp, bottom = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Renk.turuncu.copy(alpha = 0.16f)).padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Simge(b.simge, Renk.turuncu, 16.dp)
+                            Text(b.ad, color = Renk.turuncu, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.padding(start = 5.dp))
+                        }
+                        Box(Modifier.padding(horizontal = 6.dp).width(1.dp).height(22.dp).background(Renk.cizgi))
+                        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)) { altlar.forEach { AltKucuk(it) } }
+                    }
+                }
                 // ana bölümler (yana kayar); dokununca alt menü modu açılır
                 val anaKaydir = rememberScrollState()
                 // 3.89: sabit Düzenle solda (sabitliyse), sabit menü arama sağda; diğer bölümler aradan kayar
@@ -516,6 +530,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                                 Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                                 if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
                             }
+                            // 4.14: yeni düzende seçili ana bölümün altında tema renginde çizgi (üstteki alt menü satırı bu bölüme ait)
+                            if (yeniAlt) Box(Modifier.padding(top = 3.dp).width(28.dp).height(2.5.dp).clip(RoundedCornerShape(2.dp))
+                                .background(if (on && panelAcik) Renk.turuncu else Color.Transparent))
                         }
                     }
                 }
@@ -1767,6 +1784,20 @@ fun PanelYazi(vm: EditorDurum, k: Klip) {
 
 /** 3.61: alt menü düğmesi (ana menü satırında ya da onun üstünde): renkli çizim simge + küçük yazı, seçiliyse nokta, ayar değiştiyse ✓. */
 class AltOge(val ad: String, val simge: String, val renk: Color, val secili: Boolean, val isaret: Boolean, val tik: () -> Unit)
+
+/** 4.14: üstteki küçük alt menü satırının düğmesi — simge + ad yan yana; seçili = tema renginde çerçeve ve yazı. */
+@Composable
+private fun AltKucuk(o: AltOge) {
+    val sekil = RoundedCornerShape(16.dp)
+    Row(Modifier.height(32.dp).clip(sekil).background(if (o.secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart2)
+        .border(1.dp, if (o.secili) Renk.turuncu.copy(alpha = 0.75f) else Color.Transparent, sekil).clickable(onClick = o.tik).padding(horizontal = 11.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp)
+        Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+            modifier = Modifier.padding(start = 5.dp))
+        if (o.isaret) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
+    }
+}
 
 @Composable
 private fun AltDugme(o0: AltOge) {

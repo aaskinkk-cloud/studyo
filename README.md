@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.13 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.14 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.14 (23.11.2026, deneme · `yerel-android` dalı): alt menüler üstte, onay işaretleri tema renginde
+- **Yeni menü düzeni:** ana menü hep altta ve serbest kayar; seçili bölüm tema renginde (altında çizgi). Bölümün alt menüleri hemen üstünde küçük düğmeler (simge + ad yan yana); satırın başında bölüm adı tema renginde sabit, alt menüler yanında kayar. 3. katman çipleri en üstte. Önceki düzen (alt menüler ana menünün yerinde, solda "‹ Bölüm"): Yayın › Ayarlar › Menü görünümü › "Alt menüler üstte…" kapalı.
+- **Onay işaretleri tema renginde:** alt menü/çip/varsayılan ✓ rozetleri ve kart başlıklarındaki ✓✓ (tümüne) / ✓ (bu klip) işaretleri artık Ayarlar › Tema rengi'nde (eskiden sabit yeşil); bütün bölümlerde.
 
 ## 4.13 (23.11.2026, deneme · `yerel-android` dalı): Katman alt menüleri, Şablon'da varsayılan bağlantıları
 - **Katman alt menüleri:** Ekle · Ses · görünür · Nesne kes · Hareketli · Katmanlar. Çizelge yalnız Katmanlar sayfasında (seçili katmanın ayarlarıyla); Ekle'de Görsel/Logo/Çıkartma/Ses; Ses · görünür = "Ses ve görünürlük · tümü".

@@ -92,6 +92,7 @@ object Duzen {
         seritGizli = sp.getBoolean("seritGizli", false)
         kontrolUstte = sp.getBoolean("kontrolUstte3", true)   // 3.72: kontroller varsayılan olarak videonun üstünde
         anaStudyo = sp.getBoolean("anaStudyo", true)          // 3.85: web Stüdyo görünümlü ana sayfa varsayılan
+        altUstte = sp.getBoolean("altUstte", true)
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
@@ -109,6 +110,9 @@ object Duzen {
     var anaStudyo by mutableStateOf(true)
     /** 4.06: sabit Düzenle düğmesi — true: sade (diğer menüler gibi, ayırıcı çizgiyle), false: önceki kutulu, renkli çerçeveli görünüm. */
     var duzenleSade by mutableStateOf(true)
+    /** 4.14: alt menüler küçük satır olarak üstte (başında bölüm adı sabit), ana menü altta serbest ve seçili bölüm renkli. false = önceki düzen (alt menüler ana menünün yerinde). */
+    var altUstte by mutableStateOf(true)
+    fun altUstteSec(ctx: Context, b: Boolean) { altUstte = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("altUstte", b).apply() }
     fun duzenleSadeSec(ctx: Context, b: Boolean) { duzenleSade = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("duzenleSade", b).apply() }
     fun anaStudyoSec(ctx: Context, b: Boolean) { anaStudyo = b; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("anaStudyo", b).apply() }
     /** 3.87: Düzenle menüsü sabit — başka bölümdeyken de Düzenle'nin menüsü altta durur. */
@@ -197,14 +201,14 @@ fun Kart(baslik: String, baslangicAcik: Boolean = true, hepsine: (() -> Unit)? =
             if (acik || ton != null) Spacer(Modifier.width(8.dp))
             // ✓✓ başlığın başında: tüm kliplere uygula
             if (hepsine != null) Box(Modifier.padding(end = 6.dp).size(30.dp).clip(CircleShape).clickable { hepsine() }, contentAlignment = Alignment.Center) {
-                Simge("cift", Color(TON[1]), 20.dp) }
+                Simge("cift", Renk.turuncu, 20.dp) }   // 4.14: tema renginde
             Text(baslik, color = if (acik || ton != null) vurgu else Renk.yazi, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
             // renkli anahtar: özelliği aç/kapat (kartı açıp kapatmaz)
             if (anahtar != null && anahtarDegis != null) Switch(checked = anahtar, onCheckedChange = anahtarDegis, modifier = Modifier.padding(end = 6.dp).scale(0.8f),
                 colors = SwitchDefaults.colors(checkedTrackColor = vurgu, checkedThumbColor = Renk.zemin, uncheckedTrackColor = Renk.kart2, uncheckedThumbColor = Renk.soluk, uncheckedBorderColor = Renk.cizgi))
             // ✓ sağda: yalnız bu klip (seçim zaten bu klibe uygulanır) — onaylar ve kartı kapatır
             if (buna != null) Box(Modifier.padding(end = 4.dp).size(30.dp).clip(CircleShape).clickable { buna(); acik = false }, contentAlignment = Alignment.Center) {
-                Simge("uygula", Color(TON[2]), 20.dp) }
+                Simge("uygula", Renk.turuncu, 20.dp) }
             GizleGosterDugmesi(acik, vurgu) { acik = !acik }   // 3.57: belirgin düğme (önce yalnız küçük ▴/▾ işareti vardı)
         }
         if (acik) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), content = icerik)

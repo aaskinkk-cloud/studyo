@@ -74,7 +74,9 @@ private fun akiciKonum(vm: EditorDurum): Long {
  *  Tek parmak yatay = sar · iki parmak = yakınlaştır · çubuğa dokun = seç · seçili çubuğu sürükle = taşı/başı-sonu/satır. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, modifier: Modifier, acPanel: (String, Int) -> Unit = { _, _ -> }) {
+fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, modifier: Modifier, acPanel: (String, Int) -> Unit = { _, _ -> }, ekle: () -> Unit = {}) {
+    var gecisI by remember { mutableStateOf<Int?>(null) }   // 4.20: klipler arasındaki geçiş düğmesi
+    gecisI?.let { gi -> if (gi < p.klipler.lastIndex) GecisSecimi(vm, p, gi) { gecisI = null } else gecisI = null }
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     val konum = akiciKonum(vm)
@@ -116,12 +118,18 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                 SimgeDugme("asagi", "Sona al", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = secKlip < n - 1) { vm.tasi(1) }
                 SimgeDugme(if (kl.sessiz) "sessiz" else "ses", if (kl.sessiz) "Sesi aç" else "Sessiz", Modifier.width(62.dp), renk = tonRenk(4, ""),
                     etkin = !kl.foto && kl.sesVar) { vm.sesAcKapat() }
+                // 4.20: fotoğraf klibini üst katman yap (PNG gibi, başka klibin üstünde durur)
+                if (kl.foto) SimgeDugme("h_yukari", "Katman yap", Modifier.width(62.dp), renk = Renk.turuncu) { vm.klipUsteAl(); klipSecili = false }
                 SimgeDugme("kapat", "Bırak", Modifier.width(62.dp), renk = tonRenk(5, "")) { klipSecili = false }
                 SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", Modifier.width(62.dp), renk = Renk.kirmizi) {
                     if (silOnay) { vm.klipSil(); silOnay = false; if (vm.proje.value.klipler.isEmpty()) klipSecili = false } else silOnay = true
                 }
             } else {
             SimgeDugme("makas", "Böl", Modifier.width(62.dp), renk = tonRenk(0, ""), etkin = e) { ko?.let { vm.katmanBol(it.id) } }
+            // 4.20: katman sırası (üstteki öndedir) ve görsel katmanı yeniden klip yapma
+            SimgeDugme("h_yukari", "Üste al", Modifier.width(62.dp), renk = tonRenk(1, ""), etkin = ko != null && ki < p.katmanlar.lastIndex) { vm.katmanTasi(ki, ki + 1) }
+            SimgeDugme("h_asagi", "Alta al", Modifier.width(62.dp), renk = tonRenk(2, ""), etkin = ko != null && ki > 0) { vm.katmanTasi(ki, ki - 1) }
+            if (ko?.tur == "gorsel") SimgeDugme("klip", "Klip yap", Modifier.width(62.dp), renk = Renk.turuncu) { vm.katmanAltaAl(ko.id) }
             SimgeDugme("kadraj", "Tüm video", Modifier.width(62.dp), renk = tonRenk(3, ""), etkin = e) { ko?.let { vm.katmanDegis(it.id) { o -> vm.katmanAralik(o, "tum") } } }
             // 3.50: uçlar menüsü her zaman araç sırasında (çubuğun ucuna dokunmak da açar) + süreyi düğmeyle genişlet/daralt
             Box {
@@ -227,14 +235,16 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                 }
                 Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
                     // ---- video satırı: yalnız başvuru (kareler); klip işleri Düzenle › Klip'te ----
-                    IzSatiri("klip", "Video", SATIR_VIDEO, Renk.turkuaz, onClick = { vm.seciliKatman.value = null; klipSecili = false }) {
+                    // 4.20: satır başı "+" = yeni klip ekle; klipler arasında boşluk ve geçiş düğmesi (dokun = geçiş seç)
+                    IzSatiri("ekle", "Klip ekle", SATIR_VIDEO, Renk.turuncu, onClick = { vm.seciliKatman.value = null; klipSecili = false; ekle() }) {
+                        val araPx = with(yog) { 4.dp.toPx() }
                         var bas = 0L
                         for (i in p.klipler.indices) {
                             val zk = p.zKlip(i); val k = p.klipler[i]
                             val b0 = bas; bas += zk.sureMs
                             val x0 = xMs(b0); val x1 = xMs(b0 + zk.sureMs)
                             if (x1 < -50f || x0 > izGen + 50f) continue
-                            key(k.id) { KlipCubugu(i, k, x0, x1 - x0, izGen, klipSecili && i == secKlip && secK == null,
+                            key(k.id) { KlipCubugu(i, k, x0, (x1 - x0 - araPx).coerceAtLeast(4f), izGen, klipSecili && i == secKlip && secK == null,
                                 tasi = { dx ->
                                     // 3.46: basılı tut + sağa/sola sürükle = klibi taşı; bırakılan yerdeki klibin sırasına geçer
                                     val hedefMs = (b0 + zk.sureMs / 2 + dx / pxMs).toLong().coerceIn(0, toplam - 1)
@@ -243,6 +253,15 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                                     if (j != i) { vm.klipTasi(i, j); klipSecili = true; vm.mesaj.value = "Klip ${i + 1} → ${j + 1}. sıraya taşındı" }
                                 }) {
                                 vm.seciliKatman.value = null; vm.secili.value = i; klipSecili = true } }
+                            if (i < p.klipler.lastIndex) key(k.id + "g") {
+                                val gt = p.gecisAt(i).tur
+                                val r = with(yog) { 11.dp.toPx() }
+                                Box(Modifier.align(Alignment.CenterStart).offset { IntOffset((x1 - araPx / 2 - r).roundToInt(), 0) }.size(22.dp).clip(CircleShape)
+                                    .background(if (gt != "yok") Renk.turuncu else Color(0xFF2A3540)).border(1.dp, Color(0x55FFFFFF), CircleShape)
+                                    .clickable { gecisI = i }, contentAlignment = Alignment.Center) {
+                                    Simge("gecis", if (gt != "yok") Renk.turuncuM else Color.White, 12.dp)
+                                }
+                            }
                         }
                     }
                     // ---- katman satırları (üstteki en üstte) ----
@@ -580,7 +599,7 @@ private fun DalgaCiz(d: FloatArray, kaynakBas: Long, hiz: Float, renk: Color, do
  *  altında katman ekleme ve seçili katmanın ayarları. Katmanla ilgili her işlem yalnız burada. */
 @Composable
 fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, sayfa: String = "katmanlar",
-                 misafirAc: (String, String, String?) -> Unit = { _, _, _ -> }) {
+                 misafirAc: (String, String, String?) -> Unit = { _, _, _ -> }, ekle: () -> Unit = {}) {
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     var acik by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
@@ -625,7 +644,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
             if (acik && cizelgeli) {
                 if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
                 else {
-                    CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp)) { tur, i -> ekPanel = tur to i }
+                    CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp), { tur, i -> ekPanel = tur to i }, ekle)
                     Box(Modifier.fillMaxWidth().height(22.dp)
                         .pointerInput(Unit) {
                             detectVerticalDragGestures(onDragEnd = { Duzen.katmanYukKaydet(ctx) }) { ch, d ->
@@ -639,6 +658,8 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                     }
                 }
             }
+            // 4.20: yazı ekle/düzenle kutusu çizelgenin altında (kliplerin üstünü örtmez)
+            p.katmanlar.firstOrNull { it.id == secKat && it.tur == "metin" }?.let { Box(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) { YaziDuzenleBlok(vm, it) } }
             Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
                 PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value }, sayfa = if (cizelgeli) "katmanlar" else sayfa, misafirAc = misafirAc)
                 Spacer(Modifier.height(8.dp))

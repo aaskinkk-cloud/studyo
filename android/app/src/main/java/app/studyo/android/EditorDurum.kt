@@ -1467,6 +1467,42 @@ class EditorDurum(private val ctx: Context, id: String) {
         mesaj.value = "Ses ayrıldı · Katmanlar'da ayrı ses katmanı"
     }
 
+    /** 4.20: seçili fotoğraf klibini üst katmana (görsel) taşır — aynı zamanda, ortada, PNG saydamlığı korunur; klip diziden çıkar. Geri al çalışır. */
+    fun klipUsteAl() {
+        val p = proje.value; val i = secili.value; val k = p.klipler.getOrNull(i) ?: return
+        if (!k.foto) { uyari.value = "Yalnız fotoğraf klibi katman yapılabilir."; return }
+        kapsam.launch {
+            val u = Uri.parse(k.uri)
+            val r = withContext(Dispatchers.IO) { runCatching {
+                val tip = ctx.contentResolver.getType(u) ?: ""
+                Medya.fotoHazirla(ctx, u, 2048, png = tip.contains("png") || tip.contains("webp") || k.uri.endsWith(".png", true), dizinAd = "katman")
+            }.getOrNull() }
+            if (r == null) { uyari.value = "Fotoğraf katmana çevrilemedi."; return@launch }
+            val b = baslangic(i); val son = b + p.zKlip(i).sureMs
+            val oran = Disa.boyut(p.bicim, 1080).let { (w, h) -> w.toFloat() / h }
+            val olc = minOf(0.6f, 0.8f * (r.second.toFloat() / r.third.coerceAtLeast(1)) / oran).coerceAtLeast(0.1f)
+            val o = KatmanOge(tur = "gorsel", ad = "Klip ${i + 1}", yol = r.first.path, olcek = olc, basMs = b, sonMs = son)
+            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.filter { it.id != k.id }, katmanlar = pp.katmanlar + o) }
+            seciliKatman.value = o.id
+            mesaj.value = "Fotoğraf üst katman oldu · Klip yap ile geri alınır"
+        }
+    }
+    /** 4.20: görsel katmanı, başladığı yerdeki klibin önüne fotoğraf klibi olarak geri koyar (süresi katmanın süresi). */
+    fun katmanAltaAl(id: String) {
+        val o = proje.value.katmanlar.firstOrNull { it.id == id && it.tur == "gorsel" } ?: return
+        kapsam.launch {
+            val (k, sorun) = withContext(Dispatchers.IO) { runCatching { klipHazirla(Uri.fromFile(java.io.File(o.yol))) }.getOrElse { null to it.message } }
+            if (k == null) { uyari.value = sorun ?: "Klip yapılamadı."; return@launch }
+            val p = proje.value
+            var t = 0L; var j = p.klipler.size
+            for (x in p.klipler.indices) { val d = p.zKlip(x).sureMs; if (o.basMs < t + d) { j = if (o.basMs - t > d / 2) x + 1 else x; break }; t += d }
+            val yeni = k.copy(fotoSureMs = (o.sonMs - o.basMs).coerceAtLeast(1000))
+            guncelle(true) { pp -> pp.copy(klipler = pp.klipler.toMutableList().also { it.add(j.coerceIn(0, it.size), yeni) }, katmanlar = pp.katmanlar.filter { it.id != id }) }
+            seciliKatman.value = null
+            mesaj.value = "Katman klip ${j + 1} oldu"
+        }
+    }
+
     /** Katmanı oynatıcının olduğu yerden ikiye böler (ses katmanında kaynak başlangıcı da kayar). */
     fun katmanBol(id: String) {
         val o = proje.value.katmanlar.firstOrNull { it.id == id } ?: return

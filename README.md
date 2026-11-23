@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.19 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.20 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.20 (23.11.2026, deneme · `yerel-android` dalı): Katmanlar çizelgesi — klip ekle, geçiş düğmeleri, katman yap / klip yap, sıra
+- Katman'a dokununca önce **Katmanlar** alt sayfası (ilk düğme).
+- Çizelgede video satırının başında **+ Klip ekle**; klipler arasında boşluk ve **geçiş düğmesi** (hep görünür; geçiş varsa tema renginde) → dokun = Geçişler penceresi.
+- **Katman yap:** seçili fotoğraf klibi üst katman (görsel) olur — PNG saydamlığı korunur, başka klibin üstünde durur. **Klip yap:** görsel katman yeniden fotoğraf klibi olur (başladığı yere, katmanın süresiyle).
+- **Üste al / Alta al:** seçili katmanın sırası (üstteki öndedir) araç sırasında.
+- Katman bölümünde yazı ekle/düzenle kutusu çizelgenin altında (kliplerin üstünü örtmez).
 
 ## 4.19 (23.11.2026, deneme · `yerel-android` dalı): harf düğmeleri, oynatıcı düzenlemeleri
 - **Yazı kutusu:** küçük · BÜYÜK · Baş Harf düğmeleri — seçili kısma (seçim yoksa bütün yazıya), Türkçe harf kurallarıyla.

@@ -93,7 +93,7 @@ private val BOLUMLER = listOf(
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
-    Bolum("katman", "Katman", "katman", listOf("kekle" to "Ekle", "kses" to "Ses · görünür", "knesne" to "Nesne kes", "khareket" to "Hareketli", "katmanlar" to "Katmanlar")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
+    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür", "knesne" to "Nesne kes", "khareket" to "Hareketli")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)
@@ -330,7 +330,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // (Metin › Yazı sayfası zaten gösterdiği için orada tekrarlanmaz). Çift dokunuş / ✎ tutamacı / menüdeki "Yazıyı düzenle" klavyeyi açar.
             val secKatE by vm.seciliKatman.collectAsState()
             val secYaziE = p.katmanlar.firstOrNull { it.id == secKatE && it.tur == "metin" }
-            val yaziSayfasi = (bolum == "metin" && haplar["metin"] == "yazi") || misafir?.second == "yazi" || (Duzen.yaziliMenu && bolum == "katman")
+            // 4.20: Katman bölümünde kutu çizelgenin altında (KatmanBolumu) — kliplerin üstünü örtmez
+            val yaziSayfasi = (bolum == "metin" && haplar["metin"] == "yazi") || misafir?.second == "yazi" || (bolum == "katman" && misafir == null)
             if (secYaziE != null && !yaziSayfasi && ekranDuzen == null) Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) { YaziDuzenleBlok(vm, secYaziE) }   // 3.72: şablon yazısı ekranda düzenleme (anında önizlemeye yansır)
             if (Renk.sb && !Duzen.kontrolUstte && p.klipler.isNotEmpty()) OynaticiSatiriSB(vm, p, tamEkran = { tamEkranV = true }) { Duzen.kontrolDegis(ctx) }
             // tutamaç: sürükle = önizlemeyi büyüt/küçült (ayar alanı genişler), çift dokun = varsayılan boy
@@ -372,7 +373,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 } else if (bolum == "katman" && panelAcik && haplar["katman"] !in setOf("knesne", "khareket")) {
                     KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" },
-                        sayfa = haplar["katman"] ?: "katmanlar", misafirAc = { b2, h2, a2 -> misafir = Triple(b2, h2, a2) })
+                        sayfa = haplar["katman"] ?: "katmanlar", misafirAc = { b2, h2, a2 -> misafir = Triple(b2, h2, a2) }, ekle = ekle)
                 } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "klipler")) {
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     // 3.31: kaydırılabilir; şerit + bölüm kartları (Geçişler paneli biçiminde)
@@ -535,7 +536,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             Modifier.width((if (oncu) 70.dp else 74.dp) * Duzen.menuOlcek).clip(RoundedCornerShape(12.dp))
                                 .background(if (on) Renk.turuncu.copy(alpha = if (oncu) 0.22f else 0.12f) else if (oncu) Renk.turuncu.copy(alpha = 0.08f) else Color.Transparent)
                                 .then(if (oncu) Modifier.border(1.dp, Renk.turuncu.copy(alpha = if (on) 0.7f else 0.35f), RoundedCornerShape(12.dp)) else Modifier).clickable {
-                                bolum = bb.anahtar; if (bb.anahtar == "duzenle") haplar["duzenle"] = "klip"; panelAcik = true; altMod = true
+                                bolum = bb.anahtar; if (bb.anahtar == "duzenle") haplar["duzenle"] = "klip"; if (bb.anahtar == "katman") haplar["katman"] = "katmanlar";   // 4.20: önce Katmanlar panelAcik = true; altMod = true
                             }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -1320,7 +1321,7 @@ private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = wh
 
 /** Klipler arasındaki geçiş simgesinden açılan Geçişler paneli (3.25, Ahmet'in görseli). */
 @Composable
-private fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
+internal fun GecisSecimi(vm: EditorDurum, p: Proje, i: Int, kapat: () -> Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest = kapat, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(18.dp)).background(Renk.kart).padding(vertical = 8.dp)) {
             GecisIcerik(vm, p, ara = i, kapat = kapat)

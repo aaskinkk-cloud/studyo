@@ -221,7 +221,7 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit, webUrl: 
                     if (Renk.tema != 4) DropdownMenuItem(text = { Text("InShot teması (koyu, turkuaz)") }, onClick = { menu = false; Renk.sec(ctx, 4) })
                     DropdownMenuItem(text = { Text("Stüdyo ana sayfası (açık, mavi-turuncu)") }, onClick = { menu = false; Duzen.anaStudyoSec(ctx, true) })
                     DropdownMenuItem(text = { Text("Karanlık Oda teması (yeni)") }, onClick = { menu = false; Renk.sec(ctx, 3) })
-                    DropdownMenuItem(text = { Text(if (Duzen.menuStil == "renkli") "Alt başlıklar: simgeli" else "Alt başlıklar: yazılı renkli") }, onClick = { menu = false; Duzen.degistir(ctx) })
+                    // 4.23: "Alt başlıklar: yazılı (önceki)" kaldırıldı — eski düzen arama, Yüzler, oynatıcı gibi özellikleri gizliyordu
                     DropdownMenuItem(text = { Text("Pil kısıtlamasını kaldır") }, onClick = { menu = false; pilAyari(ctx) })
                     DropdownMenuItem(text = { Text("Sürüm ${BuildConfigBilgi.surum(ctx)}") }, onClick = { menu = false })
                 }

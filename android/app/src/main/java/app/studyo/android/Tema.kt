@@ -84,10 +84,8 @@ object Duzen {
     fun oranKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("onizlemeOran2", onizlemeOran).putBoolean("elleOran", elleOran).apply() }
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
-        // 4.22 KÖK NEDEN ("arama, Yüzler, oynatıcı kayboldu"): "Alt başlıklar: yazılı (önceki)" ayrı, eski bir ekran düzenine geçiriyordu;
-        // 3.70'ten sonra eklenen her şey (arama, alt sayfalar: Yüzler/Yüz gizle…, oynatıcı, sabit düğmeler) yalnız yeni düzene eklenmişti.
-        // Artık tek düzen var: "yazılı" seçimi yeni düzenin renkli yazılı görünümüdür (menuStil = "renkli"); hiçbir özellik kaybolmaz.
-        if (sp.getBoolean("yaziliMenu", false)) sp.edit().putBoolean("yaziliMenu", false).putString("menuStil", "renkli").apply()
+        // 4.23: 4.20'ye dönüş. Menüleri bozan eski "yazılı" düzen seçimi açık kaldıysa bir kez kapatılır (4.21/4.22'nin "renkli" ayarı da sıfırlanır)
+        if (sp.getBoolean("yaziliMenu", false) || sp.getString("menuStil", "") == "renkli") sp.edit().putBoolean("yaziliMenu", false).putString("menuStil", "ikisi").apply()
         yaziliMenu = false
         onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, ORAN_EN_COK)
         elleOran = sp.getBoolean("elleOran", false)
@@ -107,7 +105,7 @@ object Duzen {
         duzenleSade = sp.getBoolean("duzenleSade", true)   // 4.06: sabit Düzenle sade (çerçevesiz); eski kutulu görünüm Ayarlar'da seçenek
         duzenleSabit = true   // 4.01: Sabitle düğmesi kaldırıldı — Düzenle hep sabit   // 3.89: Düzenle düğmesi varsayılan sabit (yalnız düğme)
     }
-    fun degistir(ctx: Context) { menuStilSec(ctx, if (menuStil == "renkli") "ikisi" else "renkli") }   // 4.22: eski ayrı düzen yerine yazılı renkli görünüm
+    fun degistir(ctx: Context) { yaziliMenu = !yaziliMenu; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yaziliMenu", yaziliMenu).apply() }
     /** Katman bölümündeki çok satırlı çizelgenin yüksekliği (dp; tutamaçla 120–560, çift dokunuş = 240). */
     var katmanYuk by mutableFloatStateOf(240f)
     fun katmanYukKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putFloat("katmanYuk", katmanYuk).apply() }

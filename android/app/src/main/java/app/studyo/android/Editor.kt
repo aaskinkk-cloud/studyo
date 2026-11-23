@@ -474,6 +474,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             @Composable fun SabitArama() {
                 if (!Duzen.yaziliMenu) Box(Modifier.size(40.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk, 20.dp) }
+                // 4.25: Ayarlar (tema rengi, menü boyutu/görünümü, oynatıcı…) her zaman bir dokunuşta — Yayın menüsü yana kaydırınca görünüyordu
+                Box(Modifier.size(40.dp).clip(CircleShape).clickable { git("yayin", "ayarlar", null) }, contentAlignment = Alignment.Center) {
+                    Simge("menu", if (bolum == "yayin" && haplar["yayin"] == "ayarlar" && panelAcik) Renk.turuncu else Renk.soluk, 20.dp) }
             }
             if (altMod && panelAcik && !yeniAlt) {
                 // alt menü modu: ana menünün yerinde — Geri + bölümün alt menüleri

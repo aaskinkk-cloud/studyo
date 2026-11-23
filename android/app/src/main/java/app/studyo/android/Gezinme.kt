@@ -32,6 +32,9 @@ val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
     "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler", "yuz"), AltSayfa("gizle", "Yüz gizle", "gozkapali"), AltSayfa("ayri", "Ayrı video", "disa")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
+    // 4.13: Katman › Nesne kes / Hareketli — Düzenle › Nesne sayfasının kendisi (alt menü Katman'da kalır)
+    "knesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("kesilen", "Kesilenler", "katman")),
+    "khareket" to listOf(AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),
     "hareket" to listOf(AltSayfa("yakin", "Yakınlaştırma", "h_yakin"), AltSayfa("kay", "Kaydırma", "h_sag"), AltSayfa("odak", "Odak", "h_odak")),
     "muzik" to listOf(AltSayfa("hazir", "Hazır", "sihir"), AltSayfa("dosya", "Dosyadan", "yukle"), AltSayfa("ayar", "Ayar", "ses")),
@@ -87,7 +90,7 @@ fun YolSatiri(parcalar: List<String>, anaMenu: () -> Unit, ara: () -> Unit) {
 
 /** 3. katman çipleri (yana kayar): seçili = dolu, ayarı değişmiş = ✓. */
 @Composable
-fun AltSayfaCipleri(liste: List<AltSayfa>, secili: String, isaret: (String) -> Boolean, sec: (String) -> Unit) {
+fun AltSayfaCipleri(liste: List<AltSayfa>, secili: String, isaret: (String) -> Boolean, baglantilar: List<Triple<String, String, () -> Unit>> = emptyList(), sec: (String) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         liste.forEach { a ->
             val on = a.anahtar == secili
@@ -100,6 +103,22 @@ fun AltSayfaCipleri(liste: List<AltSayfa>, secili: String, isaret: (String) -> B
                 if (isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 5.dp), 13.dp)
             }
         }
+        // 4.13: başka bölümdeki sayfalara bağlantılar — ince ayırıcıdan sonra, çerçevesiz, vurgu renginde "ad ›"
+        if (baglantilar.isNotEmpty()) {
+            Box(Modifier.padding(horizontal = 2.dp).width(1.dp).height(20.dp).align(Alignment.CenterVertically).background(Renk.cizgi))
+            baglantilar.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) }
+        }
+    }
+}
+
+/** 4.13: başka sayfaya giden zarif bağlantı (çerçevesiz, vurgu renginde, sonunda ›). */
+@Composable
+fun BaglantiCipi(ad: String, simge: String, tik: () -> Unit) {
+    Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = tik).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+        Simge(simge, Renk.turuncu.copy(alpha = 0.9f), 14.dp)
+        Spacer(Modifier.width(4.dp))
+        Text(ad, color = Renk.turuncu, fontSize = 12.sp, maxLines = 1)
+        Text(" ›", color = Renk.turuncu.copy(alpha = 0.7f), fontSize = 12.sp)
     }
 }
 

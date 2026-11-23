@@ -43,7 +43,7 @@ private fun turAdi(t: String) = when (t) { "metin" -> "Metin"; "gorsel" -> "Gör
 
 /** Katman bölümü: ekle · zaman çizelgesi (sıra, başlangıç/bitiş) · seçili katmanın ayarları. */
 @Composable
-fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
+fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}, sayfa: String? = null, misafirAc: ((String, String, String?) -> Unit)? = null) {
     val gorselSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.katmanGorselEkle(it) }
     val sesSec = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> u?.let { vm.katmanSesEkle(it) } }
     var cikartmaAcik by remember { mutableStateOf(false) }
@@ -56,6 +56,34 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
         return
     }
     val secYazi = p.katmanlar.firstOrNull { it.id == secId && it.tur == "metin" }
+    // 4.13: Katman alt sayfaları (sayfa = null → eski tek sayfa düzeni, değişmeden)
+    if (sayfa != null) {
+        if (sayfa == "kekle") Kart("Katman ekle") {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                val g = Modifier.width(68.dp)
+                SimgeDugme("kapak", "Görsel", g, renk = tonRenk(1, "")) { gorselSec.launch(arrayOf("image/*")) }
+                SimgeDugme("logo", "Logo", g, renk = tonRenk(2, "")) { logoAcik = true }
+                SimgeDugme("yildiz", "Çıkartma", g, renk = tonRenk(3, "")) { cikartmaAcik = true }
+                SimgeDugme("nota", "Ses", g, renk = tonRenk(4, "")) { sesSec.launch(arrayOf("audio/*")) }
+            }
+            // yazı ve takip yazısı Metin bölümünde: aynı sayfa burada açılır (alttaki Katman menüsü yerinde kalır)
+            if (misafirAc != null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (secYazi != null) BaglantiCipi("Seçili yazıyı düzenle", "degistir") { misafirAc("metin", "yazi", "ekle") }
+                BaglantiCipi("Yazı ve hazır yazılar", "metin") { misafirAc("metin", "yazi", "ekle") }
+                BaglantiCipi("Takip yazısı", "takip") { misafirAc("metin", "takip", null) }
+            }
+            AcilirNot("Yeni katman oynatıcının bulunduğu andan başlar, kısa süre kalır ve solarak biter. Önizlemede katmana dokun = seç · sürükle = taşı · iki parmak = büyüt/döndür. Seçili katmanın ayarları ve sırası: Katmanlar.")
+        }
+        if (sayfa == "kekle") p.katmanlar.firstOrNull { it.id == secId && it.tur != "metin" }?.let { KatmanAyarlari(vm, p, it, konum) }
+        if (sayfa == "kses") {
+            if (p.katmanlar.isEmpty() && p.muzik == null) Text("Henüz katman ya da müzik yok. Ekle sayfasından katman ekle.", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(12.dp))
+            TumKatmanlar(vm, p)
+        }
+        if (sayfa == "katmanlar") p.katmanlar.firstOrNull { it.id == secId }?.let { o ->
+            if (o.tur == "metin" && misafirAc != null) Row(Modifier.padding(top = 4.dp)) { BaglantiCipi("Yazıyı düzenle", "degistir") { misafirAc("metin", "yazi", "ekle") } }
+            KatmanAyarlari(vm, p, o, konum)
+        }
+    } else {
     Kart(if (secYazi != null) "Yazıyı düzenle" else "Katman ekle") {
         // 3.75: yazı ekleme ve düzenleme aynı kartta (ayrı pencere yok); stile dokun = seçili yazı o stile geçer
         if (secYazi != null) YaziDuzenleBlok(vm, secYazi)
@@ -85,6 +113,7 @@ fun PanelKatmanlar(vm: EditorDurum, p: Proje, takipAc: () -> Unit = {}) {
         GizleGosterDugmesi(nesneAcik, Renk.turuncu) { nesneAcik = !nesneAcik }   // 3.57
     }
     if (nesneAcik) PanelNesne(vm, p)
+    }
 
     if (cikartmaAcik) AlertDialog(
         onDismissRequest = { cikartmaAcik = false },

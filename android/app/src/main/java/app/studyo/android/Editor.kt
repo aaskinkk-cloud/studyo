@@ -85,6 +85,7 @@ private val HAP_SIMGE = mapOf(
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
     "paket" to "izgara", "hazir" to "kaydet",   // 3.70
+    "kekle" to "ekle", "kses" to "ses", "knesne" to "makas", "khareket" to "klip",   // 4.13: Katman alt menüleri
 )
 
 private val BOLUMLER = listOf(
@@ -92,7 +93,7 @@ private val BOLUMLER = listOf(
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
-    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar")),   // 3.75: Renk'in solunda (Ahmet'in isteği)
+    Bolum("katman", "Katman", "katman", listOf("kekle" to "Ekle", "kses" to "Ses · görünür", "knesne" to "Nesne kes", "khareket" to "Hareketli", "katmanlar" to "Katmanlar")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)
@@ -131,7 +132,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     var aramaAcik by remember { mutableStateOf(false) }           // 3.70: ayar arama
     var tamEkranV by rememberSaveable { mutableStateOf(false) }   // 3.71: video tam ekran
     val ctxD = LocalContext.current
-    var altMod by rememberSaveable { mutableStateOf(true) }   // 3.61: alt menüler ana menünün yerinde · 3.87: açılışta Düzenle'nin alt menüleri hemen gelir
+    var altMod by rememberSaveable { mutableStateOf(true) }
+    // 4.13: Katman'da çalışırken başka bölümün sayfası (ör. Metin › Yazı) Katman'ın içinde açılır; alttaki Katman menüsü yerinde kalır
+    var misafir by remember { mutableStateOf<Triple<String, String, String?>?>(null) }
+    LaunchedEffect(bolum) { if (bolum != "katman") misafir = null }   // 3.61: alt menüler ana menünün yerinde · 3.87: açılışta Düzenle'nin alt menüleri hemen gelir
     // 3.53: ayar değişince o menünün başlığının yanında ✓ (bu düzenleme oturumunda değişen menüler)
     val degisen = remember(id) { mutableStateMapOf<String, Boolean>() }
     var oncekiP by remember(id) { mutableStateOf<Proje?>(null) }
@@ -343,8 +347,25 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
                     KlipSeridi(vm, p, sec, ekle, kucuk = true)
                     Box(Modifier.fillMaxWidth().weight(1f)) { RenkBolumu(vm, p, sec) }
-                } else if (bolum == "katman" && panelAcik) {
-                    KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" })
+                } else if (bolum == "katman" && panelAcik && misafir != null) {
+                    // 4.13: misafir sayfa — başlıkta "‹ Katman" ve sayfanın asıl yeri; alttaki Katman menüsü değişmez
+                    val (mb, mh, ma) = misafir!!
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.clip(RoundedCornerShape(14.dp)).clickable { misafir = null }.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Simge("sol", Renk.turuncu, 15.dp); Text(" Katman", color = Renk.turuncu, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        val bAd = BOLUMLER.firstOrNull { it.anahtar == mb }
+                        Text("${bAd?.ad ?: ""} › ${bAd?.haplar?.firstOrNull { it.first == mh }?.second ?: mh}", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.weight(1f).padding(start = 4.dp))
+                        Text("Orada aç ›", color = Renk.soluk, fontSize = 11.5.sp, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { misafir = null; git(mb, mh, ma) }.padding(horizontal = 8.dp, vertical = 5.dp))
+                    }
+                    if (mh in setOf("takip")) KlipSeridi(vm, p, sec, ekle, kucuk = true)
+                    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
+                        Panel(vm, p, sec, mb, mh, ekle, alt = if (Duzen.yaziliMenu) null else ma ?: AltHafiza.al(mh))
+                        Spacer(Modifier.height(8.dp))
+                    }
+                } else if (bolum == "katman" && panelAcik && haplar["katman"] !in setOf("knesne", "khareket")) {
+                    KatmanBolumu(vm, p, acMuzik = { bolum = "ses"; haplar["ses"] = "muzik" }, acSes = { bolum = "ses"; haplar["ses"] = "seslendirme" },
+                        sayfa = haplar["katman"] ?: "katmanlar", misafirAc = { b2, h2, a2 -> misafir = Triple(b2, h2, a2) })
                 } else if (!panelAcik || (!Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "klipler")) {
                     // 3.29: Düzenle › Klip ile panel kapalıyken AYNI görünüm (iki ayrı sayfa yok): büyük şerit + altında süre/kırpma
                     // 3.31: kaydırılabilir; şerit + bölüm kartları (Geçişler paneli biçiminde)
@@ -390,7 +411,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     git("renk", g.anahtar, null) } }
             } else b.haplar.mapIndexed { sira, (k, ad) ->
                 AltOge(ad, HAP_SIMGE[k] ?: "ekle", Color(ALT_RENK[sira % ALT_RENK.size]), panelAcik && haplar[bolum] == k, degisen["$bolum/$k"] == true) {
-                    if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true }
+                    if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true; misafir = null }
                 }
             }
             // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
@@ -404,7 +425,14 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 } else {
                     val h = haplar[bolum] ?: ""
-                    ALT_SAYFALAR[h]?.let { altListe -> AltSayfaCipleri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }) { a -> AltHafiza.sec(h, a) } }
+                    // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
+                    val bag = if (h == "sablon") listOf<Triple<String, String, () -> Unit>>(
+                        Triple("Kadraj", "kadraj") { git("duzenle", "klip", "kadraj") },
+                        Triple("Yüze yaklaş", "kisi") { git("duzenle", "klip", "yuzler") },
+                        Triple("Logo", "logo") { git("yayin", "logo", null) },
+                        Triple("Müzik", "nota") { git("ses", "muzik", "hazir") },
+                    ) else emptyList()
+                    if (misafir == null) ALT_SAYFALAR[h]?.let { altListe -> AltSayfaCipleri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
                 }
             }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
@@ -1252,7 +1280,7 @@ private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = wh
     "yazi" -> a == "liste" && p.katmanlar.any { it.tur == "metin" }
     "altyazi" -> a == "satir" && p.altyazilar.isNotEmpty()
     "kapak" -> when (a) { "kare" -> p.kapak.kaynakUri.isNotEmpty(); "yazi" -> p.kapak.yazi.isNotBlank(); "efekt" -> p.kapak.canli || p.kapak.logo; else -> false }
-    "nesne" -> a == "kesilen" && p.nesneler.isNotEmpty()
+    "nesne", "knesne", "khareket" -> a == "kesilen" && p.nesneler.isNotEmpty()
     else -> false
 }
 
@@ -1284,6 +1312,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "altyazi" -> PanelAltyazi(vm, p, alt)
         "kapak" -> PanelKapak(vm, p, alt)
         "nesne" -> PanelNesne(vm, p, alt)
+        "knesne", "khareket" -> PanelNesne(vm, p, alt ?: if (hap == "knesne") "foto" else "video")   // 4.13: Düzenle › Nesne'nin kendisi
         "katmanlar" -> PanelKatmanlar(vm, p)
         else -> if (k == null) {
             Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp))

@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.12 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.13 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.13 (23.11.2026, deneme · `yerel-android` dalı): Katman alt menüleri, Şablon'da varsayılan bağlantıları
+- **Katman alt menüleri:** Ekle · Ses · görünür · Nesne kes · Hareketli · Katmanlar. Çizelge yalnız Katmanlar sayfasında (seçili katmanın ayarlarıyla); Ekle'de Görsel/Logo/Çıkartma/Ses; Ses · görünür = "Ses ve görünürlük · tümü".
+- **Tekrar yok:** Nesne kes / Hareketli, Düzenle › Nesne sayfasının kendisini açar (Fotoğraftan / Videodan + Kesilenler); Katman sayfasındaki ayrı nesne bölümü kaldırıldı. Yazı, hazır yazılar ve takip yazısı Metin bölümünde: Katman › Ekle'de zarif bağlantılar ("ad ›"), sayfa Katman'ın içinde açılır, alttaki Katman menüsü yerinde kalır; başlıkta "‹ Katman" ve "Orada aç ›".
+- **Görünüm › Şablon:** Giriş · Abone · Kapanış çiplerinin yanında, ince ayırıcıdan sonra Varsayılan ayarlar'ın bu bölümde olmayan maddelerine bağlantılar: Kadraj · Yüze yaklaş · Logo · Müzik.
+- Eski yazılı menü düzeninde Katman tek sayfa olarak aynen kalır.
 
 ## 4.12 (22.11.2026, deneme · `yerel-android` dalı): kesilen nesne arka plandaki fotoğrafa yapışık
 - **Zaman (kök neden):** nesnenin zamanı mutlak zaman çizelgesi ms'siydi; yüzler bulunup öndeki fotoğrafların süresi uzayınca nesne yerinde kalıp başka klibin üstüne düşüyordu. Artık her nesne kendi klibine bağlı (`Nesne.klipId`): klip kayınca birlikte kayar; klibin tamamını kaplayan nesne klip uzayınca/kısalınca onunla uzar/kısalır. Klip silinirse bağ çözülür.

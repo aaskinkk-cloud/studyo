@@ -574,7 +574,8 @@ private fun DalgaCiz(d: FloatArray, kaynakBas: Long, hiz: Float, renk: Color, do
 /** Katman bölümü: başlığa dokun = çizelgeyi aç/kapat · tutamaç = çizelgeyi büyüt/küçült (çift dokunuş = varsayılan) ·
  *  altında katman ekleme ve seçili katmanın ayarları. Katmanla ilgili her işlem yalnız burada. */
 @Composable
-fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit) {
+fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Unit, sayfa: String = "katmanlar",
+                 misafirAc: (String, String, String?) -> Unit = { _, _, _ -> }) {
     val ctx = LocalContext.current
     val yog = LocalDensity.current
     var acik by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
@@ -597,7 +598,9 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
     LaunchedEffect(secKat) { if (secKat != null) vm.seciliNesne.value = null }
     LaunchedEffect(secNes) { if (secNes != null) vm.seciliKatman.value = null }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().height(40.dp).background(Renk.kart).clickable { acik = !acik }.padding(horizontal = 12.dp),
+        // 4.13: başlık ve çizelge yalnız Katman › Katmanlar sayfasında; diğer alt sayfalar (Ekle, Ses · görünür) kendi içerikleriyle
+        val cizelgeli = sayfa == "katmanlar" || sayfa.isEmpty()
+        if (cizelgeli) Row(Modifier.fillMaxWidth().height(40.dp).background(Renk.kart).clickable { acik = !acik }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Simge("katman", Renk.turuncu, 18.dp)
             Spacer(Modifier.width(8.dp))
@@ -614,7 +617,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
         // 3.64 KÖK DÜZELTME: çizelge ile alttaki bölümler ayrı ayrı kayıyordu (sayfa kaymıyordu) → çizelgenin satırları sona gelince
         // kaydırma duruyordu. Artık tek kayan sayfa: çizelge kendi satırlarını kaydırır, sona gelince kalan kaydırma sayfaya geçer (iç içe kaydırma).
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
-            if (acik) {
+            if (acik && cizelgeli) {
                 if (p.klipler.isEmpty()) Text("Önce Düzenle › Ekle ile en az bir klip ekle.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
                 else {
                     CokluCizelge(vm, p, acMuzik, acSes, Modifier.fillMaxWidth().height(Duzen.katmanYuk.dp)) { tur, i -> ekPanel = tur to i }
@@ -632,7 +635,7 @@ fun KatmanBolumu(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                 }
             }
             Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
-                PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value })
+                PanelKatmanlar(vm, p, takipAc = { ekPanel = "takip" to vm.secili.value }, sayfa = if (cizelgeli) "katmanlar" else sayfa, misafirAc = misafirAc)
                 Spacer(Modifier.height(8.dp))
             }
         }

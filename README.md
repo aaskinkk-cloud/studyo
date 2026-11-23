@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.20 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.21 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.21 (23.11.2026, deneme · `yerel-android` dalı): oynatıcı kaybolması, renkli alt başlıklar
+- **Kök neden:** yazılı menü seçiliyken siyah-beyaz temada hiçbir oynatıcı çizilmiyordu (oynat dahil). Artık her menü düzeninde var.
+- **Ayarlar › Menü görünümü › Renkli:** önceki yazılı renkli alt başlıklar (InShot gibi) yeni düzende ve her temada — alt menüler kendi renginde dolgulu yazılı haplar, seçili tam renk; ana menü ve sayfa düğmeleri yazılı.
+- "Ekran açık" yanındaki simge kaldırıldı.
 
 ## 4.20 (23.11.2026, deneme · `yerel-android` dalı): Katmanlar çizelgesi — klip ekle, geçiş düğmeleri, katman yap / klip yap, sıra
 - Katman'a dokununca önce **Katmanlar** alt sayfası (ilk düğme).

@@ -320,7 +320,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         if (onizSilOnay) Text("Sil?", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 3.dp))
                     }
                 }
-                if (!Duzen.yaziliMenu && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
+                // 4.21 KÖK NEDEN ("oynatıcı düğmeleri, oynat görünmüyor"): yazılı menü seçiliyken siyah-beyaz temada hiçbir oynatıcı çizilmiyordu
+                // (üstteki yalnız yeni menüde, alttaki yazılı satır yalnız renkli temalarda). Artık siyah-beyaz temada her menü düzeninde var.
+                if ((!Duzen.yaziliMenu || Renk.sb) && (!Renk.sb || Duzen.kontrolUstte) && p.klipler.isNotEmpty())
                     OynaticiKatman(vm, p, Modifier.align(Alignment.BottomCenter), tamEkran = { tamEkranV = true },
                         altaAl = if (Renk.sb) ({ Duzen.kontrolDegis(ctx) }) else null)
             }
@@ -455,8 +457,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.width(54.dp).clip(RoundedCornerShape(10.dp)).clickable { bolum = "duzenle"; haplar["duzenle"] = "klip"; panelAcik = true; altMod = true }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (Duzen.menuStil != "yazi") Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp * Duzen.menuOlcek)
-                            if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
+                            if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli")) Simge("makas", if (on) Renk.turuncu else Renk.yazi, 20.dp * Duzen.menuOlcek)
+                            if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli") && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
                             if (Duzen.menuStil != "simge") Text("Düzenle", color = if (on) Renk.turuncu else Renk.soluk, fontSize = 10.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                         }
                         Box(Modifier.padding(start = 2.dp, end = 4.dp).width(1.dp).height(30.dp).background(Renk.cizgi.copy(alpha = 0.6f)))
@@ -540,8 +542,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             }.padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            if (Duzen.menuStil != "yazi") Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, (if (oncu) 22.dp else 24.dp) * Duzen.menuOlcek)
-                            if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(4.dp * Duzen.menuOlcek))
+                            if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli")) Simge(bb.simge, if (on || oncu) Renk.turuncu else Renk.yazi, (if (oncu) 22.dp else 24.dp) * Duzen.menuOlcek)
+                            if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli") && Duzen.menuStil != "simge") Spacer(Modifier.height(4.dp * Duzen.menuOlcek))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (Duzen.menuStil != "simge") Text(bb.ad, color = if (on || oncu) Renk.turuncu else Renk.soluk, fontSize = 11.5.sp * Duzen.menuOlcek, fontWeight = if (on || oncu) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
                                 if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 2.dp), 10.dp)
@@ -1816,7 +1818,7 @@ private fun SatirCipleri(c: CipVeri) {
             val on = a.anahtar == c.secili
             Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(if (on) Renk.yazi else Color.Transparent).clickable { c.sec(a.anahtar) }
                 .padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (Duzen.menuStil != "yazi") Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
+                if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli")) Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
                 if (Duzen.menuStil != "simge") Text(a.ad, color = if (on) Renk.zemin else Renk.yazi, fontSize = 11.5.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
                     modifier = Modifier.padding(start = 4.dp))
                 if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
@@ -1831,10 +1833,19 @@ private fun SatirCipleri(c: CipVeri) {
 private fun AltKucuk(o: AltOge) {
     val sekil = RoundedCornerShape(16.dp)
     val m = Duzen.menuOlcek
+    // 4.21: "renkli" = önceki yazılı renkli alt başlıklar (InShot gibi): her düğme kendi renginde dolgulu hap, seçili tam renk
+    if (Duzen.menuStil == "renkli") {
+        Row(Modifier.height(32.dp * m).clip(sekil).background(o.renk.copy(alpha = if (o.secili) 0.95f else 0.22f)).clickable(onClick = o.tik).padding(horizontal = 13.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(o.ad, color = if (o.secili) Color(0xFF111111) else o.renk, fontSize = 12.5.sp * m, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            if (o.isaret) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
+        }
+        return
+    }
     Row(Modifier.height(32.dp * m).clip(sekil).background(if (o.secili) Renk.turuncu.copy(alpha = 0.12f) else Renk.kart2)
         .border(1.dp, if (o.secili) Renk.turuncu.copy(alpha = 0.75f) else Color.Transparent, sekil).clickable(onClick = o.tik).padding(horizontal = 11.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        if (Duzen.menuStil != "yazi") Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp * m)
+        if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli")) Simge(o.simge, if (o.secili) Renk.turuncu else Renk.soluk, 15.dp * m)
         if (Duzen.menuStil != "simge") Text(o.ad, color = if (o.secili) Renk.turuncu else Renk.yazi, fontSize = 12.sp * m, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
             modifier = Modifier.padding(start = 5.dp))
         if (o.isaret) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
@@ -1847,8 +1858,8 @@ private fun AltDugme(o0: AltOge) {
         else if (Renk.sb) AltOge(o0.ad, o0.simge, Renk.tonla(o0.renk), o0.secili, o0.isaret, o0.tik) else o0
     Column(Modifier.width(76.dp * Duzen.menuOlcek).clip(RoundedCornerShape(10.dp)).clickable(onClick = o.tik).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        if (Duzen.menuStil != "yazi") Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp * Duzen.menuOlcek)
-        if (Duzen.menuStil != "yazi" && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
+        if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli")) Simge(o.simge, if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), 22.dp * Duzen.menuOlcek)
+        if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli") && Duzen.menuStil != "simge") Spacer(Modifier.height(3.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (Duzen.menuStil != "simge") Text(o.ad, color = if (o.secili) o.renk else o.renk.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = if (o.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
             if (o.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 11.dp)
@@ -1934,9 +1945,7 @@ private fun EkranAcikDugmesi(vm: EditorDurum) {
             ctx.getSharedPreferences("ayar", 0).edit().putBoolean("ekranAcik", acik).apply()
             vm.mesaj.value = if (acik) "Ekran sürekli açık" else "Ekran normal (kendiliğinden kararır)"
         }.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Simge("ekran_acik", renk, 15.dp)
-        Spacer(Modifier.width(3.dp))
-        Text("Ekran açık", color = renk, fontSize = 11.5.sp, maxLines = 1)
+        Text("Ekran açık",   // 4.21: simge kaldırıldı (yalnız yazı) color = renk, fontSize = 11.5.sp, maxLines = 1)
     }
     Spacer(Modifier.width(2.dp))
 }

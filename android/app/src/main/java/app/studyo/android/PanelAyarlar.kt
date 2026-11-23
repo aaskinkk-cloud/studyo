@@ -84,7 +84,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         // 4.18: menü görünümü — simge + yazı · yalnız simge · yalnız yazı (bütün menülerde)
         Text("Menü görünümü", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart2).padding(3.dp)) {
-            listOf("ikisi" to "Simge + yazı", "simge" to "Yalnız simge", "yazi" to "Yalnız yazı").forEach { (v, ad) ->
+            listOf("ikisi" to "Simge+yazı", "simge" to "Simge", "yazi" to "Yazı", "renkli" to "Renkli").forEach { (v, ad) ->
                 val on = Duzen.menuStil == v
                 Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Renk.turuncu else Color.Transparent)
                     .clickable { Duzen.menuStilSec(ctx, v) }, contentAlignment = Alignment.Center) {

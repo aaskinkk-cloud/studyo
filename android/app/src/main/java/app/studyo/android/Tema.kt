@@ -85,7 +85,7 @@ object Duzen {
     fun yukle(ctx: Context) {
         val sp = ctx.getSharedPreferences("ayar", 0)
         // 4.23: 4.20'ye dönüş. Menüleri bozan eski "yazılı" düzen seçimi açık kaldıysa bir kez kapatılır (4.21/4.22'nin "renkli" ayarı da sıfırlanır)
-        if (sp.getBoolean("yaziliMenu", false) || sp.getString("menuStil", "") == "renkli") sp.edit().putBoolean("yaziliMenu", false).putString("menuStil", "ikisi").apply()
+        if (sp.getBoolean("yaziliMenu", false)) sp.edit().putBoolean("yaziliMenu", false).putString("menuStil", "renkli").apply()   // 4.24: yazılı isteği = renkli görünüm
         yaziliMenu = false
         onizlemeOran = sp.getFloat("onizlemeOran2", 0.5f).coerceIn(ORAN_EN_AZ, ORAN_EN_COK)
         elleOran = sp.getBoolean("elleOran", false)

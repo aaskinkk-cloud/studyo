@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.29 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.30 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.30 (26.11.2026, deneme · `yerel-android` dalı): geçiş sonu aydınlanması — ölçüm
+- Ahmet'in denemesi: boş projede 2 fotoğraf + Erime'de de oluyor → sorun üst üste binen geçişin "el değiştirme" anında (gelen fotoğrafı geçişte bizim kod, sonra Media3 çiziyor). Renk hesabı Media3 1.8.1 kaynağıyla karşılaştırıldı, aynı; kör yama yapılmadı.
+- **Teşhis:** her öğenin ilk ve son 350 ms'sinde karenin ortasının parlaklığı Hata kaydına yazılır (`IsikOlcer`, görüntüyü değiştirmez). Geçişin son karesi ile gelen klibin ilk karesi karşılaştırılıp kök neden bulunacak. Ayarlar › Menü görünümü'nden kapatılabilir; sorun çözülünce kaldırılacak.
 
 ## 4.29 (26.11.2026, deneme · `yerel-android` dalı): Nesne ana menüsü, nesneler Katmanlar'da, üst üste filtreler, Orange & Teal
 - **Nesne ayrı ana menü** (Fotoğraftan · Videodan · Kesilenler); Düzenle ve Katman'daki kopyaları kaldırıldı — tek yer.

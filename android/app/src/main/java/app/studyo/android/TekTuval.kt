@@ -843,3 +843,35 @@ private class VideoCozucu(private val ctx: Context, private val uri: Uri, privat
 
     companion object { const val TOL_US = 2_000L }
 }
+
+/** 4.30 TEŞHİS (geçiş sonunda aydınlanma): öğe sınırına yakın karelerde (ilk ve son 350 ms) karenin ortasındaki 64×64 alanın
+ *  ortalama parlaklığını Kayıt'a yazar. Görüntüyü değiştirmez (aynen kopyalar). Geçişin son karesi (giden öğe) ile gelen klibin
+ *  kendi öğesinin ilk karesi karşılaştırılarak sıçramanın gerçekten olup olmadığı ve büyüklüğü ölçülür. Ayarlar'dan kapatılır. */
+class IsikOlcer(private val etiket: String, private val basMs: Long, private val uzMs: Long, private val onizleme: Boolean) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = IsikOlcerProgram(useHdr, etiket, basMs, uzMs, onizleme)
+}
+
+private class IsikOlcerProgram(useHdr: Boolean, private val etiket: String, private val bas: Long, private val uz: Long, private val onizleme: Boolean) : BaseGlShaderProgram(useHdr, 1) {
+    private val program = GlProgram(TekTuvalProgram.VS, """
+precision mediump float;
+uniform sampler2D uTex;
+varying vec2 vUv;
+void main() { gl_FragColor = texture2D(uTex, vUv); }
+""").also { it.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE) }
+    private var t0 = -1L; private var w = 0; private var h = 0; private var adet = 0
+    private val buf = java.nio.ByteBuffer.allocateDirect(64 * 64 * 4).order(java.nio.ByteOrder.nativeOrder())
+    override fun configure(inputWidth: Int, inputHeight: Int): Size { w = inputWidth; h = inputHeight; return Size(inputWidth, inputHeight) }
+    override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
+        program.use(); program.setSamplerTexIdUniform("uTex", inputTexId, 0); program.bindAttributesAndUniforms()
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        val yerel = if (onizleme) presentationTimeUs / 1000 - bas else { if (t0 < 0) t0 = presentationTimeUs; (presentationTimeUs - t0) / 1000 }
+        if ((yerel < 350 || yerel > uz - 350) && adet < 30 && w >= 64 && h >= 64) {
+            adet++
+            buf.clear(); GLES20.glReadPixels(w / 2 - 32, h / 2 - 32, 64, 64, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf)
+            var s = 0L
+            for (i in 0 until 64 * 64) { val r = buf.get(i * 4).toInt() and 255; val g = buf.get(i * 4 + 1).toInt() and 255; val b = buf.get(i * 4 + 2).toInt() and 255; s += (r * 299 + g * 587 + b * 114) / 1000 }
+            Kayit.yaz("Işık $etiket ${if (onizleme) "önizleme" else "dışa"} t=${bas + yerel}ms yerel=${yerel}/$uz Y=${s / 4096}")
+        }
+    }
+    override fun release() { super.release(); program.delete() }
+}

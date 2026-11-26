@@ -485,6 +485,7 @@ object Disa {
             if (kap.isNotEmpty()) v += OverlayEffect(kap)
         }
         v += sonEtki
+        if (Duzen.isikTeshis) v += IsikOlcer("klip${i + 1}", cizelgeBas, uzMs, onizleme)   // 4.30 teşhis: öğe sınırlarında parlaklık ölçümü
         val sesli = !k.foto && k.sesVar && !k.sessiz && !sesKapali
         val a: List<AudioProcessor> = if (sesli && k.ses != 1f) listOf(sesIsleyici(k.ses)) else listOf()
         val b = EditedMediaItem.Builder(mib.build()).setEffects(Effects(a, v))

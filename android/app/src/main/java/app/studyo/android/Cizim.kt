@@ -97,7 +97,10 @@ object Cizim {
     }
 
     // ---------------- Giriş başlığı ----------------
-    fun giris(g: Giris, W: Int, H: Int): Yerlesim? {
+    /** 4.40: parmakla taşınan giriş başlığı — yerleşim kaydırılır (önizleme ve dışa aktarma aynı). */
+    fun giris(g: Giris, W: Int, H: Int): Yerlesim? = giris0(g, W, H)?.let { y ->
+        if (g.ofsX == 0f && g.ofsY == 0f) y else Yerlesim(y.bmp, y.zx + g.ofsX * 2f, y.zy - g.ofsY * 2f, y.kx, y.ky, y.alfa) }
+    private fun giris0(g: Giris, W: Int, H: Int): Yerlesim? {
         if (!g.acik) return null
         // 3.60: klasik stiller web Kareden Videoya'daki çizimle (KlasikCiz, profesyonel yazı tipleri); önceki çizim aşağıda duruyor
         if (!g.stil.startsWith("r_")) return KlasikCiz.ciz(g, W, H)?.let { Yerlesim(it, 0f, 0f, 0f, 0f) }

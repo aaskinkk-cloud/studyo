@@ -802,7 +802,7 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (siluetIs?.isActive == true || !Siluet.kullanilabilir()) return
         val k = proje.value.klipler.firstOrNull { it.id == klipId }?.takeIf { it.foto } ?: return
         val t = k.yuzTur ?: return
-        if (t.siluetArandi || t.vurguTur != "siluet" || !t.vurgu) return
+        if (t.siluetArandi || (t.vurguTur != "siluet" && t.vurguTur != "elektrik") || !t.vurgu) return
         val hedef = (t.bulunan + t.noktalar).filter { it.yb > 0f && it.siluet.isEmpty() }
         if (hedef.isEmpty()) return
         siluetIs = kapsam.launch { siluetIsle(klipId) }
@@ -811,7 +811,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     private suspend fun siluetIsle(klipId: String) {
         val k = proje.value.klipler.firstOrNull { it.id == klipId }?.takeIf { it.foto } ?: return
         val t = k.yuzTur ?: return
-        if (t.siluetArandi || t.vurguTur != "siluet" || !t.vurgu || !Siluet.kullanilabilir()) return
+        if (t.siluetArandi || (t.vurguTur != "siluet" && t.vurguTur != "elektrik") || !t.vurgu || !Siluet.kullanilabilir()) return
         val hedef = (t.bulunan + t.noktalar).filter { it.yb > 0f && it.siluet.isEmpty() }
         if (hedef.isEmpty()) return
         run {

@@ -174,6 +174,8 @@ data class Gecis(val tur: String = "yok", val sureMs: Long = 800, val siyahtanAc
 
 @Serializable
 data class Giris(
+    /** 4.40: ekranda parmakla taşıma — karenin genişliğine/yüksekliğine oran (sağ/aşağı +). */
+    val ofsX: Float = 0f, val ofsY: Float = 0f,
     val acik: Boolean = false, val stil: String = "sinematik", val baslik: String = "", val alt: String = "", val sureMs: Long = 3500,
     val bant: String = "",               // reels stillerinde vurgu bantları (| ile ayrı bant)
     val hareket: String = "kay",         // reels giriş hareketi: trend | dus | kay | yuksel | buyu

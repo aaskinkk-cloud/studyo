@@ -355,6 +355,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             // nesneler · 3.72: parmakla taşıma/büyütme sırasında geçici dönüşüm (bitmap yeniden çizilmez, parmağı akıcı izler); bırakınca kaydedilir
             var nesGecici by remember { mutableStateOf<NesneGecici?>(null) }
+            var girisSur by remember { mutableStateOf(Offset.Zero) }   // 4.40: giriş başlığını sürüklerken geçici kayma (bırakınca kaydedilir)
             val nesBoyut = remember { HashMap<String, Pair<Int, Int>>() }
             // 4.12: fotoğrafa yapışık nesne — bağlı klibin o anki görünüşü (önizlemedeki klipse arka planla AYNI an: kbAn)
             fun bagAn(n: Nesne): Pair<Klip, Yuz.An>? {
@@ -460,7 +461,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
             if (p.giris.reels) {
-                val seritler = remember(p.giris, ref) { if (p.giris.acik) Reels.seritler(p.giris, RW, RH) else emptyList() }
+                val gS = p.giris.copy(ofsX = p.giris.ofsX + girisSur.x, ofsY = p.giris.ofsY + girisSur.y)
+                val seritler = remember(gS, ref) { if (p.giris.acik) Reels.seritler(gS, RW, RH) else emptyList() }
                 for (sr in seritler) {
                     val ak = Reels.an(sr, p.giris.hareket, konum, gA, gB) ?: continue
                     val (x0, y0) = ak.solUst(sr.bmp.width, sr.bmp.height, RW, RH)
@@ -471,7 +473,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             .alpha(ak.alfa.coerceIn(0f, 1f)))
                 }
             } else {
-                val girisY = remember(p.giris, ref) { Cizim.giris(p.giris, RW, RH) }
+                val girisY0 = remember(p.giris.copy(ofsX = 0f, ofsY = 0f), ref) { Cizim.giris(p.giris.copy(ofsX = 0f, ofsY = 0f), RW, RH) }
+                val gx = p.giris.ofsX + girisSur.x; val gy = p.giris.ofsY + girisSur.y
+                val girisY = girisY0?.let { y -> if (gx == 0f && gy == 0f) y else Yerlesim(y.bmp, y.zx + gx * 2f, y.zy - gy * 2f, y.kx, y.ky, y.alfa) }
                 girisY?.let {
                     val a = Zaman.solma(konum, gA, gB)
                     Ciz(it, a)
@@ -683,7 +687,27 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 var birikim by remember { mutableFloatStateOf(1f) }
                 Box(Modifier.fillMaxSize()
                     .pointerInput(sablonSayfa) { detectTapGestures(onTap = { vm.ekranDuzen.value = sablonSayfa }) }
-                    .then(if (sablonSayfa == "giris") Modifier.pointerInput(Unit) {
+                    .then(if (sablonSayfa == "giris") Modifier.pointerInput(olcek) {
+                        // 4.40: tek parmak sürükle = başlığı taşı (bırakınca kaydedilir) · iki parmak = boyut
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            var top = Offset.Zero
+                            do {
+                                val ev = awaitPointerEvent()
+                                val zoom = ev.calculateZoom(); val pan = ev.calculatePan()
+                                if (zoom.isFinite() && zoom > 0f && zoom != 1f) {
+                                    birikim *= zoom
+                                    if (kotlin.math.abs(birikim - 1f) > 0.04f) { val c = birikim; birikim = 1f; vm.girisDegis { g -> g.copy(olcek = (g.olcek * c).coerceIn(0.6f, 1.6f)) } }
+                                }
+                                if (pan.x.isFinite() && pan.y.isFinite()) {
+                                    top += pan
+                                    if (top.getDistance() > viewConfiguration.touchSlop) girisSur += Offset(pan.x / (olcek * RW), pan.y / (olcek * RH))
+                                }
+                            } while (ev.changes.any { it.pressed })
+                            if (girisSur != Offset.Zero) { val s = girisSur; girisSur = Offset.Zero
+                                vm.girisDegis { g -> g.copy(ofsX = (g.ofsX + s.x).coerceIn(-0.5f, 0.5f), ofsY = (g.ofsY + s.y).coerceIn(-0.5f, 0.5f)) } }
+                        }
+                    } else Modifier).then(if (false) Modifier.pointerInput(Unit) {
                         detectTransformGestures { _, _, zoom, _ ->
                             if (zoom.isFinite() && zoom > 0f) {
                                 birikim *= zoom
@@ -692,7 +716,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         }
                     } else Modifier))
                 val duzenAcik by vm.ekranDuzen.collectAsState()
-                if (duzenAcik == null) Text(if (sablonSayfa == "giris") "Yazıya dokun = düzenle · iki parmak = boyut" else "Yazıya dokun = düzenle", color = Color.White, fontSize = 11.sp,
+                if (duzenAcik == null) Text(if (sablonSayfa == "giris") "Yazıya dokun = düzenle · sürükle = taşı · iki parmak = boyut" else "Yazıya dokun = düzenle", color = Color.White, fontSize = 11.sp,
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x99000000)).padding(horizontal = 9.dp, vertical = 3.dp))
             } else if (k != null && sira < p.klipler.size) {
                 // izlerken de: parmakla sürükle = fotoğrafı/videoyu kadraj içinde kaydır (yalnız taşan kısım kadar); çift dokun = ortala
@@ -1051,6 +1075,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
         Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             TonHap("Ekranda düzenle", "degistir", false, sari) { vm.sablonGoster("giris"); vm.ekranDuzen.value = "giris" }
             TonHap("Başka öneri", "sihir", false, turkuaz) { vm.girisOneri(zorla = true); vm.sablonGoster("giris") }
+            if (g.ofsX != 0f || g.ofsY != 0f) TonHap("Yerine al", "h_odak", false, pembe) { vm.girisDegis { it.copy(ofsX = 0f, ofsY = 0f) } }   // 4.40
         }
         GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
         GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)

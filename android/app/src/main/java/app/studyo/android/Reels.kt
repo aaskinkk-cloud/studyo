@@ -272,7 +272,9 @@ object Reels {
 
     /** 3.60: web Kareden Videoya'daki gibi çizilen parçalar (BaslikCizim.ReelsCiz); her parça kendi yerinde, 130 ms arayla. */
     fun seritler(g: Giris, W: Int, H: Int): List<Serit> =
-        ReelsCiz.seritler(ReelsCiz.ogeler(g.stil, g.baslik, g.bant, W, H, g.olcek, cyOran(g.konum)), W, H)
+        ReelsCiz.seritler(ReelsCiz.ogeler(g.stil, g.baslik, g.bant, W, H, g.olcek, cyOran(g.konum)), W, H).let { l ->
+            // 4.40: parmakla taşınan giriş (önizleme ve dışa aktarma aynı)
+            if (g.ofsX == 0f && g.ofsY == 0f) l else l.map { s -> Serit(s.bmp, s.cx + g.ofsX * 2f, s.cy - g.ofsY * 2f, s.gecikmeMs, s.yon, s.pop) } }
 
     /** Önceki (3.59 ve öncesi) sola hizalı şerit dizilimi — kullanılmıyor, karşılaştırma için duruyor. */
     fun seritlerEski(g: Giris, W: Int, H: Int): List<Serit> {

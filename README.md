@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.39 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.40 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.40 (27.11.2026, deneme · `yerel-android` dalı): yüz turunda elektrik tarama, giriş başlığını parmakla taşıma
+- **Yüzler › Öne çıkarma › Elektrik tarama** (üçüncü seçenek; Silüet ışığı ve Baş çevresinde çizgi aynen duruyor): kişinin hattında titreyen elektrik ışığı ve hat boyunca gidip gelen tarama başı, durak boyunca (`Elektrik.cizHat`, önizleme ve dışa aktarma aynı).
+- **Görünüm › Şablon › Giriş:** önizlemede başlığı tek parmakla sürükle = taşı (bırakınca kaydedilir), iki parmak = boyut; "Yerine al" eski yerine döndürür. Klasik ve Reels stillerinde; dışa aktarma aynı yerde (`Giris.ofsX/ofsY`).
 
 ## 4.39 (27.11.2026, deneme · `yerel-android` dalı): nesne hareketleri, yüz turu bekleme ayarları, BÜYÜK menü
 - **Kesilen nesne giriş · çıkış · bekleme** (Kesilenler): Solarak (eskisiyle aynı) · Büyüyerek (hafif taşarak oturur) · Kayarak · Anında; bekleme Sabit · Nefes · Salınım. Fotoğraftan, videodan kesilen, ışıklı ve fotoğrafa yapışık nesnelerde; önizleme ve dışa aktarma aynı hesap (`NesneAnim`, dışa aktarmada `NesneBindirme`).

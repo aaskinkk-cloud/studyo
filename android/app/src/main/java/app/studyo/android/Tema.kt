@@ -471,3 +471,6 @@ object BuildConfigBilgi {
 /** 4.39: "BÜYÜK" menü görünümü (YouTube düzeni gibi) — başlıklar büyük harf, daha iri; simgeler gizli. */
 fun menuAd(s: String): String = if (Duzen.menuStil == "buyuk") s.uppercase(java.util.Locale("tr")) else s
 val menuYaziK: Float get() = if (Duzen.menuStil == "buyuk") 1.2f else 1f
+
+/** 4.40: yüz turundaki elektrik tarama ışığının rengi (mavi). */
+val Renk.ELEKTRIK: Int get() = 0xFF4FC3F7.toInt()

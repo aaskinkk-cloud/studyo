@@ -29,7 +29,9 @@ object TurVurgu {
     class Durum(val durak: Int, val yuz: Boolean, val cx: Float, val cy: Float, val rx: Float, val ry: Float,
                 val sup: Float, val halkaAlfa: Float, val ad: String, val adAlfa: Float, val adDy: Float,
                 /** 3.87: silüet ışığı — hat noktaları çıkış pikselinde (x,y sırayla), tepe sırası, ışığın kuyruğu (0…1) */
-                val siluet: FloatArray? = null, val tepe: Int = 0, val kuyruk: Float = 0f)
+                val siluet: FloatArray? = null, val tepe: Int = 0, val kuyruk: Float = 0f,
+                /** 4.40: elektrik tarama (silüet hattında) — durağa varıştan beri geçen sn */
+                val elektrik: Boolean = false, val sn: Float = 0f)
 
     private fun yum(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
@@ -59,12 +61,15 @@ object TurVurgu {
         val rx = if (yuz) ry * 0.8f else ry
         val g = a.gecen; val h = a.sure
         // 3.87: silüet ışığı — ışık iki alt uçtan kişinin hattını izleyerek başın tepesinde buluşur, sonra kuyruk tepeye çekilip söner (~2 sn)
-        if ((t.vurgu && ISIK_ACIK) && yuz && t.vurguTur == "siluet" && n.siluet.size >= 16) {
+        if ((t.vurgu && ISIK_ACIK) && yuz && (t.vurguTur == "siluet" || t.vurguTur == "elektrik") && n.siluet.size >= 16) {
+            val elk = t.vurguTur == "elektrik"
             val c2 = (min(2.1f, h - 0.15f) / 2.1f).coerceIn(0.3f, 1f)
             val bas = 0.15f * c2; val buyu = 0.95f * c2; val bek = 0.12f * c2; val cek = 0.75f * c2
             val on = yum((g - bas) / buyu)
             val kuyruk = yum((g - bas - buyu - bek) / cek)
-            val alfa = if (g < bas) 0f else (1f - ((kuyruk - 0.45f) / 0.55f).coerceIn(0f, 1f)).let { it * it * (3f - 2f * it) }
+            // 4.40: elektrikte ışık durak boyunca kalır (0,3 sn'de belirir, sonda 0,3 sn'de söner)
+            val alfa = if (elk) min(((g - 0.1f) / 0.3f).coerceIn(0f, 1f), ((h - 0.1f - g) / 0.3f).coerceIn(0f, 1f))
+                else if (g < bas) 0f else (1f - ((kuyruk - 0.45f) / 0.55f).coerceIn(0f, 1f)).let { it * it * (3f - 2f * it) }
             val pts = FloatArray(n.siluet.size)
             var i = 0
             while (i + 1 < n.siluet.size) {
@@ -76,7 +81,7 @@ object TurVurgu {
             val adA2 = if (!t.isim || ad.isEmpty()) 0f else min((g - adBas2) / 0.4f, (adSon2 - g) / 0.4f).coerceIn(0f, 1f)
             val adDy2 = (1f - yum((g - adBas2) / 0.5f)) * kisa * 0.014f
             if (alfa <= 0.002f && adA2 <= 0.002f) return null
-            return Durum(a.durak, true, cx, cy, rx, ry, on, alfa, ad, adA2, adDy2, pts, Siluet.tepe(n.siluet), kuyruk)
+            return Durum(a.durak, true, cx, cy, rx, ry, on, alfa, ad, adA2, adDy2, pts, Siluet.tepe(n.siluet), kuyruk, elk, g)
         }
         // halka zamanlaması (durak kısaysa orantılı sıkışır)
         val c = (min(2.3f, h - 0.15f) / 2.3f).coerceIn(0.3f, 1f)
@@ -96,7 +101,7 @@ object TurVurgu {
     fun halkaCiz(c: Canvas, d: Durum, kisa: Float) = try { halkaCiz0(c, d, kisa) } catch (e: Throwable) { hataBir("çizgi", e) }
     private fun halkaCiz0(c: Canvas, d: Durum, kisa: Float) {
         if (!d.yuz || d.halkaAlfa <= 0.002f || d.sup <= 0.001f) return
-        d.siluet?.let { siluetCiz(c, it, d.tepe, d.sup, d.kuyruk, d.halkaAlfa, kisa); return }
+        d.siluet?.let { if (d.elektrik) Elektrik.cizHat(c, it, d.sn, Renk.ELEKTRIK, kisa / 1080f, d.halkaAlfa) else siluetCiz(c, it, d.tepe, d.sup, d.kuyruk, d.halkaAlfa, kisa); return }
         val sw = max(1.5f, kisa * 0.0026f)
         val oval = RectF(d.cx - d.rx, d.cy - d.ry, d.cx + d.rx, d.cy + d.ry)
         val aci = 360f * d.sup
@@ -206,13 +211,13 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
     private var sNobet = 0; private val sBmp = arrayOfNulls<Bitmap>(2)
     private fun siluetHazirla(d: TurVurgu.Durum) {
         val p = d.siluet ?: return
-        val pay = max(1.6f, kisa * 0.0030f) * 6f
+        val pay = max(1.6f, kisa * 0.0030f) * (if (d.elektrik) 14f else 6f)
         var x0 = Float.MAX_VALUE; var y0 = Float.MAX_VALUE; var x1 = -Float.MAX_VALUE; var y1 = -Float.MAX_VALUE
         var i = 0; while (i + 1 < p.size) { x0 = min(x0, p[i]); x1 = max(x1, p[i]); y0 = min(y0, p[i + 1]); y1 = max(y1, p[i + 1]); i += 2 }
         x0 = max(x0 - pay, 0f); y0 = max(y0 - pay, 0f); x1 = min(x1 + pay, W.toFloat()); y1 = min(y1 + pay, H.toFloat())
         if (x1 - x0 < 4f || y1 - y0 < 4f) { bmp = bos; return }
         val ad = (kisa * 0.004f).coerceAtLeast(1f)
-        val yeni = "s${(d.sup * 90f).roundToInt()}/${(d.kuyruk * 90f).roundToInt()}/${(x0 / ad).roundToInt()}/${(y0 / ad).roundToInt()}/${(x1 / ad).roundToInt()}/${(y1 / ad).roundToInt()}"
+        val yeni = (if (d.elektrik) "e${(d.sn * 30f).roundToInt()}" else "") + "s${(d.sup * 90f).roundToInt()}/${(d.kuyruk * 90f).roundToInt()}/${(x0 / ad).roundToInt()}/${(y0 / ad).roundToInt()}/${(x1 / ad).roundToInt()}/${(y1 / ad).roundToInt()}"
         if (yeni == anahtar && bmp !== bos) return
         anahtar = yeni
         val o = if (max(W, H) > 2000) 0.5f else 1f
@@ -220,7 +225,7 @@ class TurHalkaBindirme(private val k: Klip, private val W: Int, private val H: I
         sNobet = 1 - sNobet
         val b = sBmp[sNobet]?.takeIf { it.width == bw && it.height == bh }?.also { it.eraseColor(0) } ?: Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888).also { sBmp[sNobet] = it }
         val c = Canvas(b); c.scale(o, o); c.translate(-x0, -y0)
-        TurVurgu.siluetCiz(c, p, d.tepe, d.sup, d.kuyruk, 1f, kisa)
+        if (d.elektrik) Elektrik.cizHat(c, p, d.sn, Renk.ELEKTRIK, kisa / 1080f, 1f) else TurVurgu.siluetCiz(c, p, d.tepe, d.sup, d.kuyruk, 1f, kisa)
         bmp = b; sCx = (x0 + x1) / 2f; sCy = (y0 + y1) / 2f; sOlcek = 1f / o
     }
     private fun hazirla(us: Long): TurVurgu.Durum? {

@@ -102,6 +102,36 @@ object Elektrik {
         }
     }
 
+    /** 4.40: yüz turundaki kişi hattı (açık çizgi: iki alt uçtan omuzlar ve baş) — titreyen elektrik hattı + hat boyunca gidip gelen tarama başı.
+     *  p: çıkış pikselinde noktalar (x, y sırayla). */
+    @Synchronized fun cizHat(c: Canvas, p: FloatArray, t: Float, renk: Int, olc: Float, alfa: Float) {
+        if (p.size < 8 || alfa <= 0.01f) return
+        val n = p.size / 2
+        val yol = Path()
+        for (i in 0 until n) {
+            val i0 = maxOf(0, i - 1); val i1 = minOf(n - 1, i + 1)
+            val tx = p[2 * i1] - p[2 * i0]; val ty = p[2 * i1 + 1] - p[2 * i0 + 1]; val tb = max(1e-3f, hypot(tx, ty))
+            val tit = (sin(i * 1.7f + t * 23f) * cos(i * 0.9f - t * 17f) + 0.35f * sin(i * 5.3f + t * 41f)) * 3.2f * olc
+            val x = p[2 * i] - ty / tb * tit; val y = p[2 * i + 1] + tx / tb * tit
+            if (i == 0) yol.moveTo(x, y) else yol.lineTo(x, y)
+        }
+        val nefes = (0.6f + 0.25f * sin(t * 3.1f)) * alfa
+        pIsik.color = renk; pIsik.alpha = (160 * nefes).toInt(); pIsik.strokeWidth = 7f * olc; pIsik.maskFilter = BlurMaskFilter(9f * olc, BlurMaskFilter.Blur.NORMAL)
+        c.drawPath(yol, pIsik)
+        pCekirdek.color = renk; pCekirdek.alpha = (180 * nefes).toInt(); pCekirdek.strokeWidth = 1.6f * olc
+        c.drawPath(yol, pCekirdek)
+        val pm = PathMeasure(yol, false); val L = pm.length
+        if (L <= 1f) return
+        val f = (t / 1.6f) % 2f; val q = if (f < 1f) f else 2f - f            // gidip gelir
+        val uz = 0.26f * L; val bas = q * (L - uz)
+        val parca = Path(); pm.getSegment(bas, bas + uz, parca, true)
+        pIsik.alpha = (235 * alfa).toInt(); pIsik.strokeWidth = 14f * olc; pIsik.maskFilter = BlurMaskFilter(16f * olc, BlurMaskFilter.Blur.NORMAL)
+        c.drawPath(parca, pIsik)
+        pCekirdek.color = 0xFFFFFFFF.toInt(); pCekirdek.alpha = (240 * alfa).toInt(); pCekirdek.strokeWidth = 3f * olc
+        c.drawPath(parca, pCekirdek)
+        pCekirdek.color = renk
+    }
+
     /** Dışa aktarma: kaynak görüntü + çevresinde ışık, kenarlara pay bırakılmış tek bitmap (merkez aynı). buf yeniden kullanılır. */
     fun kare(src: Bitmap, k: FloatArray, t: Float, renk: Int, olc: Float, buf: Bitmap?): Bitmap {
         val pay = (max(src.width, src.height) * 0.12f).toInt().coerceAtLeast(8)

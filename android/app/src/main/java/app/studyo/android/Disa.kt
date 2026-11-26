@@ -231,7 +231,7 @@ object Disa {
         val hatKart = if (p.hatirlatici.acik && p.hatirlatici.stil != "klasik") Cizim.hatirlaticiKartSet(p.hatirlatici, W, H, p.logo, p.kapanis.kanal) else null
         val (hA, hB) = Zaman.hatirlaticiAralik(p)
         if (hatKart == null) Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { zamanli += Triple(it, hA, hB) }
-        for (ns in p.nesneler) if (!ns.hareketli && !ns.bagli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
+        for (ns in p.nesneler) if (!ns.gizli && !ns.hareketli && !ns.bagli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
         // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
         val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
@@ -248,7 +248,7 @@ object Disa {
             for ((y, a, b) in zamanli) if (a < son && b > bas) ek += ZamanliBindirme(y, bas, a, b, W, H)
             if (seritler.isNotEmpty() && gA < son && gB > bas) for (sr in seritler) ek += ReelsBindirme(sr, p.giris.hareket, bas, gA, gB)
             if (p.giris.acik && p.giris.boncuk && gA < son && gB > bas) ek += BoncukBindirme(bas, gA, gB, W, H)
-            for (ns in p.nesneler) if (ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)
+            for (ns in p.nesneler) if (!ns.gizli && ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)
             if (hatKart != null && hA < son && hB > bas) {
                 ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, false)
                 ek += HatirlaticiBindirme(hatKart, bas, hA, hB - hA, W, H, true)
@@ -317,7 +317,7 @@ object Disa {
                     hdrCozucudeCevir = B != null && B.hdr && hdrKip == HDR_COZUCU, onizleme = onizleme))
             } else null
             ogeler += if (klipMi) parca(ctx, onizleme, p.klipler[j], W, H, logo, gec, katmanlar(ogeBas, uz), j, tam, tIn, uz, fps, ogeBas, tekTuval = tekTuval,
-                bagliNesneler = p.nesneler.filter { it.bagli && it.klipId == p.klipler[j].id }) else {
+                bagliNesneler = p.nesneler.filter { !it.gizli && it.bagli && it.klipId == p.klipler[j].id }) else {
                 val mi = MediaItem.Builder().setUri(Uri.fromFile(File(kapanisYol!!))).setMimeType(MimeTypes.IMAGE_JPEG).setImageDurationMs(uz).build()
                 val v = ArrayList<Effect>()
                 v += Presentation.createForWidthAndHeight(W, H, Presentation.LAYOUT_SCALE_TO_FIT)
@@ -496,7 +496,7 @@ object Disa {
 
     /** Klibin renk ayarı + filtresi (tek 3B LUT) — klibin kendi öğesinde ve geçişte gelen klip olarak AYNI. */
     private fun renkEtkisi(k: Klip): androidx.media3.effect.GlEffect? =
-        if (k.filtre != "yok" && k.filtreGuc > 0.001f) RenkLut.etki(k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+        if (k.filtreAcik) RenkLut.etki(k.renk ?: RenkAyar(), k.filtreKod, 1f)
         else k.renk?.takeIf { RenkLut.lutVar(it) }?.let { RenkLut.etki(it) }
 
     internal fun kodlayici(ctx: Context, kisa: Int, kalite: Float) = DefaultEncoderFactory.Builder(ctx)

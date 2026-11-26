@@ -192,7 +192,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             // 3.56: Renk bölümünde ayarın sonucu doğrudan ana önizlemede (durağanken). Önceden durağan oynatıcı ham görüntüyü gösterdiği için
             // Renk sayfasında ayrı bir önce/sonra kutusu gerekiyordu; o kutu kaldırıldı. Oynarken akıcı önizleme rengi zaten uygular.
             // Aynı yerleşim (requiredSize + graphicsLayer) → kare oynatıcı görüntüsünün tam üstüne oturur. Basılı tut = önce.
-            val goruntuAyari = k != null && (k.renk?.bos == false || (k.filtre != "yok" && k.filtreGuc > 0.001f) || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f || k.gizleVar)
+            val goruntuAyari = k != null && (k.renk?.bos == false || k.filtreAcik || (k.efekt != "yok" && k.efektGuc > 0.001f) || k.arkaBulanik > 0.01f || k.gizleVar)
             // 3.61: arka planı bulanık klip durağanken her bölümde bulanık görünür (kesilen nesne önünde)
             // 3.87 KÖK DÜZELTME (fotoğrafı sürükleyince / düzenleyince ekranın kararması): duraklatılmışken fotoğraf klibi oynatıcının yüzeyine
             // bağlı kalmadan, fotoğrafın kendisinden (aynı yerleşim + aynı kaydırma/yaklaşma) çizilir. Oynatıcı sarma, akıcı oynatıcıyı bırakma,
@@ -213,9 +213,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 // 3.72: Android 12+ arka plan bulanıklığı gerçek Gauss (RenderEffect, dışa aktarmadaki 4 geçişli GL Gauss'un karşılığı) + %10 karartma;
                 // eski sürümlerde yazılım bulanıklığı
                 val gpuBulanik = android.os.Build.VERSION.SDK_INT >= 31 && k.arkaBulanik > 0.01f
-                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc, k.efekt, k.efektGuc, k.arkaBulanik, k.yuzGizle, goruntuAyari) {
+                val ayarli by produceState<Bitmap?>(null, ham, k.renk, k.filtreKod, k.efekt, k.efektGuc, k.arkaBulanik, k.yuzGizle, goruntuAyari) {
                     value = if (!goruntuAyari) ham else ham?.let { b -> withContext(Dispatchers.Default) {
-                        val r0 = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc)
+                        val r0 = RenkLut.uygula(b, k.renk ?: RenkAyar(), k.filtreKod, 1f)
                         // 3.83: yüz gizleme (dışa aktarmadaki ovallerin aynısı)
                         val r = k.yuzGizle?.takeIf { k.gizleVar }?.let { g -> YuzGizleme.uygula(r0, YuzGizleme.anlik(g, kaynakMs, k.foto), g.guc) } ?: r0
                         Efektler.uygula(if (gpuBulanik) r else Efektler.bulaniklastir(r, k.arkaBulanik), k.efekt, k.efektGuc) } }
@@ -388,7 +388,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     NesneCerceve(cx - w / 2f, cy - h / 2f, w, h)
                 }
             }
-            p.nesneler.forEach { n ->
+            p.nesneler.forEach { n -> if (!n.gizli)   // 4.29: devre dışı nesne çizilmez
                 key(n.id) {
                     // 4.10 KÖK NEDEN: listeden seçince nesnenin başına (basMs+1) gidiliyordu; orada giriş solması ~0 → nesne önizlemede görünmüyordu
                     // (kısa nesnede hiç tam görünmüyordu). Nesne panelinde seçili nesne, kendi süresi içindeyken ve oynatma dururken tam görünür.
@@ -1879,6 +1879,13 @@ private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
                 SimgeDugme("takip", "Cam fırçası", w) { firca = true }
             }
             SimgeDugme("katman", "En üste", w, etkin = p.nesneler.lastOrNull()?.id != n.id) { vm.nesneOneAl(n.id) }
+        }
+        // 4.29: katman işlemleri — devre dışı / kesildiği klibe geri / ekrana sabitle
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            val w = Modifier.weight(1f)
+            SimgeDugme(if (n.gizli) "goz" else "gozkapali", if (n.gizli) "Etkinleştir" else "Devre dışı", w, renk = if (n.gizli) Renk.turuncu else Renk.yazi) { vm.nesneGizle(n.id) }
+            SimgeDugme("geri", "Klibine gönder", w) { vm.nesneKlibineGonder(n.id) }
+            SimgeDugme("h_odak", if (n.bagli) "Ekrana sabitle" else "Sabit", w, etkin = n.bagli) { vm.nesneSabitle(n.id) }
             SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", w, renk = if (silOnay) Renk.kirmizi else Renk.yazi) { if (silOnay) vm.nesneSil(n.id) else silOnay = true }
         }
         if (firca) CamFircasi(vm, n) { firca = false }

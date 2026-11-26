@@ -53,6 +53,8 @@ data class Klip(
     val renk: RenkAyar? = null,
     /** 3.59: filtre (LUT) ve efekt (GL), klip bazında. "yok" = kapalı; güç 0…1. */
     val filtre: String = "yok", val filtreGuc: Float = 0.8f,
+    /** 4.29: üst üste eklenen filtreler (ad → güç 0…1); ilk filtre filtre/filtreGuc'te kalır (eski kayıtlarla uyumlu). */
+    val ekFiltreler: Map<String, Float> = emptyMap(),
     val efekt: String = "yok", val efektGuc: Float = 0.7f,
     /** 3.61: arka plan bulanıklığı (ekrandan nesne kesilince kendiliğinden; 0 = yok, 0…1). */
     val arkaBulanik: Float = 0f,
@@ -235,6 +237,8 @@ data class Nesne(
     /** 4.12: ekrandaki fotoğraftan kesilen nesne arka plandaki fotoğrafa yapışıktır: konum ve genişlik fotoğrafın kendi karesinde (0…1).
      *  Yüz turu / yakınlaşma fotoğrafı hareket ettirince nesne de aynı hareketle gider (kw > 0 ise). */
     val kx: Float = -1f, val ky: Float = -1f, val kw: Float = 0f,
+    /** 4.29: devre dışı (videoda görünmez, çizelgede soluk) · kesildiği klip ("Klibine geri gönder" için). kw < 0 = fotoğraf bağı askıda (ekrana sabit). */
+    val gizli: Boolean = false, val asilKlipId: String = "",
 ) {
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
     val bagli: Boolean get() = klipId.isNotEmpty() && kw > 0f && !hareketli
@@ -399,3 +403,10 @@ data class GizliYuz(val id: Int, val izler: List<YuzIz>, val olcek: Float = 1f, 
 /** 3.83: Düzenle › Klip › Yüz gizle. secili: bulanıklaşacak yüzler (yalnız seçilenler). guc: bulanıklık gücü 0…1. */
 @Serializable
 data class YuzGizle(val yuzler: List<GizliYuz> = emptyList(), val secili: Set<Int> = emptySet(), val guc: Float = 0.7f, val arandi: Boolean = false)
+
+/** 4.29: klibin bütün filtreleri tek kodda ("a:0.80|b:0.15"; yoksa "yok") — LUT, önizleme ve dışa aktarma aynı kodu kullanır. */
+val Klip.filtreKod: String get() {
+    val l = (if (filtre != "yok" && filtreGuc > 0.001f) listOf(filtre to filtreGuc) else emptyList()) + ekFiltreler.filter { it.value > 0.001f && it.key != filtre }.toList()
+    return if (l.isEmpty()) "yok" else l.joinToString("|") { "${it.first}:${"%.3f".format(java.util.Locale.US, it.second)}" }
+}
+val Klip.filtreAcik: Boolean get() = filtreKod != "yok"

@@ -84,9 +84,11 @@ object RenkLut {
     fun lutVar(a: RenkAyar): Boolean = !a.copy(keskinlik = 0f).bos
 
     /** 3.59: filtreler (Efekt › Filtre). o: renk ayarından çıkan değer; güç kadar karıştırılır. */
-    val FILTRELER = listOf("sinematik" to "Sinematik", "altin" to "Altın saat", "vintage" to "Vintage", "sb" to "Siyah-beyaz", "serin" to "Serin mat")
+    val FILTRELER = listOf("orangeteal" to "Orange & Teal", "sinematik" to "Sinematik", "altin" to "Altın saat", "vintage" to "Vintage", "sb" to "Siyah-beyaz", "serin" to "Serin mat")
     fun filtrele(tur: String, guc: Float, o: FloatArray) {
         if (tur == "yok" || guc <= 0.001f) return
+        // 4.29: üst üste filtreler — "a:0.80|b:0.15" sırayla, her biri kendi gücüyle (biri diğerini silmez)
+        if (':' in tur) { tur.split('|').forEach { p -> val ad = p.substringBefore(':'); val g = p.substringAfter(':').toFloatOrNull() ?: 0f; filtrele(ad, g * guc, o) }; return }
         val r = o[0]; val g = o[1]; val b = o[2]
         val y = 0.299f * r + 0.587f * g + 0.114f * b
         var fr: Float; var fg: Float; var fb: Float
@@ -101,6 +103,20 @@ object RenkLut {
             "vintage" -> { fr = y + (r - y) * 0.65f; fg = y + (g - y) * 0.65f; fb = y + (b - y) * 0.65f
                 fr = 0.08f + fr * 0.86f + 0.04f; fg = 0.07f + fg * 0.86f + 0.02f; fb = 0.06f + fb * 0.80f }
             "sb" -> { val v = ((y - 0.5f) * 1.12f + 0.5f); fr = v; fg = v; fb = v }
+            "orangeteal" -> {
+                // 4.29: profesyonel Orange & Teal — gölgeler camgöbeği/mavi, ten tonları ve aydınlıklar sıcak turuncu; orta tonlar korunur,
+                // ten (kırmızı-sarı) bölgesi kaymasın diye maskeli; hafif S eğrisi ve doygunluk dengesi (doğal, abartısız)
+                val t = ss(0.12f, 0.88f, y)
+                val sicak = ((r - b) * 2.2f).coerceIn(0f, 1f)                 // ten / sıcak bölge maskesi
+                val golge = (1f - t) * (1f - sicak * 0.6f)
+                val isik = t * (0.6f + sicak * 0.4f)
+                fr = r - golge * 0.07f + isik * 0.07f
+                fg = g + golge * 0.025f + isik * 0.015f
+                fb = b + golge * 0.09f - isik * 0.075f
+                val yy = 0.299f * fr + 0.587f * fg + 0.114f * fb
+                fr = yy + (fr - yy) * 1.08f; fg = yy + (fg - yy) * 1.02f; fb = yy + (fb - yy) * 1.08f
+                fr = (fr - 0.5f) * 1.06f + 0.5f; fg = (fg - 0.5f) * 1.06f + 0.5f; fb = (fb - 0.5f) * 1.06f + 0.5f
+            }
             else -> { fr = y + (r - y) * 0.85f; fg = y + (g - y) * 0.85f; fb = y + (b - y) * 0.85f   // serin mat
                 fr = 0.06f + fr * 0.88f - 0.03f; fg = 0.06f + fg * 0.88f; fb = 0.06f + fb * 0.88f + 0.05f }
         }

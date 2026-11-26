@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.28 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.29 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.29 (26.11.2026, deneme · `yerel-android` dalı): Nesne ana menüsü, nesneler Katmanlar'da, üst üste filtreler, Orange & Teal
+- **Nesne ayrı ana menü** (Fotoğraftan · Videodan · Kesilenler); Düzenle ve Katman'daki kopyaları kaldırıldı — tek yer.
+- **Kesilen nesneler Katmanlar çizelgesinde:** her biri kendi satırında (fotoğraf/hareketli). Dokun = seç (önizlemede çerçeve) · seçiliyken sürükle = taşı (başka klibin üstüne de; o klibe bağlanır) · uçtan sürükle = kısalt/uzat · uzun bas = menü.
+- **Devre dışı bırak / Etkinleştir · Kesildiği klibe geri gönder · Ekrana sabitle** (fotoğrafın hareketini izlemez, video boyunca aynı noktada) — çizelge menüsünde ve Kesilenler'de. Başka klibe taşınan fotoğraf nesnesi ekrandaki yerinde kalır; "geri gönder" fotoğraf bağını geri getirir.
+- **Filtreler üst üste:** her filtre ayrı güçte; yeni filtre öncekini silmez (dokun = ekle/çıkar, her etkin filtre için ayrı Güç). Önizleme, akıcı önizleme ve dışa aktarma aynı tek LUT kodunu kullanır (`Klip.filtreKod`).
+- **Orange & Teal** filtresi: gölgeler camgöbeği/mavi, ten ve aydınlıklar sıcak turuncu (ten bölgesi maskeli), hafif S eğrisi.
 
 ## 4.28 (23.11.2026, deneme · `yerel-android` dalı): sistem satırı sade, tema listesinde ✓
 - Editörün üst satırı: Geri yalnız simge; "Ekran açık" yalnız soluk simge; arama ve ☰ Ayarlar küçük soluk simgeler olarak buraya taşındı (alttaki menüden kalktı).

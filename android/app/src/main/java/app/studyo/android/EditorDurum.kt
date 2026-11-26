@@ -566,6 +566,35 @@ class EditorDurum(private val ctx: Context, id: String) {
         if (ids.isEmpty() || p.klipler.none { it.id in ids && it.kenBurns && !it.turEtkin }) return p
         return p.copy(klipler = p.klipler.map { if (it.id in ids && it.kenBurns && !it.turEtkin) it.copy(kenBurns = false) else it })
     }
+    // ---------- 4.29: nesne ↔ katman işlemleri ----------
+    private fun nesneSabitHal(p: Proje, n: Nesne): Nesne {
+        if (!n.bagli) return n
+        val j = p.klipler.indexOfFirst { it.id == n.klipId }; if (j < 0) return n
+        val (RW, RH) = Disa.boyut(p.bicim, 1080); val kk = p.klipler[j]
+        val e = NesneBag.ekranda(n, kk, RW, RH, Yuz.an(kk, RW, RH, 0f, j))
+        return n.copy(x = e.x, y = e.y, olcek = e.olcek, kw = -n.kw)
+    }
+    /** Ekrana sabitle: fotoğrafın hareketini izlemez, video boyunca aynı noktada durur (masadaki bardak gibi). */
+    fun nesneSabitle(id: String) { val p = proje.value; nesneDegis(id) { nesneSabitHal(p, it) }; mesaj.value = "Nesne ekrana sabitlendi" }
+    fun nesneGizle(id: String) { nesneDegis(id) { it.copy(gizli = !it.gizli) } }
+    /** Kesildiği klibin üstüne geri: o klibin baştan sonuna, fotoğraf bağı (varsa) yeniden. */
+    fun nesneKlibineGonder(id: String) {
+        val p = proje.value; val n = p.nesneler.firstOrNull { it.id == id } ?: return
+        val asil = n.asilKlipId.ifEmpty { n.klipId }
+        val j = p.klipler.indexOfFirst { it.id == asil }
+        if (j < 0) { uyari.value = "Nesnenin kesildiği klip artık yok."; return }
+        val b = baslangic(j)
+        nesneDegis(id) { it.copy(klipId = asil, basMs = b, sonMs = b + p.zKlip(j).sureMs, kw = kotlin.math.abs(it.kw), gizli = false) }
+        mesaj.value = "Nesne klip ${j + 1}'in üstüne döndü"
+    }
+    /** Çizelgede taşıma / uç çekme: yeni zaman; başka klibe geçerse o klibe bağlanır (fotoğraf bağı askıya alınır, ekrandaki yerinde kalır). */
+    fun nesneZaman(id: String, bas: Long, son: Long) {
+        val p = proje.value; val n0 = p.nesneler.firstOrNull { it.id == id } ?: return
+        val kid = klipIdAnda(bas)
+        val n1 = if (kid != n0.klipId) nesneSabitHal(p, n0) else n0
+        nesneDegis(id) { n1.copy(basMs = bas.coerceAtLeast(0), sonMs = son.coerceAtLeast(bas + 300), klipId = kid, asilKlipId = n0.asilKlipId.ifEmpty { n0.klipId }) }
+    }
+
     /** 4.15: nesneyi en üste al (listede son = en üstte çizilir). */
     fun nesneOneAl(id: String) = guncelle { p -> p.nesneler.firstOrNull { it.id == id }?.let { n -> p.copy(nesneler = p.nesneler.filter { it.id != id } + n) } ?: p }
     /** 4.15: nesneyi bulunduğu klibin baştan sona süresine yay. */

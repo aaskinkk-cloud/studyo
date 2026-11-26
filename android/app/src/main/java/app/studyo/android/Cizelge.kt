@@ -285,6 +285,15 @@ fun CokluCizelge(vm: EditorDurum, p: Proje, acMuzik: () -> Unit, acSes: () -> Un
                             }
                         }
                     }
+                    // ---- 4.29: kesilen nesneler (fotoğraftan / videodan) — her biri kendi satırında: dokun = seç (önizlemede çerçeve),
+                    // seçiliyken sürükle = taşı (başka klibin üstüne de), uçtan sürükle = kısalt/uzat, uzun bas = menü
+                    val secNes2 by vm.seciliNesne.collectAsState()
+                    p.nesneler.forEachIndexed { ni, ns -> key("n" + ns.id) {
+                        IzSatiri(if (ns.hareketli) "klip" else "kisi", (if (ns.gizli) "◌ " else "") + "Kesilen ${ni + 1}", SATIR, Color(0xFFFF8A65).copy(alpha = if (ns.gizli) 0.4f else 1f),
+                            onClick = { vm.seciliKatman.value = null; vm.seciliNesne.value = ns.id; vm.git(ns.basMs + 1) }) {
+                            NesneCubugu(vm, ns, xMs(ns.basMs), (ns.sonMs - ns.basMs) * pxMs, secNes2 == ns.id, pxMs, izGen)
+                        }
+                    } }
                     // ---- klip yazıları ve takip yazıları (3.44): katman değiller ama ekranda görünürler; burada da bulunur ----
                     val yaziK = p.klipler.indices.filter { p.klipler[it].yazi?.metin?.isNotBlank() == true }
                     if (yaziK.isNotEmpty()) IzSatiri("metin", "Klip yazısı", SATIR, Color(0xFFB39DDB), onClick = { val i = yaziK.firstOrNull { it > secKlip } ?: yaziK.first(); vm.sec(i); acPanel("yazi", i) }) {
@@ -371,6 +380,59 @@ private fun gorunur(x: Float, w: Float, izGen: Float): Triple<Float, Float, Floa
     val pay = 40f
     val v0 = maxOf(x, -pay); val v1 = minOf(x + w, izGen + pay)
     return Triple(v0, (v1 - v0).coerceAtLeast(0f), x - v0)
+}
+
+/** 4.29: kesilen nesne çubuğu — katman çubuğuyla aynı kural: dokun = seç · seçiliyken sürükle = taşı · uçtan = kısalt/uzat · uzun bas = menü. */
+@Composable
+private fun NesneCubugu(vm: EditorDurum, n: Nesne, x: Float, w: Float, secili: Boolean, pxMs: Float, izGen: Float) {
+    val yog = LocalDensity.current
+    val ucPx = with(yog) { 22.dp.toPx() }
+    var sl by remember { mutableFloatStateOf(0f) }; var sr by remember { mutableFloatStateOf(0f) }
+    var mod by remember { mutableIntStateOf(0) }     // -1 sol uç · 0 taşı · 1 sağ uç
+    var menu by remember { mutableStateOf(false) }
+    val nG by rememberUpdatedState(n)
+    val gx = x + sl; val gw = (w - sl + sr).coerceAtLeast(8f)
+    val (vx, vw, kay) = gorunur(gx, gw, izGen)
+    val kayG by rememberUpdatedState(kay); val gwG by rememberUpdatedState(gw)
+    if (vw <= 0f && sl == 0f && sr == 0f) return
+    val renk = Color(0xFFFF8A65)
+    val sekil = RoundedCornerShape(6.dp)
+    Box(Modifier.offset { IntOffset(vx.roundToInt(), 0) }.width(with(yog) { vw.coerceAtLeast(1f).toDp() }).fillMaxHeight().clip(sekil)
+        .background(renk.copy(alpha = (if (secili) 0.85f else 0.5f) * (if (n.gizli) 0.45f else 1f)))
+        .border(if (secili) 2.dp else 0.dp, if (secili) Color.White else Color.Transparent, sekil)
+        .pointerInput(n.id) { detectTapGestures(
+            onTap = { vm.seciliKatman.value = null; vm.seciliNesne.value = n.id },
+            onDoubleTap = { vm.seciliNesne.value = n.id; vm.git(n.basMs + 1) },
+            onLongPress = { vm.seciliNesne.value = n.id; menu = true }) }
+        .then(if (!secili) Modifier else Modifier.pointerInput(n.id, w) {
+            detectDragGestures(
+                onDragStart = { t -> val g = t.x - kayG; mod = if (g < ucPx) -1 else if (g > gwG - ucPx) 1 else 0 },
+                onDragEnd = {
+                    val o = nG; val dA = (sl / pxMs).toLong(); val dB = (sr / pxMs).toLong()
+                    val (a, b) = when (mod) { -1 -> (o.basMs + dA).coerceAtMost(o.sonMs - 300) to o.sonMs; 1 -> o.basMs to (o.sonMs + dB).coerceAtLeast(o.basMs + 300)
+                        else -> (o.basMs + dA).coerceAtLeast(0) to (o.sonMs + dA).coerceAtLeast(300) }
+                    sl = 0f; sr = 0f
+                    vm.nesneZaman(o.id, a, b)
+                },
+                onDragCancel = { sl = 0f; sr = 0f }) { ch, d ->
+                ch.consume()
+                when (mod) { -1 -> sl += d.x; 1 -> sr += d.x; else -> { sl += d.x; sr += d.x } }
+            }
+        })) {
+        Text("✂ " + sureOndalik(n.sonMs - n.basMs), color = Color.White, fontSize = 10.sp, maxLines = 1, modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp))
+        if (secili) {   // uçlarda kalın tutamaçlar
+            if (kay > -1f) Box(Modifier.align(Alignment.CenterStart).width(5.dp).fillMaxHeight().background(Color.White))
+            Box(Modifier.align(Alignment.CenterEnd).width(5.dp).fillMaxHeight().background(Color.White))
+        }
+        androidx.compose.material3.DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Renk.kart) {
+            @Composable fun Oge(ad: String, renk2: Color = Renk.yazi, f: () -> Unit) = androidx.compose.material3.DropdownMenuItem(text = { Text(ad, color = renk2) }, onClick = { menu = false; f() })
+            Oge("Başına git") { vm.git(n.basMs + 1) }
+            Oge(if (n.gizli) "Etkinleştir" else "Devre dışı bırak") { vm.nesneGizle(n.id) }
+            Oge("Kesildiği klibe geri gönder") { vm.nesneKlibineGonder(n.id) }
+            if (n.bagli) Oge("Ekrana sabitle (hareketi izlemesin)") { vm.nesneSabitle(n.id) }
+            Oge("Sil", Renk.kirmizi) { vm.nesneSil(n.id) }
+        }
+    }
 }
 
 /** Video klibi: kareler yan yana, sıra numarası; dokun = seç (araç sırası klibe uygulanır). */

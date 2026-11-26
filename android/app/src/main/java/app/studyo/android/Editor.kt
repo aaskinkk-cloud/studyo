@@ -85,15 +85,17 @@ private val HAP_SIMGE = mapOf(
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
     "paket" to "izgara", "hazir" to "kaydet",   // 3.70
-    "kekle" to "ekle", "kses" to "ses", "knesne" to "makas", "khareket" to "klip",   // 4.13: Katman alt menüleri
+    "kekle" to "ekle", "kses" to "ses", "foto" to "kapak", "video" to "klip", "kesilen" to "katman",   // 4.13: Katman alt menüleri
 )
 
 private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
-    Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip", "nesne" to "Nesne")),
+    Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip")),
+    // 4.29: Nesne ayrı ana menü (Düzenle ve Katman'daki kopyaları kaldırıldı — tek yer)
+    Bolum("nesne", "Nesne", "kisi", listOf("foto" to "Fotoğraftan", "video" to "Videodan", "kesilen" to "Kesilenler")),
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
-    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür", "knesne" to "Nesne kes", "khareket" to "Hareketli")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
+    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür"')),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)
@@ -123,7 +125,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     // 3.44: önizlemede bir katmana dokununca Katman bölümü açılır
     val katmanIstek by vm.katmanSayfasi.collectAsState()
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo", "nesne" to "foto") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(id) { if (Depo.acilincaDisa == id) { Depo.acilincaDisa = null; disaAcik = true } }
     val albumIstek by AlbumIndir.istek.collectAsState()   // 3.81: Google Fotoğraflar'dan paylaşılan albüm bağlantısı
@@ -279,7 +281,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
                 }
             }
-            val nesneModu = panelAcik && (bolum == "duzenle" && haplar["duzenle"] == "nesne" || bolum == "katman")   // 3.45: nesne kesme Katmanlar'da da
+            val nesneModu = panelAcik && (bolum == "nesne" || bolum == "katman")   // 3.45: nesne kesme Katmanlar'da da
             // açılışta önizleme videonun oranına tam oturur (üstte/altta boşluk yok); tutamaç yine çalışır
             val tamOran = run {
                 val oranV = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
@@ -395,7 +397,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                             yaziEkle = { vm.katmanMetinEkle(); bolum = "metin"; haplar["metin"] = "yazi"; panelAcik = true; altMod = true },
                             hareketliEkle = { vm.katmanMetinEkle("acilan", "Yazınız", 4000, 0.5f, 0.72f, 0.042f, anim = "yok", ad = "Alıntı açılır")
                                 bolum = "metin"; haplar["metin"] = "yazi"; panelAcik = true; altMod = true },
-                            nesneAc = { bolum = "duzenle"; haplar["duzenle"] = "nesne"; panelAcik = true; altMod = true },
+                            nesneAc = { bolum = "nesne"; panelAcik = true; altMod = true },
                             takipAc = { bolum = "metin"; haplar["metin"] = "takip"; panelAcik = true; altMod = true },
                             bolumAc = { b, h -> bolum = b; if (b == "renk") vm.renkSekme.value = h else haplar[b] = h; panelAcik = true; altMod = true })
                         if (p.klipler.isEmpty()) Text("Video ya da fotoğraf eklemek için şeritteki + düğmesine dokun.", color = Renk.soluk, fontSize = 13.sp,
@@ -1351,6 +1353,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "altyazi" -> PanelAltyazi(vm, p, alt)
         "kapak" -> PanelKapak(vm, p, alt)
         "nesne" -> PanelNesne(vm, p, alt)
+        "foto", "video", "kesilen" -> PanelNesne(vm, p, hap)   // 4.29: Nesne ana menüsü
         "knesne" -> PanelNesne(vm, p, alt ?: "foto")
         "khareket" -> PanelNesne(vm, p, "video")   // 4.16: tek sayfa (Kesilenler yalnız Nesne kes'te — tekrar yok)   // 4.13: Düzenle › Nesne'nin kendisi
         "katmanlar" -> PanelKatmanlar(vm, p)
@@ -1880,10 +1883,10 @@ private fun AltDugme(o0: AltOge) {
 private fun KlipKaresi(p: Proje, k: Klip, i: Int, modifier: Modifier, sigdir: Boolean) {
     val ctx = LocalContext.current
     val ham by produceState<android.graphics.Bitmap?>(null, k.uri, k.basMs) { value = Medya.kucukResim(ctx, k, 480) }
-    val renkli by produceState<android.graphics.Bitmap?>(null, ham, k.renk, k.filtre, k.filtreGuc) {
+    val renkli by produceState<android.graphics.Bitmap?>(null, ham, k.renk, k.filtreKod) {
         val h = ham
-        value = if (h == null) null else if (k.renk?.bos != false && (k.filtre == "yok" || k.filtreGuc <= 0.001f)) h
-        else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { RenkLut.uygula(h, k.renk ?: RenkAyar(), k.filtre, k.filtreGuc) }.getOrDefault(h) }
+        value = if (h == null) null else if (k.renk?.bos != false && !k.filtreAcik) h
+        else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { RenkLut.uygula(h, k.renk ?: RenkAyar(), k.filtreKod, 1f) }.getOrDefault(h) }
     }
     val oran = when (p.bicim) { "9:16" -> 9f / 16f; "1:1" -> 1f; else -> 16f / 9f }
     BoxWithConstraints(modifier.background(Color.Black).clipToBounds(), contentAlignment = Alignment.Center) {

@@ -103,16 +103,24 @@ fun PanelFiltre(vm: EditorDurum, p: Proje, sec: Int) {
     val k = p.klipler.getOrNull(sec) ?: run { Text("Önce bir klip ekle ya da seç.", color = Renk.soluk, modifier = Modifier.padding(16.dp)); return }
     val kare = AnlikKare(vm, p, sec)
     val ton = Color(TON[3])
-    EfektBasligi("Filtre", "Klip ${sec + 1}/${p.klipler.size}", k.filtre != "yok") {
-        vm.hepsine({ it.copy(filtre = k.filtre, filtreGuc = k.filtreGuc) }); vm.mesaj.value = "Filtre tüm kliplere uygulandı"
+    // 4.29: filtreler üst üste birikir — dokun = ekle / çıkar; her etkin filtrenin gücü ayrı (biri diğerini silmez)
+    fun etkin(kk: Klip): Map<String, Float> = (if (kk.filtre != "yok") mapOf(kk.filtre to kk.filtreGuc) else emptyMap()) + kk.ekFiltreler
+    fun yaz(m: Map<String, Float>) = vm.klipGuncelle { it.copy(filtre = m.keys.firstOrNull() ?: "yok", filtreGuc = m.values.firstOrNull() ?: 0.8f, ekFiltreler = m.entries.drop(1).associate { e -> e.key to e.value }) }
+    val et = etkin(k)
+    EfektBasligi("Filtre", "Klip ${sec + 1}/${p.klipler.size}" + if (et.size > 1) " · ${et.size} filtre" else "", k.filtreAcik) {
+        vm.hepsine({ it.copy(filtre = k.filtre, filtreGuc = k.filtreGuc, ekFiltreler = k.ekFiltreler) }); vm.mesaj.value = "Filtreler tüm kliplere uygulandı"
     }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        OnizlemeKarti("Yok", k.filtre == "yok", ton, { kare }, kare) { vm.klipGuncelle { it.copy(filtre = "yok") } }
+        OnizlemeKarti("Yok", et.isEmpty(), ton, { kare }, kare) { yaz(emptyMap()) }
         RenkLut.FILTRELER.forEach { (t, ad) ->
-            OnizlemeKarti(ad, k.filtre == t, ton, { kare?.let { RenkLut.uygula(it, RenkAyar(), t, 1f) } }, kare to t) { vm.klipGuncelle { it.copy(filtre = t) } }
+            OnizlemeKarti(ad, t in et, ton, { kare?.let { RenkLut.uygula(it, RenkAyar(), t, 1f) } }, kare to t) {
+                yaz(if (t in et) et - t else et + (t to if (et.isEmpty()) 0.8f else 0.5f))
+            }
         }
     }
-    if (k.filtre != "yok") GucSatiri("Güç", k.filtreGuc, ton) { v -> vm.klipGuncelle { it.copy(filtreGuc = v) } }
+    et.forEach { (t, g) ->
+        GucSatiri(RenkLut.FILTRELER.firstOrNull { it.first == t }?.second ?: t, g, ton) { v -> yaz(et.toMutableMap().also { it[t] = v }) }
+    }
     Not2("Küçük resimler üstteki videonun şu anki karesinden. Sonuç önizlemede görünür; önizlemeye basılı tut = filtresiz.")
 }
 

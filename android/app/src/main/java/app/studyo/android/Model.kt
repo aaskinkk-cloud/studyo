@@ -153,7 +153,7 @@ data class SesKaydi(val id: String = yeniId(), val yol: String, val basMs: Long,
 
 @Serializable
 data class Logo(
-    val yol: String, val konum: String = "solUst", val boyut: Float = 0.14f, val opaklik: Float = 0.7f, val yuvarlak: Boolean = true,   // 3.53: varsayılan sol üst · %14 · %70
+    val yol: String, val konum: String = "solUst", val boyut: Float = 0.12f, val opaklik: Float = 0.6f, val yuvarlak: Boolean = true,   // 4.34: varsayılan sol üst · %12 · %60
     val kutupId: String = "",                 // kütüphanedeki logo (seçili gösterimi için)
     val x: Float = -1f, val y: Float = -1f,   // serbest konum (merkez, 0…1); -1: köşe (konum) kullanılır
 )

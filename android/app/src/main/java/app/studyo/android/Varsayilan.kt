@@ -19,6 +19,7 @@ object Varsayilan {
         listOf("kapanis", "Kapanış", "kalp", "Cam kartlar · teşekkür"),
         listOf("logo", "Logo", "logo", "Sol üst · %14 · %70 · son kullanılan"),   // 3.55
         listOf("muzik", "Müzik", "nota", "Konuya göre yerleşik müzik"),   // 3.61
+        listOf("logogecis", "Logo geçişi", "logo", "Büyük logo · baş · orta · son"),   // 4.34
     )
     /** 4.08: maddenin ayarlandığı bölüm (bölüm, alt menü, alt sayfa) — düğmenin altındaki "Ayarla ›" bağlantısı. */
     val BOLUM = mapOf(
@@ -29,9 +30,10 @@ object Varsayilan {
         "kapanis" to Triple("gorunum", "sablon", "kapanis"),
         "logo" to Triple("yayin", "logo", null),
         "muzik" to Triple("ses", "muzik", "hazir"),
+        "logogecis" to Triple("efekt", "gecis", null),
     )
     /** Sonradan eklenen maddeler: eski kayıtlı seçime bir kez eklenir (kullanıcı sonra kapatabilir). */
-    private val YENI_MADDELER = listOf("logo", "muzik")
+    private val YENI_MADDELER = listOf("logo", "muzik", "logogecis")
     fun secili(ctx: Context): Set<String> {
         val ay = ctx.getSharedPreferences("ayar", 0)
         val kayitli = ay.getStringSet("varsayilan", null)?.toSet() ?: return MADDELER.map { it[0] }.toSet()
@@ -45,6 +47,13 @@ object Varsayilan {
     /** Varsayılan logo: en son projeye uygulanan kütüphane logosu (yoksa en yeni eklenen). */
     fun sonLogo(ctx: Context): String? = ctx.getSharedPreferences("ayar", 0).getString("sonLogo", null)
     fun sonLogoYaz(ctx: Context, id: String) = ctx.getSharedPreferences("ayar", 0).edit().putString("sonLogo", id).apply()
+    /** 4.34: kullanıcının son logo ayarları (yer, boyut, saydamlık) — yeni projelerde varsayılan. Yoksa sol üst · %12 · %60. */
+    fun logoAyarYaz(ctx: Context, l: Logo) = ctx.getSharedPreferences("ayar", 0).edit().putString("sonLogoAyar", "${l.konum}|${l.boyut}|${l.opaklik}|${l.x}|${l.y}|${l.yuvarlak}").apply()
+    fun logoAyar(ctx: Context, taban: Logo): Logo {
+        val p = ctx.getSharedPreferences("ayar", 0).getString("sonLogoAyar", null)?.split('|') ?: return taban.copy(konum = "solUst", boyut = 0.12f, opaklik = 0.6f, x = -1f, y = -1f)
+        return taban.copy(konum = p.getOrNull(0) ?: "solUst", boyut = p.getOrNull(1)?.toFloatOrNull() ?: 0.12f, opaklik = p.getOrNull(2)?.toFloatOrNull() ?: 0.6f,
+            x = p.getOrNull(3)?.toFloatOrNull() ?: -1f, y = p.getOrNull(4)?.toFloatOrNull() ?: -1f, yuvarlak = p.getOrNull(5)?.toBooleanStrictOrNull() ?: true)
+    }
     fun degistir(ctx: Context, anahtar: String) {
         val s = secili(ctx).toMutableSet(); if (!s.add(anahtar)) s.remove(anahtar)
         ctx.getSharedPreferences("ayar", 0).edit().putStringSet("varsayilan", s).apply()

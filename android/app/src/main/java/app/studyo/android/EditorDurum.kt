@@ -1289,13 +1289,13 @@ class EditorDurum(private val ctx: Context, id: String) {
         kapsam.launch {
             val f = withContext(Dispatchers.IO) { runCatching { LogoKutup.projeKopyasi(k) }.getOrNull() }
             if (f == null) { uyari.value = "Logo dosyası bulunamadı."; return@launch }
-            guncelle { p -> p.copy(logo = (p.logo ?: Logo(yol = "")).copy(yol = f.path, kutupId = k.id)) }
+            guncelle { p -> p.copy(logo = (p.logo ?: Varsayilan.logoAyar(ctx, Logo(yol = ""))).copy(yol = f.path, kutupId = k.id)) }   // 4.34: boşsa son ayarlarla
             Varsayilan.sonLogoYaz(ctx, k.id)
             mesaj.value = "Logo: ${k.ad}"
         }
     }
 
-    fun logoDegis(f: (Logo) -> Logo) = guncelle { p -> p.copy(logo = p.logo?.let(f)) }
+    fun logoDegis(f: (Logo) -> Logo) { guncelle { p -> p.copy(logo = p.logo?.let(f)) }; proje.value.logo?.let { Varsayilan.logoAyarYaz(ctx, it) } }   // 4.34: son ayar hatırlanır
     fun logoKaldir() = guncelle { it.copy(logo = null) }
 
     // ---------- çok katmanlı düzenleme ----------
@@ -1852,7 +1852,7 @@ class EditorDurum(private val ctx: Context, id: String) {
             guncelle(true) { p ->
                 p.copy(
                     bicim = if (bicimDegisti) "16:9" else p.bicim,
-                    gecis = p.gecis.copy(tur = "erime", sureMs = 800),   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
+                    gecis = p.gecis.copy(tur = "erime", sureMs = 800, logo = if ("logogecis" in sec) true else p.gecis.logo),   // 4.34: Büyük logo geçişi varsayılanlarda   // fotoğraflar arası yumuşak geçiş, 0,8 sn (kısa klipte kendiliğinden kısalır)
                     klipler = p.klipler.map { k0 ->
                         var k = k0
                         if ("kadraj" in sec) k = k.copy(doldur = true)
@@ -1897,9 +1897,9 @@ class EditorDurum(private val ctx: Context, id: String) {
                             k?.let { kk -> LogoKutup.projeKopyasi(kk)?.let { kk to it } }
                         }.onFailure { Kayit.hata("varsayılan logo", it) }.getOrNull()
                     }
-                    if (f != null) guncelle { p -> p.copy(logo = (sk?.logo?.copy(x = -1f, y = -1f) ?: Logo(yol = "")).copy(yol = f.second.path, kutupId = f.first.id, boyut = 0.14f, opaklik = 0.7f)) }   // 3.72: varsayılan %14 · %70
+                    if (f != null) guncelle { p -> p.copy(logo = Varsayilan.logoAyar(ctx, sk?.logo ?: Logo(yol = "")).copy(yol = f.second.path, kutupId = f.first.id)) }   // 4.34: son ayarlar (yoksa %12 · %60)   // 3.72: varsayılan %14 · %70
                     else logoNotu = " · logo kütüphanesi boş (Yayın › Logo'dan ekle)"
-                } else guncelle { p -> p.copy(logo = p.logo?.copy(konum = sk?.logo?.konum ?: "solUst", boyut = 0.14f, opaklik = 0.7f, x = -1f, y = -1f)) }   // 3.72: varsayılan %14 · %70
+                } else guncelle { p -> p.copy(logo = p.logo?.let { Varsayilan.logoAyar(ctx, it) }) }   // 4.34   // 3.72: varsayılan %14 · %70
             }
             if ("muzik" in sec && proje.value.muzik == null) { val mt = sk?.muzikTur; if (mt != null) hazirMuzik(mt) else otomatikMuzik() }   // 3.61: saklı tür ya da konuya göre
             mesgul.value = null

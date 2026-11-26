@@ -57,6 +57,15 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
                     Text("Yükle", color = Renk.turuncu, fontSize = 11.sp, fontWeight = FontWeight.Light)
                 }
             }
+            // 4.34: Boş — ana logo yok (video boyunca sol üstte logo görünmez)
+            item {
+                val bos = l == null
+                Column(Modifier.width(76.dp).clip(RoundedCornerShape(12.dp)).border(if (bos) 2.dp else 0.8.dp, if (bos) Renk.turuncu else Renk.cizgi, RoundedCornerShape(12.dp))
+                    .combinedClickable(onClick = { vm.logoKaldir(); vm.mesaj.value = "Logo yok (Boş)" }).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) { Simge("kapat", if (bos) Renk.turuncu else Renk.soluk, 24.dp) }
+                    Text("Boş", color = if (bos) Renk.turuncu else Renk.yazi, fontSize = 11.sp, fontWeight = FontWeight.Light)
+                }
+            }
             items(kutup, key = { it.id }) { k ->
                 val secili = l?.kutupId == k.id
                 Column(

@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.33 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.34 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.34 (27.11.2026, deneme · `yerel-android` dalı): logo (talep 6)
+- Logo kütüphanesinde **Boş**: ana logo kaldırılır, video boyunca sol üstte logo görünmez.
+- Varsayılan logo boyutu **%12**, saydamlık **%60**.
+- Son logo ayarları (yer, boyut, saydamlık, serbest konum, yuvarlak) her değişiklikte saklanır; yeni projelerde ve Varsayılan ayarlarda bunlar kullanılır.
+- **Büyük logo geçişi** Varsayılan ayarlar maddelerine eklendi (Logo geçişi · baş/orta/son; "Ayarla ›" → Efekt › Geçiş).
 
 ## 4.33 (27.11.2026, deneme · `yerel-android` dalı): filtre çökmesi — asıl kök neden
 - 4.29'daki üst üste filtre kodu ("a:0.80|b:0.15") her piksel için yeniden ayrıştırılıyordu: tam boy fotoğrafta (ör. 2880×3840 ≈ 11 milyon piksel) on milyonlarca geçici nesne → bellek/işlemci tıkanıp uygulama kapanıyordu (kayıtta hata satırı olmadan). Artık kod bir kez çözülür, piksel döngüsünde nesne oluşmaz (`RenkLut.filtreListe`).

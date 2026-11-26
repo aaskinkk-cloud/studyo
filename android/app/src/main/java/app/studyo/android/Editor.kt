@@ -95,7 +95,7 @@ private val BOLUMLER = listOf(
     Bolum("nesne", "Nesne", "kisi", listOf("foto" to "Fotoğraftan", "video" to "Videodan", "kesilen" to "Kesilenler")),
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
-    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür"')),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
+    Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
     // 3.59: Efekt bölümü — Filtre · Efekt · Geçiş (önizlemeli küçük resimler)

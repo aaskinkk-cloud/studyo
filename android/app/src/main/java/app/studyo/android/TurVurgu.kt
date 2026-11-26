@@ -59,7 +59,7 @@ object TurVurgu {
         val rx = if (yuz) ry * 0.8f else ry
         val g = a.gecen; val h = a.sure
         // 3.87: silüet ışığı — ışık iki alt uçtan kişinin hattını izleyerek başın tepesinde buluşur, sonra kuyruk tepeye çekilip söner (~2 sn)
-        if ((t.vurgu && ISIK_ACIK) && yuz && (t.vurgu && ISIK_ACIK)Tur == "siluet" && n.siluet.size >= 16) {
+        if ((t.vurgu && ISIK_ACIK) && yuz && t.vurguTur == "siluet" && n.siluet.size >= 16) {
             val c2 = (min(2.1f, h - 0.15f) / 2.1f).coerceIn(0.3f, 1f)
             val bas = 0.15f * c2; val buyu = 0.95f * c2; val bek = 0.12f * c2; val cek = 0.75f * c2
             val on = yum((g - bas) / buyu)

@@ -104,7 +104,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır
-        AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis", it).apply() }   // 4.30
+        AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis2", it).apply() }   // 4.30
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)
     }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {

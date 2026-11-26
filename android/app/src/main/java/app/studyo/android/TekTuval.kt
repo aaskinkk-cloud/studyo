@@ -350,7 +350,10 @@ private class GelenKaynak(private val ctx: Context, private val useHdr: Boolean,
         GLES20.glDisable(GLES20.GL_BLEND)
         p.use()
         p.setSamplerTexIdUniform("uTex", yukDoku, 0)
-        p.setIntUniform("uSrgb", if (resimSrgb) 1 else 0)
+        // 4.31 KÖK NEDEN (ölçümle kanıtlandı, Ahmet'in kaydı 26.11): geçişin son karesi Y=65, gelen fotoğrafın kendi ilk karesi Y=80
+        // (ikinci geçişte 142 → 151). 80'e sRGB→SMPTE 170M çevirisi uygulanınca tam 65 çıkıyor: Media3 bu hatta fotoğrafı ÇEVİRMEDEN
+        // çiziyor, geçiş kodu ise çeviriyordu → geçişte gelen fotoğraf ~%20 koyu, el değiştirince "aniden aydınlanma". Çeviri kaldırıldı.
+        p.setIntUniform("uSrgb", 0)
         p.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         GlUtil.deleteTexture(yukDoku); yukDoku = -1

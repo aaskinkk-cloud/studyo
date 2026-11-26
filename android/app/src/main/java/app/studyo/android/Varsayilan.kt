@@ -24,7 +24,7 @@ object Varsayilan {
     /** 4.08: maddenin ayarlandığı bölüm (bölüm, alt menü, alt sayfa) — düğmenin altındaki "Ayarla ›" bağlantısı. */
     val BOLUM = mapOf(
         "kadraj" to Triple("duzenle", "klip", "kadraj"),
-        "yuz" to Triple("duzenle", "klip", "yuzler"),
+        "yuz" to Triple("nesne", "yuz", "yuzler"),
         "giris" to Triple("gorunum", "sablon", "giris"),
         "abone" to Triple("gorunum", "sablon", "abone"),
         "kapanis" to Triple("gorunum", "sablon", "kapanis"),

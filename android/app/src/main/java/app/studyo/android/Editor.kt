@@ -84,7 +84,7 @@ private val HAP_SIMGE = mapOf(
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
-    "paket" to "izgara", "hazir" to "kaydet",   // 3.70
+    "paket" to "izgara", "hazir" to "kaydet", "yuz" to "yuz",   // 3.70 · 4.41
     "kekle" to "ekle", "kses" to "ses", "foto" to "kapak", "video" to "klip", "kesilen" to "katman",   // 4.13: Katman alt menüleri
 )
 
@@ -92,7 +92,7 @@ private val BOLUMLER = listOf(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip")),
     // 4.29: Nesne ayrı ana menü (Düzenle ve Katman'daki kopyaları kaldırıldı — tek yer)
-    Bolum("nesne", "Nesne", "kisi", listOf("foto" to "Fotoğraftan", "video" to "Videodan", "kesilen" to "Kesilenler")),
+    Bolum("nesne", "Nesne", "kisi", listOf("foto" to "Fotoğraftan", "video" to "Videodan", "kesilen" to "Kesilenler", "yuz" to "Yüzler")),   // 4.41: Yüzler
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
     Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
@@ -308,8 +308,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 OnizlemeKatmanli(vm, p, nesneModu, Modifier.fillMaxSize(), logoPaneli = panelAcik && bolum == "yayin" && haplar["yayin"] == "logo",
                     katmanPaneli = panelAcik && (bolum == "katman" || bolum == "metin" && haplar["metin"] == "yazi"), hareketPaneli = panelAcik && bolum == "gorunum" && haplar["gorunum"] == "hareket",
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa,
-                    yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler",
-                    gizlePaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "gizle")
+                    yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "nesne" && haplar["nesne"] == "yuz" && AltHafiza.al("yuz") == "yuzler",
+                    gizlePaneli = panelAcik && !Duzen.yaziliMenu && bolum == "nesne" && haplar["nesne"] == "yuz" && AltHafiza.al("yuz") == "gizle")
                 // 4.36: klip yokken ortada büyük, sade Play (YouTube gibi) — dokun = video/fotoğraf ekle
                 if (p.klipler.isEmpty()) Column(Modifier.align(Alignment.Center).clip(RoundedCornerShape(20.dp)).clickable { ekle() }.padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -455,7 +455,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
                     val bag = if (h == "sablon") listOf<Triple<String, String, () -> Unit>>(
                         Triple("Kadraj", "kadraj") { git("duzenle", "klip", "kadraj") },
-                        Triple("Yüze yaklaş", "kisi") { git("duzenle", "klip", "yuzler") },
+                        Triple("Yüze yaklaş", "kisi") { git("nesne", "yuz", "yuzler") },
                         Triple("Logo", "logo") { git("yayin", "logo", null) },
                         Triple("Müzik", "nota") { git("ses", "muzik", "hazir") },
                     ) else emptyList()
@@ -976,7 +976,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                                 }, contentAlignment = Alignment.Center) {
                                     Simge(hareketSimgesi(k), Color(0xFFFFD54F), 21.dp)
                                     if (yonMenu) HareketYonMenusu(k, kapat = { yonMenu = false }, ayarlar = { yonMenu = false; hareketId = k.id },
-                                        yuzTuru = { yonMenu = false; AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip") }) { yeni -> yonMenu = false; hareketSec(vm, k, yeni) }
+                                        yuzTuru = { yonMenu = false; AltHafiza.sec("yuz", "yuzler"); bolumAc?.invoke("nesne", "yuz") }) { yeni -> yonMenu = false; hareketSec(vm, k, yeni) }
                                 }
                                 val dogal = k.renk == DOGAL_RENK
                                 SimgeDugmesi("palet", if (dogal) 0xFF000000 else 0xFF97C459, if (dogal) Color(0xFF97C459) else Color(0xB3000000), boy = B, cift = git("renk", "hazir")) {
@@ -1025,7 +1025,7 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                         .border(1.dp, Color(0x40FFFFFF), CircleShape).clickable { vm.sec(i); yonMenuK = true }, contentAlignment = Alignment.Center) {
                         Simge(hareketSimgesi(k), Color(0xFFFFD54F), if (kucuk) 13.dp else 15.dp)
                         if (yonMenuK) HareketYonMenusu(k, kapat = { yonMenuK = false }, ayarlar = { yonMenuK = false; hareketId = k.id },
-                            yuzTuru = { yonMenuK = false; AltHafiza.sec("klip", "yuzler"); bolumAc?.invoke("duzenle", "klip") }) { yeni -> yonMenuK = false; hareketSec(vm, k, yeni) }
+                            yuzTuru = { yonMenuK = false; AltHafiza.sec("yuz", "yuzler"); bolumAc?.invoke("nesne", "yuz") }) { yeni -> yonMenuK = false; hareketSec(vm, k, yeni) }
                     }
                 }
             }
@@ -1323,6 +1323,7 @@ private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = wh
     "sablon" -> when (a) { "giris" -> p.giris.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
     "klip" -> k != null && when (a) { "hiz" -> k.hiz != 1f; "kadraj" -> k.doldur || k.kayX != 0f || k.kayY != 0f
         "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); "yuzler" -> k.turEtkin; else -> false }
+    "yuz" -> k != null && a == "yuzler" && k.turEtkin   // 4.41
     "hareket" -> k != null && k.kenBurns && when (a) { "yakin" -> k.hareket in setOf("otomatik", "yakin", "uzak", ""); "kay" -> k.hareket in setOf("sag", "sol", "yukari", "asagi")
         "odak" -> k.odakSecX >= 0f; else -> false }
     "muzik" -> p.muzik != null && when (a) { "hazir" -> p.muzik.ad.startsWith("Hazır müzik"); "dosya" -> !p.muzik.ad.startsWith("Hazır müzik"); "ayar" -> p.muzik.girisMs > 0 || p.muzik.cikisMs > 0; else -> false }
@@ -1377,10 +1378,13 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
                 "kadraj" -> Kart("Kadraj · klip ${sec + 1}", hepsine = { vm.hepsine({ it.copy(doldur = k.doldur) }); vm.mesaj.value = "Tüm kliplere uygulandı" },
                     buna = { vm.mesaj.value = "Yalnız bu klibe uygulandı" }) { KadrajIcerik(vm, k) }
                 "hiz" -> HizSayfasi(vm, k)
-                "yuzler" -> YuzTuruSayfasi(vm, p, sec, k)   // 3.74: yüzlere sırayla yaklaşma
-                "gizle" -> YuzGizleSayfasi(vm, sec, k)   // 3.83: seçilen yüzleri bulanıklaştır (takipli)
-                "ayri" -> YuzAyriVideoSayfasi(vm, p, sec, k)   // 3.78: seçilen kişilerden ayrı video (Reels/yatay/kare)
+                "yuzler", "gizle", "ayri" -> LaunchedEffect(alt) { AltHafiza.sec("klip", "klipler"); vm.gitIstek.value = Triple("nesne", "yuz", alt) }   // 4.41: Nesne › Yüzler'e yönlendir
                 else -> PanelKlip(vm, p, sec, k)
+            }
+            "yuz" -> when (alt) {   // 4.41: Nesne › Yüzler
+                "gizle" -> YuzGizleSayfasi(vm, sec, k)
+                "ayri" -> YuzAyriVideoSayfasi(vm, p, sec, k)
+                else -> YuzTuruSayfasi(vm, p, sec, k)
             }
             "kadraj" -> PanelKadraj(vm, k)
             "hareket" -> PanelHareket(vm, k, alt)

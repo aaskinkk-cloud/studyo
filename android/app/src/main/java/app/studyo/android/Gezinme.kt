@@ -29,7 +29,9 @@ class AltSayfa(val anahtar: String, val ad: String, val simge: String)
 
 /** 3. katman: alt menü anahtarı → alt sayfalar (ilk = varsayılan). */
 val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
-    "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler", "yuz"), AltSayfa("gizle", "Yüz gizle", "gozkapali"), AltSayfa("ayri", "Ayrı video", "disa")),
+    "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler ›", "yuz")),   // 4.41: yüz işleri Nesne › Yüzler'e taşındı; burada bağlantı
+    // 4.41: Nesne › Yüzler — yüz turu · yüz gizle · ayrı video (ayarlar klipte kayıtlı, yer değişikliği veriyi etkilemez)
+    "yuz" to listOf(AltSayfa("yuzler", "Yüz turu", "yuz"), AltSayfa("gizle", "Yüz gizle", "gozkapali"), AltSayfa("ayri", "Ayrı video", "disa")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
     // 4.13: Katman › Nesne kes / Hareketli — Düzenle › Nesne sayfasının kendisi (alt menü Katman'da kalır)

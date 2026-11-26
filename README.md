@@ -2,9 +2,13 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.40 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.41 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.41 (27.11.2026, deneme · `yerel-android` dalı): yüz işleri Nesne › Yüzler'de
+- **Nesne › Yüzler** yeni alt menü: Yüz turu · Yüz gizle · Ayrı video. Ayarlar klipte kayıtlı olduğu için eski projeler aynen açılır.
+- Düzenle › Klip'te "Yüzler ›" bağlantısı kaldı (dokununca Nesne › Yüzler'i açar). Varsayılan ayarlar "Ayarla ›", arama, hareket menüsündeki "Yüz turu" yeni yere gider.
 
 ## 4.40 (27.11.2026, deneme · `yerel-android` dalı): yüz turunda elektrik tarama, giriş başlığını parmakla taşıma
 - **Yüzler › Öne çıkarma › Elektrik tarama** (üçüncü seçenek; Silüet ışığı ve Baş çevresinde çizgi aynen duruyor): kişinin hattında titreyen elektrik ışığı ve hat boyunca gidip gelen tarama başı, durak boyunca (`Elektrik.cizHat`, önizleme ve dışa aktarma aynı).

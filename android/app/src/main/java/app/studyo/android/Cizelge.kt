@@ -427,6 +427,7 @@ private fun NesneCubugu(vm: EditorDurum, n: Nesne, x: Float, w: Float, secili: B
         androidx.compose.material3.DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Renk.kart) {
             @Composable fun Oge(ad: String, renk2: Color = Renk.yazi, f: () -> Unit) = androidx.compose.material3.DropdownMenuItem(text = { Text(ad, color = renk2) }, onClick = { menu = false; f() })
             Oge("Başına git") { vm.git(n.basMs + 1) }
+            Oge("Kopyala (önüne)") { vm.nesneCogalt(n.id) }
             Oge(if (n.gizli) "Etkinleştir" else "Devre dışı bırak") { vm.nesneGizle(n.id) }
             Oge("Kesildiği klibe geri gönder") { vm.nesneKlibineGonder(n.id) }
             if (n.bagli) Oge("Ekrana sabitle (hareketi izlemesin)") { vm.nesneSabitle(n.id) }

@@ -1885,6 +1885,7 @@ private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
             val w = Modifier.weight(1f)
             SimgeDugme(if (n.gizli) "goz" else "gozkapali", if (n.gizli) "Etkinleştir" else "Devre dışı", w, renk = if (n.gizli) Renk.turuncu else Renk.yazi) { vm.nesneGizle(n.id) }
             SimgeDugme("geri", "Klibine gönder", w) { vm.nesneKlibineGonder(n.id) }
+            SimgeDugme("cogalt", "Kopyala", w) { vm.nesneCogalt(n.id) }
             SimgeDugme("h_odak", if (n.bagli) "Ekrana sabitle" else "Sabit", w, etkin = n.bagli) { vm.nesneSabitle(n.id) }
             SimgeDugme("sil", if (silOnay) "Emin misin?" else "Sil", w, renk = if (silOnay) Renk.kirmizi else Renk.yazi) { if (silOnay) vm.nesneSil(n.id) else silOnay = true }
         }

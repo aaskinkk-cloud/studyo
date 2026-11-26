@@ -77,7 +77,7 @@ object RenkLut {
         o[0] = r.coerceIn(0f, 1f); o[1] = g.coerceIn(0f, 1f); o[2] = b.coerceIn(0f, 1f)
     }
 
-    private val onbellek = HashMap<RenkAyar, SingleColorLut>()
+    private val onbellek = HashMap<RenkAyar, Array<Array<IntArray>>>()   // 4.32: küp saklanır (yukarıya bakın)
 
     /** Media3 etkisi (33³ LUT). Aynı ayar için önbellekten. */
     /** Renk dönüşümü var mı (keskinlik LUT'a girmez). */
@@ -124,31 +124,35 @@ object RenkLut {
         o[0] = (r + (fr - r) * k).coerceIn(0f, 1f); o[1] = (g + (fg - g) * k).coerceIn(0f, 1f); o[2] = (b + (fb - b) * k).coerceIn(0f, 1f)
     }
 
-    private val onbellekF = HashMap<Triple<RenkAyar, String, Float>, SingleColorLut>()
+    // 4.32 KÖK NEDEN ("filtre seçip oynat deyince çöküyor / büyük oynatıcıda renk görünmüyor"): önbellek SingleColorLut NESNESİNİ
+    // saklıyordu. Media3 bu nesnenin içinde GL dokusunu tutar ve kompozisyon kapanınca dokuyu siler; ayar değişince kurulan yeni
+    // kompozisyon aynı nesneyi (silinmiş dokuyla) yeniden kullanıyordu → renk yok ya da çökme. Artık yalnız LUT küpü (sayılar) saklanır,
+    // her etki çağrısı yeni SingleColorLut verir.
+    private val onbellekF = HashMap<Triple<RenkAyar, String, Float>, Array<Array<IntArray>>>()
     /** 3.59: renk ayarı + filtre tek LUT'ta. */
     @Synchronized fun etki(a0: RenkAyar, filtre: String, guc: Float): SingleColorLut {
         if (filtre == "yok" || guc <= 0.001f) return etki(a0)
         val a = a0.copy(keskinlik = 0f)
-        return onbellekF.getOrPut(Triple(a, filtre, guc)) {
+        return SingleColorLut.createFromCube(onbellekF.getOrPut(Triple(a, filtre, guc)) {
             val n = 33; val o = FloatArray(3)
             val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
                 donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o); filtrele(filtre, guc, o)
                 (0xFF shl 24) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
             } } }
             if (onbellekF.size > 40) onbellekF.clear()
-            SingleColorLut.createFromCube(kup)
-        }
+            kup
+        })
     }
 
-    @Synchronized fun etki(a0: RenkAyar): SingleColorLut { val a = a0.copy(keskinlik = 0f); return onbellek.getOrPut(a) {
+    @Synchronized fun etki(a0: RenkAyar): SingleColorLut { val a = a0.copy(keskinlik = 0f); return SingleColorLut.createFromCube(onbellek.getOrPut(a) {
         val n = 33; val o = FloatArray(3)
         val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
             donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o)
             (0xFF shl 24) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
         } } }
         if (onbellek.size > 40) onbellek.clear()
-        SingleColorLut.createFromCube(kup)
-    } }
+        kup
+    }) }
 
     /** Önce/sonra görüntüsü için bitmap'e uygular (küçük görüntü). */
     fun uygula(src: Bitmap, a: RenkAyar, filtre: String = "yok", guc: Float = 0f): Bitmap {

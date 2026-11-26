@@ -576,6 +576,15 @@ class EditorDurum(private val ctx: Context, id: String) {
     }
     /** Ekrana sabitle: fotoğrafın hareketini izlemez, video boyunca aynı noktada durur (masadaki bardak gibi). */
     fun nesneSabitle(id: String) { val p = proje.value; nesneDegis(id) { nesneSabitHal(p, it) }; mesaj.value = "Nesne ekrana sabitlendi" }
+    /** 4.32: kopya — hemen önüne (bir üst katman), aynı zaman, hafif kaydırılmış (üst üste binip kaybolmasın); kopya seçili olur. */
+    fun nesneCogalt(id: String) {
+        val p = proje.value; val i = p.nesneler.indexOfFirst { it.id == id }; if (i < 0) return
+        val n = p.nesneler[i]
+        val k = n.copy(id = yeniId(), x = n.x + 0.03f, y = n.y + 0.03f, kx = if (n.kx >= 0f) n.kx + 0.03f else n.kx, ky = if (n.ky >= 0f) n.ky + 0.03f else n.ky)
+        guncelle { pp -> pp.copy(nesneler = pp.nesneler.toMutableList().also { it.add(i + 1, k) }) }
+        seciliNesne.value = k.id
+        mesaj.value = "Kopya eklendi (önünde)"
+    }
     fun nesneGizle(id: String) { nesneDegis(id) { it.copy(gizli = !it.gizli) } }
     /** Kesildiği klibin üstüne geri: o klibin baştan sonuna, fotoğraf bağı (varsa) yeniden. */
     fun nesneKlibineGonder(id: String) {

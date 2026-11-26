@@ -85,10 +85,16 @@ object RenkLut {
 
     /** 3.59: filtreler (Efekt › Filtre). o: renk ayarından çıkan değer; güç kadar karıştırılır. */
     val FILTRELER = listOf("orangeteal" to "Orange & Teal", "sinematik" to "Sinematik", "altin" to "Altın saat", "vintage" to "Vintage", "sb" to "Siyah-beyaz", "serin" to "Serin mat")
-    fun filtrele(tur: String, guc: Float, o: FloatArray) {
+    /** 4.33: üst üste filtre kodu ("a:0.80|b:0.15") BİR KEZ çözülür. KÖK NEDEN ("filtre seçip oynatınca çöküyor"): 4.29'da kod her
+     *  piksel için yeniden ayrıştırılıyordu (tam boy fotoğrafta milyonlarca nesne) → bellek/işlemci tıkanıp uygulama kapanıyordu. */
+    fun filtreListe(kod: String, guc: Float = 1f): List<Pair<String, Float>> {
+        if (kod == "yok" || guc <= 0.001f) return emptyList()
+        if (':' !in kod) return listOf(kod to guc)
+        return kod.split('|').mapNotNull { p -> val ad = p.substringBefore(':'); val g = (p.substringAfter(':').toFloatOrNull() ?: 0f) * guc; if (g > 0.001f) ad to g else null }
+    }
+    fun filtrele(tur: String, guc: Float, o: FloatArray) { for ((ad, g) in filtreListe(tur, guc)) filtreleTek(ad, g, o) }
+    private fun filtreleTek(tur: String, guc: Float, o: FloatArray) {
         if (tur == "yok" || guc <= 0.001f) return
-        // 4.29: üst üste filtreler — "a:0.80|b:0.15" sırayla, her biri kendi gücüyle (biri diğerini silmez)
-        if (':' in tur) { tur.split('|').forEach { p -> val ad = p.substringBefore(':'); val g = p.substringAfter(':').toFloatOrNull() ?: 0f; filtrele(ad, g * guc, o) }; return }
         val r = o[0]; val g = o[1]; val b = o[2]
         val y = 0.299f * r + 0.587f * g + 0.114f * b
         var fr: Float; var fg: Float; var fb: Float
@@ -133,10 +139,11 @@ object RenkLut {
     @Synchronized fun etki(a0: RenkAyar, filtre: String, guc: Float): SingleColorLut {
         if (filtre == "yok" || guc <= 0.001f) return etki(a0)
         val a = a0.copy(keskinlik = 0f)
+        val fl = filtreListe(filtre, guc)
         return SingleColorLut.createFromCube(onbellekF.getOrPut(Triple(a, filtre, guc)) {
             val n = 33; val o = FloatArray(3)
             val kup = Array(n) { ri -> Array(n) { gi -> IntArray(n) { bi ->
-                donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o); filtrele(filtre, guc, o)
+                donustur(a, ri / (n - 1f), gi / (n - 1f), bi / (n - 1f), o); for (j in fl.indices) filtreleTek(fl[j].first, fl[j].second, o)
                 (0xFF shl 24) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
             } } }
             if (onbellekF.size > 40) onbellekF.clear()
@@ -159,10 +166,11 @@ object RenkLut {
         val w = src.width; val h = src.height
         val px = IntArray(w * h); src.getPixels(px, 0, w, 0, 0, w, h)
         val o = FloatArray(3)
+        val fl = filtreListe(filtre, guc)   // 4.33: bir kez
         for (i in px.indices) {
             val c = px[i]
             donustur(a, ((c shr 16) and 255) / 255f, ((c shr 8) and 255) / 255f, (c and 255) / 255f, o)
-            filtrele(filtre, guc, o)
+            for (j in fl.indices) filtreleTek(fl[j].first, fl[j].second, o)
             px[i] = (c and -0x1000000) or ((o[0] * 255 + 0.5f).toInt() shl 16) or ((o[1] * 255 + 0.5f).toInt() shl 8) or (o[2] * 255 + 0.5f).toInt()
         }
         if (a.keskinlik > 0.005f) keskinlestir(px, w, h, a.keskinlik)

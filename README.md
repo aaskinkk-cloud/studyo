@@ -2,9 +2,12 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.32 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.33 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.33 (27.11.2026, deneme · `yerel-android` dalı): filtre çökmesi — asıl kök neden
+- 4.29'daki üst üste filtre kodu ("a:0.80|b:0.15") her piksel için yeniden ayrıştırılıyordu: tam boy fotoğrafta (ör. 2880×3840 ≈ 11 milyon piksel) on milyonlarca geçici nesne → bellek/işlemci tıkanıp uygulama kapanıyordu (kayıtta hata satırı olmadan). Artık kod bir kez çözülür, piksel döngüsünde nesne oluşmaz (`RenkLut.filtreListe`).
 
 ## 4.32 (26.11.2026, deneme · `yerel-android` dalı): filtre çökmesi / renk görünmemesi, nesne kopyası
 - **Kök neden:** renk/filtre önbelleği Media3 `SingleColorLut` nesnesini saklıyordu; nesne kendi GL dokusunu tutar ve kompozisyon kapanınca doku silinir. Ayar değişince kurulan yeni kompozisyon aynı nesneyi silinmiş dokuyla kullanıyordu → oynatınca çökme ya da büyük oynatıcıda renk/filtre görünmemesi. Artık yalnız LUT küpü (sayılar) saklanıyor, her seferinde yeni LUT nesnesi.

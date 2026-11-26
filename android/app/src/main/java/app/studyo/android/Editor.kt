@@ -149,7 +149,10 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     }
     vm.projeAc = { pid -> ac(pid) }   // 3.78
     vm.bosProjeAc = { bicim ->
-        val y = Proje(ad = "Boş YouTube " + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
+        // 4.34: boş şablon gerçekten boş — giriş, abone, kapanış, logo, geçiş, müzik yok (varsayılanlar da uygulanmaz: bos = true)
+        val y0 = Proje(ad = (if (bicim == "9:16") "Boş Reels " else "Boş YouTube ") + java.text.SimpleDateFormat("d MMM HH:mm", TR).format(java.util.Date()), bicim = bicim, bos = true)
+        val y = y0.copy(giris = y0.giris.copy(acik = false), hatirlatici = y0.hatirlatici.copy(acik = false), kapanis = y0.kapanis.copy(acik = false),
+            logo = null, muzik = null, gecis = y0.gecis.copy(tur = "yok", logo = false, siyahtanAc = false))
         Depo.kaydet(y); ac(y.id)
     }
 

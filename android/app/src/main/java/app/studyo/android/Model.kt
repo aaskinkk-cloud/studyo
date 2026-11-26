@@ -183,6 +183,9 @@ data class Giris(
     val efektSes: Boolean = true, val sesSeviye: Float = 0.6f,
     val boncuk: Boolean = false,         // ışıklı boncuklar (girişte süzülen ışık noktaları)
     val olcek: Float = 1f,               // 3.58: yazı boyutu çarpanı (0,6…1,6)
+    /** 4.42: açılış efektleri (başlıktan bağımsız) — büyük nokta açılışı · logo büyüyerek gelip gider (süreler ayarlı) */
+    val nokta: Boolean = false, val noktaRenk: Int = 0xFFFFC107.toInt(),
+    val logoBuyu: Boolean = false, val logoGelMs: Long = 600, val logoKalMs: Long = 1400, val logoGitMs: Long = 600,
 ) {
     val reels: Boolean get() = stil.startsWith("r_")
 }
@@ -191,6 +194,13 @@ data class Giris(
 /** stil: "kart" = koyu hap: yuvarlak logo + başlık + alt satır + kırmızı ABONE OL (varsayılan) · "klasik" = önceki kırmızı/beyaz bant */
 data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Kanalıma abone ol", val kucuk: String = "Yeni videolar için zili aç",
                        val stil: String = "kart", val dugme: String = "ABONE OL")
+
+/** 4.42: "Bu videoda izleyecekleriniz" özeti — giriş başlığından sonra; maddeler (her satır bir madde) sırayla gelir. */
+@Serializable
+data class Ozet(val acik: Boolean = false, val baslik: String = "Bu videoda izleyecekleriniz", val maddeler: String = "",
+                val sureMs: Long = 6000, val olcek: Float = 1f, val renk: Int = 0xFFFFC107.toInt()) {
+    val maddeListe: List<String> get() = maddeler.lines().map { it.trim() }.filter { it.isNotEmpty() }
+}
 
 @Serializable
 data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğin için teşekkürler!")
@@ -305,6 +315,7 @@ data class Proje(
     val giris: Giris = Giris(),
     val hatirlatici: Hatirlatici = Hatirlatici(),
     val kapanis: Kapanis = Kapanis(),
+    val ozet: Ozet = Ozet(),   // 4.42
     val altyazilar: List<Altyazi> = emptyList(),
     val altyaziStil: AltyaziStil = AltyaziStil(),
     val kapak: Kapak = Kapak(),

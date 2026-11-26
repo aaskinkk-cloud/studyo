@@ -30,6 +30,16 @@ object LogoGecis {
     private fun geriTasma(k: Float): Float { val x = k.coerceIn(0f, 1f) - 1f; val c1 = 1.70158f; return 1f + (c1 + 1f) * x * x * x + c1 * x * x }
 
     /** ms: zaman çizelgesi anı. null = görünmüyor. */
+    /** 4.42: süreleri ayarlı aynı hareket (giriş logosu) — y: başlangıçtan geçen ms. */
+    fun anSure(y: Long, gel: Long, kal: Long, git: Long): An? {
+        if (y < 0 || y > gel + kal + git) return null
+        return when {
+            y < gel -> { val k = y / gel.coerceAtLeast(1).toFloat(); An(0.15f + 0.85f * geriTasma(k), yumusak(k)) }
+            y < gel + kal -> An(1f + 0.04f * ((y - gel) / kal.coerceAtLeast(1).toFloat()), 1f)
+            else -> { val k = (y - gel - kal) / git.coerceAtLeast(1).toFloat(); An(1.04f + 0.9f * k * k, 1f - k * k * (3f - 2f * k)) }
+        }
+    }
+
     fun an(anlar: List<Long>, ms: Long): An? {
         for (t in anlar) {
             val y = ms - (t - ONCE)
@@ -94,11 +104,13 @@ object LogoGecis {
 
 /** Dışa aktarma / akıcı önizleme: logo geçişi bindirmesi (klip içi saat → zaman çizelgesi ms). hale = true: arkadaki koyu katman. */
 class LogoGecisBindirme(private val bmp: Bitmap, private val klipBasMs: Long, private val anlar: List<Long>,
-                        private val W: Int, private val H: Int, private val hale: Boolean) : BitmapOverlay() {
+                        private val W: Int, private val H: Int, private val hale: Boolean,
+                        private val anF: ((Long) -> LogoGecis.An?)? = null) : BitmapOverlay() {   // 4.42: anF = giriş logosu
     private val saat = Saat(klipBasMs)
     override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-        val a = LogoGecis.an(anlar, klipBasMs + saat.yerelMs(presentationTimeUs))
+        val ms = klipBasMs + saat.yerelMs(presentationTimeUs)
+        val a = (if (anF != null) anF.invoke(ms) else LogoGecis.an(anlar, ms))
             ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
         val b = StaticOverlaySettings.Builder().setBackgroundFrameAnchor(0f, 0f).setOverlayFrameAnchor(0f, 0f)
         return if (hale) b.setScale(W.toFloat() / bmp.width, H.toFloat() / bmp.height).setAlphaScale(a.alfa.coerceIn(0f, 1f)).build()

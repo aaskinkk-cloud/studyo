@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -576,6 +577,24 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
 
+            // 4.42: açılış efektleri — giriş logosu büyüyerek (logo geçişiyle aynı görünüm) · büyük nokta · özet (dışa aktarmayla aynı çizim)
+            if (p.giris.logoBuyu) {
+                val glBmp = remember(p.gecisLogoYol, p.gecis.logoSekil, ref) { runCatching { LogoGecis.bitmap(p.gecisLogoYol, p.gecis.logoSekil, RW, RH) }.getOrNull() }
+                val ga = GirisEfekt.logoAn(p.giris, konum)
+                if (glBmp != null && ga != null) {
+                    Box(Modifier.fillMaxSize().graphicsLayer { alpha = ga.alfa }.background(Brush.radialGradient(
+                        listOf(Color(0x8C000000), Color(0x59000000), Color(0x26000000)))))
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Image(glBmp.asImageBitmap(), null,
+                            Modifier.size(with(yog) { (glBmp.width * olcek).toDp() }, with(yog) { (glBmp.height * olcek).toDp() })
+                                .graphicsLayer { scaleX = ga.olcek; scaleY = ga.olcek; alpha = ga.alfa.coerceIn(0f, 1f) })
+                    }
+                }
+            }
+            if (GirisEfekt.gorunur(p, konum)) Canvas(Modifier.fillMaxSize()) {
+                drawIntoCanvas { cv -> GirisEfekt.ciz(cv.nativeCanvas, size.width, size.height, p, konum) }
+            }
+
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
             // önizlemede parmakla sürükle = klibi kadraj içinde kaydır (yalnız taşan kısım kadar). Klip ve Katman bölümünde ortak (3.41)
             val kSonS by rememberUpdatedState(k)
@@ -1053,7 +1072,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     // 3.72: sayfa açılınca o öğe ekrana gelir (tam göründüğü ana gidilir); giriş başlığı boşsa konuya uygun örnek yazı yazılır
     LaunchedEffect(sekme) {
         val pp = vm.proje.value
-        val acik = when (sekme) { "giris" -> pp.giris.acik; "abone" -> pp.hatirlatici.acik; "kapanis" -> pp.kapanis.acik; else -> false }
+        val acik = when (sekme) { "giris" -> pp.giris.acik; "ozet" -> pp.ozet.acik; "abone" -> pp.hatirlatici.acik; "kapanis" -> pp.kapanis.acik; else -> false }
         if (acik) { vm.sablonGoster(sekme); if (sekme == "giris") vm.girisOneri() }
     }
     if (sekme == "bicim") Kart("Video biçimi", ton = turuncu) { BicimSatiri(vm, p) }
@@ -1109,6 +1128,46 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
             }
         }
         TonKaydirici("Ekranda", g.sureMs / 1000f, 2f..8f, 0.5f, sari, { String.format(TR, "%.1f sn", it) }) { v -> vm.girisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
+    }
+    // 4.42: açılış efektleri (başlık kapalıyken de çalışır)
+    if (sekme == "giris") Kart("Açılış efektleri", ton = turuncu) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TonHap("Büyük nokta", "yildiz", g.nokta, turuncu) { val v = !g.nokta; vm.girisDegis { it.copy(nokta = v) }; if (v) vm.sablonGoster("nokta") }
+            TonHap("Logo büyüyerek", "logo", g.logoBuyu, turkuaz) { val v = !g.logoBuyu; vm.girisDegis { it.copy(logoBuyu = v) }; if (v) vm.sablonGoster("glogo") }
+        }
+        if (g.nokta) Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Nokta rengi", color = Renk.soluk, fontSize = 12.sp)
+            GirisEfekt.RENKLER.forEach { r -> Box(Modifier.size(26.dp).clip(CircleShape).background(Color(r))
+                .then(if (g.noktaRenk == r) Modifier.border(2.dp, Renk.yazi, CircleShape) else Modifier)
+                .clickable { vm.girisDegis { it.copy(noktaRenk = r) }; vm.sablonGoster("nokta") }) }
+        }
+        if (g.logoBuyu) {
+            if (p.gecisLogoYol.isEmpty()) Not("Önce Yayın › Logo'dan bir logo seç (logo geçişindeki logo kullanılır).")
+            val fmt: (Float) -> String = { String.format(TR, "%.1f sn", it) }
+            TonKaydirici("Geliş", g.logoGelMs / 1000f, 0.2f..2f, 0.1f, turkuaz, fmt) { v -> vm.girisDegis { it.copy(logoGelMs = (v * 1000).toLong()) }; vm.sablonGoster("glogo") }
+            TonKaydirici("Ekranda", g.logoKalMs / 1000f, 0.5f..5f, 0.25f, turkuaz, fmt) { v -> vm.girisDegis { it.copy(logoKalMs = (v * 1000).toLong()) }; vm.sablonGoster("glogo") }
+            TonKaydirici("Gidiş", g.logoGitMs / 1000f, 0.2f..2f, 0.1f, turkuaz, fmt) { v -> vm.girisDegis { it.copy(logoGitMs = (v * 1000).toLong()) }; vm.sablonGoster("glogo") }
+        }
+        Not("Büyük nokta: video siyah ekranda renkli bir noktayla açılır, nokta ekranı doldurup ortadan açılır. Logo: ortada büyüyerek gelir, bekler, büyüyüp kaybolur. Sıra: nokta → logo → başlık → özet.")
+    }
+    val oz = p.ozet
+    if (sekme == "ozet") Kart("Özet", ton = yesil, anahtar = oz.acik, anahtarDegis = { v -> vm.ozetDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("ozet") }) {
+        if (!oz.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
+        var bs by remember(p.id) { mutableStateOf(oz.baslik) }
+        OutlinedTextField(bs, { bs = it; vm.ozetDegis { o -> o.copy(baslik = it) } }, Modifier.fillMaxWidth(), label = { Text("Başlık") }, singleLine = true)
+        var md by remember(p.id) { mutableStateOf(oz.maddeler) }
+        OutlinedTextField(md, { md = it; vm.ozetDegis { o -> o.copy(maddeler = it) } }, Modifier.fillMaxWidth().padding(top = 4.dp),
+            label = { Text("Maddeler (her satır bir madde, en çok 6)") }, minLines = 3)
+        TonKaydirici("Ekranda", oz.sureMs / 1000f, 3f..12f, 0.5f, yesil, { String.format(TR, "%.1f sn", it) }) { v -> vm.ozetDegis { it.copy(sureMs = (v * 1000).toLong()) } }
+        TonKaydirici("Yazı boyutu", oz.olcek, 0.7f..1.4f, 0.05f, yesil, { "%${(it * 100).roundToInt()}" }) { v -> vm.ozetDegis { it.copy(olcek = v) }; vm.sablonGoster("ozet") }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Renk", color = Renk.soluk, fontSize = 12.sp)
+            GirisEfekt.RENKLER.forEach { r -> Box(Modifier.size(26.dp).clip(CircleShape).background(Color(r))
+                .then(if (oz.renk == r) Modifier.border(2.dp, Renk.yazi, CircleShape) else Modifier)
+                .clickable { vm.ozetDegis { it.copy(renk = r) }; vm.sablonGoster("ozet") }) }
+        }
+        TonHap("Önizlemede göster", "oynat", false, yesil) { vm.sablonGoster("ozet") }
+        Not("Giriş başlığından hemen sonra çıkar; maddeler sırayla gelir. Önizleme ve dışa aktarma aynı.")
     }
     val h = p.hatirlatici
     if (sekme == "abone") Kart("Abone hatırlatıcı", ton = pembe, anahtar = h.acik, anahtarDegis = { v -> vm.hatirlaticiDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("abone") }) {

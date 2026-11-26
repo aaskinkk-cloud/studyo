@@ -33,7 +33,7 @@ val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
     // 4.41: Nesne › Yüzler — yüz turu · yüz gizle · ayrı video (ayarlar klipte kayıtlı, yer değişikliği veriyi etkilemez)
     "yuz" to listOf(AltSayfa("yuzler", "Yüz turu", "yuz"), AltSayfa("gizle", "Yüz gizle", "gozkapali"), AltSayfa("ayri", "Ayrı video", "disa")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
-    "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
+    "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("ozet", "Özet", "altyazi"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
     // 4.13: Katman › Nesne kes / Hareketli — Düzenle › Nesne sayfasının kendisi (alt menü Katman'da kalır)
     "knesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),

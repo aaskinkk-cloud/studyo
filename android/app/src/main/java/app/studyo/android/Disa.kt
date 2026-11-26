@@ -240,6 +240,11 @@ object Disa {
         val logoAnlar = p.logoGecisAnlari()
         val logoGecisBmp = if (logoAnlar.isNotEmpty()) runCatching { LogoGecis.bitmap(p.gecisLogoYol, p.gecis.logoSekil, W, H) }.getOrNull() else null
         val logoHale = if (logoGecisBmp != null) LogoGecis.hale() else null
+        // 4.42: açılış efektleri — giriş logosu (büyüyerek) · büyük nokta · özet
+        val girisLogoBmp = if (p.giris.logoBuyu) runCatching { LogoGecis.bitmap(p.gecisLogoYol, p.gecis.logoSekil, W, H) }.getOrNull() else null
+        val girisHale = if (girisLogoBmp != null) (logoHale ?: LogoGecis.hale()) else null
+        val glA = GirisEfekt.logoAralik(p)
+        val efA = listOfNotNull(if (p.giris.nokta) 0L to GirisEfekt.NOKTA_MS else null, GirisEfekt.ozetAralik(p))
         if (logoGecisBmp != null) Kayit.yaz("  Logo geçişi: ${logoAnlar.size} yer ${logoAnlar.joinToString { (it / 1000).toString() + " sn" }}")
 
         /** [bas, bas+sure) aralığındaki klibe eklenecek zamanlı bindirmeler (klip içi saatle). */
@@ -265,6 +270,11 @@ object Disa {
                 val buradakiler = logoAnlar.filter { t -> t - LogoGecis.ONCE < son && t - LogoGecis.ONCE + LogoGecis.SURE > bas }
                 if (buradakiler.isNotEmpty()) { ek += LogoGecisBindirme(logoHale, bas, buradakiler, W, H, true); ek += LogoGecisBindirme(logoGecisBmp, bas, buradakiler, W, H, false) }
             }
+            if (girisLogoBmp != null && girisHale != null && glA != null && glA.first < son && glA.second > bas) {
+                ek += LogoGecisBindirme(girisHale, bas, emptyList(), W, H, true) { GirisEfekt.logoAn(p.giris, it) }
+                ek += LogoGecisBindirme(girisLogoBmp, bas, emptyList(), W, H, false) { GirisEfekt.logoAn(p.giris, it) }
+            }
+            if (efA.any { (a, b) -> a < son && b > bas }) ek += GirisEfektBindirme(p, bas, W, H)
             return ek
         }
 

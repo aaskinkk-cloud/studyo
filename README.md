@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.41 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.42 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.42 (27.11.2026, deneme · `yerel-android` dalı): özet, logo büyüyerek, büyük nokta açılışı
+- **Görünüm › Şablon › Özet** (yeni sekme): "Bu videoda izleyecekleriniz" başlığı + maddeler (her satır bir madde, en çok 6); koyu kartta maddeler sırayla soldan gelir. Süre, yazı boyutu, renk ayarlı.
+- **Şablon › Giriş › Açılış efektleri** (başlık kapalıyken de çalışır): **Büyük nokta** — siyah ekranda renkli nokta zıplar, ekranı doldurur, ortadan açılıp videoyu gösterir (6 renk). **Logo büyüyerek** — logo ortada büyüyerek gelir, bekler, büyüyüp gider; geliş/ekranda/gidiş süreleri ayarlı.
+- Sıra: nokta → logo → giriş başlığı → özet (başlık süresi kendiliğinden kayar). Önizleme ve dışa aktarma aynı çizim (`GirisEfekt.kt`).
 
 ## 4.41 (27.11.2026, deneme · `yerel-android` dalı): yüz işleri Nesne › Yüzler'de
 - **Nesne › Yüzler** yeni alt menü: Yüz turu · Yüz gizle · Ayrı video. Ayarlar klipte kayıtlı olduğu için eski projeler aynen açılır.

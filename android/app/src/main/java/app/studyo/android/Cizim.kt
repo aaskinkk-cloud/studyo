@@ -489,7 +489,7 @@ object Zaman {
     }
 
     /** Giriş başlığı ve hatırlatıcının zaman aralıkları (ms). */
-    fun girisAralik(p: Proje): Pair<Long, Long> = 200L to (200L + p.giris.sureMs).coerceAtMost(p.toplamMs)
+    fun girisAralik(p: Proje): Pair<Long, Long> = GirisEfekt.baslikBas(p.giris).let { a -> a to (a + p.giris.sureMs).coerceAtMost(p.toplamMs) }   // 4.42: nokta/logo varsa sonra
     fun hatirlaticiAralik(p: Proje): Pair<Long, Long> {
         val a = (p.klipMs * p.hatirlatici.anOran).toLong().coerceIn(0, (p.toplamMs - 4000).coerceAtLeast(0))
         return a to a + 4000

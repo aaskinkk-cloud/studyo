@@ -187,7 +187,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     if (aramaAcik) {
         val liste = remember {
             val l = ArrayList<AramaOge>()
-            val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
+            val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış büyük nokta logo büyüyerek", "ozet" to "özet bu videoda izleyecekleriniz içerik madde liste", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
                 "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim", "okuyucu" to "sesli okuyucu metin oku tts dfki seslendir anlatıcı",
                 "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
@@ -1320,7 +1320,7 @@ private fun KadrajIcerik(vm: EditorDurum, k: Klip) {
 
 /** 3.70: 3. katman çipindeki ✓ — o alt sayfada bir ayar/içerik var mı. */
 private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = when (hap) {
-    "sablon" -> when (a) { "giris" -> p.giris.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
+    "sablon" -> when (a) { "giris" -> p.giris.acik || p.giris.nokta || p.giris.logoBuyu; "ozet" -> p.ozet.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
     "klip" -> k != null && when (a) { "hiz" -> k.hiz != 1f; "kadraj" -> k.doldur || k.kayX != 0f || k.kayY != 0f
         "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); "yuzler" -> k.turEtkin; else -> false }
     "yuz" -> k != null && a == "yuzler" && k.turEtkin   // 4.41

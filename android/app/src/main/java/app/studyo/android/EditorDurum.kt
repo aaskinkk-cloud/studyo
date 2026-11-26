@@ -1753,6 +1753,7 @@ class EditorDurum(private val ctx: Context, id: String) {
     /** Seçilen geçişi bütün klip aralarına uygular (klip başına seçimler temizlenir). */
     fun gecisHepsine(tur: String) = guncelle(true) { p -> p.copy(gecis = p.gecis.copy(tur = tur), klipler = p.klipler.map { it.copy(gecis = null) }) }
     fun girisDegis(f: (Giris) -> Giris) = guncelle { it.copy(giris = f(it.giris)) }
+    fun ozetDegis(f: (Ozet) -> Ozet) = guncelle { it.copy(ozet = f(it.ozet)) }   // 4.42
     /** 3.69: Görünüm › Şablon'un açık alt sayfası (klip kartındaki Giriş simgesine çift dokununca "giris" açılır). */
     val sablonSekme = MutableStateFlow("paket")
     /** 4.08: panellerin içinden başka bölüme gitme isteği (bölüm, alt menü, alt sayfa) — Editor karşılar. */
@@ -1794,6 +1795,9 @@ class EditorDurum(private val ctx: Context, id: String) {
             "giris" -> { val (a, b) = Zaman.girisAralik(p); (a + minOf(1800L, (b - a) / 2)).coerceAtMost((b - 100).coerceAtLeast(a)) }
             "abone" -> { val (a, b) = Zaman.hatirlaticiAralik(p); (a + 1500).coerceAtMost(b - 100) }
             "kapanis" -> if (p.kapanisMs > 0) p.klipMs + minOf(1500L, p.kapanisMs / 2) else return
+            "nokta" -> 300L   // 4.42
+            "glogo" -> GirisEfekt.logoAralik(p)?.let { (a, b) -> a + p.giris.logoGelMs + p.giris.logoKalMs / 2 } ?: return
+            "ozet" -> GirisEfekt.ozetAralik(p)?.let { (a, b) -> (a + 500L + 350L * p.ozet.maddeListe.size.coerceAtMost(6) + 300L).coerceAtMost(b - 450L).coerceAtLeast(a) } ?: return
             else -> return
         }
         if (player.isPlaying) player.pause()

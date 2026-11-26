@@ -25,7 +25,7 @@ import kotlin.math.sin
 object TurVurgu {
     /** 4.36 (Ahmet'in isteği): yüz turundaki kişi ışığı (halka/silüet) başarısız bulundu, kapatıldı. Yerine gövde ve baş çevresinde dönen
      *  elektrik tarama efekti yapılacak; o zamana kadar ışık önizlemede ve dışa aktarmada çizilmez (isim kutusu çalışır). */
-    const val ISIK_ACIK = false
+    const val ISIK_ACIK = true   // 4.38: geri açıldı (Ahmet: menü ve işlevler iyi çalışıyordu)
     class Durum(val durak: Int, val yuz: Boolean, val cx: Float, val cy: Float, val rx: Float, val ry: Float,
                 val sup: Float, val halkaAlfa: Float, val ad: String, val adAlfa: Float, val adDy: Float,
                 /** 3.87: silüet ışığı — hat noktaları çıkış pikselinde (x,y sırayla), tepe sırası, ışığın kuyruğu (0…1) */

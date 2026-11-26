@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.35 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.36 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.36 (27.11.2026, deneme · `yerel-android` dalı): talep 8 — Play düğmesi, Google Fotoğraflar videoları; kişi ışığı kapatıldı
+- Klip yokken önizlemenin ortasında büyük, sade Play (tema renginde) — dokun = video/fotoğraf ekle.
+- **Google Fotoğraflar albüm bağlantısı (kök neden):** öğeler `=d` ile indiriliyordu; video öğesinde bu, videonun kapak resmini verir → video fotoğraf olarak geliyordu. Artık önce `=dv` denenir: video gelirse gerçek video dosyası (.mp4), değilse fotoğrafın özgün dosyası.
+- Yüz turundaki kişi ışığı (halka/silüet) Ahmet'in isteğiyle kapatıldı (`TurVurgu.ISIK_ACIK = false`); yerine gövde ve baş çevresinde dönen elektrik tarama efekti yapılacak. İsim kutusu çalışır.
 
 ## 4.35 (27.11.2026, deneme · `yerel-android` dalı): boş şablon gerçekten boş (talep 9)
 - Boş Reels / Boş YouTube: giriş, abone, kapanış, logo, geçiş (logo geçişi dahil), müzik kapalı açılır; varsayılan ayarlar uygulanmaz. Reels boş projenin adı "Boş Reels".

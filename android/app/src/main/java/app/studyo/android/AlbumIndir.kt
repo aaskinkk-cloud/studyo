@@ -61,7 +61,12 @@ object AlbumIndir {
             val hazir = dizin.listFiles()?.firstOrNull { it.nameWithoutExtension == "%03d".format(i + 1) && it.length() > 0 }
             if (hazir != null) { sonuc += Uri.fromFile(hazir); return@forEachIndexed }
             try {
-                val c = ac("$a=d")          // =d: özgün dosya (çekim tarihi bilgisiyle)
+                // 4.36 KÖK NEDEN ("albümdeki video fotoğraf olarak geliyor"): =d video öğesinde videonun kapak resmini verir. Önce =dv
+                // (video dosyası) denenir; video gelirse o indirilir, değilse =d (fotoğrafın özgün dosyası).
+                val cv = runCatching { ac("$a=dv") }.getOrNull()
+                val videoMu = cv != null && runCatching { cv.responseCode == 200 && (cv.contentType ?: "").startsWith("video/") }.getOrDefault(false)
+                if (!videoMu) runCatching { cv?.disconnect() }
+                val c = if (videoMu) cv!! else ac("$a=d")          // =d: özgün dosya (çekim tarihi bilgisiyle)
                 try {
                     val tur = c.contentType ?: ""
                     val uz = when {

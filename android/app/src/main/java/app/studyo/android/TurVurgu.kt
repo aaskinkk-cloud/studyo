@@ -23,6 +23,9 @@ import kotlin.math.sin
  * Önizleme (Paneller) ve dışa aktarma / akıcı önizleme (TurHalkaBindirme, TurIsimBindirme) AYNI durum() hesabını kullanır.
  */
 object TurVurgu {
+    /** 4.36 (Ahmet'in isteği): yüz turundaki kişi ışığı (halka/silüet) başarısız bulundu, kapatıldı. Yerine gövde ve baş çevresinde dönen
+     *  elektrik tarama efekti yapılacak; o zamana kadar ışık önizlemede ve dışa aktarmada çizilmez (isim kutusu çalışır). */
+    const val ISIK_ACIK = false
     class Durum(val durak: Int, val yuz: Boolean, val cx: Float, val cy: Float, val rx: Float, val ry: Float,
                 val sup: Float, val halkaAlfa: Float, val ad: String, val adAlfa: Float, val adDy: Float,
                 /** 3.87: silüet ışığı — hat noktaları çıkış pikselinde (x,y sırayla), tepe sırası, ışığın kuyruğu (0…1) */
@@ -42,12 +45,12 @@ object TurVurgu {
     private fun durum0(k: Klip, W: Int, H: Int, sn: Float, D: Float): Durum? {
         if (!k.turEtkin) return null
         val t = k.yuzTur ?: return null
-        if (!t.vurgu && !t.isim) return null
+        if (!(t.vurgu && ISIK_ACIK) && !t.isim) return null
         val a = YuzTur.asama(t, sn, D) ?: return null
         val n = t.noktalar.getOrNull(a.durak) ?: return null
         val ad = n.ad.trim()
         val yuz = n.yb > 0f
-        if (!(t.vurgu && yuz) && !(t.isim && ad.isNotEmpty())) return null
+        if (!((t.vurgu && ISIK_ACIK) && yuz) && !(t.isim && ad.isNotEmpty())) return null
         val geo = Yuz.ekranGeo(k, W, H, Yuz.an(k, W, H, (sn / max(0.3f, D)).coerceIn(0f, 1f), 0, D))
         val fw = geo[0]; val fh = geo[1]
         val cx = geo[2] + (n.x - 0.5f) * fw; val cy = geo[3] + (n.y - 0.5f) * fh
@@ -56,7 +59,7 @@ object TurVurgu {
         val rx = if (yuz) ry * 0.8f else ry
         val g = a.gecen; val h = a.sure
         // 3.87: silüet ışığı — ışık iki alt uçtan kişinin hattını izleyerek başın tepesinde buluşur, sonra kuyruk tepeye çekilip söner (~2 sn)
-        if (t.vurgu && yuz && t.vurguTur == "siluet" && n.siluet.size >= 16) {
+        if ((t.vurgu && ISIK_ACIK) && yuz && (t.vurgu && ISIK_ACIK)Tur == "siluet" && n.siluet.size >= 16) {
             val c2 = (min(2.1f, h - 0.15f) / 2.1f).coerceIn(0.3f, 1f)
             val bas = 0.15f * c2; val buyu = 0.95f * c2; val bek = 0.12f * c2; val cek = 0.75f * c2
             val on = yum((g - bas) / buyu)
@@ -79,7 +82,7 @@ object TurVurgu {
         val c = (min(2.3f, h - 0.15f) / 2.3f).coerceIn(0.3f, 1f)
         val bas = 0.12f * c; val ciz = 1.0f * c; val bek = 0.5f * c; val sol = 0.6f * c
         val sup = yum((g - bas) / ciz)
-        val halkaA = if (!t.vurgu || !yuz || g < bas) 0f else if (g < bas + ciz + bek) 1f else (1f - (g - bas - ciz - bek) / sol).coerceIn(0f, 1f)
+        val halkaA = if (!(t.vurgu && ISIK_ACIK) || !yuz || g < bas) 0f else if (g < bas + ciz + bek) 1f else (1f - (g - bas - ciz - bek) / sol).coerceIn(0f, 1f)
         // isim kutusu
         val adBas = min(0.35f, h * 0.15f)
         val adSon = if (t.isimDurak) h - 0.15f else min(adBas + 2f, h - 0.15f)

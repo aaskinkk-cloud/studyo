@@ -468,7 +468,7 @@ object Disa {
             }
         // 3.76: yüz turu — odaklanan kişinin etrafında öne çıkarma çizgisi ve isim kutusu (klibe ait; geçişte klip ile birlikte gider)
         if (k.turEtkin) k.yuzTur?.let { t ->
-            if (t.vurgu && t.noktalar.any { it.yb > 0f }) kendi += TurHalkaBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)
+            if (t.vurgu && TurVurgu.ISIK_ACIK && t.noktalar.any { it.yb > 0f }) kendi += TurHalkaBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)
             if (t.isim && t.noktalar.any { it.ad.isNotBlank() }) kendi += TurIsimBindirme(k, W, H, cizelgeBas, ofsMs, tamMs)
         }
         val ust = ArrayList<TextureOverlay>()

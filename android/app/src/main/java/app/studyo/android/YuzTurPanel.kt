@@ -188,9 +188,10 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             }
             // 3.76: odaklanan kişiyi öne çıkarma
             TurBaslik("ÖNE ÇIKARMA")
-            AnahtarSatiri("Kişiyi ışıkla öne çıkar", t.vurgu) { v -> vm.turAyar { it.copy(vurgu = v) } }
+            // 4.36: kişi ışığı kapatıldı (yerine gövde ve baş çevresinde dönen elektrik tarama gelecek)
+            Text("Kişi ışığı yenileniyor: gövde ve baş çevresinde dönen elektrik tarama efekti gelecek.", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
             // 3.87: ışık biçimi — silüet (Samsung Galeri'deki gibi: iki alt uçtan omuzları ve başı izleyip tepede buluşur) · ince çizgi (3.76)
-            if (t.vurgu) {
+            if (t.vurgu && TurVurgu.ISIK_ACIK) {
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("siluet" to "Silüet ışığı", "cizgi" to "Baş çevresinde çizgi").forEach { (v, ad2) ->
                         val on = t.vurguTur == v

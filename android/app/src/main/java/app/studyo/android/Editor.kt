@@ -310,6 +310,12 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     renkPaneli = panelAcik && (bolum == "renk" || bolum == "efekt" && haplar["efekt"] != "gecis"), sablonSayfa = sablonSayfa,
                     yuzPaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "yuzler",
                     gizlePaneli = panelAcik && !Duzen.yaziliMenu && bolum == "duzenle" && haplar["duzenle"] == "klip" && AltHafiza.al("klip") == "gizle")
+                // 4.36: klip yokken ortada büyük, sade Play (YouTube gibi) — dokun = video/fotoğraf ekle
+                if (p.klipler.isEmpty()) Column(Modifier.align(Alignment.Center).clip(RoundedCornerShape(20.dp)).clickable { ekle() }.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(78.dp).clip(CircleShape).background(Renk.turuncu), contentAlignment = Alignment.Center) { Simge("oynat", Renk.turuncuM, 40.dp) }
+                    Text("Video ya da fotoğraf ekle", color = Renk.soluk, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp))
+                }
                 // 4.08: önizlemedeki klibi silme — sağ üstte ✕; 1. dokunuş kırmızı "Sil?", 2. dokunuş ekrandaki klibi siler (klip şeridinden de; geri al çalışır)
                 val oynuyorS by vm.oynuyor.collectAsState()
                 if (p.klipler.isNotEmpty() && !oynuyorS) {

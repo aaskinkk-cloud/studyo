@@ -369,7 +369,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 bagAn(n)?.let { (kk, a) -> NesneBag.kaynaktan(n, kk, RW, RH, a, x, y, o) } ?: n.copy(x = x, y = y, olcek = o)
             }
             @Composable
-            fun CizN(y: Yerlesim, alfa: Float, n: Nesne, ek: Float = 1f) {
+            fun CizN(y: Yerlesim, alfa: Float, n: Nesne, ek: Float = 1f, anim: NesneAnim.An = NesneAnim.NOTR) {
                 if (alfa <= 0.01f) return
                 nesBoyut[n.id] = (y.bmp.width * ek).roundToInt() to (y.bmp.height * ek).roundToInt()
                 val g = nesGecici?.takeIf { it.id == n.id }
@@ -379,13 +379,14 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 Image(y.bmp.asImageBitmap(), null,
                     Modifier.offset { IntOffset(((x0 + dx) * olcek).roundToInt(), ((y0 + dy) * olcek).roundToInt()) }
                         .size(with(yog) { (y.bmp.width * olcek).toDp() }, with(yog) { (y.bmp.height * olcek).toDp() })
-                        .graphicsLayer { val c = (g?.carpan ?: 1f) * ek; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
+                        .graphicsLayer { val c = (g?.carpan ?: 1f) * ek * anim.olcek; scaleX = c; scaleY = c; rotationZ = anim.aci; translationY = anim.dy * RH * olcek
+                            this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
                 // 4.37: elektrik tarama ışığı (dışa aktarmayla aynı çizim)
                 if (n.isik && !n.hareketli) {
                     val kon = remember(y.bmp) { Elektrik.kontur(y.bmp, n.id) }
-                    val ce = (g?.carpan ?: 1f) * ek
+                    val ce = (g?.carpan ?: 1f) * ek * anim.olcek
                     val sw = y.bmp.width * olcek * ce; val sh = y.bmp.height * olcek * ce
-                    val scx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val scy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f
+                    val scx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val scy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f + anim.dy * RH * olcek
                     val tS = konum / 1000f
                     androidx.compose.foundation.Canvas(Modifier.fillMaxSize().graphicsLayer { this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) }) {
                         Elektrik.ciz(drawContext.canvas.nativeCanvas, scx - sw / 2f, scy - sh / 2f, sw, sh, kon, tS, n.isikRenk.toInt(), minOf(RW, RH) / 1080f * olcek)
@@ -405,12 +406,13 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     // (kısa nesnede hiç tam görünmüyordu). Nesne panelinde seçili nesne, kendi süresi içindeyken ve oynatma dururken tam görünür.
                     val tamGor = nesnePaneli && seciliNesne == n.id && !oynuyorAkis && konum in n.basMs..n.sonMs
                     if (n.hareketli) {
-                        val a = if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs, 200)
+                        val anH = if (tamGor) NesneAnim.NOTR else NesneAnim.an(n, konum, 200)   // 4.39
+                        val a = anH.alfa
                         val idx = Katman.kareNo(n, konum)
                         val kb2 by produceState<Bitmap?>(null, n.id, idx, n.olcek, a > 0f) {
                             value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW) } else null
                         }
-                        kb2?.let { CizN(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n) }
+                        kb2?.let { CizN(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n, anim = anH) }
                     } else if (n.bagli) {
                         // 4.12: taban bitmap hareketsiz ölçekte bir kez çizilir; yer ve ölçek her karede arka plandaki fotoğrafın hareketinden
                         val ba = bagAn(n)
@@ -419,11 +421,13 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                             val to = NesneBag.tabanOlcek(n, kk, RW, RH)
                             val tb = remember(n.yol, to, n.golge, ref) { Katman.nesne(n.copy(olcek = to, x = 0.5f, y = 0.5f), RW, RH) }
                             val e = NesneBag.ekranda(n, kk, RW, RH, a)
-                            tb?.let { CizN(Yerlesim(it.bmp, e.x * 2f - 1f, 1f - e.y * 2f, 0f, 0f), if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs), n, a.s) }
+                            val anB = if (tamGor) NesneAnim.NOTR else NesneAnim.an(n, konum)   // 4.39
+                            tb?.let { CizN(Yerlesim(it.bmp, e.x * 2f - 1f, 1f - e.y * 2f, 0f, 0f), anB.alfa, n, a.s, anB) }
                         }
                     } else {
                         val ny = remember(n.yol, n.olcek, n.golge, n.x, n.y, ref) { Katman.nesne(n, RW, RH) }
-                        ny?.let { CizN(it, if (tamGor) 1f else Zaman.solma(konum, n.basMs, n.sonMs), n) }
+                        val anS = if (tamGor) NesneAnim.NOTR else NesneAnim.an(n, konum)   // 4.39
+                        ny?.let { CizN(it, anS.alfa, n, anim = anS) }
                     }
                 }
             }
@@ -1891,6 +1895,18 @@ private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
             }
             SimgeDugme("katman", "En üste", w, etkin = p.nesneler.lastOrNull()?.id != n.id) { vm.nesneOneAl(n.id) }
         }
+        // 4.39: giriş · çıkış · bekleme hareketi
+        @Composable fun Secim(baslik: String, liste: List<Pair<String, String>>, secili: String, sec: (String) -> Unit) {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(baslik, color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.width(58.dp))
+                liste.forEach { (k, ad) -> val on = k == secili
+                    Text(ad, color = if (on) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                        .background(if (on) Renk.turuncu else Renk.kart2).clickable { sec(k) }.padding(horizontal = 12.dp, vertical = 7.dp)) }
+            }
+        }
+        Secim("Giriş", NesneAnim.GIRISLER, n.giris) { v -> vm.nesneDegis(n.id) { it.copy(giris = v) } }
+        Secim("Çıkış", NesneAnim.GIRISLER, n.cikis) { v -> vm.nesneDegis(n.id) { it.copy(cikis = v) } }
+        Secim("Bekleme", NesneAnim.BEKLEMELER, n.bekleme) { v -> vm.nesneDegis(n.id) { it.copy(bekleme = v) } }
         // 4.37: elektrik tarama ışığı (gövde ve baş çevresinde dönen) — aç/kapat ve renk
         if (!n.hareketli) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {

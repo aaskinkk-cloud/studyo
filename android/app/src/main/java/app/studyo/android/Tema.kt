@@ -102,6 +102,7 @@ object Duzen {
         altUstte = sp.getBoolean("altUstte", true)
         kesilenEski = sp.getBoolean("kesilenEski", false)
         cipTekSatir = sp.getBoolean("cipTekSatir", false)
+        sp.getString("yuzBekle", null)?.split(',')?.mapNotNull { it.toFloatOrNull() }?.takeIf { it.size == 5 }?.forEachIndexed { i, v -> yuzBekle[i] = v }
         isikTeshis = sp.getBoolean("isikTeshis2", false)   // 4.31: kök neden bulundu, ölçüm varsayılan kapalı
         menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
         menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
@@ -131,6 +132,10 @@ object Duzen {
     var kesilenEski by mutableStateOf(false)
     /** 4.16: sayfa çipleri — false (varsayılan) = ayrı satır (4.14 düzeni), true = alt menü satırında tek satır (4.15). */
     var cipTekSatir by mutableStateOf(false)
+    /** 4.39: yüz turunda durakta bekleme (sn) — 1…5 kişi (5 = 5 ve fazlası). Varsayılan 2 · 2 · 3 · 4 · 5. */
+    val yuzBekle = mutableStateListOf(2f, 2f, 3f, 4f, 5f)
+    fun yuzBekleSn(kisi: Int): Float = yuzBekle[(kisi.coerceIn(1, 5)) - 1]
+    fun yuzBekleKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putString("yuzBekle", yuzBekle.joinToString(",")).apply() }
     /** 4.30: geçiş aydınlanması teşhisi — öğe sınırlarında parlaklığı Kayıt'a yazar (sorun çözülünce kaldırılacak). */
     var isikTeshis by mutableStateOf(false)
     /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
@@ -462,3 +467,7 @@ object BuildConfigBilgi {
         ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
     } catch (e: Exception) { "?" }
 }
+
+/** 4.39: "BÜYÜK" menü görünümü (YouTube düzeni gibi) — başlıklar büyük harf, daha iri; simgeler gizli. */
+fun menuAd(s: String): String = if (Duzen.menuStil == "buyuk") s.uppercase(java.util.Locale("tr")) else s
+val menuYaziK: Float get() = if (Duzen.menuStil == "buyuk") 1.2f else 1f

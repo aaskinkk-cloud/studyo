@@ -969,8 +969,8 @@ class EditorDurum(private val ctx: Context, id: String) {
         val g = (if (k.gen > 0) k.gen else W).toFloat()
         val parcalar = if (n <= 0) { var i = 0; otoGruplar(yuzler.size).map { b -> yuzler.subList(i, i + b).also { i += b } } } else yuzler.chunked(n)
         val duraklar = parcalar.map { grup ->
-            // 4.27: tek kişi 2 sn, grup 3 sn (hepsi aynı anda görünür)
-            val bek = if (grup.size == 1) 2f else 3f
+            // 4.39: durakta bekleme kişi sayısına göre (Ayarlar › Yüz turu: varsayılan 1→2 · 2→2 · 3→3 · 4→4 · 5+→5 sn)
+            val bek = Duzen.yuzBekleSn(grup.size)
             if (grup.size == 1) { val f = grup[0]; f.copy(z = YuzTur.yuzYakinlik(f.yb, hh, scC, H), bekle = bek) }
             else {
                 val ort = grup.maxOf { it.yb }

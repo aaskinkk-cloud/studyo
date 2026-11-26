@@ -87,8 +87,7 @@ class BagliNesneBindirme(private val n: Nesne, private val k: Klip, private val 
         hazirla(presentationTimeUs)
         val a = an ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
         val (px, py) = Geometri.ciktiya(k, n.kx, n.ky, W, H, a)
-        val alfa = Zaman.solma(cizelgeBas + yerel, n.basMs, n.sonMs)
-        return Yerlesim(isikliBmp(), px / W * 2f - 1f, 1f - py / H * 2f, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(alfa).build()
+        return NesneAnim.ayar(Yerlesim(isikliBmp(), px / W * 2f - 1f, 1f - py / H * 2f, 0f, 0f), NesneAnim.an(n, cizelgeBas + yerel), W, H)   // 4.39
     }
 }
 
@@ -298,9 +297,10 @@ class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, priva
     override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return bmp ?: bos }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = hazirla(presentationTimeUs)
-        val a = Zaman.solma(ms, n.basMs, n.sonMs, 200)
-        if (bmp == null || a <= 0f) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((n.x * 2f - 1f).coerceIn(-1f, 1f), (1f - n.y * 2f).coerceIn(-1f, 1f)).setOverlayFrameAnchor(0f, 0f).setAlphaScale(a).build()
+        val an = NesneAnim.an(n, ms, 200)   // 4.39: hareketli nesnede de giriş/çıkış/bekleme
+        if (bmp == null || an.alfa <= 0f) return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
+        return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((n.x * 2f - 1f).coerceIn(-1f, 1f), (1f - n.y * 2f - an.dy * 2f).coerceIn(-1f, 1f)).setOverlayFrameAnchor(0f, 0f)
+            .setScale(an.olcek, an.olcek).setRotationDegrees(-an.aci).setAlphaScale(an.alfa).build()
     }
 }
 

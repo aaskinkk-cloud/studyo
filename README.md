@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.38 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.39 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.39 (27.11.2026, deneme · `yerel-android` dalı): nesne hareketleri, yüz turu bekleme ayarları, BÜYÜK menü
+- **Kesilen nesne giriş · çıkış · bekleme** (Kesilenler): Solarak (eskisiyle aynı) · Büyüyerek (hafif taşarak oturur) · Kayarak · Anında; bekleme Sabit · Nefes · Salınım. Fotoğraftan, videodan kesilen, ışıklı ve fotoğrafa yapışık nesnelerde; önizleme ve dışa aktarma aynı hesap (`NesneAnim`, dışa aktarmada `NesneBindirme`).
+- **Yüz turu durakta bekleme** Ayarlar'da kişi sayısına göre (1 → 2 · 2 → 2 · 3 → 3 · 4 → 4 · 5+ → 5 sn varsayılan); gruplama bunları kullanır.
+- **Menü görünümü › BÜYÜK:** başlıklar büyük harf ve daha iri, simgeler gizli (YouTube düzeni gibi).
 
 ## 4.38 (27.11.2026, deneme · `yerel-android` dalı): yüz turu kişi ışığı geri
 - 4.36'da kapatılan "Kişiyi ışıkla öne çıkar" (silüet ışığı / baş çevresinde çizgi) menüsü ve çizimi geri açıldı (`TurVurgu.ISIK_ACIK = true`).

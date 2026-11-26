@@ -127,6 +127,52 @@ class ElektrikBindirme(private val y: Yerlesim, private val k: FloatArray, priva
     override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return buf!! }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         hazirla(presentationTimeUs)
-        return Yerlesim(buf!!, y.zx, y.zy, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(y.alfa * Zaman.solma(ms, n.basMs, n.sonMs)).build()
+        return NesneAnim.ayar(Yerlesim(buf!!, y.zx, y.zy, 0f, 0f), NesneAnim.an(n, ms), W, H, y.alfa)   // 4.39: hareketli giriş/çıkış
     }
+}
+
+/** 4.39: kesilen nesnenin giriş · çıkış · bekleme hareketi. Önizleme ve dışa aktarma AYNI hesabı kullanır.
+ *  "sol" (solarak) eski davranışla birebir aynı (300 ms doğrusal solma). dy: karenin yüksekliğine oran (aşağı +). aci: derece (saat yönü +). */
+object NesneAnim {
+    val GIRISLER = listOf("sol" to "Solarak", "buyu" to "Büyüyerek", "kay" to "Kayarak", "yok" to "Anında")
+    val BEKLEMELER = listOf("yok" to "Sabit", "nefes" to "Nefes", "salla" to "Salınım")
+    class An(val alfa: Float, val olcek: Float, val dy: Float, val aci: Float)
+    private val YOK = An(0f, 1f, 0f, 0f)
+    val NOTR = An(1f, 1f, 0f, 0f)
+    private fun yum(x: Float) = x * x * (3f - 2f * x)
+    private fun geri(x: Float): Float { val c1 = 1.4f; val c3 = c1 + 1f; val t = x - 1f; return 1f + c3 * t * t * t + c1 * t * t }   // hafif taşarak oturma
+    fun an(n: Nesne, ms: Long, solmaMs: Long = 300): An {
+        if (ms < n.basMs || ms > n.sonMs) return YOK
+        val g = ((ms - n.basMs).toFloat() / solmaMs).coerceIn(0f, 1f)
+        val c = ((n.sonMs - ms).toFloat() / solmaMs).coerceIn(0f, 1f)
+        var a = 1f; var s = 1f; var dy = 0f; var aci = 0f
+        when (n.giris) {
+            "sol" -> a = minOf(a, g)
+            "buyu" -> { a = minOf(a, (g * 2f).coerceAtMost(1f)); s *= 0.25f + 0.75f * geri(g) }
+            "kay" -> { a = minOf(a, yum(g)); dy += (1f - yum(g)) * 0.12f }
+        }
+        when (n.cikis) {
+            "sol" -> a = minOf(a, c)
+            "buyu" -> { a = minOf(a, (c * 2f).coerceAtMost(1f)); s *= 0.25f + 0.75f * yum(c) }
+            "kay" -> { a = minOf(a, yum(c)); dy += (1f - yum(c)) * 0.12f }
+        }
+        val t = (ms - n.basMs) / 1000f
+        when (n.bekleme) {
+            "nefes" -> s *= 1f + 0.035f * kotlin.math.sin(t * 2f * Math.PI.toFloat() / 2.4f)
+            "salla" -> aci = 3f * kotlin.math.sin(t * 2f * Math.PI.toFloat() / 3f)
+        }
+        return An(a.coerceIn(0f, 1f), s, dy, aci)
+    }
+    /** Media3 bindirme ayarı: merkez çapalı yerleşime hareket uygulanır. */
+    fun ayar(y: Yerlesim, a: An, W: Int, H: Int, alfa: Float = 1f): OverlaySettings =
+        Yerlesim(y.bmp, y.zx, y.zy - a.dy * 2f, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H)
+            .setScale(a.olcek, a.olcek).setRotationDegrees(-a.aci).setAlphaScale((alfa * a.alfa).coerceIn(0f, 1f)).build()
+}
+
+/** 4.39: yerinde duran kesilen nesne (ışıksız) — giriş/çıkış/bekleme hareketiyle. */
+class NesneBindirme(private val y: Yerlesim, private val n: Nesne, private val klipBasMs: Long, private val W: Int, private val H: Int) : BitmapOverlay() {
+    private val saat = Saat(klipBasMs)
+    override fun getBitmap(presentationTimeUs: Long): Bitmap = y.bmp
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings =
+        NesneAnim.ayar(y, NesneAnim.an(n, klipBasMs + saat.yerelMs(presentationTimeUs)), W, H, y.alfa)
 }

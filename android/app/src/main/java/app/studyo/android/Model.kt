@@ -241,6 +241,8 @@ data class Nesne(
     val gizli: Boolean = false, val asilKlipId: String = "",
     /** 4.37: elektrik tarama ışığı (gövde ve baş çevresinde dönen) ve rengi. */
     val isik: Boolean = false, val isikRenk: Long = 0xFF4FC3F7L,
+    /** 4.39: giriş · çıkış ("sol" solarak · "buyu" · "kay" · "yok") ve bekleme ("yok" · "nefes" · "salla") hareketi. */
+    val giris: String = "sol", val cikis: String = "sol", val bekleme: String = "yok",
 ) {
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
     val bagli: Boolean get() = klipId.isNotEmpty() && kw > 0f && !hareketli

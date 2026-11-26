@@ -90,7 +90,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         // 4.18: menü görünümü — simge + yazı · yalnız simge · yalnız yazı (bütün menülerde)
         Text("Menü görünümü", color = Renk.soluk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart2).padding(3.dp)) {
-            listOf("ikisi" to "Simge+yazı", "simge" to "Simge", "yazi" to "Yazı", "renkli" to "Renkli").forEach { (v, ad) ->
+            listOf("ikisi" to "Simge+yazı", "simge" to "Simge", "yazi" to "Yazı", "renkli" to "Renkli", "buyuk" to "BÜYÜK").forEach { (v, ad) ->
                 val on = Duzen.menuStil == v
                 Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Renk.turuncu else Color.Transparent)
                     .clickable { Duzen.menuStilSec(ctx, v) }, contentAlignment = Alignment.Center) {
@@ -106,6 +106,13 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır
         AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis2", it).apply() }   // 4.30
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)
+    }
+    // 4.39: yüz turunda durakta bekleme — kişi sayısına göre (gruplamada kullanılır)
+    Kart("Yüz turu · durakta bekleme") {
+        listOf("1 kişi", "2 kişi", "3 kişi", "4 kişi", "5+ kişi").forEachIndexed { i, ad ->
+            TonKaydirici(ad, Duzen.yuzBekle[i], 1f..8f, 0.5f, Renk.turuncu, { String.format(TR, "%.1f sn", it) }) { v -> Duzen.yuzBekle[i] = v; Duzen.yuzBekleKaydet(ctx) }
+        }
+        AcilirNot("Yüzler › Durakları grupla (Otomatik, 2'li… ve Tümüne) bu süreleri kullanır. Değişiklik sonraki gruplamada uygulanır.")
     }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {
         AcilirNot("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.")

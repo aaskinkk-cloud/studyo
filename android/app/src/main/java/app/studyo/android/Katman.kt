@@ -63,6 +63,8 @@ class BagliNesneBindirme(private val n: Nesne, private val k: Klip, private val 
     private val saat = Saat(cizelgeBas)
     private var anahtar = -1; private var bmp: Bitmap = taban
     private var sonUs = Long.MIN_VALUE; private var an: Yuz.An? = null; private var yerel = 0L
+    private val kon: FloatArray? = if (n.isik) Elektrik.kontur(taban, n.id) else null   // 4.37: elektrik ışığı
+    private var isikBuf: Bitmap? = null
     private fun hazirla(us: Long) {
         if (us == sonUs) return; sonUs = us
         yerel = saat.yerelMs(us)
@@ -74,13 +76,19 @@ class BagliNesneBindirme(private val n: Nesne, private val k: Klip, private val 
             bmp = if (key == 200) taban else Bitmap.createScaledBitmap(taban, (taban.width * s).roundToInt().coerceAtLeast(2), (taban.height * s).roundToInt().coerceAtLeast(2), true)
         }
     }
-    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return bmp }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return isikliBmp() }
+    private var isikUs = Long.MIN_VALUE
+    private fun isikliBmp(): Bitmap {
+        val k = kon ?: return bmp
+        if (isikUs != sonUs) { isikUs = sonUs; isikBuf = Elektrik.kare(bmp, k, (cizelgeBas + yerel) / 1000f, n.isikRenk.toInt(), minOf(W, H) / 1080f, isikBuf) }
+        return isikBuf ?: bmp
+    }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         hazirla(presentationTimeUs)
         val a = an ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
         val (px, py) = Geometri.ciktiya(k, n.kx, n.ky, W, H, a)
         val alfa = Zaman.solma(cizelgeBas + yerel, n.basMs, n.sonMs)
-        return Yerlesim(bmp, px / W * 2f - 1f, 1f - py / H * 2f, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(alfa).build()
+        return Yerlesim(isikliBmp(), px / W * 2f - 1f, 1f - py / H * 2f, 0f, 0f).ayar(StaticOverlaySettings.Builder(), W, H).setAlphaScale(alfa).build()
     }
 }
 

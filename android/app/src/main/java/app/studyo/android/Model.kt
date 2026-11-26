@@ -239,6 +239,8 @@ data class Nesne(
     val kx: Float = -1f, val ky: Float = -1f, val kw: Float = 0f,
     /** 4.29: devre dışı (videoda görünmez, çizelgede soluk) · kesildiği klip ("Klibine geri gönder" için). kw < 0 = fotoğraf bağı askıda (ekrana sabit). */
     val gizli: Boolean = false, val asilKlipId: String = "",
+    /** 4.37: elektrik tarama ışığı (gövde ve baş çevresinde dönen) ve rengi. */
+    val isik: Boolean = false, val isikRenk: Long = 0xFF4FC3F7L,
 ) {
     val hareketli: Boolean get() = kareDizin.isNotEmpty() && kareSayi > 0
     val bagli: Boolean get() = klipId.isNotEmpty() && kw > 0f && !hareketli

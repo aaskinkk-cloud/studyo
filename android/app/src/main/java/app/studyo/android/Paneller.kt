@@ -380,6 +380,17 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     Modifier.offset { IntOffset(((x0 + dx) * olcek).roundToInt(), ((y0 + dy) * olcek).roundToInt()) }
                         .size(with(yog) { (y.bmp.width * olcek).toDp() }, with(yog) { (y.bmp.height * olcek).toDp() })
                         .graphicsLayer { val c = (g?.carpan ?: 1f) * ek; scaleX = c; scaleY = c; this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
+                // 4.37: elektrik tarama ışığı (dışa aktarmayla aynı çizim)
+                if (n.isik && !n.hareketli) {
+                    val kon = remember(y.bmp) { Elektrik.kontur(y.bmp, n.id) }
+                    val ce = (g?.carpan ?: 1f) * ek
+                    val sw = y.bmp.width * olcek * ce; val sh = y.bmp.height * olcek * ce
+                    val scx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val scy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f
+                    val tS = konum / 1000f
+                    androidx.compose.foundation.Canvas(Modifier.fillMaxSize().graphicsLayer { this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) }) {
+                        Elektrik.ciz(drawContext.canvas.nativeCanvas, scx - sw / 2f, scy - sh / 2f, sw, sh, kon, tS, n.isikRenk.toInt(), minOf(RW, RH) / 1080f * olcek)
+                    }
+                }
                 // 4.08: seçili nesnenin çerçevesi — kesikli çizgi, köşelerde büyüt/küçült tutamaçları, ortada taşıma simgesi (parmağı akıcı izler)
                 if (secili) {
                     val c = (g?.carpan ?: 1f) * ek
@@ -1879,6 +1890,21 @@ private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
                 SimgeDugme("takip", "Cam fırçası", w) { firca = true }
             }
             SimgeDugme("katman", "En üste", w, etkin = p.nesneler.lastOrNull()?.id != n.id) { vm.nesneOneAl(n.id) }
+        }
+        // 4.37: elektrik tarama ışığı (gövde ve baş çevresinde dönen) — aç/kapat ve renk
+        if (!n.hareketli) {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (n.isik) Renk.turuncu else Renk.kart2).clickable { vm.nesneDegis(n.id) { it.copy(isik = !it.isik) } }
+                    .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Simge("sihir", if (n.isik) Renk.turuncuM else Renk.yazi, 15.dp)
+                    Text(" Elektrik ışık", color = if (n.isik) Renk.turuncuM else Renk.yazi, fontSize = 12.5.sp)
+                }
+                if (n.isik) Elektrik.RENKLER.forEach { (r, _) ->
+                    val on = n.isikRenk == r
+                    Box(Modifier.size(28.dp).clip(CircleShape).background(Color(r)).border(if (on) 2.5.dp else 1.dp, if (on) Renk.yazi else Renk.cizgi, CircleShape)
+                        .clickable { vm.nesneDegis(n.id) { it.copy(isikRenk = r) } })
+                }
+            }
         }
         // 4.29: katman işlemleri — devre dışı / kesildiği klibe geri / ekrana sabitle
         Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {

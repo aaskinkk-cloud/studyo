@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 4.36 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 4.37 (yerel, deneme) · önceki not: 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 4.37 (27.11.2026, deneme · `yerel-android` dalı): elektrik tarama ışığı (kesilen nesne)
+- Nesne › Kesilenler › seçili nesne › **Elektrik ışık** (5 renk): gövde ve baş çevresinde titreyen ince elektrik hattı + hat boyunca 2,2 sn'de bir tur dönen parlak tarama başı ve kıvılcımlar (Vita Electric Scan / CapCut elektrik alevi örnek).
+- Dış hat kesilen görüntünün saydamlığından bir kez çıkarılır (`Elektrik.kontur`); önizleme, akıcı önizleme ve dışa aktarma aynı çizimi kullanır (`Elektrik.ciz`; dışa aktarmada `ElektrikBindirme` ve fotoğrafa yapışık nesnede `BagliNesneBindirme`).
+- Şimdilik fotoğraftan kesilen nesnelerde; videodan kesilen hareketli nesne ve yüz turundaki kişiler sonraki adım.
 
 ## 4.36 (27.11.2026, deneme · `yerel-android` dalı): talep 8 — Play düğmesi, Google Fotoğraflar videoları; kişi ışığı kapatıldı
 - Klip yokken önizlemenin ortasında büyük, sade Play (tema renginde) — dokun = video/fotoğraf ekle.

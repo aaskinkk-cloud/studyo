@@ -231,7 +231,7 @@ object Disa {
         val hatKart = if (p.hatirlatici.acik && p.hatirlatici.stil != "klasik") Cizim.hatirlaticiKartSet(p.hatirlatici, W, H, p.logo, p.kapanis.kanal) else null
         val (hA, hB) = Zaman.hatirlaticiAralik(p)
         if (hatKart == null) Cizim.hatirlatici(p.hatirlatici, W, H, p.logo, p.kapanis.kanal)?.let { zamanli += Triple(it, hA, hB) }
-        for (ns in p.nesneler) if (!ns.gizli && !ns.hareketli && !ns.bagli) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
+        for (ns in p.nesneler) if (!ns.gizli && !ns.hareketli && !ns.bagli && !ns.isik) Katman.nesne(ns, W, H)?.let { zamanli += Triple(it, ns.basMs, ns.sonMs) }
         // Serbest katmanlar (metin/görsel/çıkartma): bitmap bir kez çizilir, kliplere paylaştırılır
         val katmanBmp = p.katmanlar.filter { it.gorsel && !it.gizli && it.sonMs > it.basMs }.mapNotNull { o -> KatmanCizim.bitmap(o, W, H)?.let { o to it } }
         val altyazilar = if (p.altyaziStil.acik) p.altyazilar.filter { it.metin.isNotBlank() && it.sonMs > it.basMs } else emptyList()
@@ -246,6 +246,9 @@ object Disa {
             val ek = ArrayList<TextureOverlay>()
             val son = bas + sure
             for ((y, a, b) in zamanli) if (a < son && b > bas) ek += ZamanliBindirme(y, bas, a, b, W, H)
+            // 4.37: elektrik ışıklı (yerinde duran) kesilen nesneler — her karede görüntü + ışık
+            for (ns in p.nesneler) if (!ns.gizli && ns.isik && !ns.hareketli && !ns.bagli && ns.basMs < son && ns.sonMs > bas)
+                Katman.nesne(ns, W, H)?.let { y -> ek += ElektrikBindirme(y, Elektrik.kontur(y.bmp, ns.id), ns, bas, W, H) }
             if (seritler.isNotEmpty() && gA < son && gB > bas) for (sr in seritler) ek += ReelsBindirme(sr, p.giris.hareket, bas, gA, gB)
             if (p.giris.acik && p.giris.boncuk && gA < son && gB > bas) ek += BoncukBindirme(bas, gA, gB, W, H)
             for (ns in p.nesneler) if (!ns.gizli && ns.hareketli && ns.basMs < son && ns.sonMs > bas) ek += NesneKareBindirme(ns, bas, W, H)

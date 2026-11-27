@@ -1174,7 +1174,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
                 .clickable { vm.girisDegis { it.copy(noktaRenk = r) }; vm.sablonGoster("nokta") }) }
         }
         if (g.logoBuyu) {
-            if (p.gecisLogoYol.isEmpty()) Not("Önce Yayın › Logo'dan bir logo seç (logo geçişindeki logo kullanılır).")
+            if (p.gecisLogoYol.isEmpty()) Not(if ((sekme == "acilis" || Duzen.hazirEski) && !Duzen.logoKutupEski) "Aşağıdaki Logo kütüphanem'den bir logo seç." else "Önce Yayın › Logo'dan bir logo seç (logo geçişindeki logo kullanılır).")
             val fmt: (Float) -> String = { String.format(TR, "%.1f sn", it) }
             TonKaydirici("Geliş", g.logoGelMs / 1000f, 0.2f..2f, 0.1f, turkuaz, fmt) { v -> vm.girisDegis { it.copy(logoGelMs = (v * 1000).toLong()) }; vm.sablonGoster("glogo") }
             TonKaydirici("Ekranda", g.logoKalMs / 1000f, 0.5f..5f, 0.25f, turkuaz, fmt) { v -> vm.girisDegis { it.copy(logoKalMs = (v * 1000).toLong()) }; vm.sablonGoster("glogo") }
@@ -1182,6 +1182,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
         }
         Not("Büyük nokta: video siyah ekranda renkli bir noktayla açılır, nokta ekranı doldurup ortadan açılır. Logo: ortada büyüyerek gelir, bekler, büyüyüp kaybolur. Sıra: nokta → logo → başlık → özet.")
     }
+    if ((sekme == "acilis" || sekme == "giris" && Duzen.hazirEski) && !Duzen.logoKutupEski) LogoKutupKarti(vm, p)   // 4.49: logo kütüphanesi burada (Yayın › Logo'da bağlantı)
     val oz = p.ozet
     if (sekme == "ozet") Kart("Özet", ton = yesil, anahtar = oz.acik, anahtarDegis = { v -> vm.ozetDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("ozet") }) {
         if (!oz.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }

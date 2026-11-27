@@ -37,6 +37,23 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
+    // 4.49: kütüphane Hazır › Açılış efektleri'nde; burada bağlantı (önceki yerleşim Ayarlar'da seçenek)
+    if (Duzen.logoKutupEski) LogoKutupKarti(vm, p)
+    else Kart("Logo kütüphanem") {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Renk.turuncu.copy(alpha = 0.12f))
+            .combinedClickable(onClick = { vm.gitIstek.value = if (Duzen.hazirEski) Triple("gorunum", "sablon", "giris") else Triple("hazirb", "hazirlar", "acilis") }).padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Simge("logo", Renk.turuncu, 20.dp)
+            Text(if (Duzen.hazirEski) "  Logo kütüphanesi: Görünüm › Şablon › Giriş" else "  Logo kütüphanesi: Hazır › Açılış efektleri", color = Renk.turuncu, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text("›", color = Renk.turuncu, fontSize = 16.sp)
+        }
+    }
+    PanelLogoAyarlar(vm, p)
+}
+
+/** 4.49: logo kütüphanesi kartı (yükle · boş · logolar) — Hazır › Açılış efektleri'nde ve (önceki yerleşimde) Yayın › Logo'da. */
+@Composable
+internal fun LogoKutupKarti(vm: EditorDurum, p: Proje) {
     val yukleyici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { l -> vm.logolarYukle(l) }
     val yukle = { yukleyici.launch(arrayOf("image/png", "image/*")) }
     val kutup by LogoKutup.ogeler.collectAsState()
@@ -88,6 +105,40 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
         )
     }
 
+    duzenlenen?.let { k ->
+        var ad by remember(k.id) { mutableStateOf(k.ad) }
+        var silOnay by remember(k.id) { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { duzenlenen = null },
+            title = { Text(if (silOnay) "“${k.ad}” kütüphaneden silinsin mi?" else "Logo") },
+            text = {
+                if (silOnay) Text("Bu logoyu kullanan projelerdeki logo silinmez; yalnızca kütüphaneden kalkar.")
+                else Column {
+                    LogoResmi(k.yol, Modifier.size(90.dp).clip(RoundedCornerShape(10.dp)).align(Alignment.CenterHorizontally))
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(ad, { ad = it }, singleLine = true, label = { Text("Adı") })
+                }
+            },
+            confirmButton = {
+                if (silOnay) TextButton(onClick = { LogoKutup.sil(k.id); duzenlenen = null }) { Text("Sil", color = Renk.kirmizi) }
+                else TextButton(onClick = { LogoKutup.adDegistir(k.id, ad); duzenlenen = null }) { Text("Kaydet") }
+            },
+            dismissButton = {
+                Row {
+                    if (!silOnay) TextButton(onClick = { silOnay = true }) { Text("Sil", color = Renk.kirmizi) }
+                    TextButton(onClick = { duzenlenen = null }) { Text("Vazgeç") }
+                }
+            },
+        )
+    }
+}
+
+/** Yayın › Logo'nun kütüphane dışındaki bölümleri (logo geçişi, projedeki logo). */
+@Composable
+private fun PanelLogoAyarlar(vm: EditorDurum, p: Proje) {
+    val l = p.logo?.takeIf { it.yol.isNotEmpty() }
+    val yukleyici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { ll -> vm.logolarYukle(ll) }
+    val yukle = { yukleyici.launch(arrayOf("image/png", "image/*")) }
     // 3.88: büyük logo geçişi (Ahmet'in isteği: aynı ya da başka logo, kaç kez / hangi aralıkla — geçiş türünden bağımsız)
     LogoGecisKarti(vm, p)
 
@@ -116,32 +167,6 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
         }
     }
 
-    duzenlenen?.let { k ->
-        var ad by remember(k.id) { mutableStateOf(k.ad) }
-        var silOnay by remember(k.id) { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { duzenlenen = null },
-            title = { Text(if (silOnay) "“${k.ad}” kütüphaneden silinsin mi?" else "Logo") },
-            text = {
-                if (silOnay) Text("Bu logoyu kullanan projelerdeki logo silinmez; yalnızca kütüphaneden kalkar.")
-                else Column {
-                    LogoResmi(k.yol, Modifier.size(90.dp).clip(RoundedCornerShape(10.dp)).align(Alignment.CenterHorizontally))
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(ad, { ad = it }, singleLine = true, label = { Text("Adı") })
-                }
-            },
-            confirmButton = {
-                if (silOnay) TextButton(onClick = { LogoKutup.sil(k.id); duzenlenen = null }) { Text("Sil", color = Renk.kirmizi) }
-                else TextButton(onClick = { LogoKutup.adDegistir(k.id, ad); duzenlenen = null }) { Text("Kaydet") }
-            },
-            dismissButton = {
-                Row {
-                    if (!silOnay) TextButton(onClick = { silOnay = true }) { Text("Sil", color = Renk.kirmizi) }
-                    TextButton(onClick = { duzenlenen = null }) { Text("Vazgeç") }
-                }
-            },
-        )
-    }
 }
 
 /** Saydamlığı görünür kılan damalı zemin üzerinde logo. */

@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.49 (27.11.2026, deneme · `yerel-android` dalı): logo kütüphanesi Açılış efektleri'nde
+- **Hazır › Açılış efektleri** sayfasının altında **Logo kütüphanem** (Yükle · Boş · logolar; dokun = projeye ekle, uzun bas = ad/sil) — `LogoKutupKarti`. Logo büyüyerek, köşe logosu ve logo geçişi aynı ortak logoyu kullanır (kopya yok).
+- **Yayın › Logo:** kütüphanenin yerinde "Logo kütüphanesi: Hazır › Açılış efektleri ›" bağlantısı; logo geçişi ve projedeki logo ayarları yerinde.
+- Önceki yerleşim: Ayarlar › "Logo kütüphanesi Yayın › Logo'da".
+
 ## 4.48 (27.11.2026, deneme · `yerel-android` dalı): Giriş Hazır bölümüne taşındı
 - **Hazır** alt menüsünün yanında 4 düğme: Paketler · Hazır ayarlar · **Giriş başlığı** · **Açılış efektleri** (renkli, simgeli).
 - Giriş başlığı: stil önizlemeleri büyük kartlar (1,4×); düzenleme, ekranda parmakla taşıma/boyut, "Yerine al" aynen. Açılış efektleri: Büyük nokta ve Logo büyüyerek büyük kartlar (dokun = aç/kapat), ayarları altında.

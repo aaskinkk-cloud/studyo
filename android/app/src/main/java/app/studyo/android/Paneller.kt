@@ -371,7 +371,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 bagAn(n)?.let { (kk, a) -> NesneBag.kaynaktan(n, kk, RW, RH, a, x, y, o) } ?: n.copy(x = x, y = y, olcek = o)
             }
             @Composable
-            fun CizN(y: Yerlesim, alfa: Float, n: Nesne, ek: Float = 1f, anim: NesneAnim.An = NesneAnim.NOTR) {
+            fun CizN(y: Yerlesim, alfa: Float, n: Nesne, ek: Float = 1f, anim: NesneAnim.An = NesneAnim.NOTR, karKon: FloatArray? = null) {
                 if (alfa <= 0.01f) return
                 nesBoyut[n.id] = (y.bmp.width * ek).roundToInt() to (y.bmp.height * ek).roundToInt()
                 val g = nesGecici?.takeIf { it.id == n.id }
@@ -384,8 +384,9 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         .graphicsLayer { val c = (g?.carpan ?: 1f) * ek * anim.olcek; scaleX = c; scaleY = c; rotationZ = anim.aci; translationY = anim.dy * RH * olcek
                             this.alpha = (y.alfa * alfa).coerceIn(0f, 1f) })
                 // 4.37: elektrik tarama ışığı (dışa aktarmayla aynı çizim)
-                if (n.isik && !n.hareketli) {
-                    val kon = remember(y.bmp) { Elektrik.kontur(y.bmp, n.id) }
+                // 4.43: hareketli (videodan kesilen) nesnede kontur her kare için ayrı (karKon, IO'da hesaplanır)
+                val kon: FloatArray? = if (!n.isik) null else if (n.hareketli) karKon else remember(y.bmp) { Elektrik.kontur(y.bmp, n.id) }
+                if (kon != null) {
                     val ce = (g?.carpan ?: 1f) * ek * anim.olcek
                     val sw = y.bmp.width * olcek * ce; val sh = y.bmp.height * olcek * ce
                     val scx = (x0 + dx) * olcek + y.bmp.width * olcek / 2f; val scy = (y0 + dy) * olcek + y.bmp.height * olcek / 2f + anim.dy * RH * olcek
@@ -411,10 +412,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         val anH = if (tamGor) NesneAnim.NOTR else NesneAnim.an(n, konum, 200)   // 4.39
                         val a = anH.alfa
                         val idx = Katman.kareNo(n, konum)
-                        val kb2 by produceState<Bitmap?>(null, n.id, idx, n.olcek, a > 0f) {
-                            value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW) } else null
+                        val kb2 by produceState<Pair<Bitmap, FloatArray?>?>(null, n.id, idx, n.olcek, a > 0f, n.isik) {
+                            value = if (a > 0f) withContext(Dispatchers.IO) { Katman.nesneKaresi(n, idx, RW)?.let { it to (if (n.isik) Elektrik.kontur(it, n.id + "#" + idx) else null) } } else null
                         }
-                        kb2?.let { CizN(Yerlesim(it, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n, anim = anH) }
+                        kb2?.let { (bm, kk) -> CizN(Yerlesim(bm, n.x * 2f - 1f, 1f - n.y * 2f, 0f, 0f), a, n, anim = anH, karKon = kk) }
                     } else if (n.bagli) {
                         // 4.12: taban bitmap hareketsiz ölçekte bir kez çizilir; yer ve ölçek her karede arka plandaki fotoğrafın hareketinden
                         val ba = bagAn(n)
@@ -462,7 +463,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
             if (p.giris.reels) {
-                val gS = p.giris.copy(ofsX = p.giris.ofsX + girisSur.x, ofsY = p.giris.ofsY + girisSur.y)
+                val gSur = if (sablonSayfa == "giris") girisSur else Offset.Zero   // 4.43: kayma yalnız seçili şablona
+                val gS = p.giris.copy(ofsX = p.giris.ofsX + gSur.x, ofsY = p.giris.ofsY + gSur.y)
                 val seritler = remember(gS, ref) { if (p.giris.acik) Reels.seritler(gS, RW, RH) else emptyList() }
                 for (sr in seritler) {
                     val ak = Reels.an(sr, p.giris.hareket, konum, gA, gB) ?: continue
@@ -475,7 +477,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             } else {
                 val girisY0 = remember(p.giris.copy(ofsX = 0f, ofsY = 0f), ref) { Cizim.giris(p.giris.copy(ofsX = 0f, ofsY = 0f), RW, RH) }
-                val gx = p.giris.ofsX + girisSur.x; val gy = p.giris.ofsY + girisSur.y
+                val gSur = if (sablonSayfa == "giris") girisSur else Offset.Zero   // 4.43
+                val gx = p.giris.ofsX + gSur.x; val gy = p.giris.ofsY + gSur.y
                 val girisY = girisY0?.let { y -> if (gx == 0f && gy == 0f) y else Yerlesim(y.bmp, y.zx + gx * 2f, y.zy - gy * 2f, y.kx, y.ky, y.alfa) }
                 girisY?.let {
                     val a = Zaman.solma(konum, gA, gB)
@@ -485,14 +488,16 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             }
             if (p.hatirlatici.stil == "klasik") {
                 val hatY = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlatici(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
-                hatY?.let { val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(it, Zaman.solma(konum, a, b)) }
+                val hs = if (sablonSayfa == "abone") girisSur else Offset.Zero   // 4.43: sürüklerken canlı
+                hatY?.let { y -> val (a, b) = Zaman.hatirlaticiAralik(p); Ciz(if (hs == Offset.Zero) y else Yerlesim(y.bmp, y.zx + hs.x * 2f, y.zy - hs.y * 2f, y.kx, y.ky, y.alfa), Zaman.solma(konum, a, b)) }
             } else if (p.hatirlatici.acik) {
                 // canlı kart: dışa aktarmadaki HatAnim hesabının aynısı
                 val hk = remember(p.hatirlatici, p.logo, p.kapanis.kanal, ref) { Cizim.hatirlaticiKartSet(p.hatirlatici, RW, RH, p.logo, p.kapanis.kanal) }
                 val (ha, hb) = Zaman.hatirlaticiAralik(p)
                 HatAnim.an(konum - ha, hb - ha, hk.normal.width.toFloat() / RW)?.let { x ->
-                    val solX = (HatAnim.SOL + x.dx) * RW
-                    val ust = HatAnim.ORTA_Y * RH - hk.normal.height / 2f
+                    val hs = if (sablonSayfa == "abone") girisSur else Offset.Zero   // 4.43: ox/oy + sürüklerken canlı
+                    val solX = (HatAnim.SOL + x.dx + hk.ox + hs.x) * RW
+                    val ust = (HatAnim.ORTA_Y + hk.oy + hs.y) * RH - hk.normal.height / 2f
                     val kb = if (x.abone) hk.abone else hk.normal
                     Image(kb.asImageBitmap(), null,
                         Modifier.offset { IntOffset((solX * olcek).roundToInt(), (ust * olcek).roundToInt()) }
@@ -592,7 +597,8 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             }
             if (GirisEfekt.gorunur(p, konum)) Canvas(Modifier.fillMaxSize()) {
-                drawIntoCanvas { cv -> GirisEfekt.ciz(cv.nativeCanvas, size.width, size.height, p, konum) }
+                val pz = if (sablonSayfa == "ozet" && girisSur != Offset.Zero) p.copy(ozet = p.ozet.copy(ofsX = p.ozet.ofsX + girisSur.x, ofsY = p.ozet.ofsY + girisSur.y)) else p   // 4.43
+                drawIntoCanvas { cv -> GirisEfekt.ciz(cv.nativeCanvas, size.width, size.height, pz, konum) }
             }
 
             // dokunma: takip noktası seçimi / seçili nesneyi sürükleme
@@ -705,9 +711,10 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 // girişte iki parmak = yazı boyutu. Değişiklik anında önizlemeye yansır.
                 var birikim by remember { mutableFloatStateOf(1f) }
                 Box(Modifier.fillMaxSize()
-                    .pointerInput(sablonSayfa) { detectTapGestures(onTap = { vm.ekranDuzen.value = sablonSayfa }) }
-                    .then(if (sablonSayfa == "giris") Modifier.pointerInput(olcek) {
+                    .then(if (sablonSayfa != "ozet") Modifier.pointerInput(sablonSayfa) { detectTapGestures(onTap = { vm.ekranDuzen.value = sablonSayfa }) } else Modifier)
+                    .then(Modifier.pointerInput(olcek, sablonSayfa) {
                         // 4.40: tek parmak sürükle = başlığı taşı (bırakınca kaydedilir) · iki parmak = boyut
+                        // 4.43: aynısı abone, özet ve kapanış yazılarında da (sablonKaydir / sablonBoyut)
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false)
                             var top = Offset.Zero
@@ -716,17 +723,16 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                 val zoom = ev.calculateZoom(); val pan = ev.calculatePan()
                                 if (zoom.isFinite() && zoom > 0f && zoom != 1f) {
                                     birikim *= zoom
-                                    if (kotlin.math.abs(birikim - 1f) > 0.04f) { val c = birikim; birikim = 1f; vm.girisDegis { g -> g.copy(olcek = (g.olcek * c).coerceIn(0.6f, 1.6f)) } }
+                                    if (kotlin.math.abs(birikim - 1f) > 0.04f) { val c = birikim; birikim = 1f; sablonBoyut(vm, sablonSayfa, c) }
                                 }
                                 if (pan.x.isFinite() && pan.y.isFinite()) {
                                     top += pan
                                     if (top.getDistance() > viewConfiguration.touchSlop) girisSur += Offset(pan.x / (olcek * RW), pan.y / (olcek * RH))
                                 }
                             } while (ev.changes.any { it.pressed })
-                            if (girisSur != Offset.Zero) { val s = girisSur; girisSur = Offset.Zero
-                                vm.girisDegis { g -> g.copy(ofsX = (g.ofsX + s.x).coerceIn(-0.5f, 0.5f), ofsY = (g.ofsY + s.y).coerceIn(-0.5f, 0.5f)) } }
+                            if (girisSur != Offset.Zero) { val s = girisSur; girisSur = Offset.Zero; sablonKaydir(vm, sablonSayfa, s) }
                         }
-                    } else Modifier).then(if (false) Modifier.pointerInput(Unit) {
+                    }).then(if (false) Modifier.pointerInput(Unit) {
                         detectTransformGestures { _, _, zoom, _ ->
                             if (zoom.isFinite() && zoom > 0f) {
                                 birikim *= zoom
@@ -735,7 +741,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         }
                     } else Modifier))
                 val duzenAcik by vm.ekranDuzen.collectAsState()
-                if (duzenAcik == null) Text(if (sablonSayfa == "giris") "Yazıya dokun = düzenle · sürükle = taşı · iki parmak = boyut" else "Yazıya dokun = düzenle", color = Color.White, fontSize = 11.sp,
+                if (duzenAcik == null) Text(when (sablonSayfa) { "ozet" -> "Sürükle = taşı · iki parmak = boyut"; "kapanis" -> "Yazıya dokun = düzenle · sürükle = taşı (bırakınca yerleşir) · iki parmak = boyut"; else -> "Yazıya dokun = düzenle · sürükle = taşı · iki parmak = boyut" }, color = Color.White, fontSize = 11.sp,
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x99000000)).padding(horizontal = 9.dp, vertical = 3.dp))
             } else if (k != null && sira < p.klipler.size) {
                 // izlerken de: parmakla sürükle = fotoğrafı/videoyu kadraj içinde kaydır (yalnız taşan kısım kadar); çift dokun = ortala
@@ -871,10 +877,31 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
 }
 
 /** 3.72: şablon öğesi o anda ekranda mı (dokununca ekranda düzenleme açılsın). */
+/** 4.43: şablon yazısını parmakla taşıma / boyut — giriş, abone, özet, kapanış; değerler kareye oran, sınırlı. */
+internal fun sablonKaydir(vm: EditorDurum, tur: String, s: Offset) {
+    fun k(v: Float, d: Float) = (v + d).coerceIn(-0.5f, 0.5f)
+    when (tur) {
+        "giris" -> vm.girisDegis { g -> g.copy(ofsX = k(g.ofsX, s.x), ofsY = k(g.ofsY, s.y)) }
+        "abone" -> vm.hatirlaticiDegis { h -> h.copy(ofsX = k(h.ofsX, s.x), ofsY = k(h.ofsY, s.y)) }
+        "ozet" -> vm.ozetDegis { o -> o.copy(ofsX = k(o.ofsX, s.x), ofsY = k(o.ofsY, s.y)) }
+        "kapanis" -> vm.kapanisDegis(false) { kp -> kp.copy(ofsX = k(kp.ofsX, s.x), ofsY = k(kp.ofsY, s.y)) }
+    }
+}
+internal fun sablonBoyut(vm: EditorDurum, tur: String, c: Float) {
+    fun b(v: Float) = (v * c).coerceIn(0.6f, 1.6f)
+    when (tur) {
+        "giris" -> vm.girisDegis { g -> g.copy(olcek = b(g.olcek)) }
+        "abone" -> vm.hatirlaticiDegis { h -> h.copy(olcek = b(h.olcek)) }
+        "ozet" -> vm.ozetDegis { o -> o.copy(olcek = b(o.olcek)) }
+        "kapanis" -> vm.kapanisDegis(false) { kp -> kp.copy(olcek = b(kp.olcek)) }
+    }
+}
+
 internal fun sablonGorunur(p: Proje, tur: String, konum: Long): Boolean = when (tur) {
     "giris" -> p.giris.acik && Zaman.girisAralik(p).let { (a, b) -> konum in a..b }
     "abone" -> p.hatirlatici.acik && Zaman.hatirlaticiAralik(p).let { (a, b) -> konum in a..b }
     "kapanis" -> p.kapanisMs > 0 && konum >= p.klipMs
+    "ozet" -> GirisEfekt.ozetAralik(p)?.let { (a, b) -> konum in a..b } == true   // 4.43
     else -> false
 }
 
@@ -1153,6 +1180,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     val oz = p.ozet
     if (sekme == "ozet") Kart("Özet", ton = yesil, anahtar = oz.acik, anahtarDegis = { v -> vm.ozetDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("ozet") }) {
         if (!oz.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
+        if (oz.ofsX != 0f || oz.ofsY != 0f) TonHap("Yerine al", "h_odak", false, pembe) { vm.ozetDegis { it.copy(ofsX = 0f, ofsY = 0f) } }   // 4.43: ekranda parmakla taşındıysa
         var bs by remember(p.id) { mutableStateOf(oz.baslik) }
         OutlinedTextField(bs, { bs = it; vm.ozetDegis { o -> o.copy(baslik = it) } }, Modifier.fillMaxWidth(), label = { Text("Başlık") }, singleLine = true)
         var md by remember(p.id) { mutableStateOf(oz.maddeler) }
@@ -1172,7 +1200,10 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     val h = p.hatirlatici
     if (sekme == "abone") Kart("Abone hatırlatıcı", ton = pembe, anahtar = h.acik, anahtarDegis = { v -> vm.hatirlaticiDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("abone") }) {
         if (!h.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
-        TonHap("Ekranda düzenle", "degistir", false, pembe) { vm.sablonGoster("abone"); vm.ekranDuzen.value = "abone" }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            TonHap("Ekranda düzenle", "degistir", false, pembe) { vm.sablonGoster("abone"); vm.ekranDuzen.value = "abone" }
+            if (h.ofsX != 0f || h.ofsY != 0f || h.olcek != 1f) TonHap("Yerine al", "h_odak", false, turkuaz) { vm.hatirlaticiDegis { it.copy(ofsX = 0f, ofsY = 0f, olcek = 1f) } }   // 4.43
+        }
         Spacer(Modifier.height(6.dp))
         OnizlemeBandi(p, listOf("kart" to "Koyu hap", "klasik" to "Kırmızı bant"), h.stil, pembe, h.copy(stil = "") to p.logo,
             { s, W, H -> Cizim.hatirlatici(h.copy(acik = true, stil = s), W, H, p.logo, p.kapanis.kanal)?.let { yerlesimBmp(it, W, H) } }) { s -> vm.hatirlaticiDegis { it.copy(stil = s) }; vm.sablonGoster("abone") }
@@ -1192,7 +1223,10 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     val kp = p.kapanis
     if (sekme == "kapanis") Kart("Kapanış", ton = turkuaz, anahtar = kp.acik, anahtarDegis = { v -> vm.kapanisDegis { it.copy(acik = v) }; if (v) vm.sablonGoster("kapanis") }) {
         if (!kp.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
-        TonHap("Ekranda düzenle", "degistir", false, turkuaz) { vm.sablonGoster("kapanis"); vm.ekranDuzen.value = "kapanis" }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            TonHap("Ekranda düzenle", "degistir", false, turkuaz) { vm.sablonGoster("kapanis"); vm.ekranDuzen.value = "kapanis" }
+            if (kp.ofsX != 0f || kp.ofsY != 0f || kp.olcek != 1f) TonHap("Yerine al", "h_odak", false, pembe) { vm.kapanisDegis { it.copy(ofsX = 0f, ofsY = 0f, olcek = 1f) } }   // 4.43
+        }
         Spacer(Modifier.height(6.dp))
         OnizlemeBandi(p, listOf("cam" to "Cam kartlar", "cta" to "Renkli haplar", "sade" to "Sade"), kp.stil, turkuaz, kp.copy(stil = "") to p.logo,
             { s, W, H -> Cizim.kapanis(kp.copy(acik = true, stil = s), p.logo, W, H, null) }) { s -> vm.kapanisDegis { it.copy(stil = s) }; vm.sablonGoster("kapanis") }
@@ -1992,7 +2026,7 @@ private fun KesilenlerSayfasi(vm: EditorDurum, p: Proje, secili: String?) {
         Secim("Çıkış", NesneAnim.GIRISLER, n.cikis) { v -> vm.nesneDegis(n.id) { it.copy(cikis = v) } }
         Secim("Bekleme", NesneAnim.BEKLEMELER, n.bekleme) { v -> vm.nesneDegis(n.id) { it.copy(bekleme = v) } }
         // 4.37: elektrik tarama ışığı (gövde ve baş çevresinde dönen) — aç/kapat ve renk
-        if (!n.hareketli) {
+        run {   // 4.43: hareketli (videodan kesilen) nesnede de açık
             Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (n.isik) Renk.turuncu else Renk.kart2).clickable { vm.nesneDegis(n.id) { it.copy(isik = !it.isik) } }
                     .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {

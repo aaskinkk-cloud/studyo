@@ -74,6 +74,7 @@ object GirisEfekt {
         val kisa = min(w, h)
         val gA = min((y / 400f).coerceIn(0f, 1f), ((sure - y) / 400f).coerceIn(0f, 1f))
         if (gA <= 0f) return
+        if (o.ofsX != 0f || o.ofsY != 0f) { c.save(); c.translate(o.ofsX * w, o.ofsY * h); try { ozetCiz(c, w, h, o.copy(ofsX = 0f, ofsY = 0f), y, sure) } finally { c.restore() }; return }   // 4.43
         var ts = kisa * 0.062f * o.olcek; var mt = kisa * 0.05f * o.olcek
         baslikB.textSize = ts; maddeB.textSize = mt
         var pad = kisa * 0.045f

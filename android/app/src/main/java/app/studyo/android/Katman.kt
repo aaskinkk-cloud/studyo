@@ -285,16 +285,24 @@ class NesneKareBindirme(private val n: Nesne, private val klipBasMs: Long, priva
     private val bos: Bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
     private var sonIdx = -1
     private var bmp: Bitmap? = null
+    // 4.43: elektrik ışığı — kontur her kare için bir kez (n.id#kare), ışık her sunum anında (önizlemeyle aynı Elektrik.ciz)
+    private var kon: FloatArray? = null; private var isikBuf: Bitmap? = null; private var cikti: Bitmap? = null; private var sonUs = Long.MIN_VALUE
     private fun hazirla(t: Long): Long {
         val ms = klipBasMs + saat.yerelMs(t)
         val idx = Katman.kareNo(n, ms)
         if (idx != sonIdx) {
             sonIdx = idx
             bmp = Katman.nesneKaresi(n, idx, W)
+            kon = if (n.isik) bmp?.let { Elektrik.kontur(it, n.id + "#" + idx) } else null
+        }
+        if (t != sonUs) {
+            sonUs = t
+            val b = bmp; val k = kon
+            cikti = if (b != null && k != null) Elektrik.kare(b, k, ms / 1000f, n.isikRenk.toInt(), minOf(W, H) / 1080f, isikBuf).also { isikBuf = it } else b
         }
         return ms
     }
-    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return bmp ?: bos }
+    override fun getBitmap(presentationTimeUs: Long): Bitmap { hazirla(presentationTimeUs); return cikti ?: bos }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = hazirla(presentationTimeUs)
         val an = NesneAnim.an(n, ms, 200)   // 4.39: hareketli nesnede de giriş/çıkış/bekleme

@@ -139,20 +139,20 @@ object Cizim {
     // ---------------- Abone hatırlatıcı ----------------
     fun hatirlatici(h: Hatirlatici, W: Int, H: Int, logo: Logo? = null, kanal: String = ""): Yerlesim? {
         if (!h.acik) return null
-        val k = min(W, H).toFloat()
+        val k = min(W, H).toFloat() * h.olcek.coerceIn(0.5f, 2f)   // 4.43: boyut
         if (h.stil != "klasik") return hatirlaticiKart(h, W, H, logo, kanal)
         return bloklar(listOf(
             Blok("▶  " + h.yazi.ifBlank { "Abone ol" }, k * 0.05f, 0xFFFFFFFF.toInt(), zemin = 0xFFE53935.toInt()),
             Blok(h.kucuk, k * 0.03f, 0xFF1B2833.toInt(), zemin = 0xEEFFFFFF.toInt(), kalin = false),
-        ), (W * 0.6f).toInt(), sol = true, bosluk = 0.15f)?.let { Yerlesim(it, -1f + 2f * 0.05f, -1f + 2f * 0.2f, -1f, -1f) }
+        ), (W * 0.6f).toInt(), sol = true, bosluk = 0.15f)?.let { Yerlesim(it, -1f + 2f * 0.05f + h.ofsX * 2f, -1f + 2f * 0.2f - h.ofsY * 2f, -1f, -1f) }
     }
 
     /** Koyu hap kartın iki hâli (ABONE OL / 🔔 Abone olundu; genişlik aynı, kart zıplamaz) + dokunma noktası.
      *  dx, dy: düğmenin merkezi (bitmap içinde 0…1). */
-    class HatKart(val normal: Bitmap, val abone: Bitmap, val nokta: Bitmap, val dx: Float, val dy: Float)
+    class HatKart(val normal: Bitmap, val abone: Bitmap, val nokta: Bitmap, val dx: Float, val dy: Float, val ox: Float = 0f, val oy: Float = 0f)   // 4.43: ox/oy parmakla taşıma
 
     fun hatirlaticiKartSet(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): HatKart {
-        val k = min(W, H).toFloat()
+        val k = min(W, H).toFloat() * h.olcek.coerceIn(0.5f, 2f)   // 4.43: boyut
         val bas = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.040f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
         val alt = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.027f; color = 0xFFB9C0C7.toInt() }
         val dg = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = k * 0.034f; color = 0xFFFFFFFF.toInt(); typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); letterSpacing = 0.04f }
@@ -202,7 +202,7 @@ object Cizim {
             drawCircle(m, m, nr * 0.55f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xF2FFFFFF.toInt(); setShadowLayer(nr * 0.2f, 0f, 0f, 0x66000000) })
         }
         // nokta düğmenin sağ alt yarısına basar (örnekteki gibi)
-        return HatKart(kart(false), kart(true), nb, (rc.centerX() + dgW * 0.12f) / w, (cy + dgH * 0.18f) / hh)
+        return HatKart(kart(false), kart(true), nb, (rc.centerX() + dgW * 0.12f) / w, (cy + dgH * 0.18f) / hh, h.ofsX, h.ofsY)
     }
 
     private fun zilCiz(c: Canvas, x: Float, y: Float, s: Float) {
@@ -221,7 +221,7 @@ object Cizim {
     /** Kartın durağan hâli (sol orta). */
     private fun hatirlaticiKart(h: Hatirlatici, W: Int, H: Int, logo: Logo?, kanal: String): Yerlesim {
         val s = hatirlaticiKartSet(h, W, H, logo, kanal)
-        return Yerlesim(s.normal, -1f + 2f * HatAnim.SOL, 1f - 2f * HatAnim.ORTA_Y, -1f, 0f)
+        return Yerlesim(s.normal, -1f + 2f * (HatAnim.SOL + s.ox), 1f - 2f * (HatAnim.ORTA_Y + s.oy), -1f, 0f)
     }
 
     // ---------------- Altyazı ----------------
@@ -328,6 +328,7 @@ object Cizim {
         } else c.drawRect(0f, 0f, W.toFloat(), H.toFloat(), Paint().apply {
             shader = LinearGradient(0f, 0f, W.toFloat(), H.toFloat(), intArrayOf(0xFF2EC5D3.toInt(), 0xFF6FB7C9.toInt(), 0xFFF5A524.toInt()), null, Shader.TileMode.CLAMP)
         })
+        c.save(); icerikDonustur(c, kp, W, H)   // 4.43: içerik taşınır/büyür, arka plan yerinde
         val dikey = H > W
         var y = H * (if (dikey) 0.14f else 0.06f)
         // logo (yoksa kanal adının baş harfi) — sarı halkalı
@@ -380,9 +381,15 @@ object Cizim {
                 else c.drawBitmap(t, rc.centerX() - t.width / 2f, ry + rozet + kh * 0.05f, null)
             }
         }
+        c.restore()
         return b
     }
 
+    /** 4.43: kapanış kartının içeriğine parmakla verilen kayma ve boyut (merkez çevresinde). */
+    private fun icerikDonustur(c: Canvas, kp: Kapanis, W: Int, H: Int) {
+        c.translate(kp.ofsX * W, kp.ofsY * H)
+        val s = kp.olcek.coerceIn(0.5f, 2f); if (s != 1f) c.scale(s, s, W / 2f, H / 2f)
+    }
     fun kapanis(kp: Kapanis, logo: Logo?, W: Int, H: Int, arka: Bitmap? = null): Bitmap {
         if (kp.stil == "cam") return kapanisCam(kp, logo, W, H, arka)
         val b = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
@@ -391,6 +398,7 @@ object Cizim {
         c.drawRect(0f, 0f, W.toFloat(), H.toFloat(), Paint().apply {
             shader = LinearGradient(0f, 0f, W.toFloat(), H.toFloat(), intArrayOf(0xFF2EC5D3.toInt(), 0xFF6FB7C9.toInt(), 0xFFF5A524.toInt()), null, Shader.TileMode.CLAMP)
         })
+        c.save(); icerikDonustur(c, kp, W, H)   // 4.43
         var y = H * (if (H > W) 0.26f else 0.14f)
         yuvarlakLogo(logo, (k * 0.3f).toInt())?.let { lg ->
             c.drawCircle(W / 2f, y + lg.height / 2f, lg.height / 2f + k * 0.012f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() })
@@ -413,6 +421,7 @@ object Cizim {
             var x = (W - (hp.sumOf { it.width } + aralik * 2)) / 2f
             for (h in hp) { c.drawBitmap(h, x, y, null); x += h.width + aralik }
         }
+        c.restore()
         return b
     }
 
@@ -702,8 +711,8 @@ class HatirlaticiBindirme(private val kart: Cizim.HatKart, private val klipBasMs
     }
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val x = an(presentationTimeUs) ?: return StaticOverlaySettings.Builder().setAlphaScale(0f).build()
-        val solX = (HatAnim.SOL + x.dx) * W                     // kartın sol kenarı (px)
-        val zy = 1f - 2f * HatAnim.ORTA_Y
+        val solX = (HatAnim.SOL + x.dx + kart.ox) * W           // kartın sol kenarı (px) · 4.43: ox/oy parmakla taşıma
+        val zy = (1f - 2f * (HatAnim.ORTA_Y + kart.oy)).coerceIn(-1f, 1f)
         if (!nokta) {
             // Media3 çapaları −1…1 aralığında olmalı (3.12–3.17: kart kayarak girerken çapa −1'in altına düşüyor,
             // dışa aktarma IllegalArgumentException ile duruyordu). Kart soldan taşarken karenin sol kenarı sabit çapa olur,

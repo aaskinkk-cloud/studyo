@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.43 (27.11.2026, deneme · `yerel-android` dalı): hareketli nesnede elektrik ışığı, şablon yazılarını parmakla taşıma
+- Videodan kesilen (hareketli) nesnede **Elektrik ışık** açılıyor (renk seçimi dahil).
+- Kontur her kare için ayrı çıkarılıyor (`n.id#kare`), ışık her karede çiziliyor; önizleme ve dışa aktarma aynı çizimi (`Elektrik.ciz/kare`) kullanıyor.
+- **Şablon yazılarını parmakla taşıma/boyut (talep 7):** Görünüm › Şablon'da Abone, Özet ve Kapanış yazıları da giriş başlığı gibi: tek parmak sürükle = taşı, iki parmak = boyut; "Yerine al" eski yere/boyuta döndürür. Önizleme ve dışa aktarma aynı yerde (`Hatirlatici/Ozet/Kapanis.ofsX/ofsY/olcek`, `sablonKaydir/sablonBoyut`). Kapanışta arka plan yerinde kalır, yalnız içerik kayar; kart bırakınca yeniden çizilir.
+
 ## 4.42 (27.11.2026, deneme · `yerel-android` dalı): özet, logo büyüyerek, büyük nokta açılışı
 - **Görünüm › Şablon › Özet** (yeni sekme): "Bu videoda izleyecekleriniz" başlığı + maddeler (her satır bir madde, en çok 6); koyu kartta maddeler sırayla soldan gelir. Süre, yazı boyutu, renk ayarlı.
 - **Şablon › Giriş › Açılış efektleri** (başlık kapalıyken de çalışır): **Büyük nokta** — siyah ekranda renkli nokta zıplar, ekranı doldurur, ortadan açılıp videoyu gösterir (6 renk). **Logo büyüyerek** — logo ortada büyüyerek gelir, bekler, büyüyüp gider; geliş/ekranda/gidiş süreleri ayarlı.

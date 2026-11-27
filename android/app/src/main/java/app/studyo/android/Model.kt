@@ -193,17 +193,22 @@ data class Giris(
 @Serializable
 /** stil: "kart" = koyu hap: yuvarlak logo + başlık + alt satır + kırmızı ABONE OL (varsayılan) · "klasik" = önceki kırmızı/beyaz bant */
 data class Hatirlatici(val acik: Boolean = false, val anOran: Float = 0.5f, val yazi: String = "Kanalıma abone ol", val kucuk: String = "Yeni videolar için zili aç",
-                       val stil: String = "kart", val dugme: String = "ABONE OL")
+                       val stil: String = "kart", val dugme: String = "ABONE OL",
+                       /** 4.43: ekranda parmakla taşıma (karenin oranı, sağ/aşağı +) ve iki parmakla boyut (0,6…1,6) */
+                       val ofsX: Float = 0f, val ofsY: Float = 0f, val olcek: Float = 1f)
 
 /** 4.42: "Bu videoda izleyecekleriniz" özeti — giriş başlığından sonra; maddeler (her satır bir madde) sırayla gelir. */
 @Serializable
 data class Ozet(val acik: Boolean = false, val baslik: String = "Bu videoda izleyecekleriniz", val maddeler: String = "",
-                val sureMs: Long = 6000, val olcek: Float = 1f, val renk: Int = 0xFFFFC107.toInt()) {
+                val sureMs: Long = 6000, val olcek: Float = 1f, val renk: Int = 0xFFFFC107.toInt(),
+                val ofsX: Float = 0f, val ofsY: Float = 0f) {   // 4.43: parmakla taşıma
     val maddeListe: List<String> get() = maddeler.lines().map { it.trim() }.filter { it.isNotEmpty() }
 }
 
 @Serializable
-data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğin için teşekkürler!")
+data class Kapanis(val acik: Boolean = false, val stil: String = "cam", val sureMs: Long = 5000, val kanal: String = "Şefin Doğası", val yazi: String = "İzlediğin için teşekkürler!",
+                   /** 4.43: kartın içeriği (logo + yazılar) parmakla taşınır / iki parmakla büyür; arka plan yerinde kalır */
+                   val ofsX: Float = 0f, val ofsY: Float = 0f, val olcek: Float = 1f)
 
 @Serializable
 data class Kelime(val basMs: Long, val sonMs: Long, val metin: String)

@@ -2,9 +2,23 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.17 · 27.11.2026 (Karanlık Oda 6.71, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.18 · 27.11.2026 (Karanlık Oda 6.72, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.18 (27.11.2026): fotoğraf editöründe yeni düzen (video editörünün 2.16 düzeni)
+- **Alt çubuk 5 bölüm:** Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür):
+  - Düzenle › Otomatik · Kırp · Işık · Detay · HDR
+  - Renk › Filtreler · Renk · HSL · Eğriler
+  - Rötuş › Selfi · Rötuş · Fırça · Kes (yapay zekâ) · Efektler
+  - Metin › Yazı · İmza · Haber · Katman
+  - Kaydet › Geçmiş · Kitaplığa kaydet (hemen kaydeder; otomatik kayıt da sürer) · Dışa aktar
+- Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy. Her bölüm son açılan aracı hatırlar (`localStorage['studyo.fGrup']`). Düzenlenmiş araçta hap ve bölüm simgesinde nokta.
+- Panel içi: araç adı + ✓, bölüm sekmeleri (3. katman), kaydırıcılar tek tek; seçili öğeler turuncu, Dışa Aktar turuncu (video editörüyle aynı renkler).
+- Haplar Karanlık Oda'nın kendi sekme düğmelerine basar; 18 araç ve işlevleri aynen yerinde, hiçbiri kaldırılmadı. Basit mod gizlediği araçların hapını da gizler.
+- **Önceki düzen:** ⚙ Ayarlar › Editör düzeni › "Tek sıra (önceki)" (`localStorage['studyo.fYeni']`).
+- Kod: `kaynak/foto-yeni.js`, `foto/index.html` içindeki kopyası.
+- Test (412×915): her bölüm/hap doğru aracı açıyor, yeniden dokununca panel kapanıyor, Kitaplığa kaydet, Kes ekranı açılıyor. Hata yok. Telefonda denenmedi.
 
 ## 2.17 (27.11.2026): fotoğraf editöründe Yazı menüsü sekmeli
 - Bir yazı seçiliyken panel üstte beş sekmedir: **Metin** (yazı kutusu, font, kalınlık/italik, hizalama, BÜYÜK HARF, Çoğalt/Sil) · **Stil** (çok satırlı şablonda Stil ve Vurgu rengi; Boyut, Yazı rengi, Opaklık, Harf aralığı) · **Efekt** (Gölge, Kontur, Bant zemin) · **Konum** (Döndür, Nesnenin arkasına) · **Yüzey** → üçüncü katman **Şekil** (mockup: düz/serbest/duvar/şişe/oval/kumaş + perspektif) | **Kaynaştır** (otomatik uyum, ışık, doku, gren, aşınma).

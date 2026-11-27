@@ -391,7 +391,33 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 Box(Modifier.width(64.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Renk.turuncu.copy(alpha = 0.8f)))
             }
             if (Duzen.yaziliMenu && !Renk.sb) OynaticiSatiri(vm, p)
+            // 4.52: alt menü / 3. seviye hesapları panelden önce (panel başlığındaki sekmeler de kullanır)
+            val b = BOLUMLER.first { it.anahtar == bolum }
+            val renkSekme by vm.renkSekme.collectAsState()
+            val altlar: List<AltOge> = if (bolum == "renk") {
+                // 3.70: Renk alt menüsü gruplu (Hazır · Işık · Renk · Detay · HSL); gruptaki ayarlar panelin tepesinde çip
+                val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
+                RENK_GRUPLARI.map { g -> AltOge(g.ad, g.simge, Color(g.renk), panelAcik && renkGrubu(renkSekme).anahtar == g.anahtar, g.sayfalar.any { renkSekmeDegisti(ra, it) }) {
+                    git("renk", g.anahtar, null) } }
+            } else b.haplar.mapIndexed { sira, (k, ad) ->
+                AltOge(ad, HAP_SIMGE[k] ?: "ekle", Color(ALT_RENK[sira % ALT_RENK.size]), panelAcik && haplar[bolum] == k, degisen["$bolum/$k"] == true) {
+                    if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true; misafir = null }
+                }
+            }
+            // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
+            // 4.15: yeni düzende ayrı satır yok — çipler alt menü satırında seçili alt menünün hemen yanında (tek satır, sağa kayar)
+            val sekmeMod = Duzen.menuSekme && !Duzen.yaziliMenu   // 4.52: alt menü ve 3. seviye panelin başlığında (C)
+            val yeniAlt = (Duzen.altUstte || sekmeMod) && !Duzen.yaziliMenu
+            val cipVeri: CipVeri? = if (panelAcik && !Duzen.yaziliMenu && misafir == null) {
+                if (bolum == "renk") {
+                    val g = renkGrubu(renkSekmeS)
+                    if (g.sayfalar.size > 1) {
+                        val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
+                        CipVeri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
+                            renkSekmeS, { renkSekmeDegisti(ra, it) }, emptyList()) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
+                    } else null
             Column(Modifier.fillMaxWidth().weight(1f)) {
+                if (sekmeMod && panelAcik && misafir == null) PanelSekmeleri(altlar, cipVeri)
                 if (bolum == "renk" && panelAcik) {
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
                     KlipSeridi(vm, p, sec, ekle, kucuk = true)
@@ -451,29 +477,6 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // ---- 3.61: alt menüler + ana menü (Ahmet'in isteği) ----
             // Ana menüde bir bölüme dokununca alttaki ana menü kaybolur, yerine o bölümün alt menüleri gelir; başta Geri.
             // Geri: ana menü geri gelir, alt menüler bir üst satıra çıkar. Renk'in ayar düğmeleri (Parlaklık, Kontrast…) de bu satırlarda.
-            val b = BOLUMLER.first { it.anahtar == bolum }
-            val renkSekme by vm.renkSekme.collectAsState()
-            val altlar: List<AltOge> = if (bolum == "renk") {
-                // 3.70: Renk alt menüsü gruplu (Hazır · Işık · Renk · Detay · HSL); gruptaki ayarlar panelin tepesinde çip
-                val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
-                RENK_GRUPLARI.map { g -> AltOge(g.ad, g.simge, Color(g.renk), panelAcik && renkGrubu(renkSekme).anahtar == g.anahtar, g.sayfalar.any { renkSekmeDegisti(ra, it) }) {
-                    git("renk", g.anahtar, null) } }
-            } else b.haplar.mapIndexed { sira, (k, ad) ->
-                AltOge(ad, HAP_SIMGE[k] ?: "ekle", Color(ALT_RENK[sira % ALT_RENK.size]), panelAcik && haplar[bolum] == k, degisen["$bolum/$k"] == true) {
-                    if (k == "disa") disaAcik = true else { haplar[bolum] = k; panelAcik = true; misafir = null }
-                }
-            }
-            // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
-            // 4.15: yeni düzende ayrı satır yok — çipler alt menü satırında seçili alt menünün hemen yanında (tek satır, sağa kayar)
-            val yeniAlt = Duzen.altUstte && !Duzen.yaziliMenu
-            val cipVeri: CipVeri? = if (panelAcik && !Duzen.yaziliMenu && misafir == null) {
-                if (bolum == "renk") {
-                    val g = renkGrubu(renkSekmeS)
-                    if (g.sayfalar.size > 1) {
-                        val ra = p.klipler.getOrNull(sec)?.renk ?: RenkAyar()
-                        CipVeri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
-                            renkSekmeS, { renkSekmeDegisti(ra, it) }, emptyList()) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
-                    } else null
                 } else {
                     val h = haplar[bolum] ?: ""
                     // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
@@ -487,7 +490,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 }
             } else null
             val tekSatir = yeniAlt && (Duzen.cipTekSatir || bolum == "hazirb")   // 4.16: varsayılan ayrı satır (Ayarlar › Menü görünümü) · 4.47: Hazır hep yanında
-            if (!tekSatir) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
+            if (!tekSatir && !sekmeMod) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
             @Composable fun SabitDuzenle() {
                 val on = bolum == "duzenle"
@@ -544,7 +547,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     }
                 }
                 // 4.14: alt menüler küçük satır olarak ana menünün üstünde; başında bölümün adı sabit (tema renginde), alt menüler yanında kayar
-                if (yeniAlt && panelAcik && altlar.isNotEmpty()) {
+                if (yeniAlt && panelAcik && altlar.isNotEmpty() && !sekmeMod) {   // 4.52: sekme düzeninde bu satır panelin başında
                     Row(Modifier.fillMaxWidth().background(Renk.zemin).padding(start = 6.dp, end = 6.dp, top = 3.dp, bottom = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                         // 4.17: yalnız simge (yazısız, dar)
                         Box(Modifier.size(32.dp * Duzen.menuOlcek).clip(CircleShape).background(Renk.turuncu.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
@@ -1873,6 +1876,43 @@ private fun SatirCipleri(c: CipVeri) {
         }
     }
     c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) }
+}
+
+/** 4.52 (C · panel başlığında sekmeler): alt menü altı çizili sekmeler, 3. seviye eşit bölmeli renkli seçici; altta yalnız ana menü. */
+@Composable
+private fun PanelSekmeleri(altlar: List<AltOge>, c: CipVeri?) {
+    Column(Modifier.fillMaxWidth().background(Renk.zemin).padding(horizontal = 10.dp)) {
+        if (altlar.size > 1) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            altlar.forEach { a ->
+                Column(Modifier.clickable(onClick = a.tik).padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Simge(a.simge, if (a.secili) Renk.turuncu else Renk.soluk, 15.dp)
+                        Text(" " + menuAd(a.ad), color = if (a.secili) Renk.turuncu else Renk.soluk, fontSize = 13.sp * menuYaziK,
+                            fontWeight = if (a.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                    }
+                    Box(Modifier.padding(top = 5.dp).width(36.dp).height(2.dp).background(if (a.secili) Renk.turuncu else Color.Transparent))
+                }
+            }
+        }
+        if (altlar.size > 1) Box(Modifier.fillMaxWidth().height(1.dp).background(Renk.cizgi))
+        if (c != null && c.liste.size > 1) {
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(12.dp)).background(Renk.kart).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                c.liste.forEachIndexed { i, a ->
+                    val on = a.anahtar == c.secili
+                    val renk = Color(ALT_RENK[(i + 2) % ALT_RENK.size])
+                    Row(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(renk.copy(alpha = if (on) 0.95f else 0.14f)).clickable { c.sec(a.anahtar) }
+                        .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Simge(a.simge, if (on) Color(0xFF111111) else renk, 13.dp)
+                        Text(" " + menuAd(a.ad), color = if (on) Color(0xFF111111) else renk, fontSize = 11.sp * menuYaziK, fontWeight = FontWeight.SemiBold,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 3.dp), 10.dp)
+                    }
+                }
+            }
+            if (c.bag.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) { c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) } }
+        }
+        Spacer(Modifier.height(4.dp))
+    }
 }
 
 /** 4.47: alt menünün yanındaki sayfa düğmeleri — renkli, simgeli; başta "›" ve ince çerçeveli grup (alt menünün alt menüsü olduğu belli). */

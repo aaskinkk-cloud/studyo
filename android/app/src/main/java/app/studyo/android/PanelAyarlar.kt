@@ -103,6 +103,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Önizlemedeki hızlı düğmeleri gizle", Duzen.hizliGizli) { Duzen.hizliGizli = it; Duzen.hizliKaydet(ctx) }
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
+        AnahtarSatiri("Alt menüler panelin başında sekme (altta yalnız ana menü)", Duzen.menuSekme) { Duzen.menuSekme = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("menuSekme", it).apply() }   // 4.52
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır
         AnahtarSatiri("Logo kütüphanesi Yayın › Logo'da (önceki yerleşim)", Duzen.logoKutupEski) { Duzen.logoKutupEski = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("logoKutupEski", it).apply() }   // 4.49
         AnahtarSatiri("Alt menünün yanındaki sayfa düğmeleri renkli ve simgeli", Duzen.cipRenkli) { Duzen.cipRenkli = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("cipRenkli", it).apply() }   // 4.47

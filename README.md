@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.52 (27.11.2026, deneme · `yerel-android` dalı): menü düzeni C — panel başlığında sekmeler
+- Ayarlar › **"Alt menüler panelin başında sekme (altta yalnız ana menü)"**: alt menüler panelin üstünde altı çizili sekmeler (simge + ad), 3. seviye hemen altında eşit bölmeli renkli seçici (✓ işaretleri, bağlantılar dahil); altta yalnız ana menü. Tasarım tuvalindeki C.
+- Kapalıyken (varsayılan) önceki düzen aynen. Alt menü/3. seviye hesapları panelden önce yapılır (`PanelSekmeleri`).
+
 ## 4.51 (27.11.2026, deneme · `yerel-android` dalı): "Büyük nokta" geçişi
 - **Efekt › Geçiş › Işık ve hareket › Büyük nokta:** giden klipte renkli nokta ortadan büyüyüp ekranı doldurur; gelen klipte ortadan halka gibi açılır (beyaz ince halka). Renk: Hazır › Açılış efektleri'ndeki nokta rengi. Seçilince süre 1,2 sn (projenin geçişi); süre kaydırıcısı, ✓✓ Tümüne ve klip arası seçim diğer geçişler gibi.
 - Dışa aktarmada GPU'da (KenarEtki, `uNokta`/`uRenk`), önizlemede aynı biçim. Açılıştaki Büyük nokta ayrı, yerinde.

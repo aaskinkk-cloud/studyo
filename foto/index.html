@@ -50,7 +50,7 @@
   if(/github\.io$/.test(location.hostname)&&localStorage.getItem("ko:tercih")==="cf"){ var CF="https://ahmet-uygulamalar.pages.dev/karanlik-oda/", bitti=0;
     var zt=setTimeout(function(){ if(!bitti){ bitti=1; try{localStorage.removeItem("ko:tercih")}catch(_){} } },3500);
     fetch(CF+"manifest.webmanifest",{mode:"no-cors",cache:"no-store"}).then(function(){ if(!bitti){ bitti=1; clearTimeout(zt); location.replace(CF+"?kaynak=gh"+location.hash); } }).catch(function(){ if(!bitti){ bitti=1; clearTimeout(zt); try{localStorage.removeItem("ko:tercih")}catch(_){} } }); }
-}catch(e){} })();</script><meta name="surum" content="6.76" data-ad="Karanlık Oda" data-tarih="27.11.2026">
+}catch(e){} })();</script><meta name="surum" content="6.77" data-ad="Karanlık Oda" data-tarih="27.11.2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -387,7 +387,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
   <div class="home-top">
    <div>
     <h1 class="wordmark"><span class="lamp"></span>Karanlık Oda</h1>
-    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.76 · 27.11.2026</span></p>
+    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.77 · 27.11.2026</span></p>
    </div>
    <button class="icon-btn" id="themeBtn" aria-label="Tema değiştir"><svg class="icon"><use href="#i-moon"/></svg></button>
   </div>
@@ -2717,6 +2717,85 @@ function styleControls(add){ // etkin stil katmanı için ayarlar
   add(slider({id:"stF",label:`Mat siyah aktarımı (ölçülen ${full.fade})`,min:0,max:150,get:()=>pr.style.fadeAmt!=null?pr.style.fadeAmt:100,set:v=>upd("fadeAmt",v),def:100,fmt:v=>v+"%",commitLabel:"Stil: mat siyah"}));
   if(!full.grain&&!full.fade) add(el("p",{class:"note",style:"margin:0"},"Referans, bu fotoğraftan daha grenli ya da daha mat değil; bu yüzden ek gren ve solukluk eklenmedi."));
 }
+/* ================== 6.77 · STİL ÇIKAR: referans fotoğraftan AYAR DEĞERLERİNİ birebir çıkarır ==================
+   Referans ölçülür (ışıklık dağılımı, renk dengesi, doygunluk, 8 renk bandı, vinyet); sonra bu fotoğraf küçük boyutta
+   uygulamanın kendi motoruyla tekrar tekrar çizilip ayarlar adım adım referansa yaklaştırılır (koordinat inişi).
+   Sonuç görünür kaydırıcılardır: Işık, Renk, HSL, Eğri, Solukluk, Gren, Vinyet — elle ince ayar yapılabilir, hazır ayar olarak saklanır. */
+const SC_Q=[.02,.1,.25,.4,.5,.6,.75,.9,.98], SC_CEN=[0,30,60,120,180,230,275,320];
+const SC_L1=["exposure","contrast","highlights","shadows","whites","blacks","fade"], SC_L2=["temp","tint","vibrance","saturation"];
+function scOlc(d,W,H){ const n=W*H, Ls=new Float32Array(n); let A=0,B=0,C=0,ct=0,cn=0,et=0,en=0;
+  const bd=SC_CEN.map(()=>({w:0,hx:0,hy:0,s:0,l:0}));
+  for(let i=0,q=0;i<n;i++,q+=4){ const r=d[q]/255,g=d[q+1]/255,b=d[q+2]/255; const o=toOklab(r,g,b), L=o[0]; Ls[i]=L; A+=o[1]; B+=o[2]; C+=Math.hypot(o[1],o[2]);
+    const x=i%W, y=(i/W)|0, rx=(x/W-.5)*2, ry=(y/H-.5)*2, rr=rx*rx+ry*ry; if(rr<.2){ ct+=L; cn++; } else if(rr>1.1){ et+=L; en++; }
+    const mx=Math.max(r,g,b), mn=Math.min(r,g,b), dl=mx-mn, sv=mx>0?dl/mx:0;
+    if(sv>.14&&mx>.1&&dl>0){ let h=mx===r?((g-b)/dl)%6:mx===g?(b-r)/dl+2:(r-g)/dl+4; h=(h*60+360)%360;
+      let j=0,bm=999; for(let k=0;k<8;k++){ const dd=Math.abs(((h-SC_CEN[k]+540)%360)-180); if(dd<bm){ bm=dd; j=k; } }
+      const E=bd[j]; E.w++; E.hx+=Math.cos(h*Math.PI/180); E.hy+=Math.sin(h*Math.PI/180); E.s+=sv; E.l+=L; } }
+  Ls.sort();
+  return {q:SC_Q.map(t=>Ls[Math.round(t*(n-1))]), a:A/n, b:B/n, c:C/n, vig:(en&&cn&&ct>0)?(et/en)/(ct/cn):1,
+    bands:bd.map(E=>E.w<n*.01?null:{w:E.w/n, h:(Math.atan2(E.hy,E.hx)*180/Math.PI+360)%360, s:E.s/E.w, l:E.l/E.w})}; }
+function scKayip(S,T,mod){ let k=0;
+  if(mod.lum){ for(let i=0;i<SC_Q.length;i++){ const d=S.q[i]-T.q[i]; k+=d*d*100*mod.lum; } }
+  if(mod.col){ k+=((S.a-T.a)**2+(S.b-T.b)**2)*2500*mod.col+(S.c-T.c)**2*900*mod.col; }
+  if(mod.hsl){ for(let j=0;j<8;j++){ const s=S.bands[j], t=T.bands[j]; if(!s||!t) continue; const dh=(((s.h-t.h)+540)%360)-180;
+    k+=t.w*((dh/40)**2+((s.s-t.s)/.25)**2+((s.l-t.l)/.2)**2)*mod.hsl; } }
+  if(mod.vig) k+=(S.vig-T.vig)**2*40*mod.vig;
+  return k; }
+const SC_HEPSI={lum:1,col:1,hsl:1,vig:1};
+async function stilCikar(file){
+  if(!file||!ED.pipe) return; const b=busy("Referans ölçülüyor…"), yaz=t=>{ const m=document.getElementById("busyMsg"); if(m) m.textContent=t; };
+  try{
+    const bm=await createImageBitmap(file,{imageOrientation:"from-image"}); const rs=Math.min(1,200/Math.max(bm.width,bm.height));
+    const rc=document.createElement("canvas"); rc.width=Math.max(1,Math.round(bm.width*rs)); rc.height=Math.max(1,Math.round(bm.height*rs)); rc.getContext("2d").drawImage(bm,0,0,rc.width,rc.height);
+    const big=document.createElement("canvas"); const bs=Math.min(1,1024/Math.max(bm.width,bm.height)); big.width=Math.round(bm.width*bs); big.height=Math.round(bm.height*bs); big.getContext("2d").drawImage(bm,0,0,big.width,big.height); bm.close();
+    const T=scOlc(rc.getContext("2d").getImageData(0,0,rc.width,rc.height).data,rc.width,rc.height);
+    const th=document.createElement("canvas"); const ts=120/Math.max(rc.width,rc.height); th.width=Math.round(rc.width*ts); th.height=Math.round(rc.height*ts); th.getContext("2d").drawImage(rc,0,0,th.width,th.height);
+    const ad=(file.name||"referans").replace(/\.[^.]+$/,"").slice(0,40);
+    /* başlangıç: bu fotoğrafın kendi düzenlemesi; eşleşecek ayarlar sıfırdan aranır, filtre kaldırılır */
+    const st=deep(ED.state); [...SC_L1,...SC_L2,"vignette","grain"].forEach(k=>st.p[k]=0); st.hsl=new Array(24).fill(0); st.curves=ID_CURVE(); st.look={id:null,amt:100};
+    const pc=ED.prevCanvas, W=Math.max(16,Math.round(128*Math.min(1,pc.width/pc.height))), H=Math.max(16,Math.round(128*Math.min(1,pc.height/pc.width)));
+    const ciz=()=>{ const ef=effective(st); ED.pipe.render(ef,W,H,{hasMask:st.strokes.length>0,lut3Amt:prepPipe(ef)}); const gl=ED.pipe.gl, rw=Math.min(W,gl.drawingBufferWidth), rh=Math.min(H,gl.drawingBufferHeight);
+      const px=new Uint8Array(rw*rh*4); gl.readPixels(0,0,rw,rh,gl.RGBA,gl.UNSIGNED_BYTE,px); return scOlc(px,rw,rh); };
+    let say=0; const bekle=()=>new Promise(r=>requestAnimationFrame(()=>r()));
+    const L0=scKayip(ciz(),T,SC_HEPSI);
+    async function in_(adim,anahtarlar,al,koy,sinir,mod,adimlar){ let best=scKayip(ciz(),T,mod);
+      for(const st_ of adimlar){ for(let tur=0;tur<3;tur++){ let iyi=false;
+        for(const k of anahtarlar){ const v0=al(k);
+          for(const dv of [st_,-st_]){ const v=Math.max(sinir(k)[0],Math.min(sinir(k)[1],+(v0+dv).toFixed(4))); if(v===v0) continue; koy(k,v); const L=scKayip(ciz(),T,mod);
+            if(L<best-1e-7){ best=L; iyi=true; break; } koy(k,v0); }
+          if(++say%10===0){ yaz(adim+" · "+say+" deneme"); await bekle(); } }
+        if(!iyi) break; } }
+      return best; }
+    const pAl=k=>st.p[k], pKoy=(k,v)=>{ st.p[k]=v; }, pSin=k=>[DEFS[k].min,DEFS[k].max];
+    await in_("Işık",SC_L1,pAl,pKoy,pSin,{lum:1},[32,16,8,4,2]);
+    await in_("Renk dengesi",SC_L2,pAl,pKoy,pSin,{col:1,lum:.3,hsl:.3},[32,16,8,4,2]);
+    const S1=ciz(), hk=[]; for(let j=0;j<8;j++) if(T.bands[j]&&S1.bands[j]) hk.push(j*3,j*3+1,j*3+2);
+    if(hk.length) await in_("HSL",hk,k=>st.hsl[k],(k,v)=>{ st.hsl[k]=v; },()=>[-100,100],{hsl:1,col:.3,lum:.3},[40,20,10,5]);
+    /* ince ton: ana eğride 3 düğüm */
+    st.curves.m=[[0,0],[.25,.25],[.5,.5],[.75,.75],[1,1]];
+    await in_("Ton eğrisi",[1,2,3],k=>st.curves.m[k][1],(k,v)=>{ st.curves.m[k][1]=v; },k=>[st.curves.m[k][0]-.15,st.curves.m[k][0]+.15],{lum:1,col:.2,hsl:.2},[.04,.02,.01]);
+    if(st.curves.m.every(([x,y])=>Math.abs(x-y)<.002)) st.curves.m=[[0,0],[1,1]];
+    await in_("Vinyet",["vignette"],pAl,pKoy,pSin,{vig:1,lum:.2},[24,12,6,3]);
+    /* gren: gürültü farkı (mevcut stil kopyalamadaki ölçü) */
+    try{ const rn=noiseSigma(big), sn=(ED.srcStats||(ED.srcStats=styleStats(ED.prevCanvas))).noise; if(rn!=null&&sn!=null) st.p.grain=Math.round(Math.max(0,Math.min(45,(rn-sn)*14))); }catch(e){}
+    const L1=scKayip(ciz(),T,SC_HEPSI), kapandi=L0>0?Math.max(0,Math.min(100,Math.round(100*(1-Math.sqrt(L1/L0))))):100;
+    /* sonuç: kaydırıcılara yazılır */
+    const s=ED.state, fit={p:{},hsl:st.hsl.slice(),m:st.curves.m.map(x=>x.slice())};
+    [...SC_L1,...SC_L2,"vignette","grain"].forEach(k=>{ fit.p[k]=st.p[k]; s.p[k]=st.p[k]; }); s.hsl=st.hsl.slice(); s.curves=s.curves||ID_CURVE(); s.curves.m=st.curves.m.map(x=>x.slice()); s.look={id:null,amt:100};
+    ED.scFit={ad,thumb:th.toDataURL("image/jpeg",.8),kapandi,fit,guc:100,rec:ED.rec&&ED.rec.id};
+    const a=Presets.list(); a.unshift(presetFromState("Birebir: "+ad)); Presets.save(a);
+    ED.autoOpen=null; commit("Stil çıkarıldı: "+ad); renderPanel(); requestRender(); markTabs();
+    toast(`Ayarlar çıkarıldı · fark %${kapandi} kapandı. Hazır ayarlarım'a da kaydedildi.`);
+  }catch(e){ console.error(e); toast("Referans işlenemedi: "+(e&&e.message||e)); requestRender(); }
+  finally{ b.close(); } }
+function scGuc(v){ const F=ED.scFit; if(!F) return; const s=ED.state, k=v/100; F.guc=v;
+  Object.keys(F.fit.p).forEach(key=>{ const d=DEFS[key]; s.p[key]=Math.max(d.min,Math.min(d.max,Math.round(F.fit.p[key]*k))); });
+  s.hsl=F.fit.hsl.map(x=>Math.max(-100,Math.min(100,Math.round(x*k))));
+  s.curves.m=F.fit.m.map(([x,y])=>[x,Math.max(0,Math.min(1,x+(y-x)*k))]); requestRender(); }
+function scKart(add){ const F=ED.scFit; if(!F||!ED.rec||F.rec!==ED.rec.id) return;
+  add(el("div",{class:"style-card"},el("img",{src:F.thumb,alt:"Referans"}),
+    el("div",{style:"flex:1;min-width:0"},el("b",null,"Birebir: "+F.ad),el("small",{style:"display:block;color:var(--muted);font-size:12px;margin-top:2px"},`Fark %${F.kapandi} kapandı`),el("div",{class:"note",style:"margin:0"},`Fark %${F.kapandi} kapandı · Işık, Renk, HSL, Eğriler, Vinyet, Gren kaydırıcılarına yazıldı.`))));
+  add(slider({id:"scguc",label:"Eşleştirme gücü",min:0,max:150,get:()=>F.guc,set:v=>scGuc(v),def:100,fmt:v=>v+"%",commitLabel:"Eşleştirme gücü"})); }
 /* ================== Yardımcılar ================== */
 const $=s=>document.querySelector(s);
 function el(tag,attrs,...kids){ const e=document.createElement(tag);
@@ -3145,6 +3224,9 @@ function renderPanel0(){
   case "filters":{
     add(panelHead("Filtreler ve hazır ayarlar", s.look.id&&resolveLook(s.look)?el("span",{class:"mono",style:"color:var(--muted);font-size:12px"},resolveLook(s.look).n):null));
     { const inp=el("input",{type:"file",accept:"image/*",id:"stylePick",style:"display:none",onchange:e=>{ const f=e.target.files[0]; e.target.value=""; copyStyle(f); }});
+      const inp2=el("input",{type:"file",accept:"image/*",style:"display:none",onchange:e=>{ const f=e.target.files[0]; e.target.value=""; stilCikar(f); }});
+      add(inp2, el("button",{class:"big-one",onclick:()=>inp2.click()},ico("i-auto"),el("div",null,el("b",null,"Ayarları birebir çıkar"),el("span",null,"Referans fotoğrafın ışığı, renk dengesi, HSL'si ve ton eğrisi ölçülür; kaydırıcılar o değerlere gelir, elle ince ayar yapabilirsin."))));
+      scKart(add);
       add(inp, el("button",{class:"big-one",onclick:()=>inp.click()},ico("i-copy"),el("div",null,el("b",null,"Başka fotoğrafın stilini kopyala"),el("span",null,"Beğendiğin bir fotoğrafı seç; ışığı ve renkleri bu fotoğrafa aktarılır, hazır ayar olarak da saklanır."))));
       styleControls(add); }
     { const on=s.look.id==="au_huzun"; /* 6.56: Orman hüznü kısayolu */
@@ -11628,7 +11710,7 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
 
 </script>
 <script>
-/* ===== 2.18–2.22 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.23 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -11732,6 +11814,8 @@ body.ed-tam.ed-tam-panel #tabsWrap{display:contents}
     'html.st-fy.st-izgara #panelIn .presets .pz canvas{width:100%!important;height:auto!important;aspect-ratio:1}',
     'html.st-fy #panelIn .presets .pz{font-size:10.5px;line-height:1.2;text-align:center;word-break:break-word}',
     '#stIzgara{display:none}',
+    /* dosya seçici kutusu hiç görünmez (düğmeler onu açar); bölüm sekmeleri inline display'i ezdiği için gerekli */
+    'html.st-fy #panelIn input[type=file]{display:none!important}',
     'html.st-fy.st-filtre #stIzgara{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);padding:0;flex:none}',
     '#stIzgara svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
     '.duzen-st{margin:10px 0 4px}.duzen-st b{display:block;font:700 13px var(--f-ui);margin-bottom:6px}.duzen-st small{display:block;opacity:.6;margin-top:6px}'

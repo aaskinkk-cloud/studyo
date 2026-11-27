@@ -1,4 +1,4 @@
-/* ===== 2.18–2.22 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.23 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -102,6 +102,8 @@
     'html.st-fy.st-izgara #panelIn .presets .pz canvas{width:100%!important;height:auto!important;aspect-ratio:1}',
     'html.st-fy #panelIn .presets .pz{font-size:10.5px;line-height:1.2;text-align:center;word-break:break-word}',
     '#stIzgara{display:none}',
+    /* dosya seçici kutusu hiç görünmez (düğmeler onu açar); bölüm sekmeleri inline display'i ezdiği için gerekli */
+    'html.st-fy #panelIn input[type=file]{display:none!important}',
     'html.st-fy.st-filtre #stIzgara{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);padding:0;flex:none}',
     '#stIzgara svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
     '.duzen-st{margin:10px 0 4px}.duzen-st b{display:block;font:700 13px var(--f-ui);margin-bottom:6px}.duzen-st small{display:block;opacity:.6;margin-top:6px}'

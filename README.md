@@ -2,9 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.22 · 27.11.2026 (Karanlık Oda 6.76, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.23 · 27.11.2026 (Karanlık Oda 6.77, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.23 (27.11.2026): Filtreler › "Ayarları birebir çıkar"
+- Referans fotoğraf seçilir; ışıklık dağılımı (9 nokta), renk dengesi, doygunluk, 8 renk bandı (ton/doygunluk/parlaklık) ve vinyet ölçülür. Sonra bu fotoğraf küçük boyutta uygulamanın kendi motoruyla tekrar tekrar çizilir ve ayarlar adım adım referansa yaklaştırılır (koordinat inişi, ~400 deneme, birkaç saniye).
+- Sonuç **görünür kaydırıcılara** yazılır: Işık (Pozlama, Kontrast, Parlak alanlar, Gölgeler, Beyazlar, Siyahlar, Solukluk) · Renk (Sıcaklık, Renk tonu, Canlılık, Doygunluk) · HSL (8 renk × 3) · ana ton eğrisi (3 düğüm) · Vinyet · Gren (gürültü farkından). Filtre katmanı kaldırılır; elle ince ayar yapılabilir.
+- Kart: referans küçük resmi, "Fark %… kapandı", **Eşleştirme gücü** %0–150. Sonuç "Birebir: <ad>" adıyla Hazır ayarlarım'a kaydedilir (toplu düzenlemede de kullanılır).
+- Eski "Başka fotoğrafın stilini kopyala" (toptan aktarım) aynen duruyor.
+- Panelde görünen "Choose File" kutusu gizlendi (bölüm sekmeleri gizli dosya girişini görünür yapıyordu).
+- Kod: `foto/index.html` › `stilCikar`, `scOlc`, `scKayip`, `scGuc`, `scKart`.
+- Test (yapay referans: +%35 kontrast, %20 az doygun, sıcak, %8 koyu): fark %84 kapandı, 3,9 sn (yazılım grafik birimiyle); hata yok. Telefonda denenmedi.
 
 ## 2.22 (27.11.2026): filtreler ızgara · seçince yer kaybolmaz
 - **Filtreler ızgara (dikey):** bütün filtre grupları (Kamp, Mevsim ve hava, Sonbahar, Çiçek, Lightroom tarzı) 4 sütunlu küçük resim ızgarası; panel aşağı kayar. Panel başlığındaki düğme ızgara ↔ şerit (eski yatay görünüm) arasında geçer (`localStorage['studyo.fIzgara']`).

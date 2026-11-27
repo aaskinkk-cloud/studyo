@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.51 (27.11.2026, deneme · `yerel-android` dalı): "Büyük nokta" geçişi
+- **Efekt › Geçiş › Işık ve hareket › Büyük nokta:** giden klipte renkli nokta ortadan büyüyüp ekranı doldurur; gelen klipte ortadan halka gibi açılır (beyaz ince halka). Renk: Hazır › Açılış efektleri'ndeki nokta rengi. Seçilince süre 1,2 sn (projenin geçişi); süre kaydırıcısı, ✓✓ Tümüne ve klip arası seçim diğer geçişler gibi.
+- Dışa aktarmada GPU'da (KenarEtki, `uNokta`/`uRenk`), önizlemede aynı biçim. Açılıştaki Büyük nokta ayrı, yerinde.
+
 ## 4.50 (27.11.2026, deneme · `yerel-android` dalı): yüz turu bekleme Nesne › Yüzler'de
 - **Nesne › Yüzler › Yüz turu** sayfasının sonunda katlanır **"Durakta bekleme (tüm projeler)"** (1 → 2 · 2 → 2 · 3 → 3 · 4 → 4 · 5+ → 5 sn varsayılan) — `YuzBekleKarti`. Süreler uygulamaya ait, bütün projelerde geçerli.
 - **Yayın › Ayarlar:** yerinde "Yüz turu bekleme: Nesne › Yüzler ›" bağlantısı. Önceki yerleşim: Ayarlar › "Yüz turu bekleme Ayarlar'da".

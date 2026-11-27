@@ -248,6 +248,19 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 else arrayOf(0f to Color.Black, (an.silme - yum).coerceIn(0f, 1f) to Color.Black, (an.silme + yum).coerceIn(0f, 1f) to Color.Transparent, 1f to Color.Transparent)
                 Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(*duraklar)))
             }
+            // 4.51: büyük nokta geçişi (dışa aktarmadaki KenarEtki ile aynı biçim)
+            if (an.nokta > 0.001f) Canvas(Modifier.fillMaxSize()) {
+                val kisa = minOf(size.width, size.height); val R = kotlin.math.hypot(size.width, size.height) / 2f + kisa * 0.02f
+                val renk = Color(p.giris.noktaRenk); val mrk = Offset(size.width / 2f, size.height / 2f)
+                if (!an.giris) drawCircle(renk, R * an.nokta, mrk)
+                else {
+                    val rr = R * (1f - an.nokta)
+                    val yol = androidx.compose.ui.graphics.Path().apply { fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
+                        addRect(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height)); addOval(androidx.compose.ui.geometry.Rect(mrk, rr)) }
+                    drawPath(yol, renk)
+                    drawCircle(Color.White.copy(alpha = 0.85f * an.nokta), rr, mrk, style = androidx.compose.ui.graphics.drawscope.Stroke(kisa * 0.012f))
+                }
+            }
             if (an.sizma > 0.001f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = an.sizma.coerceIn(0f, 1f) }.background(Brush.radialGradient(
                 listOf(Color(0xE6FFA040), Color(0x66FF6A00), Color.Transparent), center = Offset(0.15f * constraints.maxWidth, 0.2f * constraints.maxHeight),
                 radius = 1.1f * maxOf(constraints.maxWidth, constraints.maxHeight))))
@@ -1494,6 +1507,7 @@ internal val GECIS_AKICI = listOf(
 private val GECIS_ISIK = listOf(
     Triple("yakincapraz", "Büyüyerek", "g_buyu") to 0xFFED93B1, Triple("siyah", "Siyahtan", "g_siyah") to 0xFFB4B2A9,
     Triple("beyaz", "Parlama", "g_beyaz") to 0xFFFAC775, Triple("yakin", "Yakınlaşma", "g_yakin") to 0xFFAFA9EC,
+    Triple("nokta", "Büyük nokta", "yildiz") to 0xFFFFC107,   // 4.51
 )
 
 /** Geçişler paneli (Ahmet'in görseli, 14.11.2026): solda "Tümüne", ortada başlık, sağda ✓; altında süre (− kaydırıcı +),
@@ -1504,7 +1518,7 @@ fun GecisIcerik(vm: EditorDurum, p: Proje, ara: Int?, kapat: (() -> Unit)?) {
     var sec by remember(ara, simdiki) { mutableStateOf(simdiki) }
     fun uygula(t: String) {
         sec = t
-        if (ara == null) vm.gecisDegis { it.copy(tur = t) }
+        if (ara == null) vm.gecisDegis { it.copy(tur = t, sureMs = if (t == "nokta" && it.tur != "nokta") 1200 else it.sureMs) }   // 4.51: nokta varsayılan 1,2 sn
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

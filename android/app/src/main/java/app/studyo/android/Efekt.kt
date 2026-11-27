@@ -101,6 +101,8 @@ object Efektler {
             "dalis" -> { c.save(); c.scale(1.6f, 1.6f, w / 2f, h / 2f); c.drawBitmap(src, 0f, 0f, p); c.restore(); c.drawColor(0x30000000) }
             "bulanik" -> { val kk = Bitmap.createScaledBitmap(src, max(1, w / 14), max(1, h / 14), true)
                 c.drawBitmap(kk, null, android.graphics.Rect(0, 0, w, h), p); c.drawColor(0x22FFFFFF) }
+            "nokta" -> { c.drawBitmap(src, 0f, 0f, p)   // 4.51
+                c.drawCircle(w / 2f, h / 2f, min(w, h) * 0.34f, android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFC107.toInt() }) }
             "silme" -> { c.drawBitmap(src, 0f, 0f, p)
                 c.drawRect(0f, 0f, w * 0.55f, h.toFloat(), android.graphics.Paint().apply { color = android.graphics.Color.BLACK }) }
             "sizma" -> { c.drawBitmap(src, 0f, 0f, p)
@@ -247,11 +249,11 @@ void main() {
 
 /** 3.59: yeni kenar geçişleri için GL (bulanık · silme · ışık sızması). Geçişin anı, diğer kenar geçişleri gibi Gecisler.hesapla'dan
  *  (siyah/parlama ile aynı zamanlama, aynı Saat). an: kare zamanı (µs) → geçiş durumu. */
-class KenarEtki(private val an: (Long) -> Gecisler.An) : GlEffect {
-    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = KenarProgram(useHdr, an)
+class KenarEtki(private val noktaRenk: Int = 0xFFFFC107.toInt(), private val an: (Long) -> Gecisler.An) : GlEffect {
+    override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = KenarProgram(useHdr, noktaRenk, an)
 }
 
-private class KenarProgram(useHdr: Boolean, private val an: (Long) -> Gecisler.An) : BaseGlShaderProgram(useHdr, 1) {
+private class KenarProgram(useHdr: Boolean, private val noktaRenk: Int, private val an: (Long) -> Gecisler.An) : BaseGlShaderProgram(useHdr, 1) {
     private val program = GlProgram(KENAR_VS, FS)
     private var gen = 1; private var yuk = 1
     init { program.setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE) }
@@ -265,6 +267,8 @@ private class KenarProgram(useHdr: Boolean, private val an: (Long) -> Gecisler.A
         program.setFloatUniform("uSilme", a.silme)
         program.setFloatUniform("uSizma", a.sizma)
         program.setFloatUniform("uGiris", if (a.giris) 1f else 0f)
+        program.setFloatUniform("uNokta", a.nokta)   // 4.51
+        program.setFloatsUniform("uRenk", floatArrayOf(((noktaRenk shr 16) and 255) / 255f, ((noktaRenk shr 8) and 255) / 255f, (noktaRenk and 255) / 255f))
         program.bindAttributesAndUniforms()
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
@@ -279,6 +283,8 @@ uniform float uBulanik;
 uniform float uSilme;
 uniform float uSizma;
 uniform float uGiris;
+uniform float uNokta;
+uniform vec3 uRenk;
 varying vec2 vTexSamplingCoord;
 void main() {
   vec2 t = vTexSamplingCoord;
@@ -301,6 +307,22 @@ void main() {
     float yum = 0.04;
     float m = uGiris > 0.5 ? smoothstep(1.0 - uSilme - yum, 1.0 - uSilme + yum, t.x) : (1.0 - smoothstep(uSilme - yum, uSilme + yum, t.x));
     r = mix(r, vec3(0.0), m);
+  }
+  if (uNokta > 0.001) {
+    // 4.51: büyük nokta geçişi (dışa aktarma; önizleme Paneller'de aynı biçim). d: kısa kenara oranlı merkez uzaklığı
+    float kisa = min(uBoy.x, uBoy.y);
+    float d = length((t - vec2(0.5)) * uBoy / kisa);
+    float R = 0.5 * length(uBoy / kisa) + 0.02;
+    float e = 0.006;
+    if (uGiris < 0.5) {
+      float rr = R * uNokta;
+      r = mix(r, uRenk, 1.0 - smoothstep(rr - e, rr + e, d));
+    } else {
+      float rr = R * (1.0 - uNokta);
+      r = mix(r, uRenk, smoothstep(rr - e, rr + e, d));
+      float hal = (1.0 - smoothstep(0.0, 0.012, abs(d - rr))) * uNokta * 0.85;
+      r = mix(r, vec3(1.0), hal);
+    }
   }
   if (uSizma > 0.001) {
     float d = length((t - vec2(0.15, 0.8)) * vec2(1.0, uBoy.y / uBoy.x));

@@ -315,7 +315,7 @@ object Disa {
             val tOut = if (klipMi) p.ortusme(j) else 0L
             val ogeBas = bas + tIn                              // öğenin zaman çizelgesindeki başlangıcı
             val uz = (tam - tIn).coerceAtLeast(40)              // gövde + çıkış geçişi (T)
-            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas, W, H)
+            val gec = Gecisler.etkiler(p.gecisAt(j - 1), if (klipMi) p.gecisAt(j) else p.gecis, uz, j > 0, j < n - 1, j == 0 && p.gecis.siyahtanAc, ogeBas, W, H, p.giris.noktaRenk)   // 4.51: nokta geçişi açılıştaki nokta renginde
             val tekTuval: Effect? = if (tOut > 0) {
                 val B = p.klipler.getOrNull(j + 1)
                 // 3.82 KÖK DÜZELTME ("fotoğraf önce aydınlık başlıyor, sonra koyulaşıyor"): geçiş penceresinde gelen klip yalnız

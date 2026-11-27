@@ -565,10 +565,10 @@ class AltyaziBindirme(private val klipBasMs: Long, private val satirlar: List<Al
 object Gecisler {
     /** 3.59: aci (derece), bulanik/silme/sizma (0…1) ve giris (geçiş klibin başında mı) yeni kenar geçişleri için. */
     class An(val renk: Float, val beyaz: Boolean, val olcek: Float, val aci: Float = 0f, val bulanik: Float = 0f, val silme: Float = 0f,
-             val sizma: Float = 0f, val giris: Boolean = false)
+             val sizma: Float = 0f, val giris: Boolean = false, val nokta: Float = 0f)   // 4.51: nokta (büyük nokta geçişi, 0…1)
     private val YOK = An(0f, false, 1f)
     /** 3.59: popüler kenar geçişleri (üst üste binmez; klip sınırında). */
-    val YENI_KENAR = setOf("dondur", "bulanik", "silme", "dalis", "sizma")
+    val YENI_KENAR = setOf("dondur", "bulanik", "silme", "dalis", "sizma", "nokta")
     /** Doğrusal rampa yerine yumuşak eğri: başta ve sonda hız sıfıra iner, ani kırılma (titreme hissi) olmaz. */
     private fun yumusak(x: Float): Float { val k = x.coerceIn(0f, 1f); return k * k * (3f - 2f * k) }
 
@@ -596,6 +596,8 @@ object Gecisler {
             "bulanik" -> An(k * 0.12f, true, 1f + 0.05f * k, bulanik = k, giris = gir)
             "silme" -> An(0f, false, 1f, silme = k, giris = gir)
             "sizma" -> An(k * 0.2f, true, 1f, sizma = k, giris = gir)
+            // 4.51: büyük nokta — giden klipte renkli nokta ortadan büyüyüp ekranı doldurur, gelen klipte ortadan halka gibi açılır
+            "nokta" -> An(0f, false, 1f, nokta = k, giris = gir)
             else -> YOK
         }
     }
@@ -637,7 +639,7 @@ object Gecisler {
         return YOK
     }
 
-    fun etkiler(gG: Gecis, gC: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L, W: Int = 16, H: Int = 9): List<Effect> {
+    fun etkiler(gG: Gecis, gC: Gecis, sure: Long, giris: Boolean, cikis: Boolean, siyahtan: Boolean, basMs: Long = 0L, W: Int = 16, H: Int = 9, noktaRenk: Int = 0xFFFFC107.toInt()): List<Effect> {
         val tekG = giris && !gG.cakisma && gG.tur != "yok"; val tekC = cikis && !gC.cakisma && gC.tur != "yok"
         if (!tekG && !tekC && !siyahtan) return emptyList()
         val saat = Saat(basMs)
@@ -658,10 +660,10 @@ object Gecisler {
                 Matrix().apply { setScale(w, h); postRotate(a.aci); postScale(1f / w, 1f / h); postScale(a.olcek, a.olcek) }
             }
         }
-        val glKenar = setOf("bulanik", "silme", "sizma")
+        val glKenar = setOf("bulanik", "silme", "sizma", "nokta")
         if ((tekG && gG.tur in glKenar) || (tekC && gC.tur in glKenar)) {
             val saat3 = Saat(basMs)
-            e += KenarEtki { t -> hesapla(gG, gC, saat3.yerelMs(t), sure, giris, cikis, siyahtan) }
+            e += KenarEtki(noktaRenk) { t -> hesapla(gG, gC, saat3.yerelMs(t), sure, giris, cikis, siyahtan) }
         }
         return e
     }

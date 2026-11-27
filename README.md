@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.47 (27.11.2026, deneme · `yerel-android` dalı): Hazır › Paketler / Hazır ayarlar alt menünün yanında, renkli simgeli
+- Hazır bölümünde sayfa içindeki iki sekme kaldırıldı; **Paketler** ve **Hazır ayarlar** alttaki menü satırında "Hazır"ın hemen sağında (`ALT_SAYFALAR["hazirlar"]`). Başta "›" ve ince çerçeveli grup — alt menünün alt menüsü olduğu belli; her düğme kendi renginde, simgeli, seçili tam renk.
+- Aynı görünüm diğer menülerde de: Ayarlar › "Sayfa düğmeleri tek satırda (alt menünün yanında)" açılınca. Hazır bölümü bu ayardan bağımsız hep yanında gösterir.
+- Önceki tek renk görünüm: Ayarlar › "Alt menünün yanındaki sayfa düğmeleri renkli ve simgeli" kapalı.
+
 ## 4.46 (27.11.2026, deneme · `yerel-android` dalı): ana menüde "Hazır" bölümü, Yerine al, üst çubuk kamera boşluğu
 - **Hazır (yeni ana menü düğmesi, Görünüm'ün yanında):** Görünüm'deki Paket ve Hazır alt menüleri tek sayfada (`HazirBolumu.kt`). Üstte Paketler / Hazır ayarlar sekmeleri; büyük önizleme kartları ızgarası (YouTube · Reels · Sinema; Varsayılan · Kayıtlı ayarlarım); Paketler'de Video biçimi de var. Görünüm'de Şablon ve Hareket kaldı. Önceki yerleşim: Ayarlar › "Paket ve Hazır Görünüm menüsünde".
 - **Giriş › Yerine al bozuk görünüyordu:** üç düğme satıra sığmayınca son düğmenin yazısı harf harf alta kırılıyordu. Düğmeler satırı eşit paylaşır, `TonHap` yazısı tek satır.

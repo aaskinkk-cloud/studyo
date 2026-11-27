@@ -22,16 +22,18 @@ import androidx.compose.ui.unit.sp
 /** 4.46: ana menüde bağımsız "Hazır" bölümü — Görünüm'deki Paket ve Hazır alt menüleri tek sayfada, büyük önizleme kartları ızgarası.
  *  Üstte Paket / Hazır sekmeleri. Eski yerleşim (Görünüm › Paket · Hazır) Ayarlar'da seçenek olarak durur (Duzen.hazirEski). */
 @Composable
-internal fun PanelHazir(vm: EditorDurum, p: Proje) {
-    var sekme by rememberSaveable { mutableStateOf("paket") }
+internal fun PanelHazir(vm: EditorDurum, p: Proje, alt: String? = null) {
+    // 4.47: sayfa alt menünün yanındaki Paketler / Hazır ayarlar düğmelerinden gelir (alt); yazılı menüde (alt = null) sayfa içi sekmeler
+    var sekmeIc by rememberSaveable { mutableStateOf("paket") }
+    val sekme = alt ?: sekmeIc
     var son by remember { mutableStateOf<String?>(null) }   // son uygulanan paket (kartta ✓)
     val turuncu = Color(TON[3]); val yesil = Color(TON[1])
     // sekmeler: iki eşit hap
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (alt == null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(Triple("paket", "Paketler", turuncu), Triple("hazir", "Hazır ayarlar", yesil)).forEach { (k, ad, ton) ->
             val on = sekme == k
             Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(18.dp)).background(if (on) ton.copy(alpha = 0.22f) else Renk.kart2)
-                .then(if (on) Modifier.border(1.dp, ton, RoundedCornerShape(18.dp)) else Modifier).clickable { sekme = k }, contentAlignment = Alignment.Center) {
+                .then(if (on) Modifier.border(1.dp, ton, RoundedCornerShape(18.dp)) else Modifier).clickable { sekmeIc = k }, contentAlignment = Alignment.Center) {
                 Text(ad, color = if (on) ton else Renk.soluk, fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
             }
         }

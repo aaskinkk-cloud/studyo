@@ -483,7 +483,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
                 }
             } else null
-            val tekSatir = yeniAlt && Duzen.cipTekSatir   // 4.16: varsayılan ayrı satır (Ayarlar › Menü görünümü)
+            val tekSatir = yeniAlt && (Duzen.cipTekSatir || bolum == "hazirb")   // 4.16: varsayılan ayrı satır (Ayarlar › Menü görünümü) · 4.47: Hazır hep yanında
             if (!tekSatir) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük
             @Composable fun SabitDuzenle() {
@@ -1375,7 +1375,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "muzik" -> PanelMuzik(vm, p, alt)
         "seslendirme" -> PanelSeslendirme(vm, p, alt)
         "logo" -> PanelLogoKutup(vm, p)
-        "hazirlar" -> PanelHazir(vm, p)   // 4.46
+        "hazirlar" -> PanelHazir(vm, p, alt)   // 4.46 · 4.47: Paketler / Hazır ayarlar alt menünün yanındaki düğmelerden
         "sablon", "hazir" -> PanelSablon(vm, p, alt)   // 3.70: Görünüm'ün alt menüleri aynı sayfanın bölümleri
         "paket" -> PanelSablon(vm, p, if (alt == null) null else "paket")   // 3.71: Paket tek sayfa (Biçim + Paketler)
         "gecis" -> PanelGecis(vm, p)
@@ -1852,6 +1852,7 @@ private class CipVeri(val liste: List<AltSayfa>, val secili: String, val isaret:
 /** 4.15: seçili alt menünün sayfaları — hafif zeminli tek grup, içinde küçük çipler; sonra varsa bağlantılar (ad ›). */
 @Composable
 private fun SatirCipleri(c: CipVeri) {
+    if (Duzen.cipRenkli) { SatirCipleriRenkli(c); return }   // 4.47
     Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart).padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         c.liste.forEach { a ->
@@ -1860,6 +1861,28 @@ private fun SatirCipleri(c: CipVeri) {
                 .padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                 if ((Duzen.menuStil != "yazi" && Duzen.menuStil != "renkli" && Duzen.menuStil != "buyuk")) Simge(a.simge, if (on) Renk.zemin else Renk.soluk, 13.dp)
                 if (Duzen.menuStil != "simge") Text(menuAd(a.ad), color = if (on) Renk.zemin else Renk.yazi, fontSize = 11.5.sp * menuYaziK, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1,
+                    modifier = Modifier.padding(start = 4.dp))
+                if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
+            }
+        }
+    }
+    c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) }
+}
+
+/** 4.47: alt menünün yanındaki sayfa düğmeleri — renkli, simgeli; başta "›" ve ince çerçeveli grup (alt menünün alt menüsü olduğu belli). */
+@Composable
+private fun SatirCipleriRenkli(c: CipVeri) {
+    val m = Duzen.menuOlcek
+    Text("›", color = Renk.soluk, fontSize = 16.sp * m, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 1.dp))
+    Row(Modifier.height(34.dp * m).clip(RoundedCornerShape(17.dp)).border(1.dp, Renk.cizgi, RoundedCornerShape(17.dp)).padding(horizontal = 3.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        c.liste.forEachIndexed { i, a ->
+            val on = a.anahtar == c.secili
+            val renk = Color(ALT_RENK[(i + 2) % ALT_RENK.size])
+            Row(Modifier.height(27.dp * m).clip(RoundedCornerShape(14.dp)).background(renk.copy(alpha = if (on) 0.95f else 0.16f)).clickable { c.sec(a.anahtar) }
+                .padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Simge(a.simge, if (on) Color(0xFF111111) else renk, 14.dp * m)
+                if (Duzen.menuStil != "simge") Text(menuAd(a.ad), color = if (on) Color(0xFF111111) else renk, fontSize = 11.5.sp * m * menuYaziK, fontWeight = FontWeight.SemiBold, maxLines = 1,
                     modifier = Modifier.padding(start = 4.dp))
                 if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 4.dp), 11.dp)
             }

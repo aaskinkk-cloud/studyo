@@ -105,6 +105,7 @@ object Duzen {
         sp.getString("yuzBekle", null)?.split(',')?.mapNotNull { it.toFloatOrNull() }?.takeIf { it.size == 5 }?.forEachIndexed { i, v -> yuzBekle[i] = v }
         elektrikBulanik = sp.getBoolean("elektrikBulanik", false)   // 4.45
         hazirEski = sp.getBoolean("hazirEski", false)   // 4.46
+        cipRenkli = sp.getBoolean("cipRenkli", true)   // 4.47
         isikTeshis = sp.getBoolean("isikTeshis2", false)   // 4.31: kök neden bulundu, ölçüm varsayılan kapalı
         menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
         menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
@@ -144,6 +145,8 @@ object Duzen {
     @Volatile var elektrikBulanik = false
     /** 4.46: açık = önceki yerleşim (Paket ve Hazır Görünüm'ün alt menüsü); kapalı = ana menüde ayrı "Hazır" bölümü. */
     var hazirEski by mutableStateOf(false)
+    /** 4.47: alt menünün yanındaki sayfa düğmeleri renkli + simgeli (kapalı = önceki tek renk görünüm). */
+    var cipRenkli by mutableStateOf(true)
     /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
     var menuOlcek by mutableFloatStateOf(0.92f)
     /** 4.18: menü görünümü — "ikisi" (simge + yazı) · "simge" · "yazi"; bütün menülerde (ana, alt, sayfa düğmeleri). */

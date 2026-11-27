@@ -52,6 +52,7 @@ fun PanelLogoKutup(vm: EditorDurum, p: Proje) {
 }
 
 /** 4.49: logo kütüphanesi kartı (yükle · boş · logolar) — Hazır › Açılış efektleri'nde ve (önceki yerleşimde) Yayın › Logo'da. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun LogoKutupKarti(vm: EditorDurum, p: Proje) {
     val yukleyici = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { l -> vm.logolarYukle(l) }

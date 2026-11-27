@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.21 · 27.11.2026 (Karanlık Oda 6.75, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.22 · 27.11.2026 (Karanlık Oda 6.76, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.22 (27.11.2026): filtreler ızgara · seçince yer kaybolmaz
+- **Filtreler ızgara (dikey):** bütün filtre grupları (Kamp, Mevsim ve hava, Sonbahar, Çiçek, Lightroom tarzı) 4 sütunlu küçük resim ızgarası; panel aşağı kayar. Panel başlığındaki düğme ızgara ↔ şerit (eski yatay görünüm) arasında geçer (`localStorage['studyo.fIzgara']`).
+- **Seçince başa dönmüyor:** kök neden `renderPanel()` her seçimde paneli sıfırdan kurup en üste, şeritleri en sola alıyordu. Artık aynı araçta kalındıkça panelin dikey yeri ve şeritlerin yatay yeri korunur (filtre, renk, şablon, imza... bütün paneller).
+- Test (412×915): Lightroom tarzı, panel 150 px aşağıda → Sepya'ya dokun → panel 150 px'de, aynı bölümde; hata yok. Telefonda denenmedi.
 
 ## 2.21 (27.11.2026): panel kaydırması yerinde kalır · kapalı panelde tutamak · sade üst çubuk
 - **Kaydırınca panel başa dönüyordu:** kök neden `foto-arayuz.js` her yeniden ölçümde (değer yazısı değişince, panel boyutu değişince) paneli en üste kaydırıyordu. Artık yalnız araç ya da bölüm sekmesi değişince başa döner.

@@ -1,4 +1,4 @@
-/* ===== 2.18–2.21 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.22 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -96,6 +96,14 @@
     'html.st-fy #panelIn .hsl-dots button{width:32px!important;height:32px!important;min-width:32px!important;flex:none!important}',
     'html.st-fy #panelIn .yz-ara{margin:6px 2px 0}',
     'html.st-fy #panelIn .hsl-dots+.yz-ara{display:none}',   /* seçili renk noktası zaten gösteriyor */
+    /* 2.22 · filtreler ızgara (dikey): alt alta kayar, Lightroom gibi; şerit görünümü seçenek */
+    'html.st-fy.st-izgara #panelIn .presets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;flex-wrap:wrap!important;overflow:visible!important;gap:10px 8px!important}',
+    'html.st-fy.st-izgara #panelIn .presets .pz{width:auto!important;min-width:0}',
+    'html.st-fy.st-izgara #panelIn .presets .pz canvas{width:100%!important;height:auto!important;aspect-ratio:1}',
+    'html.st-fy #panelIn .presets .pz{font-size:10.5px;line-height:1.2;text-align:center;word-break:break-word}',
+    '#stIzgara{display:none}',
+    'html.st-fy.st-filtre #stIzgara{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);padding:0;flex:none}',
+    '#stIzgara svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
     '.duzen-st{margin:10px 0 4px}.duzen-st b{display:block;font:700 13px var(--f-ui);margin-bottom:6px}.duzen-st small{display:block;opacity:.6;margin-top:6px}'
   ].join('\n');
   (document.head || document.documentElement).appendChild(css);
@@ -126,6 +134,32 @@
      Kaydırıcılar (3+) InShot gibi ad sırası + tek kaydırıcı olarak kalır. */
   (function sayf(n){ var o = window.stSayfala; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ sayf(n + 1); }, 250); return; }
     window.stSayfala = function(a){ if (a) a.maxH = 1e6; return o.apply(this, arguments); }; })(0);
+  /* filtre görünümü: ızgara (varsayılan) / şerit — panel başlığında, yalnız Filtreler'de */
+  var izgara = true; try { izgara = localStorage.getItem('studyo.fIzgara') !== '0'; } catch(e){}
+  document.documentElement.classList.toggle('st-izgara', izgara);
+  var IZ = ic('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'),
+      SE = ic('<rect x="3" y="7" width="5" height="10" rx="1.5"/><rect x="9.5" y="7" width="5" height="10" rx="1.5"/><rect x="16" y="7" width="5" height="10" rx="1.5"/>');
+  (function zbtn(n){ var h = document.querySelector('.st-pbas'); if (!h){ if (n < 80) setTimeout(function(){ zbtn(n + 1); }, 250); return; }
+    if (document.getElementById('stIzgara')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'stIzgara';
+    var guncel = function(){ b.innerHTML = izgara ? SE : IZ; b.title = izgara ? 'Şerit görünümü' : 'Izgara görünümü'; b.setAttribute('aria-label', b.title); };
+    b.onclick = function(){ izgara = !izgara; document.documentElement.classList.toggle('st-izgara', izgara); try { localStorage.setItem('studyo.fIzgara', izgara ? '1' : '0'); } catch(e){} guncel(); };
+    guncel(); var ok = h.querySelector(':scope > button:last-child'); h.insertBefore(b, ok || null); })(0);
+  /* seçim yapınca panel yeniden çizilir: kaydırma yerleri (panel aşağı-yukarı, şeritler sağa-sola) korunur, başa dönmez.
+     Kök neden: renderPanel() paneli sıfırdan kurup en üste / şeritleri en sola alıyordu. */
+  (function rp(n){ var o = window.renderPanel; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ rp(n + 1); }, 250); return; }
+    var SEC = 'presets,chips,st-satir,st-bsek,hsl-dots,swatches,yz-sab,im-sab'.split(',');
+    window.renderPanel = function(){
+      var pan = document.getElementById('panel'), pin = document.getElementById('panelIn'), tab = (typeof ED !== 'undefined') ? ED.tab : '', kayit = null;
+      if (pan && pin && pin._stTab === tab){ kayit = {y: pan.scrollTop, x: {}};
+        SEC.forEach(function(c){ [].forEach.call(document.querySelectorAll('#panel .' + c), function(e, i){ if (e.scrollLeft) kayit.x[c + i] = e.scrollLeft; }); }); }
+      var r = o.apply(this, arguments);
+      if (pin) pin._stTab = tab;
+      if (kayit){ var geri = function(){ if (pan.scrollTop !== kayit.y) pan.scrollTop = kayit.y;
+          SEC.forEach(function(c){ [].forEach.call(document.querySelectorAll('#panel .' + c), function(e, i){ var v = kayit.x[c + i]; if (v && e.scrollLeft !== v) e.scrollLeft = v; }); }); };
+        geri(); requestAnimationFrame(geri); setTimeout(geri, 180); }
+      return r; };
+  })(0);
   /* açıklamaya dokun: aç / kapat */
   document.addEventListener('click', function(e){ var n = e.target.closest && e.target.closest('#panelIn .note'); if (n && !e.target.closest('a,button,input,select,label')) n.classList.toggle('ac'); });
   /* tek bölümlü panel (ör. HSL › Kırmızı): başlık akordeon olmaz, ayarları renk seçimiyle aynı sayfada kalır.
@@ -161,6 +195,7 @@
   var hapK = kok.firstChild, bolK = kok.lastChild;
   function ciz(){
     var t = aktifT(), g = grupBul(t); if (g) secG = g.id;
+    document.documentElement.classList.toggle('st-filtre', t === 'filters');
     var G0 = G.filter(function(x){ return x.id === secG; })[0] || G[0];
     hapK.innerHTML = '';
     G0.h.forEach(function(h, j){ if (!gorunur(h[0])) return;

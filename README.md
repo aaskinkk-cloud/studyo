@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.46 (27.11.2026, deneme · `yerel-android` dalı): ana menüde "Hazır" bölümü, Yerine al, üst çubuk kamera boşluğu
+- **Hazır (yeni ana menü düğmesi, Görünüm'ün yanında):** Görünüm'deki Paket ve Hazır alt menüleri tek sayfada (`HazirBolumu.kt`). Üstte Paketler / Hazır ayarlar sekmeleri; büyük önizleme kartları ızgarası (YouTube · Reels · Sinema; Varsayılan · Kayıtlı ayarlarım); Paketler'de Video biçimi de var. Görünüm'de Şablon ve Hareket kaldı. Önceki yerleşim: Ayarlar › "Paket ve Hazır Görünüm menüsünde".
+- **Giriş › Yerine al bozuk görünüyordu:** üç düğme satıra sığmayınca son düğmenin yazısı harf harf alta kırılıyordu. Düğmeler satırı eşit paylaşır, `TonHap` yazısı tek satır.
+- **Üst çubuk (gece teması):** "Dışa Aktar" yalnız "Dışa" görünüyordu. Çubuk iki gruba ayrıldı; ortada kamera deliği kadar boşluk (ekranın tam ortası, kesik alanı sistemden okunur) — orada yazı/simge yok. Geri al/yinele ve düğmeler küçüldü; yer daralırsa önce "Kaydet" kısalır, "Dışa Aktar" hep tam.
+
 ## 4.45 (27.11.2026, deneme · `yerel-android` dalı): 4K dışa aktarmada yavaşlama, doğrudan galeriye yazma düzeltmesi
 - **Kayıttan:** 130 sn'lik 4K videoda ilk 78 sn ~20 sn'de kodlandı, 78–126 sn arası ~3 dakika sürdü (~10 kat yavaş). Galeriye kayıt 3 sn (yavaşlık kayıtta değil, kodlamadaydı).
 - **Muhtemel kök neden:** elektrik ışığı (yüz turu kişi hattı, ışıklı kesilen nesne) her karede `BlurMaskFilter` ile yazılımda bulanıklaştırılıyordu; 4K'da yarıçap iki katı. Yerine 4 katmanlı yarı saydam çizgiyle ışıma (bulanıklaştırma yok). Eski görünüm: Ayarlar › "Elektrik ışığı: eski bulanık ışıma".

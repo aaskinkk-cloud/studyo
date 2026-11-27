@@ -104,6 +104,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Sabit Düzenle düğmesi sade (çerçevesiz)", Duzen.duzenleSade) { Duzen.duzenleSadeSec(ctx, it) }
         AnahtarSatiri("Alt menüler üstte, ana menü altta sabit", Duzen.altUstte) { Duzen.altUstteSec(ctx, it) }
         AnahtarSatiri("Sayfa düğmeleri tek satırda (alt menünün yanında)", Duzen.cipTekSatir) { Duzen.cipTekSatirSec(ctx, it) }   // 4.16: kapalı = ayrı satır
+        AnahtarSatiri("Paket ve Hazır Görünüm menüsünde (önceki yerleşim)", Duzen.hazirEski) { Duzen.hazirEski = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("hazirEski", it).apply() }   // 4.46
         AnahtarSatiri("Elektrik ışığı: eski bulanık ışıma (4K'da dışa aktarma yavaşlar)", Duzen.elektrikBulanik) { Duzen.elektrikBulanik = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("elektrikBulanik", it).apply() }   // 4.45
         AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis2", it).apply() }   // 4.30
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)

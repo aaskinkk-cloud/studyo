@@ -72,9 +72,10 @@ private fun HapEski(metin: String, secili: Boolean, onClick: () -> Unit) {
 
 /** Üst çubuk için ince yazılı düğme. */
 @Composable
-private fun InceDugme(metin: String, renk: Color, etkin: Boolean = true, onClick: () -> Unit) {
-    Box(Modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = etkin, onClick = onClick).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-        Text(metin, color = if (etkin) renk else renk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.Normal, maxLines = 1)
+private fun InceDugme(metin: String, renk: Color, etkin: Boolean = true, mod: Modifier = Modifier, onClick: () -> Unit) {
+    // 4.46: daha dar; yazı hiç kırılmaz (gece temasında "Dışa Aktar" yalnız "Dışa" görünüyordu)
+    Box(mod.height(32.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = etkin, onClick = onClick).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+        Text(metin, color = if (etkin) renk else renk.copy(alpha = 0.4f), fontSize = 12.5.sp, fontWeight = FontWeight.Normal, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -84,17 +85,20 @@ private val HAP_SIMGE = mapOf(
     "klipses" to "ses", "muzik" to "nota", "seslendirme" to "mikrofon",
     "yazi" to "metin", "takip" to "takip", "altyazi" to "altyazi",
     "logo" to "logo", "kapak" to "kapak", "disa" to "disa", "katmanlar" to "katman", "filtre" to "palet", "efekt" to "yildiz", "ayarlar" to "kaydet",
-    "paket" to "izgara", "hazir" to "kaydet", "yuz" to "yuz",   // 3.70 · 4.41
+    "paket" to "izgara", "hazir" to "kaydet", "yuz" to "yuz", "hazirlar" to "izgara",   // 3.70 · 4.41 · 4.46
     "kekle" to "ekle", "kses" to "ses", "foto" to "kapak", "video" to "klip", "kesilen" to "katman",   // 4.13: Katman alt menüleri
 )
 
-private val BOLUMLER = listOf(
+// 4.46: Paket + Hazır ana menüde ayrı "Hazır" bölümü (Görünüm'ün yanında); Ayarlar'dan önceki yerleşime dönülebilir
+private val BOLUMLER: List<Bolum> get() = listOfNotNull(
     // 3.30: Ekle ve Biçim, Klip bölümüne taşındı (şeritteki + ile süre satırındaki + ve Biçim satırı)
     Bolum("duzenle", "Düzenle", "makas", listOf("klip" to "Klip")),
     // 4.29: Nesne ayrı ana menü (Düzenle ve Katman'daki kopyaları kaldırıldı — tek yer)
     Bolum("nesne", "Nesne", "kisi", listOf("foto" to "Fotoğraftan", "video" to "Videodan", "kesilen" to "Kesilenler", "yuz" to "Yüzler")),   // 4.41: Yüzler
     // 3.70: Görünüm › Şablon (giriş·abone·kapanış) · Paket (paketler·biçim) · Hazır (varsayılan·kayıtlı) · Hareket (yakınlaştırma·kaydırma·odak)
-    Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
+    if (Duzen.hazirEski) Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "paket" to "Paket", "hazir" to "Hazır", "hareket" to "Hareket"))
+    else Bolum("gorunum", "Görünüm", "gorunum", listOf("sablon" to "Şablon", "hareket" to "Hareket")),
+    if (Duzen.hazirEski) null else Bolum("hazirb", "Hazır", "izgara", listOf("hazirlar" to "Hazır")),   // 3.58: Kadraj → klip resmindeki simge · 3.59: Geçiş → Efekt
     Bolum("katman", "Katman", "katman", listOf("katmanlar" to "Katmanlar", "kekle" to "Ekle", "kses" to "Ses · görünür")),   // 4.13   // 3.75: Renk'in solunda (Ahmet'in isteği)
     // 3.53: Renk ayrı ana bölüm (ışık, kontrast, beyazlar, gölge, keskinlik… her biri kendi sayfasında)
     Bolum("renk", "Renk", "palet", listOf("renk" to "Renk")),
@@ -125,7 +129,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     // 3.44: önizlemede bir katmana dokununca Katman bölümü açılır
     val katmanIstek by vm.katmanSayfasi.collectAsState()
     LaunchedEffect(katmanIstek) { if (katmanIstek > 0) { bolum = "katman"; panelAcik = true } }
-    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo", "nesne" to "foto") }
+    val haplar = remember { mutableStateMapOf("duzenle" to "klip", "gorunum" to "sablon", "hazirb" to "hazirlar", "renk" to "renk", "efekt" to "filtre", "ses" to "muzik", "metin" to "yazi", "katman" to "katmanlar", "yayin" to "logo", "nesne" to "foto") }
     var disaAcik by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(id) { if (Depo.acilincaDisa == id) { Depo.acilincaDisa = null; disaAcik = true } }
     val albumIstek by AlbumIndir.istek.collectAsState()   // 3.81: Google Fotoğraflar'dan paylaşılan albüm bağlantısı
@@ -235,6 +239,19 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     .then(if (Renk.sb) Modifier.height(34.dp).padding(horizontal = 2.dp) else Modifier.padding(horizontal = 4.dp, vertical = 2.dp)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // 4.46: kamera deliğinin altı boş kalır — sol grup · kamera boşluğu (ekranın tam ortasında) · sağ grup
+                val gorunumK = androidx.compose.ui.platform.LocalView.current
+                val yogK = LocalDensity.current
+                val kameraBosluk = run {
+                    val ins = gorunumK.rootWindowInsets
+                    val r = ins?.displayCutout?.boundingRects?.firstOrNull { it.top <= 2 && it.width() < gorunumK.width / 2 }
+                    when {
+                        r != null -> with(yogK) { (r.width() + 12).toDp() }
+                        WindowInsets.displayCutout.getTop(yogK) > 0 -> 40.dp
+                        else -> 0.dp
+                    }
+                }
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 // 3.63: siyah-beyaz temada VITA dizilişi: ← simge · ad · Kaydet · beyaz Dışa aktar; geri al/yinele oynatıcı satırında
                 if (Renk.sb) Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.yazi, 20.dp) }
                 else Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = cik), contentAlignment = Alignment.Center) { Simge("geri", Renk.soluk, 20.dp) }   // 4.28: yalnız simge
@@ -263,9 +280,12 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 Box(Modifier.size(32.dp).clip(CircleShape).clickable { aramaAcik = true }, contentAlignment = Alignment.Center) { Simge("ara", Renk.soluk.copy(alpha = 0.75f), 18.dp) }
                 Box(Modifier.size(32.dp).clip(CircleShape).clickable { git("yayin", "ayarlar", null) }, contentAlignment = Alignment.Center) {
                     Simge("menu", if (bolum == "yayin" && haplar["yayin"] == "ayarlar" && panelAcik) Renk.turuncu else Renk.soluk.copy(alpha = 0.75f), 18.dp) }
+                }
+                if (kameraBosluk > 0.dp) Spacer(Modifier.width(kameraBosluk))
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
                 val geriVar by vm.geriVar.collectAsState(); val ileriVar by vm.ileriVar.collectAsState()
                 if (!Renk.sb) {   // 3.72: siyah-beyaz temada geri al/yinele oynatıcı satırında (videonun üstünde ya da altında)
-                val ub = if (Renk.sb) 30.dp else 34.dp; val us = if (Renk.sb) 17.dp else 18.dp
+                val ub = if (Renk.sb) 30.dp else 28.dp; val us = if (Renk.sb) 17.dp else 16.dp   // 4.46: gece temasında küçük (Dışa aktar sığsın)
                 Box(Modifier.size(ub).clip(CircleShape).clickable(enabled = geriVar) { vm.geriAl() }, contentAlignment = Alignment.Center) {
                     Simge("gerial", if (geriVar) Renk.yazi else Renk.soluk.copy(alpha = 0.35f), us) }
                 Box(Modifier.size(ub).clip(CircleShape).clickable(enabled = ileriVar) { vm.yinele() }, contentAlignment = Alignment.Center) {
@@ -274,14 +294,15 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 if (Renk.sb) {
                     // 3.72: Kaydet ve Dışa aktar düğme değil, küçük yazı (Ahmet'in isteği)
                     val etkin = p.klipler.isNotEmpty()
-                    Text("Kaydet", color = Renk.soluk, fontSize = 12.5.sp, maxLines = 1,
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { vm.kaydetSimdi() }.padding(horizontal = 8.dp, vertical = 6.dp))
-                    Text("Dışa aktar", color = if (etkin) Color.White else Renk.soluk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.Normal, maxLines = 1,   // 3.72: üst çubukta kalın yazı yok
+                    Text("Kaydet", color = Renk.soluk, fontSize = 12.5.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).clip(RoundedCornerShape(6.dp)).clickable { vm.kaydetSimdi() }.padding(horizontal = 8.dp, vertical = 6.dp))
+                    Text("Dışa aktar", color = if (etkin) Color.White else Renk.soluk.copy(alpha = 0.4f), fontSize = 13.sp, fontWeight = FontWeight.Normal, maxLines = 1, softWrap = false,   // 3.72: üst çubukta kalın yazı yok
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = etkin) { disaAcik = true }.padding(start = 8.dp, end = 10.dp, top = 6.dp, bottom = 6.dp))
                 } else {
-                    InceDugme("Kaydet", Renk.turkuaz) { vm.kaydetSimdi() }
+                    InceDugme("Kaydet", Renk.turkuaz, mod = Modifier.weight(1f, fill = false)) { vm.kaydetSimdi() }   // 4.46: yer daralırsa önce bu kısalır; Dışa Aktar hep tam
                     Box(Modifier.width(1.dp).height(16.dp).background(Renk.cizgi))
                     InceDugme("Dışa Aktar", Renk.turuncu, etkin = p.klipler.isNotEmpty()) { disaAcik = true }
+                }
                 }
             }
             val nesneModu = panelAcik && (bolum == "nesne" || bolum == "katman")   // 3.45: nesne kesme Katmanlar'da da
@@ -1354,6 +1375,7 @@ private fun Panel(vm: EditorDurum, p: Proje, sec: Int, bolum: String, hap: Strin
         "muzik" -> PanelMuzik(vm, p, alt)
         "seslendirme" -> PanelSeslendirme(vm, p, alt)
         "logo" -> PanelLogoKutup(vm, p)
+        "hazirlar" -> PanelHazir(vm, p)   // 4.46
         "sablon", "hazir" -> PanelSablon(vm, p, alt)   // 3.70: Görünüm'ün alt menüleri aynı sayfanın bölümleri
         "paket" -> PanelSablon(vm, p, if (alt == null) null else "paket")   // 3.71: Paket tek sayfa (Biçim + Paketler)
         "gecis" -> PanelGecis(vm, p)

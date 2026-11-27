@@ -1030,7 +1030,7 @@ private fun HizliTus(ad: String, simge: String, tik: () -> Unit) {
 /** Varsayılan ayarlar: hangi maddelerin uygulanacağı simgeli seçimlerle (dokun = dahil et / çıkar, seçim hatırlanır), altta tek uygula düğmesi.
  *  Görünüm 3.5 düzeninde: arka plansız, üstte simge, altta küçük yazı, alt menüyle aynı ton ailesi; seçili olan tam renk + nokta. */
 @Composable
-private fun VarsayilanSayfa(vm: EditorDurum) {
+internal fun VarsayilanSayfa(vm: EditorDurum) {
     val ctx = LocalContext.current
     var sec by remember { mutableStateOf(Varsayilan.secili(ctx)) }
     val mesgul by vm.mesgul.collectAsState()
@@ -1119,9 +1119,10 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
         if (!g.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         // 3.72: ekranda düzenle · konuya uygun başka örnek
         Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            TonHap("Ekranda düzenle", "degistir", false, sari) { vm.sablonGoster("giris"); vm.ekranDuzen.value = "giris" }
-            TonHap("Başka öneri", "sihir", false, turkuaz) { vm.girisOneri(zorla = true); vm.sablonGoster("giris") }
-            if (g.ofsX != 0f || g.ofsY != 0f) TonHap("Yerine al", "h_odak", false, pembe) { vm.girisDegis { it.copy(ofsX = 0f, ofsY = 0f) } }   // 4.40
+            // 4.46: düğmeler satırı eşit paylaşır (taşma yok)
+            TonHap("Ekranda düzenle", "degistir", false, sari, Modifier.weight(1f)) { vm.sablonGoster("giris"); vm.ekranDuzen.value = "giris" }
+            TonHap("Başka öneri", "sihir", false, turkuaz, Modifier.weight(1f)) { vm.girisOneri(zorla = true); vm.sablonGoster("giris") }
+            if (g.ofsX != 0f || g.ofsY != 0f) TonHap("Yerine al", "h_odak", false, pembe, Modifier.weight(1f)) { vm.girisDegis { it.copy(ofsX = 0f, ofsY = 0f) } }   // 4.40
         }
         GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
         GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)
@@ -1265,11 +1266,12 @@ internal fun TonSecici(liste: List<Triple<String, String, String>>, secili: Stri
 
 /** Açık/kapalı küçük hap (renk tonlu). */
 @Composable
-internal fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, tik: () -> Unit) {
-    Row(Modifier.clip(RoundedCornerShape(16.dp)).background(if (acik) ton.copy(alpha = 0.18f) else Renk.kart2).clickable { tik() }.padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically) {
+internal fun TonHap(ad: String, simge: String, acik: Boolean, ton: Color, mod: Modifier = Modifier, tik: () -> Unit) {
+    // 4.46: yazı tek satır (satıra sığmayınca harf harf alta kırılıyordu — "Yerine al" bozuk görünüyordu)
+    Row(mod.clip(RoundedCornerShape(16.dp)).background(if (acik) ton.copy(alpha = 0.18f) else Renk.kart2).clickable { tik() }.padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         Simge(simge, if (acik) ton else Renk.soluk, 15.dp); Spacer(Modifier.width(4.dp))
-        Text(ad, color = if (acik) ton else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (acik) FontWeight.Bold else FontWeight.Normal)
+        Text(ad, color = if (acik) ton else Renk.soluk, fontSize = 11.5.sp, fontWeight = if (acik) FontWeight.Bold else FontWeight.Normal, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
     }
 }
 

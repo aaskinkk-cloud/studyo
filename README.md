@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.48 (27.11.2026, deneme · `yerel-android` dalı): Giriş Hazır bölümüne taşındı
+- **Hazır** alt menüsünün yanında 4 düğme: Paketler · Hazır ayarlar · **Giriş başlığı** · **Açılış efektleri** (renkli, simgeli).
+- Giriş başlığı: stil önizlemeleri büyük kartlar (1,4×); düzenleme, ekranda parmakla taşıma/boyut, "Yerine al" aynen. Açılış efektleri: Büyük nokta ve Logo büyüyerek büyük kartlar (dokun = aç/kapat), ayarları altında.
+- Görünüm › Şablon'da artık Özet · Abone · Kapanış. Önceki yerleşim: Ayarlar › "Paket, Hazır ve Giriş Görünüm menüsünde".
+- Klip kartındaki Giriş simgesine çift dokunma ve aramadaki giriş stilleri yeni yere gider.
+- **Düzeltme:** Şablon › Özet'te ekranda parmakla taşıma (4.43) çalışmıyordu — özet sayfası ekran düzenleme listesinde yoktu; eklendi.
+
 ## 4.47 (27.11.2026, deneme · `yerel-android` dalı): Hazır › Paketler / Hazır ayarlar alt menünün yanında, renkli simgeli
 - Hazır bölümünde sayfa içindeki iki sekme kaldırıldı; **Paketler** ve **Hazır ayarlar** alttaki menü satırında "Hazır"ın hemen sağında (`ALT_SAYFALAR["hazirlar"]`). Başta "›" ve ince çerçeveli grup — alt menünün alt menüsü olduğu belli; her düğme kendi renginde, simgeli, seçili tam renk.
 - Aynı görünüm diğer menülerde de: Ayarlar › "Sayfa düğmeleri tek satırda (alt menünün yanında)" açılınca. Hazır bölümü bu ayardan bağımsız hep yanında gösterir.

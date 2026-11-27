@@ -28,16 +28,18 @@ import androidx.compose.ui.unit.sp
 class AltSayfa(val anahtar: String, val ad: String, val simge: String)
 
 /** 3. katman: alt menü anahtarı → alt sayfalar (ilk = varsayılan). */
-val ALT_SAYFALAR: Map<String, List<AltSayfa>> = mapOf(
+val ALT_SAYFALAR: Map<String, List<AltSayfa>> get() = mapOf(   // 4.48: getter (Şablon/Hazır yerleşimi Ayarlar seçeneğine bağlı)
     "klip" to listOf(AltSayfa("klipler", "Klipler", "klip"), AltSayfa("kirp", "Kırp", "kirp"), AltSayfa("kadraj", "Kadraj", "tuval"), AltSayfa("hiz", "Hız", "hareket"), AltSayfa("yuzler", "Yüzler ›", "yuz")),   // 4.41: yüz işleri Nesne › Yüzler'e taşındı; burada bağlantı
     // 4.41: Nesne › Yüzler — yüz turu · yüz gizle · ayrı video (ayarlar klipte kayıtlı, yer değişikliği veriyi etkilemez)
     "yuz" to listOf(AltSayfa("yuzler", "Yüz turu", "yuz"), AltSayfa("gizle", "Yüz gizle", "gozkapali"), AltSayfa("ayri", "Ayrı video", "disa")),
     "nesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("video", "Videodan", "klip"), AltSayfa("kesilen", "Kesilenler", "katman")),
-    "sablon" to listOf(AltSayfa("giris", "Giriş", "baslik"), AltSayfa("ozet", "Özet", "altyazi"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
+    "sablon" to (if (Duzen.hazirEski) listOf(AltSayfa("giris", "Giriş", "baslik")) else emptyList()) +   // 4.48: Giriş Hazır bölümüne taşındı
+        listOf(AltSayfa("ozet", "Özet", "altyazi"), AltSayfa("abone", "Abone", "zil"), AltSayfa("kapanis", "Kapanış", "kalp")),
     // 4.13: Katman › Nesne kes / Hareketli — Düzenle › Nesne sayfasının kendisi (alt menü Katman'da kalır)
     "knesne" to listOf(AltSayfa("foto", "Fotoğraftan", "kapak"), AltSayfa("kesilen", "Kesilenler", "katman")),
     "hazir" to listOf(AltSayfa("varsayilan", "Varsayılan", "uygula"), AltSayfa("kayitli", "Kayıtlı ayarlarım", "kaydet")),
-    "hazirlar" to listOf(AltSayfa("paket", "Paketler", "izgara"), AltSayfa("hazir", "Hazır ayarlar", "kaydet")),   // 4.47: Hazır bölümü (alt menünün yanında)
+    "hazirlar" to listOf(AltSayfa("paket", "Paketler", "izgara"), AltSayfa("hazir", "Hazır ayarlar", "kaydet"),
+        AltSayfa("girisb", "Giriş başlığı", "baslik"), AltSayfa("acilis", "Açılış efektleri", "yildiz")),   // 4.48   // 4.47: Hazır bölümü (alt menünün yanında)
     "hareket" to listOf(AltSayfa("yakin", "Yakınlaştırma", "h_yakin"), AltSayfa("kay", "Kaydırma", "h_sag"), AltSayfa("odak", "Odak", "h_odak")),
     "muzik" to listOf(AltSayfa("hazir", "Hazır", "sihir"), AltSayfa("dosya", "Dosyadan", "yukle"), AltSayfa("ayar", "Ayar", "ses")),
     "seslendirme" to listOf(AltSayfa("kayit", "Kayıt", "mikrofon"), AltSayfa("prompter", "Prompter", "prompter"), AltSayfa("okuyucu", "Okuyucu", "ses"), AltSayfa("kayitlar", "Kayıtlar", "nota")),

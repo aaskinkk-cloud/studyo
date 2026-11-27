@@ -1099,8 +1099,8 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
     // 3.72: sayfa açılınca o öğe ekrana gelir (tam göründüğü ana gidilir); giriş başlığı boşsa konuya uygun örnek yazı yazılır
     LaunchedEffect(sekme) {
         val pp = vm.proje.value
-        val acik = when (sekme) { "giris" -> pp.giris.acik; "ozet" -> pp.ozet.acik; "abone" -> pp.hatirlatici.acik; "kapanis" -> pp.kapanis.acik; else -> false }
-        if (acik) { vm.sablonGoster(sekme); if (sekme == "giris") vm.girisOneri() }
+        val acik = when (sekme) { "giris", "girisb" -> pp.giris.acik; "ozet" -> pp.ozet.acik; "abone" -> pp.hatirlatici.acik; "kapanis" -> pp.kapanis.acik; else -> false }
+        if (acik) { val t = if (sekme == "girisb") "giris" else sekme; vm.sablonGoster(t); if (t == "giris") vm.girisOneri() }
     }
     if (sekme == "bicim") Kart("Video biçimi", ton = turuncu) { BicimSatiri(vm, p) }
     if (sekme == "kayitli") KayitliAyarlarSayfasi(vm)
@@ -1115,7 +1115,7 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
         Not("Giriş, geçiş, abone ve kapanışı tek dokunuşla ayarlar. Klipler, müzik ve yazılar değişmez.")
     }
     val g = p.giris
-    if (sekme == "giris") Kart("Giriş başlığı", ton = sari, anahtar = g.acik, anahtarDegis = { v -> vm.girisDegis { it.copy(acik = v) }; if (v) { vm.girisOneri(); vm.sablonGoster("giris") } }) {
+    if (sekme == "giris" || sekme == "girisb") Kart("Giriş başlığı", ton = sari, anahtar = g.acik, anahtarDegis = { v -> vm.girisDegis { it.copy(acik = v) }; if (v) { vm.girisOneri(); vm.sablonGoster("giris") } }) {
         if (!g.acik) { Not("Kapalı. Açmak için başlıktaki anahtara dokun."); return@Kart }
         // 3.72: ekranda düzenle · konuya uygun başka örnek
         Row(Modifier.fillMaxWidth().padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1124,8 +1124,8 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
             TonHap("Başka öneri", "sihir", false, turkuaz, Modifier.weight(1f)) { vm.girisOneri(zorla = true); vm.sablonGoster("giris") }
             if (g.ofsX != 0f || g.ofsY != 0f) TonHap("Yerine al", "h_odak", false, pembe, Modifier.weight(1f)) { vm.girisDegis { it.copy(ofsX = 0f, ofsY = 0f) } }   // 4.40
         }
-        GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari)
-        GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari)
+        GirisBandi(vm, p, "KLASİK", GIRIS_KLASIK, sari, buyuk = sekme == "girisb")   // 4.48: Hazır'da büyük önizleme kartları
+        GirisBandi(vm, p, "REELS TARZI · şeritler kayarak gelir", Reels.STILLER, sari, buyuk = sekme == "girisb")
         // 3.58: kısa metin düzenleyici — Enter = alt satır (| yazmaya gerek yok), A−/A+ = yazı boyutu
         Spacer(Modifier.height(8.dp))
         MetinEditoru(g.baslik, "Başlık", { y -> vm.girisDegis { it.copy(baslik = y) } },
@@ -1158,8 +1158,12 @@ private fun PanelSablonYeni(vm: EditorDurum, p: Proje, alt: String? = null) {
         TonKaydirici("Ekranda", g.sureMs / 1000f, 2f..8f, 0.5f, sari, { String.format(TR, "%.1f sn", it) }) { v -> vm.girisDegis { it.copy(sureMs = (v * 1000).toLong()) } }
     }
     // 4.42: açılış efektleri (başlık kapalıyken de çalışır)
-    if (sekme == "giris") Kart("Açılış efektleri", ton = turuncu) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    if (sekme == "giris" || sekme == "acilis") Kart("Açılış efektleri", ton = turuncu) {
+        // 4.48: Hazır › Açılış efektleri — büyük kartlar (dokun = aç/kapat); eski yerde (Şablon › Giriş) önceki haplar
+        if (sekme == "acilis") Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BuyukKart("Büyük nokta", if (g.nokta) "açık · renk aşağıda" else "siyahtan renkli nokta", "yildiz", turuncu, g.nokta, Modifier.weight(1f)) { val v = !g.nokta; vm.girisDegis { it.copy(nokta = v) }; if (v) vm.sablonGoster("nokta") }
+            BuyukKart("Logo büyüyerek", if (g.logoBuyu) "açık · süreler aşağıda" else "ortada büyüyüp gider", "logo", turkuaz, g.logoBuyu, Modifier.weight(1f)) { val v = !g.logoBuyu; vm.girisDegis { it.copy(logoBuyu = v) }; if (v) vm.sablonGoster("glogo") }
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TonHap("Büyük nokta", "yildiz", g.nokta, turuncu) { val v = !g.nokta; vm.girisDegis { it.copy(nokta = v) }; if (v) vm.sablonGoster("nokta") }
             TonHap("Logo büyüyerek", "logo", g.logoBuyu, turkuaz) { val v = !g.logoBuyu; vm.girisDegis { it.copy(logoBuyu = v) }; if (v) vm.sablonGoster("glogo") }
         }
@@ -1310,9 +1314,9 @@ internal fun TonKaydirici(etiket: String, deger: Float, aralik: ClosedFloatingPo
 
 /** Stil önizleme bandı (sağa kayar): her kutu ilk klibin resmi üstünde o stilin çizimi; seçili renk tonlu halkalı. */
 @Composable
-private fun OnizlemeBandi(p: Proje, liste: List<Pair<String, String>>, secili: String, ton: Color, anahtar: Any?, ciz: (String, Int, Int) -> Bitmap?, onSec: (String) -> Unit) {
+private fun OnizlemeBandi(p: Proje, liste: List<Pair<String, String>>, secili: String, ton: Color, anahtar: Any?, ciz: (String, Int, Int) -> Bitmap?, buyuk: Boolean = false, onSec: (String) -> Unit) {
     val (oW, oH) = Disa.boyut(p.bicim, 360)
-    val genDp = if (oW > oH) 128.dp else if (oW == oH) 92.dp else 66.dp
+    val genDp = (if (oW > oH) 128.dp else if (oW == oH) 92.dp else 66.dp) * (if (buyuk) 1.4f else 1f)   // 4.48: büyük önizleme kartları
     val yukDp = genDp * (oH.toFloat() / oW)
     val ilk = p.klipler.firstOrNull()
     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(end = 8.dp)) {
@@ -1443,12 +1447,12 @@ private val GIRIS_KLASIK = listOf("sinematik" to "Sinematik", "altbant" to "Alt 
 /** Giriş başlığı stilleri (3.26, Geçişler paneli biçiminde): sağa kayan bant; her stil ilk klibin resmi üstünde kendi
  *  başlığınla önizlenir, seçili olan beyaz halkalı, adı altında. */
 @Composable
-private fun GirisBandi(vm: EditorDurum, p: Proje, baslik: String, liste: List<Pair<String, String>>, ton: Color = Renk.yazi) {
+private fun GirisBandi(vm: EditorDurum, p: Proje, baslik: String, liste: List<Pair<String, String>>, ton: Color = Renk.yazi, buyuk: Boolean = false) {
     val g = p.giris
     val metin = g.baslik.ifBlank { "Başlığın burada" }
     Bolum(baslik)
     OnizlemeBandi(p, liste, g.stil, ton, listOf(metin, g.bant, g.alt, g.konum),
-        { k, W, H -> girisOrnek(g.copy(acik = true, stil = k, baslik = metin), W, H) }) { k ->
+        { k, W, H -> girisOrnek(g.copy(acik = true, stil = k, baslik = metin), W, H) }, buyuk = buyuk) { k ->
         // 3.72: stile dokun = başlık ekrana gelir (tam göründüğü an), boşsa konuya uygun örnek yazı; yazıya dokunup ekranda düzenlenir
         vm.girisDegis { it.copy(stil = k) }; vm.girisOneri(); vm.sablonGoster("giris")
     }

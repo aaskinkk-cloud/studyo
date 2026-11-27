@@ -38,6 +38,7 @@ internal fun PanelHazir(vm: EditorDurum, p: Proje, alt: String? = null) {
             }
         }
     }
+    if (sekme == "girisb" || sekme == "acilis") { PanelSablon(vm, p, sekme); return }   // 4.48: giriş başlığı · açılış efektleri
     if (sekme == "paket") {
         Kart("Video biçimi", ton = turuncu) { BicimSatiri(vm, p) }
         Text("Tek dokunuşla giriş, geçiş, abone ve kapanış", color = Renk.soluk, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 6.dp))
@@ -63,7 +64,7 @@ internal fun PanelHazir(vm: EditorDurum, p: Proje, alt: String? = null) {
 
 /** Büyük önizleme kartı: tonlu degrade zemin, büyük simge, başlık, alt satır; seçiliyken çerçeve + ✓. */
 @Composable
-private fun BuyukKart(ad: String, alt: String, simge: String, ton: Color, secili: Boolean, mod: Modifier, tik: () -> Unit) {
+internal fun BuyukKart(ad: String, alt: String, simge: String, ton: Color, secili: Boolean, mod: Modifier, tik: () -> Unit) {
     val sekil = RoundedCornerShape(16.dp)
     Column(mod.height(118.dp).clip(sekil)
         .background(Brush.verticalGradient(listOf(ton.copy(alpha = 0.30f), ton.copy(alpha = 0.08f))))

@@ -191,7 +191,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
     if (aramaAcik) {
         val liste = remember {
             val l = ArrayList<AramaOge>()
-            val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış büyük nokta logo büyüyerek", "ozet" to "özet bu videoda izleyecekleriniz içerik madde liste", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
+            val ek = mapOf("hiz" to "yavaş çekim hızlandır", "giris" to "başlık açılış büyük nokta logo büyüyerek", "girisb" to "giriş başlık stil reels", "acilis" to "açılış efekt büyük nokta logo büyüyerek", "ozet" to "özet bu videoda izleyecekleriniz içerik madde liste", "abone" to "hatırlatıcı zil", "ayar" to "yumuşak giriş çıkış fade solma",
                 "kayitli" to "sakla kaydet şablonum", "paket" to "biçim 16:9 9:16 reels shorts kare youtube sinema", "kesilen" to "nesne katman", "oto" to "otomatik altyazı konuşma",
                 "takip" to "takip yazısı takip eden yazı nesne izle", "logo" to "büyük logo geçişi filigran", "prompter" to "kayan yazı okuma kamera çekim", "okuyucu" to "sesli okuyucu metin oku tts dfki seslendir anlatıcı",
                 "kayitlar" to "ses efekti hız kırp sessizlik net temiz radyo kalın", "katmanlar" to "çizelge zaman çizelgesi katman", "kapak" to "küçük resim youtube kapak",
@@ -214,7 +214,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             Efektler.LISTE.forEach { (_, ad) -> l += AramaOge("Efekt › Efekt › $ad", "efekt", "efekt", null, "efekt") }
             (GECIS_TEMEL + GECIS_AKICI).forEach { (t, _) -> if (t.first != "yok") l += AramaOge("Efekt › Geçiş › ${t.second}", "efekt", "gecis", null, "geçiş") }
             GECIS_POPULER.forEach { (_, ad) -> l += AramaOge("Efekt › Geçiş › $ad", "efekt", "gecis", null, "geçiş") }
-            Reels.STILLER.forEach { (_, ad) -> l += AramaOge("Görünüm › Şablon › Giriş › $ad", "gorunum", "sablon", "giris", "giriş başlığı stil") }
+            Reels.STILLER.forEach { (_, ad) -> l += if (Duzen.hazirEski) AramaOge("Görünüm › Şablon › Giriş › $ad", "gorunum", "sablon", "giris", "giriş başlığı stil")
+                else AramaOge("Hazır › Giriş başlığı › $ad", "hazirb", "hazirlar", "girisb", "giriş başlığı stil") }   // 4.48
             SesEfekt.HAZIR.forEach { (_, ad) -> l += AramaOge("Ses › Seslendirme › Kayıtlar › $ad", "ses", "seslendirme", "kayitlar", "ses efekti seslendirme") }
             l += AramaOge("Yayın › Ayarlar › Tema rengi", "yayin", "ayarlar", null, "tema renk vurgu turkuaz")
             l
@@ -322,7 +323,9 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // 3.72: Görünüm › Şablon açıkken hangi alt sayfa (giriş/abone/kapanış) — önizlemede yazıya dokun = ekranda düzenle
             val sablonSekmeS by vm.sablonSekme.collectAsState()
             val sablonSayfa = if (panelAcik && bolum == "gorunum" && haplar["gorunum"] == "sablon")
-                (if (Duzen.yaziliMenu) sablonSekmeS else AltHafiza.al("sablon")).takeIf { it in setOf("giris", "abone", "kapanis") } else null
+                (if (Duzen.yaziliMenu) sablonSekmeS else AltHafiza.al("sablon")).takeIf { it in setOf("giris", "ozet", "abone", "kapanis") }   // 4.48: özet de (parmakla taşıma)
+                else if (panelAcik && bolum == "hazirb" && !Duzen.yaziliMenu && AltHafiza.al("hazirlar") == "girisb") "giris"   // 4.48: Hazır › Giriş başlığı
+                else null
             val ekranDuzen by vm.ekranDuzen.collectAsState()
             LaunchedEffect(sablonSayfa) { if (sablonSayfa == null || (ekranDuzen != null && ekranDuzen != sablonSayfa)) vm.ekranDuzen.value = null }
             Box(Modifier.fillMaxWidth().height(onizlemeYuk).clipToBounds()) {
@@ -1012,7 +1015,9 @@ private fun KlipSeridi(vm: EditorDurum, p: Proje, sec: Int, ekle: () -> Unit, ku
                                 if (hareketliEkle != null) SimgeDugmesi("hareketli_yazi", 0xFFFF9F43, boy = B, cift = git("metin", "yazi")) { hareketliEkle() }
                                 // 3.69: Giriş yazısı — dokun = aç/kapat, çift dokun = Görünüm › Şablon › Giriş
                                 SimgeDugmesi("baslik", if (p.giris.acik) 0xFF000000 else 0xFFD9CF5A, if (p.giris.acik) Color(0xFFD9CF5A) else Color(0xB3000000), boy = B,
-                                    cift = { vm.sablonSekme.value = "giris"; AltHafiza.sec("sablon", "giris"); bolumAc?.invoke("gorunum", "sablon") }) {
+                                    cift = { vm.sablonSekme.value = "giris"
+                                        if (Duzen.hazirEski) { AltHafiza.sec("sablon", "giris"); bolumAc?.invoke("gorunum", "sablon") }
+                                        else { AltHafiza.sec("hazirlar", "girisb"); bolumAc?.invoke("hazirb", "hazirlar") } }) {   // 4.48
                                     val ac = !p.giris.acik
                                     vm.girisDegis { it.copy(acik = ac) }
                                     vm.mesaj.value = if (ac) "Giriş yazısı açıldı · çift dokun = ayarlar" else "Giriş yazısı kapandı"
@@ -1341,6 +1346,7 @@ private fun KadrajIcerik(vm: EditorDurum, k: Klip) {
 
 /** 3.70: 3. katman çipindeki ✓ — o alt sayfada bir ayar/içerik var mı. */
 private fun altDegisti(p: Proje, k: Klip?, hap: String, a: String): Boolean = when (hap) {
+    "hazirlar" -> when (a) { "girisb" -> p.giris.acik; "acilis" -> p.giris.nokta || p.giris.logoBuyu; else -> false }   // 4.48
     "sablon" -> when (a) { "giris" -> p.giris.acik || p.giris.nokta || p.giris.logoBuyu; "ozet" -> p.ozet.acik; "abone" -> p.hatirlatici.acik; "kapanis" -> p.kapanis.acik; else -> false }
     "klip" -> k != null && when (a) { "hiz" -> k.hiz != 1f; "kadraj" -> k.doldur || k.kayX != 0f || k.kayY != 0f
         "kirp" -> !k.foto && (k.basMs > 0 || k.sonMs < k.kaynakSureMs); "yuzler" -> k.turEtkin; else -> false }

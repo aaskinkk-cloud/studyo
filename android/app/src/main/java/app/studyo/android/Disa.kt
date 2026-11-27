@@ -88,7 +88,7 @@ object Disa {
         @Suppress("DEPRECATION")
         val d = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Stüdyo")
         d.mkdirs()
-        val t = File(d, ".studyo_deneme"); t.writeBytes(ByteArray(1)); val ok = t.length() == 1L; t.delete()
+        val t = File(d, ".studyo_deneme.mp4"); t.writeBytes(ByteArray(1))   // 4.45: uzantısız dosyayı Android Movies'e yazdırmıyordu (4.44'te hep kopya yoluna düşüyordu); val ok = t.length() == 1L; t.delete()
         if (ok) d else null
     } catch (e: Exception) { null }
     fun bosAlan(ctx: Context): Long = try { StatFs(ciktiDizini(ctx).path).availableBytes } catch (e: Exception) { -1 }
@@ -771,6 +771,7 @@ class DisaServisi : Service() {
         p.klipler.forEach { Kayit.yaz("  ${it.tur} ${it.ad} ${Medya.mb(it.boyutBayt)} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ${it.basMs}-${it.sonMs}") }
         Kayit.yaz("  HDR yöntemi: " + if (hdrKip == Disa.HDR_SDR_GIBI) "SDR gibi oku (yedek)" else "çözücüde SDR'ye çevir")
         // 3.32: geçişler ana videonun içinde tek tuvalde çizilir; önceden hazırlanan parça yok
+        Elektrik.olcSifirla()   // 4.45
         anaVideo(p, W, H, cikti, eski, tek)
     }
 
@@ -883,7 +884,7 @@ class DisaServisi : Service() {
             sonuc.onSuccess { t ->
                 prefs().edit().clear().apply()
                 durum.value = t.copy(sn = sn)
-                Kayit.yaz("TAMAM ${t.ad} ${Medya.mb(t.boyut)} ${t.sureMs} ms, ${sn} sn sürdü")
+                Kayit.yaz("TAMAM ${t.ad} ${Medya.mb(t.boyut)} ${t.sureMs} ms, ${sn} sn sürdü · ${Elektrik.olcMetni()}")
                 proje?.id?.let { TvYayin.ciktiKaydet(this@DisaServisi, it, t.uri, t.ad) }   // 3.73: Projeler ekranında "Televizyonda izle"
                 bitir(true, "Kaydedildi: ${t.ad}")
             }.onFailure { e ->

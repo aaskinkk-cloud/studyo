@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.45 (27.11.2026, deneme · `yerel-android` dalı): 4K dışa aktarmada yavaşlama, doğrudan galeriye yazma düzeltmesi
+- **Kayıttan:** 130 sn'lik 4K videoda ilk 78 sn ~20 sn'de kodlandı, 78–126 sn arası ~3 dakika sürdü (~10 kat yavaş). Galeriye kayıt 3 sn (yavaşlık kayıtta değil, kodlamadaydı).
+- **Muhtemel kök neden:** elektrik ışığı (yüz turu kişi hattı, ışıklı kesilen nesne) her karede `BlurMaskFilter` ile yazılımda bulanıklaştırılıyordu; 4K'da yarıçap iki katı. Yerine 4 katmanlı yarı saydam çizgiyle ışıma (bulanıklaştırma yok). Eski görünüm: Ayarlar › "Elektrik ışığı: eski bulanık ışıma".
+- **Ölçüm:** TAMAM satırına "elektrik çizimi N kez, toplam X ms" eklendi; neden doğrulanır.
+- **4.44 düzeltmesi:** doğrudan galeriye yazma denemesi uzantısız deneme dosyası yüzünden hep başarısız oluyordu (kayıtta `yazım=uygulama klasörü + kopya`). Deneme dosyası artık `.mp4`.
+
 ## 4.44 (27.11.2026, deneme · `yerel-android` dalı): dışa aktarmada galeriye kopya kaldırıldı
 - **KÖK NEDEN:** 4K/yüksek kalitede "Dosya doğrulanıyor ve galeriye kaydediliyor…" çok uzun sürüyordu: video önce uygulama klasörüne yazılıyor, bitince birkaç GB baştan sona galeriye kopyalanıyordu (iki kat yer + uzun bekleme).
 - **Çözüm:** Android 11+'da video doğrudan `Movies/Stüdyo`'ya gizli geçici adla (`.studyo_yaziliyor_…`, galeride görünmez) yazılır; bitince aynı klasörde yeniden adlandırılır (anında) ve galeriye taratılır. Gereken boş yer artık video boyutu + 300 MB (önce iki katı). Klasöre yazılamazsa eski yol (uygulama klasörü + kopya) aynen çalışır. Kayıtta `yazım=` satırı hangi yolun kullanıldığını gösterir.

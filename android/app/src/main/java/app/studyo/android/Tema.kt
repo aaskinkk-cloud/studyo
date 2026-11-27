@@ -103,6 +103,7 @@ object Duzen {
         kesilenEski = sp.getBoolean("kesilenEski", false)
         cipTekSatir = sp.getBoolean("cipTekSatir", false)
         sp.getString("yuzBekle", null)?.split(',')?.mapNotNull { it.toFloatOrNull() }?.takeIf { it.size == 5 }?.forEachIndexed { i, v -> yuzBekle[i] = v }
+        elektrikBulanik = sp.getBoolean("elektrikBulanik", false)   // 4.45
         isikTeshis = sp.getBoolean("isikTeshis2", false)   // 4.31: kök neden bulundu, ölçüm varsayılan kapalı
         menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
         menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
@@ -138,6 +139,8 @@ object Duzen {
     fun yuzBekleKaydet(ctx: Context) { ctx.getSharedPreferences("ayar", 0).edit().putString("yuzBekle", yuzBekle.joinToString(",")).apply() }
     /** 4.30: geçiş aydınlanması teşhisi — öğe sınırlarında parlaklığı Kayıt'a yazar (sorun çözülünce kaldırılacak). */
     var isikTeshis by mutableStateOf(false)
+    /** 4.45: elektrik ışığında eski bulanık ışıma (BlurMaskFilter, her karede yazılımla bulanıklaştırma — 4K'da dışa aktarmayı çok yavaşlatır). Kapalı = katmanlı hızlı ışıma. */
+    @Volatile var elektrikBulanik = false
     /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
     var menuOlcek by mutableFloatStateOf(0.92f)
     /** 4.18: menü görünümü — "ikisi" (simge + yazı) · "simge" · "yazi"; bütün menülerde (ana, alt, sayfa düğmeleri). */

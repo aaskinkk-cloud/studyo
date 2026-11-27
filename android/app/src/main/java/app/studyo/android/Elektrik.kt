@@ -51,11 +51,33 @@ object Elektrik {
             if (j % 2 == 0) (cx + cos(a) * r[i]) / w else (cy + sin(a) * r[i]) / h }
     }
 
+    /** 4.45 KÖK NEDEN (4K dışa aktarmada yüz turlu/ışıklı fotoğraflarda kodlama ~10 kat yavaşlıyordu): ışıma her karede
+     *  BlurMaskFilter ile yazılımda bulanıklaştırılıyordu (4K'da yarıçap 2×, her kare yeni filtre). Şimdi aynı rengin
+     *  genişten dara 4 katmanlı yarı saydam çizgisi — bulanıklık hissi verir, bulanıklaştırma yok. Eski görünüm Ayarlar'da seçenek. */
+    private val bulanikOnbellek = HashMap<Int, BlurMaskFilter>()
+    /** 4.45 ölçüm: dışa aktarma sonunda Kayıt'a yazılır (çizim sayısı, toplam süre). */
+    @Volatile var olcSay = 0; @Volatile var olcNs = 0L
+    fun olcSifirla() { olcSay = 0; olcNs = 0L }
+    fun olcMetni() = if (olcSay == 0) "elektrik çizimi yok" else "elektrik çizimi ${olcSay} kez, toplam ${olcNs / 1_000_000} ms (ort ${olcNs / olcSay / 1000} µs)"
+    private fun isima(c: Canvas, yol: Path, alfa: Int, gen: Float, r: Float) {
+        if (alfa <= 0) return
+        if (Duzen.elektrikBulanik) {
+            pIsik.maskFilter = bulanikOnbellek.getOrPut((r * 4f).toInt()) { BlurMaskFilter(r.coerceAtLeast(0.5f), BlurMaskFilter.Blur.NORMAL) }
+            pIsik.alpha = alfa.coerceIn(0, 255); pIsik.strokeWidth = gen; c.drawPath(yol, pIsik); pIsik.maskFilter = null; return
+        }
+        pIsik.maskFilter = null
+        val katman = floatArrayOf(2.2f, 1.45f, 0.8f, 0.25f); val oran = floatArrayOf(0.10f, 0.18f, 0.28f, 0.45f)
+        for (i in 0 until 4) { pIsik.alpha = (alfa * oran[i]).toInt().coerceIn(0, 255); pIsik.strokeWidth = gen + r * katman[i]; c.drawPath(yol, pIsik) }
+    }
+
     private val pIsik = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
     private val pCekirdek = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
 
     /** (ox, oy, w, h): kesilen görüntünün çizildiği dikdörtgen (piksel). t: saniye. olc: çizim ölçeği (1 = 1080p kare). */
     @Synchronized fun ciz(c: Canvas, ox: Float, oy: Float, w: Float, h: Float, k: FloatArray, t: Float, renk: Int, olc: Float) {
+        val t0 = System.nanoTime(); try { ciz0(c, ox, oy, w, h, k, t, renk, olc) } finally { olcNs += System.nanoTime() - t0; olcSay++ }
+    }
+    private fun ciz0(c: Canvas, ox: Float, oy: Float, w: Float, h: Float, k: FloatArray, t: Float, renk: Int, olc: Float) {
         if (k.size < 8 || w < 4f || h < 4f) return
         val n = k.size / 2
         var mx = 0f; var my = 0f
@@ -74,9 +96,7 @@ object Elektrik {
         yol.close()
         // 1) ince sürekli hat (soluk, nefes alır gibi)
         val nefes = 0.55f + 0.25f * sin(t * 3.1f)
-        pIsik.color = renk; pIsik.alpha = (150 * nefes).toInt(); pIsik.strokeWidth = 7f * olc
-        pIsik.maskFilter = BlurMaskFilter(9f * olc, BlurMaskFilter.Blur.NORMAL)
-        c.drawPath(yol, pIsik)
+        pIsik.color = renk; isima(c, yol, (150 * nefes).toInt(), 7f * olc, 9f * olc)
         pCekirdek.color = renk; pCekirdek.alpha = (170 * nefes).toInt(); pCekirdek.strokeWidth = 1.6f * olc
         c.drawPath(yol, pCekirdek)
         // 2) dönen tarama başı: hattın %24'ü, 2,2 sn'de bir tur; parlak çekirdek + geniş ışıma
@@ -86,8 +106,7 @@ object Elektrik {
         val parca = Path()
         if (bas + uz <= L) pm.getSegment(bas, bas + uz, parca, true)
         else { pm.getSegment(bas, L, parca, true); pm.getSegment(0f, bas + uz - L, parca, true) }
-        pIsik.alpha = 235; pIsik.strokeWidth = 14f * olc; pIsik.maskFilter = BlurMaskFilter(16f * olc, BlurMaskFilter.Blur.NORMAL)
-        c.drawPath(parca, pIsik)
+        isima(c, parca, 235, 14f * olc, 16f * olc)
         pCekirdek.color = 0xFFFFFFFF.toInt(); pCekirdek.alpha = 240; pCekirdek.strokeWidth = 3f * olc
         c.drawPath(parca, pCekirdek)
         pCekirdek.color = renk
@@ -105,6 +124,9 @@ object Elektrik {
     /** 4.40: yüz turundaki kişi hattı (açık çizgi: iki alt uçtan omuzlar ve baş) — titreyen elektrik hattı + hat boyunca gidip gelen tarama başı.
      *  p: çıkış pikselinde noktalar (x, y sırayla). */
     @Synchronized fun cizHat(c: Canvas, p: FloatArray, t: Float, renk: Int, olc: Float, alfa: Float) {
+        val t0 = System.nanoTime(); try { cizHat0(c, p, t, renk, olc, alfa) } finally { olcNs += System.nanoTime() - t0; olcSay++ }
+    }
+    private fun cizHat0(c: Canvas, p: FloatArray, t: Float, renk: Int, olc: Float, alfa: Float) {
         if (p.size < 8 || alfa <= 0.01f) return
         val n = p.size / 2
         val yol = Path()
@@ -116,8 +138,7 @@ object Elektrik {
             if (i == 0) yol.moveTo(x, y) else yol.lineTo(x, y)
         }
         val nefes = (0.6f + 0.25f * sin(t * 3.1f)) * alfa
-        pIsik.color = renk; pIsik.alpha = (160 * nefes).toInt(); pIsik.strokeWidth = 7f * olc; pIsik.maskFilter = BlurMaskFilter(9f * olc, BlurMaskFilter.Blur.NORMAL)
-        c.drawPath(yol, pIsik)
+        pIsik.color = renk; isima(c, yol, (160 * nefes).toInt(), 7f * olc, 9f * olc)
         pCekirdek.color = renk; pCekirdek.alpha = (180 * nefes).toInt(); pCekirdek.strokeWidth = 1.6f * olc
         c.drawPath(yol, pCekirdek)
         val pm = PathMeasure(yol, false); val L = pm.length
@@ -125,8 +146,7 @@ object Elektrik {
         val f = (t / 1.6f) % 2f; val q = if (f < 1f) f else 2f - f            // gidip gelir
         val uz = 0.26f * L; val bas = q * (L - uz)
         val parca = Path(); pm.getSegment(bas, bas + uz, parca, true)
-        pIsik.alpha = (235 * alfa).toInt(); pIsik.strokeWidth = 14f * olc; pIsik.maskFilter = BlurMaskFilter(16f * olc, BlurMaskFilter.Blur.NORMAL)
-        c.drawPath(parca, pIsik)
+        isima(c, parca, (235 * alfa).toInt(), 14f * olc, 16f * olc)
         pCekirdek.color = 0xFFFFFFFF.toInt(); pCekirdek.alpha = (240 * alfa).toInt(); pCekirdek.strokeWidth = 3f * olc
         c.drawPath(parca, pCekirdek)
         pCekirdek.color = renk

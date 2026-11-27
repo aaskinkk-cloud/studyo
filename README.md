@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.20 · 27.11.2026 (Karanlık Oda 6.74, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.21 · 27.11.2026 (Karanlık Oda 6.75, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.21 (27.11.2026): panel kaydırması yerinde kalır · kapalı panelde tutamak · sade üst çubuk
+- **Kaydırınca panel başa dönüyordu:** kök neden `foto-arayuz.js` her yeniden ölçümde (değer yazısı değişince, panel boyutu değişince) paneli en üste kaydırıyordu. Artık yalnız araç ya da bölüm sekmesi değişince başa döner.
+- **✓ ile panel kapanınca / ilk açılışta tutamak kayboluyordu:** kapalı panel artık 26 px'lik tutamak şeridi olarak kalır; yukarı sürükle ya da dokun → panel açılır.
+- **Üst çubuk:** küçük simgeler (19 px), küçük yazı (12 px), tek renk ve tek tip; Dışa Aktar ve Basit aynı ince çerçeveli hap. Sığmazsa sağa-sola kayar, taşmaz. Dosya adı kısaltılır.
+- Test (412×915, koyu tema): ilk açılışta tutamak görünür; dokun → açılır; ✓ → tutamak kalır; yukarı sürükle → açılır; üst çubuk taşmıyor. Telefonda denenmedi.
 
 ## 2.20 (27.11.2026): fotoğraf paneli kayar, sayfa yok · açıklamalar gizli · Haber Metin'den çıktı
 - **Panel küçülünce ayarlar kaybolmuyor:** sayfalara bölme kaldırıldı; bütün ayarlar alt alta, panel parmakla yukarı-aşağı kayar, kenarda kaydırma çubuğu görünmez. Kök neden: sayfalama panel küçülünce ayarları gizli sayfalara taşıyordu. Kaydırıcılar (3+) ad sırası + tek kaydırıcı olarak kalır; bölüm sekmeleri (3. katman) aynı.

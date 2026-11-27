@@ -1,4 +1,4 @@
-/* ===== 2.18–2.20 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.21 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -45,8 +45,25 @@
     '#stFGrup .st-bol button.on{color:var(--st-or);font-weight:700}',
     '#stFGrup .st-bol button i{position:absolute;top:8px;left:calc(50% + 10px);width:6px;height:6px;border-radius:50%;background:var(--st-or)}',
     '#stFGrup .st-bol button:active{background:color-mix(in srgb,var(--text) 8%,transparent)}',
-    /* üst çubuk: Dışa Aktar turuncu */
-    'html.st-fy #saveBtn{background:var(--st-or)!important;color:var(--st-or-ink)!important;border-color:var(--st-or)!important}',
+    /* 2.21 · üst çubuk: küçük, tek renk, tek tip; sığmazsa sağa-sola kayar (taşma yok) */
+    'html.st-fy #editor .topbar{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:0!important;padding:3px 6px!important;min-height:0!important;align-items:center}',
+    'html.st-fy #editor .topbar::-webkit-scrollbar{display:none}',
+    'html.st-fy #editor .topbar>*{flex:none!important}',
+    'html.st-fy #editor .topbar .icon-btn{width:34px!important;height:34px!important;min-width:34px!important;padding:0!important;border:0!important;background:none!important;color:var(--text)!important;opacity:.82;border-radius:10px}',
+    'html.st-fy #editor .topbar .icon-btn:disabled{opacity:.3}',
+    'html.st-fy #editor .topbar .icon-btn:active{background:color-mix(in srgb,var(--text) 9%,transparent)!important}',
+    'html.st-fy #editor .topbar .icon-btn svg,html.st-fy #editor .topbar .icon-btn .icon{width:19px!important;height:19px!important}',
+    'html.st-fy #editor .topbar .info{flex:0 1 auto!important;min-width:0;max-width:84px;padding:0 4px}',
+    'html.st-fy #editor .topbar .info b{font-size:11.5px!important;font-weight:600!important;opacity:.7;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    'html.st-fy #editor .topbar .info small{display:none!important}',
+    'html.st-fy #editor .topbar .basit-btn,html.st-fy #saveBtn{height:28px!important;padding:0 11px!important;border-radius:14px!important;border:1px solid color-mix(in srgb,var(--text) 22%,transparent)!important;background:none!important;color:var(--text)!important;font:600 12px/26px var(--f-ui)!important;margin-left:4px!important;box-shadow:none!important}',
+    'html.st-fy #saveBtn:not(.tel){font-size:0!important}',
+    'html.st-fy #saveBtn:not(.tel)::after{font-size:12px!important;line-height:26px}',
+    'html.st-fy #editor .topbar .basit-btn.on{background:color-mix(in srgb,var(--text) 12%,transparent)!important}',
+    /* panel kapalıyken tutamak görünür kalır: yukarı sürükle ya da dokun → panel açılır */
+    '@media (max-width:899px){html.st-fy body.ed-kapali #editor .panel{height:26px!important;overflow:hidden!important;border-top:1px solid color-mix(in srgb,var(--text) 9%,transparent)!important}',
+    ' html.st-fy body.ed-kapali #editor .panel>:not(.ed-tut){visibility:hidden}',
+    ' html.st-fy body.ed-kapali #editor .ed-tut{display:flex!important}}',
     /* panel: sakin kart, ferah boşluk */
     'html.st-fy #editor .panel{border-radius:22px 22px 0 0;border-top:1px solid color-mix(in srgb,var(--text) 9%,transparent)}',
     'html.st-fy #panelIn .bgrp,html.st-fy #panelIn .yz-grp{border-radius:14px}',

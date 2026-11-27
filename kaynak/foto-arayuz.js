@@ -215,7 +215,8 @@
           else x.els.forEach(function(e){ e.style.display = goster ? '' : 'none'; });
           if (x.ekGiris) x.ekGiris.forEach(function(e){ e.style.display = goster ? '' : 'none'; });
         });
-        var pn0 = document.getElementById('panel'); if (pn0) pn0.scrollTop = 0;
+        /* 2.21: kaydırma yalnız araç ya da bölüm değişince başa döner (ayar değişince / yeniden ölçümde yerinde kalır) */
+        var pn0 = document.getElementById('panel'), yer = tab + '|' + s; if (pn0 && P_._stYer !== yer){ P_._stYer = yer; pn0.scrollTop = 0; }
         var G = list[s], els = (x => x.g ? [x.g] : x.els)(G).concat(G.ekGiris || []);
         olcerek({anahtar: 'ko|' + tab + '|' + G.ad, birimler: els, satir: ss, kok: P_, maxH: panelBosluk(), yenile: function(){ uygula(document.getElementById('panelIn')); }});
       } else {

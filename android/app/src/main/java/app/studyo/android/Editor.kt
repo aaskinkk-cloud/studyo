@@ -416,6 +416,18 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         CipVeri(g.sayfalar.mapNotNull { sy -> RENK_SEKMELERI.firstOrNull { it.anahtar == sy }?.let { AltSayfa(it.anahtar, it.ad, it.simge) } },
                             renkSekmeS, { renkSekmeDegisti(ra, it) }, emptyList()) { sy -> vm.renkSekme.value = sy; AltHafiza.sec("renk_" + g.anahtar, sy) }
                     } else null
+                } else {
+                    val h = haplar[bolum] ?: ""
+                    // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
+                    val bag = if (h == "sablon") listOf<Triple<String, String, () -> Unit>>(
+                        Triple("Kadraj", "kadraj") { git("duzenle", "klip", "kadraj") },
+                        Triple("Yüze yaklaş", "kisi") { git("nesne", "yuz", "yuzler") },
+                        Triple("Logo", "logo") { git("yayin", "logo", null) },
+                        Triple("Müzik", "nota") { git("ses", "muzik", "hazir") },
+                    ) else emptyList()
+                    ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
+                }
+            } else null
             Column(Modifier.fillMaxWidth().weight(1f)) {
                 if (sekmeMod && panelAcik && misafir == null) PanelSekmeleri(altlar, cipVeri)
                 if (bolum == "renk" && panelAcik) {
@@ -477,18 +489,6 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             // ---- 3.61: alt menüler + ana menü (Ahmet'in isteği) ----
             // Ana menüde bir bölüme dokununca alttaki ana menü kaybolur, yerine o bölümün alt menüleri gelir; başta Geri.
             // Geri: ana menü geri gelir, alt menüler bir üst satıra çıkar. Renk'in ayar düğmeleri (Parlaklık, Kontrast…) de bu satırlarda.
-                } else {
-                    val h = haplar[bolum] ?: ""
-                    // 4.13: Görünüm › Şablon'da bu bölümde olmayan varsayılan maddelere bağlantılar (Varsayılan ayarlar'daki 7 maddeden)
-                    val bag = if (h == "sablon") listOf<Triple<String, String, () -> Unit>>(
-                        Triple("Kadraj", "kadraj") { git("duzenle", "klip", "kadraj") },
-                        Triple("Yüze yaklaş", "kisi") { git("nesne", "yuz", "yuzler") },
-                        Triple("Logo", "logo") { git("yayin", "logo", null) },
-                        Triple("Müzik", "nota") { git("ses", "muzik", "hazir") },
-                    ) else emptyList()
-                    ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
-                }
-            } else null
             val tekSatir = yeniAlt && (Duzen.cipTekSatir || bolum == "hazirb")   // 4.16: varsayılan ayrı satır (Ayarlar › Menü görünümü) · 4.47: Hazır hep yanında
             if (!tekSatir && !sekmeMod) cipVeri?.let { c -> AltSayfaCipleri(c.liste, c.secili, c.isaret, c.bag, c.sec) }
             // 3.89: sabit Düzenle düğmesi (yalnız düğme, alt menüleri değil) — satırın solunda kaymadan durur; küçük

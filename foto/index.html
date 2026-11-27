@@ -50,7 +50,7 @@
   if(/github\.io$/.test(location.hostname)&&localStorage.getItem("ko:tercih")==="cf"){ var CF="https://ahmet-uygulamalar.pages.dev/karanlik-oda/", bitti=0;
     var zt=setTimeout(function(){ if(!bitti){ bitti=1; try{localStorage.removeItem("ko:tercih")}catch(_){} } },3500);
     fetch(CF+"manifest.webmanifest",{mode:"no-cors",cache:"no-store"}).then(function(){ if(!bitti){ bitti=1; clearTimeout(zt); location.replace(CF+"?kaynak=gh"+location.hash); } }).catch(function(){ if(!bitti){ bitti=1; clearTimeout(zt); try{localStorage.removeItem("ko:tercih")}catch(_){} } }); }
-}catch(e){} })();</script><meta name="surum" content="6.78" data-ad="Karanlık Oda" data-tarih="27.11.2026">
+}catch(e){} })();</script><meta name="surum" content="6.79" data-ad="Karanlık Oda" data-tarih="27.11.2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -401,7 +401,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
   <div class="home-top">
    <div>
     <h1 class="wordmark"><span class="lamp"></span>Karanlık Oda</h1>
-    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.78 · 27.11.2026</span></p>
+    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.79 · 28.11.2026</span></p>
    </div>
    <button class="icon-btn" id="themeBtn" aria-label="Tema değiştir"><svg class="icon"><use href="#i-moon"/></svg></button>
   </div>
@@ -2731,6 +2731,23 @@ function styleControls(add){ // etkin stil katmanı için ayarlar
   add(slider({id:"stF",label:`Mat siyah aktarımı (ölçülen ${full.fade})`,min:0,max:150,get:()=>pr.style.fadeAmt!=null?pr.style.fadeAmt:100,set:v=>upd("fadeAmt",v),def:100,fmt:v=>v+"%",commitLabel:"Stil: mat siyah"}));
   if(!full.grain&&!full.fade) add(el("p",{class:"note",style:"margin:0"},"Referans, bu fotoğraftan daha grenli ya da daha mat değil; bu yüzden ek gren ve solukluk eklenmedi."));
 }
+/* ================== 6.79 · KENDİ FONTUN: cihazda saklanır (localStorage), açılışta yüklenir, Font listesine ve İmza yazısına eklenir ================== */
+function kFontlar(){ try{ return JSON.parse(localStorage.getItem("ko:kfont")||"[]")||[]; }catch(e){ return []; } }
+function kFontKaydet(L){ try{ localStorage.setItem("ko:kfont",JSON.stringify(L)); return true; }catch(e){ toast("Depolama dolu: font kaydedilemedi (çok büyük olabilir)."); return false; } }
+function kFontKaydir(ad){ if(!YZ_FONT.some(x=>x[0]===ad)) YZ_FONT.push([ad,ad+" — senin fontun"]); if(!IMZA_YAZI.includes(ad)) IMZA_YAZI.unshift(ad); }
+async function kFontYukle(ad,b64){ const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); const ff=new FontFace(ad,bin.buffer); await ff.load(); document.fonts.add(ff); kFontKaydir(ad); return ff; }
+async function kFontEkle(fl){ const b=busy("Font yükleniyor…");
+  try{ const buf=new Uint8Array(await fl.arrayBuffer()); if(buf.length>1.5e6){ toast("Font 1,5 MB'tan büyük; daha küçük bir dosya seç."); return; }
+    let s=""; for(let i=0;i<buf.length;i+=0x8000) s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000)); const b64=btoa(s);
+    const ad=fl.name.replace(/\.[^.]+$/,"").replace(/[-_]+/g," ").replace(/\s*(regular|normal)\s*$/i,"").trim().slice(0,40)||"Fontum";
+    const ff=await kFontYukle(ad,b64);
+    /* Türkçe denetimi: ğ ş İ ı yoksa tarayıcı yedek fonta düşer; genişlik karşılaştırmasıyla anlaşılır */
+    const c=document.createElement("canvas").getContext("2d"), w=(f,t)=>{ c.font=`40px ${f}`; return c.measureText(t).width; };
+    const eksik=[..."ğĞşŞİıçöü"].filter(ch=>Math.abs(w(`"${ad}",monospace`,ch)-w("monospace",ch))<0.01&&Math.abs(w(`"${ad}",serif`,ch)-w("serif",ch))<0.01);
+    const L=kFontlar().filter(x=>x.ad!==ad); L.unshift({ad,b64}); if(!kFontKaydet(L)) return;
+    renderPanel(); toast(eksik.length?`"${ad}" eklendi · bu fontta eksik harf: ${eksik.join(" ")}`:`"${ad}" eklendi · Türkçe harfler tam.`);
+  }catch(e){ console.error(e); toast("Font okunamadı: "+(e&&e.message||e)); } finally{ b.close(); } }
+setTimeout(()=>{ try{ kFontlar().forEach(x=>{ kFontKaydir(x.ad); kFontYukle(x.ad,x.b64).catch(()=>{}); }); }catch(e){} },0);   /* YZ_FONT / IMZA_YAZI tanımlandıktan sonra */
 /* ================== 6.77 · STİL ÇIKAR: referans fotoğraftan AYAR DEĞERLERİNİ birebir çıkarır ==================
    Referans ölçülür (ışıklık dağılımı, renk dengesi, doygunluk, 8 renk bandı, vinyet); sonra bu fotoğraf küçük boyutta
    uygulamanın kendi motoruyla tekrar tekrar çizilip ayarlar adım adım referansa yaklaştırılır (koordinat inişi).
@@ -2901,6 +2918,14 @@ const LOOKS=[
  {id:"lr_elbise",cat:"lr",n:"Turuncu elbise · şeftali",style:{ref:{"q":[0.1502,0.4018,0.4923,0.554,0.5963,0.6272,0.6531,0.6763,0.6936,0.7097,0.7253,0.7407,0.7589,0.7813,0.8064,0.8285,0.8473,0.8612,0.8745,0.8876,0.9001,0.9112,0.9198,0.928,0.9363,0.9455,0.9544,0.9626,0.9711,0.9822,0.997,1,1],"bands":[{"w":0.026,"ma":0.0018,"mb":0.0176,"sa":0.0265,"sb":0.019},{"w":0.218,"ma":0.0415,"mb":0.0468,"sa":0.0481,"sb":0.0413},{"w":0.613,"ma":0.0177,"mb":0.0224,"sa":0.0404,"sb":0.0373}],"noise":3.34},light:65,color:88,grainAmt:50,fadeAmt:80},p:{"vibrance":4},h:{1:[0,12,2],0:[0,6,0],4:[0,-10,4]}},
   {id:"lr_mistik",cat:"lr",n:"Mistik oda · amber sinema",style:{ref:{"q":[0.1681,0.2146,0.2345,0.2512,0.2714,0.2883,0.3033,0.3196,0.3297,0.3384,0.3467,0.3546,0.3627,0.372,0.3824,0.3928,0.4037,0.4144,0.4241,0.4347,0.4484,0.4588,0.4819,0.5146,0.5462,0.5701,0.5901,0.6109,0.6326,0.6527,0.675,0.6861,0.9246],"bands":[{"w":0.348,"ma":0.0315,"mb":0.016,"sa":0.0228,"sb":0.0212},{"w":0.593,"ma":0.0435,"mb":0.0336,"sa":0.0297,"sb":0.0194},{"w":0.118,"ma":0.0331,"mb":0.0392,"sa":0.0366,"sb":0.0135}],"noise":0.98},light:72,color:88,grainAmt:45,fadeAmt:60},p:{"dehaze":-8,"clarity":-4,"vignette":-24,"temp":6},h:{0:[0,-6,-8],1:[-4,8,-6],2:[-8,-14,-10],3:[-14,-40,-22],4:[0,-30,-20],5:[0,-32,-26],6:[0,-20,-10],7:[-4,6,4]}},
  /* 6.57: 🏕️ Kamp · çay & kahve koleksiyonu — Ahmet'in örneklerinden (kamp sofrası, altın ağaç, çay bardağı) */
+/* 6.79 · Ahmet'in referans fotoğraflarından (ışık dağılımı + ton bölgelerinde renk; her fotoğrafa uyarlanır) */
+ {id:"ah_kitap",cat:"ahmet",n:"Kitap & kahve · loş oda",style:{ref:{"q":[0.0422,0.1946,0.223,0.2433,0.2647,0.2898,0.3133,0.3348,0.3567,0.3759,0.3951,0.4226,0.4564,0.4874,0.5145,0.5416,0.5692,0.5997,0.6321,0.6671,0.7035,0.7317,0.7563,0.7794,0.7984,0.8146,0.8281,0.8424,0.857,0.8706,0.8856,0.9003,0.9265],"bands":[{"w":0.234,"ma":0.0175,"mb":0.0219,"sa":0.0122,"sb":0.0183},{"w":0.391,"ma":0.0178,"mb":0.0398,"sa":0.0158,"sb":0.0213},{"w":0.391,"ma":0.003,"mb":0.0304,"sa":0.0105,"sb":0.0156}],"noise":6.18},light:90,color:95,grainAmt:40,fadeAmt:100}},
+ {id:"ah_turk",cat:"ahmet",n:"Türk kahvesi · güz ışığı",style:{ref:{"q":[0.1785,0.2134,0.2273,0.2642,0.2815,0.2979,0.3176,0.3358,0.3542,0.3747,0.4051,0.4444,0.4696,0.4904,0.5094,0.5266,0.5417,0.5543,0.5676,0.5809,0.5934,0.6049,0.6157,0.6275,0.6392,0.653,0.6713,0.6975,0.7377,0.7816,0.8381,0.9249,0.9849],"bands":[{"w":0.225,"ma":0.0054,"mb":0.0098,"sa":0.016,"sb":0.0236},{"w":0.548,"ma":0.0099,"mb":0.0605,"sa":0.0205,"sb":0.0445},{"w":0.265,"ma":0.0121,"mb":0.0573,"sa":0.0208,"sb":0.0493}],"noise":1.8},light:90,color:95,grainAmt:70,fadeAmt:100}},
+ {id:"ah_turkuaz",cat:"ahmet",n:"Kahve · turkuaz fincan",style:{ref:{"q":[0.1033,0.184,0.2187,0.2422,0.2594,0.2741,0.289,0.3028,0.3152,0.3281,0.3396,0.3517,0.3646,0.3771,0.3896,0.4027,0.4171,0.4308,0.4439,0.4569,0.4694,0.4803,0.4898,0.4997,0.5105,0.5249,0.5421,0.5609,0.5816,0.6077,0.648,0.6942,0.7783],"bands":[{"w":0.348,"ma":-0.0037,"mb":0.0222,"sa":0.0467,"sb":0.0304},{"w":0.619,"ma":0.0079,"mb":0.0212,"sa":0.0667,"sb":0.0455},{"w":0.091,"ma":0.0202,"mb":0.0159,"sa":0.0587,"sb":0.047}],"noise":2.66},light:90,color:95,grainAmt:70,fadeAmt:100}},
+ {id:"ah_carsi",cat:"ahmet",n:"Eski çarşı · mat yeşil",style:{ref:{"q":[0.1093,0.1926,0.2221,0.2436,0.262,0.2799,0.2986,0.3157,0.3302,0.3433,0.3558,0.3672,0.3792,0.3905,0.4011,0.4106,0.4199,0.4297,0.439,0.4486,0.4602,0.4737,0.4886,0.5035,0.5192,0.5346,0.5505,0.5686,0.599,0.6523,0.7095,0.7457,0.8518],"bands":[{"w":0.337,"ma":0.0021,"mb":0.0218,"sa":0.0206,"sb":0.0162},{"w":0.61,"ma":-0.0046,"mb":0.0298,"sa":0.0254,"sb":0.0201},{"w":0.112,"ma":-0.0116,"mb":0.0414,"sa":0.0267,"sb":0.0215}],"noise":3.1},light:90,color:95,grainAmt:70,fadeAmt:100}},
+ {id:"ah_sokak",cat:"ahmet",n:"Sokak dükkânı · soğuk mat",style:{ref:{"q":[0.0872,0.1234,0.1353,0.153,0.1705,0.1908,0.2106,0.2291,0.2484,0.2684,0.2876,0.307,0.3285,0.3497,0.3713,0.3915,0.4083,0.4232,0.4357,0.4468,0.4614,0.4762,0.4956,0.5165,0.5371,0.5557,0.5768,0.602,0.6261,0.6532,0.6865,0.7352,0.9876],"bands":[{"w":0.404,"ma":0.0029,"mb":-0.005,"sa":0.0264,"sb":0.0146},{"w":0.509,"ma":0.0022,"mb":-0.0069,"sa":0.0402,"sb":0.0246},{"w":0.123,"ma":-0.004,"mb":-0.011,"sa":0.0203,"sb":0.0267}],"noise":3.36},light:90,color:95,grainAmt:70,fadeAmt:100}},
+ {id:"ah_antika",cat:"ahmet",n:"Antika köşe · sıcak film",style:{ref:{"q":[0.1419,0.1774,0.1895,0.2036,0.2194,0.2349,0.2521,0.2683,0.2822,0.2931,0.3036,0.3147,0.3255,0.3368,0.3485,0.3606,0.3733,0.3861,0.3997,0.4154,0.4299,0.4466,0.4643,0.481,0.4951,0.5077,0.5207,0.5371,0.5604,0.6014,0.6554,0.7191,0.8764],"bands":[{"w":0.427,"ma":0.0018,"mb":0.0143,"sa":0.0232,"sb":0.0172},{"w":0.548,"ma":0.0086,"mb":0.0295,"sa":0.0283,"sb":0.02},{"w":0.084,"ma":0.01,"mb":0.0472,"sa":0.0239,"sb":0.0242}],"noise":2.69},light:90,color:95,grainAmt:70,fadeAmt:100}},
+ {id:"ah_elma",cat:"ahmet",n:"Elma · güz bahçesi",style:{ref:{"q":[0.0953,0.2239,0.2836,0.3217,0.3423,0.3596,0.3755,0.3903,0.4037,0.4167,0.4304,0.4434,0.4566,0.4689,0.481,0.4926,0.5041,0.5146,0.5243,0.5334,0.5424,0.5518,0.5617,0.5722,0.5827,0.594,0.6058,0.6192,0.6346,0.6526,0.6738,0.7042,0.8715],"bands":[{"w":0.192,"ma":0.0093,"mb":0.0308,"sa":0.0407,"sb":0.0233},{"w":0.698,"ma":0.0102,"mb":0.0607,"sa":0.0442,"sb":0.029},{"w":0.17,"ma":0.0153,"mb":0.0759,"sa":0.0392,"sb":0.024}],"noise":1.89},light:90,color:95,grainAmt:70,fadeAmt:100}},
  {id:"kp_kamp",cat:"kamp",n:"Kamp · orman sofrası",style:{ref:{"q":[0,0.1433,0.1688,0.1867,0.202,0.216,0.2301,0.243,0.2565,0.2699,0.2838,0.2974,0.3105,0.3245,0.3376,0.3516,0.3654,0.3813,0.3969,0.4123,0.4286,0.4451,0.4629,0.481,0.5003,0.5223,0.5453,0.5705,0.5987,0.6315,0.6709,0.724,0.9814],"bands":[{"w":0.441,"ma":0.0077,"mb":0.0142,"sa":0.0239,"sb":0.0127},{"w":0.504,"ma":0.0219,"mb":0.0251,"sa":0.0317,"sb":0.0214},{"w":0.098,"ma":0.0223,"mb":0.0354,"sa":0.0332,"sb":0.0289}],"noise":8.13},light:85,color:90,grainAmt:25,fadeAmt:45},p:{clarity:22,texture:12,contrast:6,dehaze:6,vignette:-26},h:{0:[0,12,-4],1:[0,18,0],2:[-6,-20,-6],3:[-25,-40,-18],4:[0,-40,-15],5:[0,-45,-20]}},
  {id:"kp_cay",cat:"kamp",n:"Çay & kahve · kehribar",p:{temp:16,tint:4,exposure:-4,contrast:18,clarity:16,texture:8,highlights:-18,shadows:-6,blacks:-14,vibrance:6,vignette:-40},h:{0:[4,25,-8],1:[-6,35,-6],2:[-20,-80,-30],3:[-20,-85,-35],4:[0,-90,-30],5:[0,-95,-40],6:[0,-60,-20]}},
  {id:"kp_altin",cat:"kamp",n:"Sonbahar · altın ağaç",style:{ref:{"q":[0.0782,0.267,0.3206,0.3594,0.3925,0.4214,0.4411,0.4592,0.4759,0.4903,0.503,0.5143,0.5253,0.5361,0.5483,0.5608,0.5741,0.5879,0.6005,0.614,0.6244,0.6328,0.6399,0.6461,0.6527,0.6579,0.6642,0.6725,0.6866,0.7233,0.8233,0.8711,0.9227],"bands":[{"w":0.114,"ma":0.0059,"mb":0.0227,"sa":0.0178,"sb":0.0306},{"w":0.631,"ma":0.0085,"mb":0.0335,"sa":0.0166,"sb":0.0327},{"w":0.304,"ma":-0.0006,"mb":0.0089,"sa":0.0107,"sb":0.0312}],"noise":4.11},light:60,color:80,grainAmt:0,fadeAmt:40},p:{clarity:14,texture:10,vibrance:14},h:{1:[-4,40,6],2:[-12,45,4],3:[-40,-60,-10],4:[0,-50,0],5:[0,-45,-6]}},
@@ -3252,6 +3277,8 @@ function renderPanel0(){
     const items=[mk(null,"Yok"),...LOOKS.filter(l=>!l.cat).map(l=>mk(l.id,l.n))]; strip.append(...items);
     if(s.look.id){ add(slider({id:"lookamt",label:"Yoğunluk",min:0,max:150,get:()=>s.look.amt,set:v=>{s.look.amt=v;},def:100,fmt:v=>v+"%"})); }
     if(s.look.id){ const lk=resolveLook(s.look); add(el("div",{class:"eff-list"},effectRow("look","Nerede uygulansın ("+(lk?lk.n:"filtre")+")"))); }
+    const stripA=el("div",{class:"presets"}); const itemsA=LOOKS.filter(l=>l.cat==="ahmet").map(l=>mk(l.id,l.n)); stripA.append(...itemsA);
+    add(el("div",{class:"subhead"},"📷 Senin fotoğraflarından")); add(stripA);
     const stripK=el("div",{class:"presets"}); const itemsK=LOOKS.filter(l=>l.cat==="kamp").map(l=>mk(l.id,l.n)); stripK.append(...itemsK);
     add(el("div",{class:"subhead"},"🏕️ Kamp · çay & kahve")); add(stripK);
     add(el("div",{class:"subhead"},"Mevsim ve hava")); add(strip);
@@ -3261,7 +3288,7 @@ function renderPanel0(){
     add(el("div",{class:"subhead"},"🌹 Çiçek · gül · meyve")); add(stripC);
     const strip2=el("div",{class:"presets"}); const items2=LOOKS.filter(l=>l.cat==="lr").map(l=>mk(l.id,l.n)); strip2.append(...items2);
     add(el("div",{class:"subhead"},"Lightroom tarzı")); add(strip2);
-    requestAnimationFrame(()=>drawLookThumbs([...itemsK,...items,...itemsS,...itemsC,...items2]));
+    requestAnimationFrame(()=>drawLookThumbs([...itemsA,...itemsK,...items,...itemsS,...itemsC,...items2]));
     add(el("div",{class:"subhead"},"Hazır ayarlarım"));
     add(presetList(true));
     add(el("div",{class:"btn-row"},
@@ -4756,7 +4783,11 @@ function yaziPanel(add){ const s=ED.state; s.texts=s.texts||[]; const T=s.texts.
       const gir=el("input",{class:"txt",value:ad,placeholder:"Adın / imzan",style:"width:100%;font-size:16px",oninput:e=>{ try{ localStorage.setItem("ko:imzaYazi",e.target.value); }catch(_){} kap.querySelectorAll(".yz-on").forEach(x=>x.textContent=e.target.value||"İmza"); }});
       const kap=el("div",{class:"imz-sab yz-sab"},IMZA_YAZI.map(fn=>el("button",{class:"yz-k",onclick:async()=>{ const t=Object.assign(yzVars(),{t:gir.value||"İmza",f:fn,w:400,sz:.075,c:"#ffffff",sh:35,y:.86,x:.72}); s.texts.push(t); ED.yzSel=t.id; await fontYukle(fn,400,0); commit("İmza yazısı: "+fn); renderPanel(); requestRender(); ekCiz(); }},
         el("span",{class:"yz-on",style:`font-family:'${fn}';font-weight:400`},ad),el("small",null,fn))));
-      add(gir); add(kap); }
+      add(gir); add(kap);
+      /* 6.79 · kendi fontunu yükle (.ttf / .otf / .woff / .woff2): lisansı sende olan ticari imza fontları için; cihazda saklanır */
+      const fi=el("input",{type:"file",accept:".ttf,.otf,.woff,.woff2,font/*",style:"display:none",onchange:async e=>{ const fl=e.target.files[0]; e.target.value=""; if(fl) await kFontEkle(fl); }});
+      add(fi, el("div",{class:"btn-row"},el("button",{class:"btn",onclick:()=>fi.click()},ico("i-plus"),"Kendi fontunu yükle (.ttf / .otf)"),
+        kFontlar().length?el("button",{class:"btn ghost",onclick:()=>{ const L=kFontlar(); askText("Silinecek fontun adı",L.map(x=>x.ad).join(", "),"Sil",ad=>{ kFontKaydet(L.filter(x=>x.ad!==ad.trim())); toast("Silindi (yeniden açılınca listeden kalkar)"); renderPanel(); }); }},"Yüklenenleri yönet"):null)); }
     add(el("div",{class:"subhead"},"Yazı şablonları — dokun, fotoğrafa eklensin"));
     add(el("div",{class:"yz-sab"},YZ_SABLON.map(([ad,v])=>{ const b=el("button",{class:"yz-k",onclick:async()=>{ const t=Object.assign(yzVars(),deep(v)); if(v.mk) t.mk=Object.assign(yzVars().mk,v.mk); s.texts.push(t); ED.yzSel=t.id;
         if(t.behind&&!s.sel){ await ozneSec(null,"Yazı için ana nesne seçildi"); } await fontYukle(t.f,t.w,t.it); if(t.kombin) await kbFontYukle(t); commit("Yazı eklendi: "+ad); renderPanel(); requestRender(); ekCiz(); }},

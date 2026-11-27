@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.24 · 27.11.2026 (Karanlık Oda 6.78, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.25 · 28.11.2026 (Karanlık Oda 6.79, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.25 (28.11.2026): "Senin fotoğraflarından" filtreleri · kendi fontunu yükle
+- **Filtreler › 📷 Senin fotoğraflarından** (ilk sekme): Ahmet'in 7 referans fotoğrafından — Kitap & kahve · loş oda, Türk kahvesi · güz ışığı, Kahve · turkuaz fincan, Eski çarşı · mat yeşil, Sokak dükkânı · soğuk mat, Antika köşe · sıcak film, Elma · güz bahçesi. Her biri referansın 33 noktalı ışıklık dağılımını, 3 ton bölgesindeki renk ortalaması/yayılımını, mat siyahını ve grenini taşır (uygulamanın kendi `styleStats` ölçüsü); sabit ayar değil, her fotoğrafa uyarlanır (ışık %90, renk %95). Yoğunluk ve "Nerede uygulansın" diğer filtrelerdeki gibi.
+- Tek bir fotoğrafa birebir uyum için: Stil kopyala › "Ayarları birebir çıkar" (2.23).
+- **Yazı · İmza › İmza yazısı › Kendi fontunu yükle (.ttf / .otf / .woff):** lisansı sende olan bir fontu (ör. satın alınmış imza fontu) yüklersin; cihazda saklanır (`localStorage['ko:kfont']`, en fazla 1,5 MB), her açılışta yüklenir, İmza yazısı listesinin başına ve Font listesine eklenir. Yüklenince Türkçe harfler (ğ Ğ ş Ş İ ı ç ö ü) denetlenir, eksikse bildirilir. "Yüklenenleri yönet" ile silinir.
+- Test: 7 filtre küçük resimleri ve uygulama (elma fotoğrafına "Türk kahvesi"); font yükleme → "Türkçe harfler tam", sayfa yenilenince font yeniden yüklü; hata yok. Telefonda denenmedi.
 
 ## 2.24 (27.11.2026): liste görünümleri · imza yazısı (12 yeni el yazısı fontu)
 - **Görünüm düğmesi** (panel başlığında, Filtreler ve Yazı · İmza'da): dokundukça **Izgara → Kart → Liste → Şerit**. Kart: 2 sütun büyük önizleme; Liste: küçük resim + ad satırı (Lightroom "Kayıtlı Hazır Ayarlar" gibi); Şerit: eski yatay. Filtreler, yazı şablonları, imza yazıları ve logolu imzalara uygulanır; tercih saklanır (`localStorage['studyo.fGorunum']`).

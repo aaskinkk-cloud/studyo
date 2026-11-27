@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.19 · 27.11.2026 (Karanlık Oda 6.73, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.20 · 27.11.2026 (Karanlık Oda 6.74, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.20 (27.11.2026): fotoğraf paneli kayar, sayfa yok · açıklamalar gizli · Haber Metin'den çıktı
+- **Panel küçülünce ayarlar kaybolmuyor:** sayfalara bölme kaldırıldı; bütün ayarlar alt alta, panel parmakla yukarı-aşağı kayar, kenarda kaydırma çubuğu görünmez. Kök neden: sayfalama panel küçülünce ayarları gizli sayfalara taşıyordu. Kaydırıcılar (3+) ad sırası + tek kaydırıcı olarak kalır; bölüm sekmeleri (3. katman) aynı.
+- **Açıklamalar varsayılan gizli:** panel başlığındaki ⓘ hepsini gösterir/gizler (tercih saklanır); gösterilince tek satır, dokununca tamamı. Başlık satırı inceltildi: daha geniş düzenleme alanı.
+- **Metin bölümü yanlışlıkla Kabataş Haber'i açıyordu:** bölüm son açılan aracı hatırlıyordu, Haber tam ekran bir araç olduğu için bölüme dokunmak onu açıyordu. Haber artık Kaydet bölümünde ("Kabataş Haber") ve hiçbir bölüm simgesi onu ya da Kes'i kendiliğinden açmaz. Metin › Yazı · İmza · Katman.
+- Test (412×915, panel tutamakla küçültülmüş): 17 araçta en alttaki ayar kaydırınca görünüyor; hata yok. Telefonda denenmedi.
 
 ## 2.19 (27.11.2026): fotoğraf panelleri sığıyor
 - **Açıklamalar tek satır:** paneldeki bütün açıklama notları tek satır görünür (sonunda ⌄); dokununca tamamı açılır, yine dokununca kapanır.
@@ -17,8 +23,8 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
   - Düzenle › Otomatik · Kırp · Işık · Detay · HDR
   - Renk › Filtreler · Renk · HSL · Eğriler
   - Rötuş › Selfi · Rötuş · Fırça · Kes (yapay zekâ) · Efektler
-  - Metin › Yazı · İmza · Haber · Katman
-  - Kaydet › Geçmiş · Kitaplığa kaydet (hemen kaydeder; otomatik kayıt da sürer) · Dışa aktar
+  - Metin › Yazı · İmza · Katman
+  - Kaydet › Geçmiş · Kitaplığa kaydet (hemen kaydeder; otomatik kayıt da sürer) · Dışa aktar · Kabataş Haber (2.20'den beri)
 - Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy. Her bölüm son açılan aracı hatırlar (`localStorage['studyo.fGrup']`). Düzenlenmiş araçta hap ve bölüm simgesinde nokta.
 - Panel içi: araç adı + ✓, bölüm sekmeleri (3. katman), kaydırıcılar tek tek; seçili öğeler turuncu, Dışa Aktar turuncu (video editörüyle aynı renkler).
 - Haplar Karanlık Oda'nın kendi sekme düğmelerine basar; 18 araç ve işlevleri aynen yerinde, hiçbiri kaldırılmadı. Basit mod gizlediği araçların hapını da gizler.

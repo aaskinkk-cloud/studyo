@@ -1,4 +1,4 @@
-/* ===== 2.18–2.19 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.20 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -20,8 +20,9 @@
     {id:'duz', ad:'Düzenle', ic:I.duz, h:[['auto','Otomatik'],['crop','Kırp'],['light','Işık'],['detail','Detay'],['hdr','HDR']]},
     {id:'renk', ad:'Renk', ic:I.renk, h:[['filters','Filtreler'],['color','Renk'],['hsl','HSL'],['curves','Eğriler']]},
     {id:'rotus', ad:'Rötuş', ic:I.rotus, h:[['selfi','Selfi'],['retouch','Rötuş'],['brush','Fırça'],['#stKesTab','Kes'],['fx','Efektler']]},
-    {id:'metin', ad:'Metin', ic:I.metin, h:[['text','Yazı · İmza'],['haber','Haber'],['overlay','Katman']]},
-    {id:'kay', ad:'Kaydet', ic:I.kaydet, h:[['history','Geçmiş'],['@kaydet','Kitaplığa kaydet'],['export','Dışa aktar']]}
+    {id:'metin', ad:'Metin', ic:I.metin, h:[['text','Yazı · İmza'],['overlay','Katman']]},
+    /* Haber (Kabataş Haber) ayrı tam ekran açar: Metin'de değil, paylaşım yerinde; bölüm simgesi onu hiç kendiliğinden açmaz */
+    {id:'kay', ad:'Kaydet', ic:I.kaydet, h:[['history','Geçmiş'],['@kaydet','Kitaplığa kaydet'],['export','Dışa aktar'],['haber','Kabataş Haber']]}
   ];
   var son = {}; try { son = JSON.parse(localStorage.getItem('studyo.fGrup') || '{}') || {}; } catch(e){}
   var secG = 'duz';
@@ -55,6 +56,16 @@
     'html.st-fy #panelIn .btn.pri,html.st-fy #panelIn .btn.primary{background:var(--st-or)!important;border-color:var(--st-or)!important;color:var(--st-or-ink)!important}',
     'html.st-fy #panelIn .chip.on,html.st-fy #panelIn .chips button.on{box-shadow:0 0 0 1.5px var(--st-or) inset}',
     /* 2.19 · açıklamalar tek satır, dokununca açılır/kapanır (ekranı kaplamaz) */
+    'html.st-fy.st-notsiz #panelIn .note{display:none!important}',
+    '#stNot{display:none}',
+    'html.st-fy #stNot{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);font:700 15px/1 var(--f-ui);padding:0;flex:none}',
+    'html.st-fy:not(.st-notsiz) #stNot{color:var(--st-or)}',
+    /* başlık satırı ince: daha geniş düzenleme alanı */
+    'html.st-fy .st-pbas{padding-top:0!important;padding-bottom:2px!important}',
+    'html.st-fy .st-pbas>button{width:36px!important;height:36px!important}',
+    /* panel kaydırma: kenarda çubuk görünmez, parmakla yukarı-aşağı */
+    'html.st-fy #editor .panel{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}',
+    'html.st-fy #editor .panel::-webkit-scrollbar{display:none}',
     'html.st-fy #panelIn .note{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;cursor:pointer;position:relative;padding-right:22px!important;opacity:.8}',
     'html.st-fy #panelIn .note::after{content:"⌄";position:absolute;right:4px;top:-2px;font-size:15px;opacity:.7}',
     'html.st-fy #panelIn .note.ac{-webkit-line-clamp:unset;display:block}',
@@ -85,6 +96,19 @@
   if (!YENI) return;
   document.documentElement.classList.add('st-fy');
 
+  /* açıklamalar varsayılan gizli; panel başlığındaki ⓘ hepsini gösterir/gizler (tercih saklanır) */
+  var notsiz = true; try { notsiz = localStorage.getItem('studyo.fNot') !== '1'; } catch(e){}
+  document.documentElement.classList.toggle('st-notsiz', notsiz);
+  (function ibtn(n){ var h = document.querySelector('.st-pbas'); if (!h){ if (n < 80) setTimeout(function(){ ibtn(n + 1); }, 250); return; }
+    if (document.getElementById('stNot')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'stNot'; b.textContent = 'ⓘ'; b.title = 'Açıklamaları göster / gizle'; b.setAttribute('aria-label', 'Açıklamaları göster / gizle');
+    b.onclick = function(){ notsiz = !notsiz; document.documentElement.classList.toggle('st-notsiz', notsiz); try { localStorage.setItem('studyo.fNot', notsiz ? '0' : '1'); } catch(e){} };
+    var ok = h.querySelector(':scope > button'); h.insertBefore(b, ok || null); })(0);
+  /* sayfalara bölme yok: bütün ayarlar alt alta, panel parmakla kayar (panel küçülünce ayar "kaybolmaz").
+     Kök neden: sayfalama, panel küçülünce ayarları gizli sayfalara taşıyordu; sayfa düğmeleri fark edilmeyince ayar kayboluyor sanılıyordu.
+     Kaydırıcılar (3+) InShot gibi ad sırası + tek kaydırıcı olarak kalır. */
+  (function sayf(n){ var o = window.stSayfala; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ sayf(n + 1); }, 250); return; }
+    window.stSayfala = function(a){ if (a) a.maxH = 1e6; return o.apply(this, arguments); }; })(0);
   /* açıklamaya dokun: aç / kapat */
   document.addEventListener('click', function(e){ var n = e.target.closest && e.target.closest('#panelIn .note'); if (n && !e.target.closest('a,button,input,select,label')) n.classList.toggle('ac'); });
   /* tek bölümlü panel (ör. HSL › Kırmızı): başlık akordeon olmaz, ayarları renk seçimiyle aynı sayfada kalır.
@@ -136,7 +160,7 @@
       b.onclick = function(){
         if (x.id === secG){ var a = document.querySelector('#tabs .tab.on'); if (a && !kapali()) { a.click(); return; } }
         secG = x.id;
-        var j = son[x.id] || 0, h = x.h[j] && gorunur(x.h[j][0]) && x.h[j][0] !== '@kaydet' && x.h[j][0] !== '#stKesTab' ? x.h[j] : x.h.filter(function(y){ return gorunur(y[0]) && y[0].charAt(0) !== '@' && y[0].charAt(0) !== '#'; })[0];
+        var j = son[x.id] || 0, h = x.h[j] && gorunur(x.h[j][0]) && x.h[j][0] !== '@kaydet' && x.h[j][0] !== '#stKesTab' && x.h[j][0] !== 'haber' ? x.h[j] : x.h.filter(function(y){ return gorunur(y[0]) && y[0].charAt(0) !== '@' && y[0].charAt(0) !== '#' && y[0] !== 'haber'; })[0];
         if (h) ac(h[0]); else ciz();
       };
       bolK.appendChild(b); });

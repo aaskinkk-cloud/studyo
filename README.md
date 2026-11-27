@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.16 · 08.11.2026 (Karanlık Oda 6.67, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.17 · 27.11.2026 (Karanlık Oda 6.71, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.17 (27.11.2026): fotoğraf editöründe Yazı menüsü sekmeli
+- Bir yazı seçiliyken panel üstte beş sekmedir: **Metin** (yazı kutusu, font, kalınlık/italik, hizalama, BÜYÜK HARF, Çoğalt/Sil) · **Stil** (çok satırlı şablonda Stil ve Vurgu rengi; Boyut, Yazı rengi, Opaklık, Harf aralığı) · **Efekt** (Gölge, Kontur, Bant zemin) · **Konum** (Döndür, Nesnenin arkasına) · **Yüzey** → üçüncü katman **Şekil** (mockup: düz/serbest/duvar/şişe/oval/kumaş + perspektif) | **Kaynaştır** (otomatik uyum, ışık, doku, gren, aşınma).
+- Kök neden (alttaki ayarların kaybolması): ayarlar başlıksız tek uzun blok hâlindeydi; sayfalama ara başlığı bir sayfada, ayarını (ör. Vurgu rengi renkleri) öbür sayfada bırakabiliyordu. Artık ara başlık ve ayarı tek kutu; her sekme panel yüksekliğine sığıyor (412×915 testinde her sekmede tüm ayarlar görünür).
+- **Eski düzen:** Metin sekmesinin sonundaki "Eski yazı düzeni (tek liste)" düğmesi; geri dönüş için "Yeni sekmeli yazı düzeni". Tercih saklanır.
+- Yalnız Stüdyo'nun `foto/` kopyasında (Karanlık Oda 6.71). Not: `kaynak/esitle.py` yeniden çalıştırılırsa bu değişiklik ezilir; Karanlık Oda'nın ana hattı artık Stüdyo içindeki kopyadır.
 
 ## 3.1 (13.11.2026): web editördeki özellikler yerel editöre taşındı
 **İndir:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk — üstüne kurulur.

@@ -41,7 +41,8 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.yz-ara{font:700 12px var(--f-ui);color:var(--muted);margin:8px 2px 2px;letter-spacing:.02em}
+</style>
 <title>Karanlık Oda</title><script>/* 6.62: GitHub'da "Cloudflare'e geç" seçildiyse açılışta oraya yönlen (GitHub'a geç ile kalkar) */
 (function(){ try{ if(window.STUDYO) return; var q=location.search;
   if(/[?&]tercih=gh/.test(q)){ localStorage.removeItem("ko:tercih"); history.replaceState(null,"",location.pathname+location.hash); return; }
@@ -49,7 +50,7 @@
   if(/github\.io$/.test(location.hostname)&&localStorage.getItem("ko:tercih")==="cf"){ var CF="https://ahmet-uygulamalar.pages.dev/karanlik-oda/", bitti=0;
     var zt=setTimeout(function(){ if(!bitti){ bitti=1; try{localStorage.removeItem("ko:tercih")}catch(_){} } },3500);
     fetch(CF+"manifest.webmanifest",{mode:"no-cors",cache:"no-store"}).then(function(){ if(!bitti){ bitti=1; clearTimeout(zt); location.replace(CF+"?kaynak=gh"+location.hash); } }).catch(function(){ if(!bitti){ bitti=1; clearTimeout(zt); try{localStorage.removeItem("ko:tercih")}catch(_){} } }); }
-}catch(e){} })();</script><meta name="surum" content="6.67" data-ad="Karanlık Oda" data-tarih="29.10.2026">
+}catch(e){} })();</script><meta name="surum" content="6.71" data-ad="Karanlık Oda" data-tarih="27.11.2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -386,7 +387,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
   <div class="home-top">
    <div>
     <h1 class="wordmark"><span class="lamp"></span>Karanlık Oda</h1>
-    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.67 · 31.10.2026</span></p>
+    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.71 · 27.11.2026</span></p>
    </div>
    <button class="icon-btn" id="themeBtn" aria-label="Tema değiştir"><svg class="icon"><use href="#i-moon"/></svg></button>
   </div>
@@ -4659,69 +4660,86 @@ function yaziPanel(add){ const s=ED.state; s.texts=s.texts||[]; const T=s.texts.
     if(s.texts.length){ add(el("div",{class:"subhead"},"Fotoğraftaki yazılar")); add(el("div",{class:"chips"},s.texts.map(t=>el("button",{class:"chip",onclick:()=>{ ED.yzSel=t.id; renderPanel(); ekCiz(); }},t.imza?"İmza "+t.imza:(t.t||"Yazı").slice(0,20))))); }
     add(el("p",{class:"note",style:"margin:0"},"Tüm fontlar Türkçe karakterleri (ç ğ ı İ ö ş ü) içerir ve bu dosyanın içindedir; internet gerekmez. Yazıyı fotoğraf üzerinde sürükleyerek taşı.")); return; }
   if(T.imza) return imzaPanel(add,T);
+  /* 2.17 · yazı menüsü sekmeli: Metin | Stil | Efekt | Konum | Yüzey (Yüzey içinde Şekil | Kaynaştır). Eski tek liste seçenek olarak durur. */
+  const ESKI=yaziEski(), B={metin:[],stil:[],efekt:[],konum:[],yuzey:[]}; let BK="metin";
+  /* ara başlık, ardından gelen ayarla tek kutu olur: sayfalamada başlık bir sayfada, ayarı öbüründe kalmaz */
+  const to=k=>{ BK=k; }, ekle=x=>{ if(!x) return; if(ESKI) return add(x); const L=B[BK], o=L[L.length-1];
+    if(o&&o.classList&&o.classList.contains("yz-ara")&&!(x.classList&&x.classList.contains("yz-ara"))) L[L.length-1]=el("div",{class:"yz-grp"},o,x); else L.push(x); };
+  const ara=t=>ESKI?el("div",{class:"subhead"},t):el("div",{class:"yz-ara"},t);
   const set=(k,v,lab)=>{ T[k]=v; requestRender(); ekCiz(); if(lab) commit(lab); };
   const ta=el("textarea",{class:"txt",rows:T.kombin?"4":"2",style:"width:100%;resize:vertical;font-size:16px"}); ta.value=T.t; ta.oninput=()=>{ T.t=ta.value; requestRender(); ekCiz(); }; ta.onchange=()=>commit("Yazı değişti");
-  add(ta);
-  if(T.kombin){
-    add(el("div",{class:"subhead"},"Stil"));
-    add(chips(Object.keys(KB_STIL).map(k2=>[k2,KB_STIL[k2].ad]),T.kombin,async v=>{ T.kombin=v; await kbFontYukle(T); commit("Stil: "+KB_STIL[v].ad); renderPanel(); requestRender(); ekCiz(); }));
+  to("metin"); ekle(ta);
+  if(T.kombin){ to("stil");
+    ekle(ara("Stil"));
+    ekle(chips(Object.keys(KB_STIL).map(k2=>[k2,KB_STIL[k2].ad]),T.kombin,async v=>{ T.kombin=v; await kbFontYukle(T); commit("Stil: "+KB_STIL[v].ad); renderPanel(); requestRender(); ekCiz(); }));
     const S_=KB_STIL[T.kombin]||{}; const vurAd=S_.zemin?"Zemin rengi":S_.rozet?"Rozet rengi":T.kombin==="etiket"?"Etiket zemini":"Vurgu rengi";
-    add(el("div",{class:"subhead"},vurAd));
-    add(el("div",{class:"swatches"},["#ff4d5a","#ffd166","#fff3b0","#ffd0d9","#5f6670","#e5484d","#3e7ce0","#46a758","#111111","#ffffff","none"].map(c=>el("button",{class:"sw"+(T.c2===c?" on":""),style:c==="none"?"background:repeating-linear-gradient(45deg,#ccc 0 4px,#fff 4px 8px)":`background:${c}`,"aria-label":c==="none"?"Yok":"Renk "+c,title:c==="none"?"Yok":c,onclick:()=>{ T.c2=c; requestRender(); commit(vurAd); renderPanel(); }})),
+    ekle(ara(vurAd));
+    ekle(el("div",{class:"swatches"},["#ff4d5a","#ffd166","#fff3b0","#ffd0d9","#5f6670","#e5484d","#3e7ce0","#46a758","#111111","#ffffff","none"].map(c=>el("button",{class:"sw"+(T.c2===c?" on":""),style:c==="none"?"background:repeating-linear-gradient(45deg,#ccc 0 4px,#fff 4px 8px)":`background:${c}`,"aria-label":c==="none"?"Yok":"Renk "+c,title:c==="none"?"Yok":c,onclick:()=>{ T.c2=c; requestRender(); commit(vurAd); renderPanel(); }})),
       el("input",{type:"color",value:/^#[0-9a-f]{6}$/i.test(T.c2||"")?T.c2:"#ff4d5a",style:"width:38px;height:30px;border:0;background:none;padding:0",onchange:e=>{ T.c2=e.target.value; requestRender(); commit(vurAd); }})));
-    add(el("div",{class:"subhead"},"Yazı rengi"));
   }
+  to("metin");
   const fs=el("select",{class:"txt",onchange:async e=>{ T.f=e.target.value; T.w=/Montserrat|Playfair/.test(T.f)?T.w:(T.f==="Dancing Script"?700:T.f==="Caveat"||T.f==="Oswald"?500:T.f==="Amatic SC"?700:T.f==="Lora"?500:400); if(T.f==="Montserrat"&&![300,700].includes(T.w)) T.w=700; if(T.f!=="Playfair Display"&&T.f!=="Cormorant Garamond") T.it=0; if(T.f==="Cormorant Garamond"){ T.it=1; T.w=500; } await fontYukle(T.f,T.w,T.it); commit("Font: "+T.f); requestRender(); renderPanel(); }},
-    YZ_FONT.map(([f,ad])=>el("option",{value:f,selected:T.f===f},ad))); if(!T.kombin) add(el("div",{class:"field"},el("label",null,"Font"),fs));
-  if(T.f==="Montserrat"&&!T.kombin) add(chips([[300,"İnce"],[700,"Kalın"]],T.w,v=>{ set("w",v,"Kalınlık"); renderPanel(); }));
-  if(T.f==="Playfair Display"&&!T.kombin) add(chips([[0,"Kalın"],[1,"İtalik"]],T.it?1:0,v=>{ T.it=v; T.w=v?400:700; fontYukle(T.f,T.w,T.it).then(requestRender); commit("Yazı biçimi"); renderPanel(); }));
-  add(slider({id:"yzsz",label:"Boyut",min:1,max:60,get:()=>Math.round(T.sz*100),set:v=>{ T.sz=v/100; requestRender(); ekCiz(); },def:8,fmt:v=>v}));
-  add(el("div",{class:"swatches"},["#ffffff","#f6f0e4","#111111","#ffd166","#ffb347","#e5484d","#3e7ce0","#46a758","#2b1d12"].map(c=>el("button",{class:"sw"+(T.c===c?" on":""),style:`background:${c}`,"aria-label":"Renk "+c,onclick:()=>{ set("c",c,"Yazı rengi"); renderPanel(); }})),
+    YZ_FONT.map(([f,ad])=>el("option",{value:f,selected:T.f===f},ad))); if(!T.kombin) ekle(el("div",{class:"field"},el("label",null,"Font"),fs));
+  if(T.f==="Montserrat"&&!T.kombin) ekle(chips([[300,"İnce"],[700,"Kalın"]],T.w,v=>{ set("w",v,"Kalınlık"); renderPanel(); }));
+  if(T.f==="Playfair Display"&&!T.kombin) ekle(chips([[0,"Kalın"],[1,"İtalik"]],T.it?1:0,v=>{ T.it=v; T.w=v?400:700; fontYukle(T.f,T.w,T.it).then(requestRender); commit("Yazı biçimi"); renderPanel(); }));
+  to("stil"); ekle(slider({id:"yzsz",label:"Boyut",min:1,max:60,get:()=>Math.round(T.sz*100),set:v=>{ T.sz=v/100; requestRender(); ekCiz(); },def:8,fmt:v=>v}));
+  ekle(ara("Yazı rengi")); ekle(el("div",{class:"swatches"},["#ffffff","#f6f0e4","#111111","#ffd166","#ffb347","#e5484d","#3e7ce0","#46a758","#2b1d12"].map(c=>el("button",{class:"sw"+(T.c===c?" on":""),style:`background:${c}`,"aria-label":"Renk "+c,onclick:()=>{ set("c",c,"Yazı rengi"); renderPanel(); }})),
     el("input",{type:"color",value:/^#[0-9a-f]{6}$/i.test(T.c)?T.c:"#ffffff",style:"width:38px;height:30px;border:0;background:none;padding:0",onchange:e=>{ set("c",e.target.value,"Yazı rengi"); }})));
-  if(!T.kombin) add(chips([["left","Sola"],["center","Ortala"],["right","Sağa"]],T.al||"center",v=>{ set("al",v,"Hizalama"); renderPanel(); }));
-  add(slider({id:"yzop",label:"Opaklık",min:5,max:100,get:()=>T.op==null?100:T.op,set:v=>{ T.op=v; requestRender(); },def:100,fmt:v=>v+"%"}));
-  add(slider({id:"yzrot",label:"Döndür",min:-180,max:180,get:()=>T.rot||0,set:v=>{ T.rot=v; requestRender(); ekCiz(); },def:0,fmt:v=>v+"°"}));
-  if(!T.kombin) add(slider({id:"yzls",label:"Harf aralığı",min:-5,max:60,get:()=>T.ls||0,set:v=>{ T.ls=v; requestRender(); ekCiz(); },def:0,fmt:v=>v}));
-  add(slider({id:"yzsh",label:"Gölge",min:0,max:100,get:()=>T.sh||0,set:v=>{ T.sh=v; requestRender(); },def:0,fmt:v=>v+"%"}));
-  if(!T.kombin) add(slider({id:"yzst",label:"Kontur",min:0,max:20,get:()=>T.st||0,set:v=>{ T.st=v; requestRender(); },def:0,fmt:v=>v}));
-  if(!T.kombin) add(el("div",{class:"btn-row"},
-    el("label",{class:"toggle",style:"flex:1"},"BÜYÜK HARF",el("input",{type:"checkbox",checked:!!T.up,onchange:e=>{ set("up",e.target.checked?1:0,"Büyük harf"); }})),
-    el("label",{class:"toggle",style:"flex:1"},"Bant zemin",el("input",{type:"checkbox",checked:!!T.bg,onchange:e=>{ set("bg",e.target.checked?"rgba(0,0,0,.45)":"","Bant zemin"); }}))));
-  add(el("div",{class:"subhead"},"Nesnenin arkasına yazı"));
-  add(el("div",{class:"btn-row"},
+  to("metin"); if(!T.kombin) ekle(chips([["left","Sola"],["center","Ortala"],["right","Sağa"]],T.al||"center",v=>{ set("al",v,"Hizalama"); renderPanel(); }));
+  to("stil"); ekle(slider({id:"yzop",label:"Opaklık",min:5,max:100,get:()=>T.op==null?100:T.op,set:v=>{ T.op=v; requestRender(); },def:100,fmt:v=>v+"%"}));
+  to("konum"); ekle(slider({id:"yzrot",label:"Döndür",min:-180,max:180,get:()=>T.rot||0,set:v=>{ T.rot=v; requestRender(); ekCiz(); },def:0,fmt:v=>v+"°"}));
+  to("stil"); if(!T.kombin) ekle(slider({id:"yzls",label:"Harf aralığı",min:-5,max:60,get:()=>T.ls||0,set:v=>{ T.ls=v; requestRender(); ekCiz(); },def:0,fmt:v=>v}));
+  to("efekt"); ekle(slider({id:"yzsh",label:"Gölge",min:0,max:100,get:()=>T.sh||0,set:v=>{ T.sh=v; requestRender(); },def:0,fmt:v=>v+"%"}));
+  if(!T.kombin) ekle(slider({id:"yzst",label:"Kontur",min:0,max:20,get:()=>T.st||0,set:v=>{ T.st=v; requestRender(); },def:0,fmt:v=>v}));
+  if(!T.kombin){ ekle(el("div",{class:"btn-row"},el("label",{class:"toggle",style:"flex:1"},"Bant zemin",el("input",{type:"checkbox",checked:!!T.bg,onchange:e=>{ set("bg",e.target.checked?"rgba(0,0,0,.45)":"","Bant zemin"); }}))));
+    to("metin"); ekle(el("div",{class:"btn-row"},el("label",{class:"toggle",style:"flex:1"},"BÜYÜK HARF",el("input",{type:"checkbox",checked:!!T.up,onchange:e=>{ set("up",e.target.checked?1:0,"Büyük harf"); }})))); }
+  to("konum"); ekle(ara("Nesnenin arkasına yazı"));
+  ekle(el("div",{class:"btn-row"},
     el("button",{class:"btn"+(T.behind?" pri":""),onclick:async()=>{ if(!T.behind&&!s.sel) await ozneSec(null,"Yazı için ana nesne seçildi"); T.behind=T.behind?0:1; commit(T.behind?"Yazı nesnenin arkasına alındı":"Yazı öne alındı"); renderPanel(); requestRender(); ekCiz(); }},T.behind?"Nesnenin arkasında ✓ (öne al)":"Nesnenin arkasına al"),
     s.sel?el("button",{class:"btn ghost",onclick:()=>{ setTab("fx"); }},"Seçimi düzelt"):null));
-  add(el("p",{class:"note",style:"margin:0"},T.behind?"Ana nesne yazının önünde kalır. Seçim sınırı karınca çizgisiyle gösteriliyor; Efektler › Akıllı bulanıklaştırma › Seçime ekle/çıkar ile düzeltebilirsin.":"YAZI → nesne → YAZI görünümü için yazıyı büyütüp nesnenin arkasına al."));
-  add(el("div",{class:"subhead"},"Mockup — yüzeye oturt"));
+  ekle(el("p",{class:"note",style:"margin:0"},T.behind?"Ana nesne yazının önünde kalır. Seçim sınırı karınca çizgisiyle gösteriliyor; Efektler › Akıllı bulanıklaştırma › Seçime ekle/çıkar ile düzeltebilirsin.":"YAZI → nesne → YAZI görünümü için yazıyı büyütüp nesnenin arkasına al."));
+  to("yuzey"); const YA=ED.yzAlt||"sekil"; if(!ESKI) ekle(chips([["sekil","Şekil — yüzeye oturt"],["kaynas","Kaynaştır — ışık, doku"]],YA,v=>{ ED.yzAlt=v; renderPanel(); }));
+  const yzG=k=>ESKI||YA===k;
+  if(yzG("sekil")) ekle(ara("Mockup — yüzeye oturt"));
   const mk=T.mk=T.mk||yzVars().mk;
-  add(chips([["duz","Düz"],["serbest","Serbest — köşe ve kenarlardan"],["persp","Duvar / tabela / kutu"],["silindir","Şişe / bardak"],["kemer","Yuvarlak / oval"],["dalga","Kumaş"]],mk.mode||"duz",v=>{ mk.mode=v; if(v==="serbest"){ mkQE(mk); if(!mk.uyum) mk.uyum=40; } if(v==="silindir"&&!mk.curve) mk.curve=50; if(v==="kemer"&&!mk.curve) mk.curve=30; if(v==="dalga"&&!mk.curve) mk.curve=40; if(v==="persp"&&!mk.px&&!mk.py) mk.px=-30; if(!mk.uyum&&v!=="duz") mk.uyum=50; commit("Mockup: "+v); renderPanel(); requestRender(); }));
+  if(yzG("sekil")){
+  ekle(chips([["duz","Düz"],["serbest","Serbest — köşe ve kenarlardan"],["persp","Duvar / tabela / kutu"],["silindir","Şişe / bardak"],["kemer","Yuvarlak / oval"],["dalga","Kumaş"]],mk.mode||"duz",v=>{ mk.mode=v; if(v==="serbest"){ mkQE(mk); if(!mk.uyum) mk.uyum=40; } if(v==="silindir"&&!mk.curve) mk.curve=50; if(v==="kemer"&&!mk.curve) mk.curve=30; if(v==="dalga"&&!mk.curve) mk.curve=40; if(v==="persp"&&!mk.px&&!mk.py) mk.px=-30; if(!mk.uyum&&v!=="duz") mk.uyum=50; commit("Mockup: "+v); renderPanel(); requestRender(); }));
   if(mk.mode==="serbest"){
-    add(el("p",{class:"note",style:"margin:0"},"Fotoğraftaki yazının çevresinde 4 köşe (kare) ve 4 kenar (yuvarlak) tutamaç var. Köşeleri yüzeyin köşelerine sürükle — yazı perspektifle oturur. Kenar ortasını sürükleyince o kenar bükülür (şişe, yastık, kumaş)."));
-    add(el("div",{class:"btn-row"},
+    ekle(el("p",{class:"note",style:"margin:0"},"Fotoğraftaki yazının çevresinde 4 köşe (kare) ve 4 kenar (yuvarlak) tutamaç var. Köşeleri yüzeyin köşelerine sürükle — yazı perspektifle oturur. Kenar ortasını sürükleyince o kenar bükülür (şişe, yastık, kumaş)."));
+    ekle(el("div",{class:"btn-row"},
       el("button",{class:"btn",onclick:()=>{ mk.e=[[0,0],[0,0],[0,0],[0,0]]; commit("Kenarlar düzlendi"); requestRender(); ekCiz(); }},"Kenarları düzle"),
       el("button",{class:"btn ghost",onclick:()=>{ mk.q=[[0,0],[0,0],[0,0],[0,0]]; mk.e=[[0,0],[0,0],[0,0],[0,0]]; commit("Mockup sıfırlandı"); requestRender(); ekCiz(); }},ico("i-reset"),"Sıfırla"))); }
   if(mk.mode&&mk.mode!=="duz"&&mk.mode!=="serbest"){
-    add(slider({id:"mkpx",label:"Perspektif (yatay)",min:-100,max:100,get:()=>mk.px||0,set:v=>{ mk.px=v; requestRender(); },def:0,fmt:v=>v}));
-    add(slider({id:"mkpy",label:"Perspektif (dikey)",min:-100,max:100,get:()=>mk.py||0,set:v=>{ mk.py=v; requestRender(); },def:0,fmt:v=>v}));
-    if(mk.mode!=="persp") add(slider({id:"mkc",label:mk.mode==="dalga"?"Dalga":"Eğrilik",min:-100,max:100,get:()=>mk.curve||0,set:v=>{ mk.curve=v; requestRender(); },def:0,fmt:v=>v}));
-    add(slider({id:"mksk",label:"Eğim",min:-100,max:100,get:()=>mk.skew||0,set:v=>{ mk.skew=v; requestRender(); },def:0,fmt:v=>v}));
+    ekle(slider({id:"mkpx",label:"Perspektif (yatay)",min:-100,max:100,get:()=>mk.px||0,set:v=>{ mk.px=v; requestRender(); },def:0,fmt:v=>v}));
+    ekle(slider({id:"mkpy",label:"Perspektif (dikey)",min:-100,max:100,get:()=>mk.py||0,set:v=>{ mk.py=v; requestRender(); },def:0,fmt:v=>v}));
+    if(mk.mode!=="persp") ekle(slider({id:"mkc",label:mk.mode==="dalga"?"Dalga":"Eğrilik",min:-100,max:100,get:()=>mk.curve||0,set:v=>{ mk.curve=v; requestRender(); },def:0,fmt:v=>v}));
+    ekle(slider({id:"mksk",label:"Eğim",min:-100,max:100,get:()=>mk.skew||0,set:v=>{ mk.skew=v; requestRender(); },def:0,fmt:v=>v}));
   }
-  add(el("div",{class:"subhead"},"Yüzeye kaynaştır — ışık, gölge, doku"));
-  add(el("div",{class:"btn-row"},el("button",{class:"btn pri",onclick:()=>{ const o=mkOtomatik(T); if(!o){ toast("Yüzey okunamadı"); return; } Object.assign(mk,o); commit("Otomatik yüzey uyumu"); renderPanel(); requestRender(); toast("Yazı yüzeyin ışığına ve dokusuna göre ayarlandı"); }},"✨ Otomatik uyum"),
+  }
+  if(yzG("kaynas")){
+  ekle(ara("Yüzeye kaynaştır — ışık, gölge, doku"));
+  ekle(el("div",{class:"btn-row"},el("button",{class:"btn pri",onclick:()=>{ const o=mkOtomatik(T); if(!o){ toast("Yüzey okunamadı"); return; } Object.assign(mk,o); commit("Otomatik yüzey uyumu"); renderPanel(); requestRender(); toast("Yazı yüzeyin ışığına ve dokusuna göre ayarlandı"); }},"✨ Otomatik uyum"),
     mk.uyum?el("button",{class:"btn ghost",onclick:()=>{ mk.uyum=0; ["isik","kabart","asin","gren","emil"].forEach(k=>delete mk[k]); commit("Yüzey uyumu kapatıldı"); renderPanel(); requestRender(); }},"Kapat"):null));
-  add(slider({id:"mkuy",label:"Yüzeye uyum",min:0,max:100,get:()=>mk.uyum||0,set:v=>{ mk.uyum=v; requestRender(); },def:0,fmt:v=>v+"%"}));
+  ekle(slider({id:"mkuy",label:"Yüzeye uyum",min:0,max:100,get:()=>mk.uyum||0,set:v=>{ mk.uyum=v; requestRender(); },def:0,fmt:v=>v+"%"}));
   if(mk.uyum){ const V=mkUyumDeger(mk);
-    add(slider({id:"mkis",label:"Işık ve gölge geçişi",min:0,max:100,get:()=>Math.round(V.isik*100),set:v=>{ mk.isik=v; requestRender(); },def:Math.round(V.u*100),fmt:v=>v+"%"}));
-    add(slider({id:"mkkb",label:"Doku kabartması",min:0,max:100,get:()=>Math.round(V.kab*100),set:v=>{ mk.kabart=v; requestRender(); },def:Math.round(V.u*55),fmt:v=>v+"%"}));
-    add(slider({id:"mkem",label:"Boyanın emilmesi",min:0,max:100,get:()=>Math.round(V.emil*100),set:v=>{ mk.emil=v; requestRender(); },def:Math.round(V.u*45),fmt:v=>v+"%"}));
-    add(slider({id:"mkgr",label:"Gren / pürüz",min:0,max:100,get:()=>Math.round(V.gren*100),set:v=>{ mk.gren=v; requestRender(); },def:Math.round(V.u*60),fmt:v=>v+"%"}));
-    add(slider({id:"mkas",label:"Aşınma / eskime",min:0,max:100,get:()=>Math.round(V.asin*100),set:v=>{ mk.asin=v; requestRender(); },def:0,fmt:v=>v+"%"}));
-    add(el("p",{class:"note",style:"margin:0"},"Yazı, alttaki yüzeyin ışığını, gölgesini, dokusunu ve grenini alır; duvar, ahşap, taş, kumaş gibi yüzeylerde boya gibi durur. Aşınma eski tabela ve duvar yazısı görünümü verir.")); }
-  add(el("div",{class:"btn-row"},
+    ekle(slider({id:"mkis",label:"Işık ve gölge geçişi",min:0,max:100,get:()=>Math.round(V.isik*100),set:v=>{ mk.isik=v; requestRender(); },def:Math.round(V.u*100),fmt:v=>v+"%"}));
+    ekle(slider({id:"mkkb",label:"Doku kabartması",min:0,max:100,get:()=>Math.round(V.kab*100),set:v=>{ mk.kabart=v; requestRender(); },def:Math.round(V.u*55),fmt:v=>v+"%"}));
+    ekle(slider({id:"mkem",label:"Boyanın emilmesi",min:0,max:100,get:()=>Math.round(V.emil*100),set:v=>{ mk.emil=v; requestRender(); },def:Math.round(V.u*45),fmt:v=>v+"%"}));
+    ekle(slider({id:"mkgr",label:"Gren / pürüz",min:0,max:100,get:()=>Math.round(V.gren*100),set:v=>{ mk.gren=v; requestRender(); },def:Math.round(V.u*60),fmt:v=>v+"%"}));
+    ekle(slider({id:"mkas",label:"Aşınma / eskime",min:0,max:100,get:()=>Math.round(V.asin*100),set:v=>{ mk.asin=v; requestRender(); },def:0,fmt:v=>v+"%"}));
+    ekle(el("p",{class:"note",style:"margin:0"},"Yazı, alttaki yüzeyin ışığını, gölgesini, dokusunu ve grenini alır; duvar, ahşap, taş, kumaş gibi yüzeylerde boya gibi durur. Aşınma eski tabela ve duvar yazısı görünümü verir.")); }
+  }
+  const UST=[];
+  (ESKI?add:x=>UST.push(x))(el("div",{class:"btn-row"},
     el("button",{class:"btn",onclick:()=>{ const c=deep(T); c.id=yzVars().id; c.x=clamp(c.x+.04,0,1); c.y=clamp(c.y+.04,0,1); s.texts.push(c); ED.yzSel=c.id; commit("Yazı çoğaltıldı"); renderPanel(); requestRender(); }},ico("i-copy"),"Çoğalt"),
     el("button",{class:"btn ghost danger",onclick:()=>{ s.texts=s.texts.filter(t=>t.id!==T.id); ED.yzSel=null; commit("Yazı silindi"); renderPanel(); requestRender(); ekCiz(); }},ico("i-trash"),"Sil")));
-  add(el("p",{class:"note",style:"margin:0"},"Fotoğrafta sürükleyerek taşı. Klavye: yön tuşları taşır, [ ] döndürür, + − büyütür."));
+  to("metin"); ekle(el("p",{class:"note",style:"margin:0"},"Fotoğrafta sürükleyerek taşı. Klavye: yön tuşları taşır, [ ] döndürür, + − büyütür."));
+  const gec=el("button",{class:"btn ghost",style:"padding:6px 10px;font-size:12.5px",onclick:()=>{ yaziEski(!ESKI); renderPanel(); }},ESKI?"Yeni sekmeli yazı düzeni":"Eski yazı düzeni (tek liste)");
+  if(ESKI){ add(el("div",{class:"btn-row"},gec)); return; }
+  UST.forEach(x=>B.metin.push(x)); B.metin.push(el("div",{class:"btn-row"},gec));
+  [["metin","Metin"],["stil","Stil"],["efekt","Efekt"],["konum","Konum"],["yuzey","Yüzey"]].forEach(([k,ad])=>{ if(!B[k].length) return; add(el("div",{class:"subhead"},ad)); B[k].forEach(x=>add(x)); });
 }
+function yaziEski(v){ try{ if(v===undefined) return localStorage.getItem("ko:yaziEski")==="1"; localStorage.setItem("ko:yaziEski",v?"1":"0"); }catch(e){} return !!v; }
 
 /* --- imza (logolu) --- */
 function imzaEkle(n){ const s=ED.state; s.texts=s.texts||[]; const t=imzaYeni(n); s.texts.push(t); ED.yzSel=t.id; imzaSakla(t); imzaHazir(n).then(()=>{ requestRender(); ekCiz(); }); commit("İmza eklendi"); renderPanel(); requestRender(); ekCiz(); }

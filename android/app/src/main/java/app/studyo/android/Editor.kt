@@ -406,7 +406,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
             }
             // 3.71: 3. katman çipleri altta, menünün hemen üstünde (üstte menü yok — Ahmet'in isteği)
             // 4.15: yeni düzende ayrı satır yok — çipler alt menü satırında seçili alt menünün hemen yanında (tek satır, sağa kayar)
-            val sekmeMod = Duzen.menuSekme && !Duzen.yaziliMenu   // 4.52: alt menü ve 3. seviye panelin başlığında (C)
+            val rayMod = Duzen.menuRay && !Duzen.yaziliMenu   // 4.53: ana menü solda dikey ray (E)
+            val sekmeMod = (Duzen.menuSekme || rayMod) && !Duzen.yaziliMenu   // 4.52: alt menü ve 3. seviye panelin başlığında (C)
             val yeniAlt = (Duzen.altUstte || sekmeMod) && !Duzen.yaziliMenu
             val cipVeri: CipVeri? = if (panelAcik && !Duzen.yaziliMenu && misafir == null) {
                 if (bolum == "renk") {
@@ -428,8 +429,11 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                     ALT_SAYFALAR[h]?.let { altListe -> CipVeri(altListe, AltHafiza.al(h), { altDegisti(p, p.klipler.getOrNull(sec), h, it) }, bag) { a -> AltHafiza.sec(h, a) } }
                 }
             } else null
-            Column(Modifier.fillMaxWidth().weight(1f)) {
-                if (sekmeMod && panelAcik && misafir == null) PanelSekmeleri(altlar, cipVeri)
+            Row(Modifier.fillMaxWidth().weight(1f)) {
+            if (rayMod) AnaRay(BOLUMLER, bolum, panelAcik, degisen) { k ->
+                bolum = k; if (k == "duzenle") haplar["duzenle"] = "klip"; if (k == "katman") haplar["katman"] = "katmanlar"; panelAcik = true; altMod = true }
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                if (sekmeMod && panelAcik && misafir == null) { if (rayMod) PanelRayUst(altlar, cipVeri) else PanelSekmeleri(altlar, cipVeri) }
                 if (bolum == "renk" && panelAcik) {
                     // 3.53: Renk — klip seçimi + sabit önizleme/ayar düğmeleri; yalnız seçili ayarın sayfası kayar
                     KlipSeridi(vm, p, sec, ekle, kucuk = true)
@@ -484,6 +488,7 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                         Spacer(Modifier.height(8.dp))
                     }
                 }
+            }
             }
 
             // ---- 3.61: alt menüler + ana menü (Ahmet'in isteği) ----
@@ -567,7 +572,8 @@ fun EditorEkrani(id: String, bekleyen: List<Uri>, bekleyenAlindi: () -> Unit, ka
                 // ana bölümler (yana kayar); dokununca alt menü modu açılır
                 val anaKaydir = rememberScrollState()
                 // 3.89: sabit Düzenle solda (sabitliyse), sabit menü arama sağda; diğer bölümler aradan kayar
-                Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).padding(start = 6.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
+                if (rayMod) Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars))   // 4.53: ana menü solda
+                else Row(Modifier.fillMaxWidth().background(Renk.zemin).windowInsetsPadding(WindowInsets.navigationBars).padding(start = 6.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                 if (Duzen.duzenleSabit) SabitDuzenle()
                 Row(Modifier.weight(1f).horizontalScroll(anaKaydir), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1876,6 +1882,66 @@ private fun SatirCipleri(c: CipVeri) {
         }
     }
     c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) }
+}
+
+/** 4.53 (E · sol dikey ray): ana menü dikey, kayar; seçili bölüm vurgu renginde, solda ince çizgi. */
+@Composable
+private fun AnaRay(liste: List<Bolum>, bolum: String, panelAcik: Boolean, degisen: Map<String, Boolean>, sec: (String) -> Unit) {
+    Column(Modifier.width(60.dp).fillMaxHeight().background(Renk.kart).verticalScroll(rememberScrollState()).padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        liste.forEach { bb ->
+            val on = bb.anahtar == bolum && panelAcik
+            Row(Modifier.fillMaxWidth().clickable { sec(bb.anahtar) }, verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(3.dp).height(30.dp).background(if (on) Renk.turuncu else Color.Transparent))
+                Column(Modifier.weight(1f).padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Simge(bb.simge, if (on) Renk.turuncu else Renk.soluk, 20.dp * Duzen.menuOlcek)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(menuAd(bb.ad), color = if (on) Renk.turuncu else Renk.soluk, fontSize = 9.5.sp * menuYaziK, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
+                        if (degisen[bb.anahtar] == true) OnayIsareti(Modifier.padding(start = 1.dp), 8.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 4.53 (E): ray düzeninde panelin üstü — alt menüler hap satırı, 3. seviye iki sütunlu renkli ızgara. */
+@Composable
+private fun PanelRayUst(altlar: List<AltOge>, c: CipVeri?) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        if (altlar.size > 1) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            altlar.forEach { a ->
+                Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (a.secili) Renk.turuncu.copy(alpha = 0.18f) else Color.Transparent)
+                    .clickable(onClick = a.tik).padding(horizontal = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Simge(a.simge, if (a.secili) Renk.turuncu else Renk.soluk, 14.dp)
+                    Text(" " + menuAd(a.ad), color = if (a.secili) Renk.turuncu else Renk.soluk, fontSize = 12.sp * menuYaziK,
+                        fontWeight = if (a.secili) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                    if (a.isaret) OnayIsareti(Modifier.padding(start = 3.dp), 10.dp)
+                }
+            }
+        }
+        if (c != null && c.liste.size > 1) {
+            c.liste.chunked(2).forEachIndexed { r, satir ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    satir.forEachIndexed { j, a ->
+                        val i = r * 2 + j
+                        val on = a.anahtar == c.secili
+                        val renk = Color(ALT_RENK[(i + 2) % ALT_RENK.size])
+                        Row(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(10.dp)).background(renk.copy(alpha = if (on) 0.95f else 0.14f)).clickable { c.sec(a.anahtar) }
+                            .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Simge(a.simge, if (on) Color(0xFF111111) else renk, 13.dp)
+                            Text(" " + menuAd(a.ad), color = if (on) Color(0xFF111111) else renk, fontSize = 11.sp * menuYaziK, fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            if (c.isaret(a.anahtar)) OnayIsareti(Modifier.padding(start = 3.dp), 10.dp)
+                        }
+                    }
+                    if (satir.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            if (c.bag.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) { c.bag.forEach { (ad, simge, tik) -> BaglantiCipi(ad, simge, tik) } }
+        }
+    }
 }
 
 /** 4.52 (C · panel başlığında sekmeler): alt menü altı çizili sekmeler, 3. seviye eşit bölmeli renkli seçici; altta yalnız ana menü. */

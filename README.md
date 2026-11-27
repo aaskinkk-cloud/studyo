@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.53 (27.11.2026, deneme · `yerel-android` dalı): menü düzeni E — sol dikey ray
+- Ayarlar › **"Ana menü solda dikey ray (alt menüler panelin üstünde)"**: ana menü önizlemenin altında solda dikey, kayan ray (`AnaRay`; seçili bölüm vurgu renginde, solda çizgi, ✓); panelin üstünde alt menüler hap satırı, 3. seviye iki sütunlu renkli ızgara (`PanelRayUst`); altta menü yok. Tasarım tuvalindeki E.
+- Kapalıyken önceki düzen aynen; C seçeneğiyle birlikte açıksa E geçerli.
+
 ## 4.52 (27.11.2026, deneme · `yerel-android` dalı): menü düzeni C — panel başlığında sekmeler
 - Ayarlar › **"Alt menüler panelin başında sekme (altta yalnız ana menü)"**: alt menüler panelin üstünde altı çizili sekmeler (simge + ad), 3. seviye hemen altında eşit bölmeli renkli seçici (✓ işaretleri, bağlantılar dahil); altta yalnız ana menü. Tasarım tuvalindeki C.
 - Kapalıyken (varsayılan) önceki düzen aynen. Alt menü/3. seviye hesapları panelden önce yapılır (`PanelSekmeleri`).

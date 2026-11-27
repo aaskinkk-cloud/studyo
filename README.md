@@ -2,9 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.23 · 27.11.2026 (Karanlık Oda 6.77, Kareden Videoya 9.15).
+**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.24 · 27.11.2026 (Karanlık Oda 6.78, Kareden Videoya 9.15).
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.24 (27.11.2026): liste görünümleri · imza yazısı (12 yeni el yazısı fontu)
+- **Görünüm düğmesi** (panel başlığında, Filtreler ve Yazı · İmza'da): dokundukça **Izgara → Kart → Liste → Şerit**. Kart: 2 sütun büyük önizleme; Liste: küçük resim + ad satırı (Lightroom "Kayıtlı Hazır Ayarlar" gibi); Şerit: eski yatay. Filtreler, yazı şablonları, imza yazıları ve logolu imzalara uygulanır; tercih saklanır (`localStorage['studyo.fGorunum']`).
+- **Yazı · İmza › İmza yazısı:** adını yaz (saklanır, varsayılan "Ahmet Aşkın"), 15 el yazısı fontunda önizlenir; dokun → fotoğrafın sağ altına imza olarak eklenir, sonra Metin/Stil/Efekt sekmeleriyle düzenlenir.
+- **Yeni fontlar (12):** Alex Brush, Babylonica, Comforter, Corinthia, Ephesis, Hurricane, Inspiration, Meow Script, Ms Madi, Sacramento, Updock, Waterfall (+ mevcut Great Vibes, Allura, Mr Dafoe). Hepsi Türkçe harfleri (ç ğ ı İ ö ş ü â) içerir (cmap ile denetlendi); Latin + Latin Genişletilmiş-A alt kümesi woff2, dosyanın içinde, internet gerekmez. Lisans: SIL Open Font License 1.1 (Google Fonts). Yazı menüsündeki Font listesinde de var.
+- Örnek görsellerdeki "Signature" / "Signaturia" ticari fontlardır, eklenmedi; en yakın ücretsiz karşılıkları Ms Madi, Sacramento, Babylonica, Inspiration, Corinthia.
+- Türkçe harfi eksik olduğu için eklenmeyenler: Mrs Saint Delafield, Herr Von Muellerhoff, Monsieur La Doulaise.
+- Test (412×915, koyu): dört görünüm Yazı ve Filtreler'de; imza yazısı eklendi (Alex Brush, "Ahmet Aşkın" doğru çizildi); hata yok. Telefonda denenmedi.
 
 ## 2.23 (27.11.2026): Filtreler › "Ayarları birebir çıkar"
 - Referans fotoğraf seçilir; ışıklık dağılımı (9 nokta), renk dengesi, doygunluk, 8 renk bandı (ton/doygunluk/parlaklık) ve vinyet ölçülür. Sonra bu fotoğraf küçük boyutta uygulamanın kendi motoruyla tekrar tekrar çizilir ve ayarlar adım adım referansa yaklaştırılır (koordinat inişi, ~400 deneme, birkaç saniye).

@@ -1,4 +1,4 @@
-/* ===== 2.18–2.23 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.24 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -96,15 +96,36 @@
     'html.st-fy #panelIn .hsl-dots button{width:32px!important;height:32px!important;min-width:32px!important;flex:none!important}',
     'html.st-fy #panelIn .yz-ara{margin:6px 2px 0}',
     'html.st-fy #panelIn .hsl-dots+.yz-ara{display:none}',   /* seçili renk noktası zaten gösteriyor */
-    /* 2.22 · filtreler ızgara (dikey): alt alta kayar, Lightroom gibi; şerit görünümü seçenek */
-    'html.st-fy.st-izgara #panelIn .presets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;flex-wrap:wrap!important;overflow:visible!important;gap:10px 8px!important}',
-    'html.st-fy.st-izgara #panelIn .presets .pz{width:auto!important;min-width:0}',
-    'html.st-fy.st-izgara #panelIn .presets .pz canvas{width:100%!important;height:auto!important;aspect-ratio:1}',
+    /* 2.24 · liste görünümleri (filtreler, yazı şablonları, imza yazıları, logolu imzalar): Izgara · Kart · Liste · Şerit */
+    'html.st-fy.st-g-izgara #panelIn .presets,html.st-fy.st-g-izgara #panelIn .yz-sab,html.st-fy.st-g-izgara #panelIn .imz-sab,html.st-fy.st-g-izgara #panelIn .im-sab{display:grid!important;flex-wrap:wrap!important;overflow:visible!important;gap:10px 8px!important}',
+    'html.st-fy.st-g-izgara #panelIn .presets{grid-template-columns:repeat(4,minmax(0,1fr))!important}',
+    'html.st-fy.st-g-izgara #panelIn .yz-sab,html.st-fy.st-g-izgara #panelIn .imz-sab,html.st-fy.st-g-izgara #panelIn .im-sab{grid-template-columns:repeat(3,minmax(0,1fr))!important}',
+    'html.st-fy.st-g-kart #panelIn .presets,html.st-fy.st-g-kart #panelIn .yz-sab,html.st-fy.st-g-kart #panelIn .imz-sab,html.st-fy.st-g-kart #panelIn .im-sab{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;flex-wrap:wrap!important;overflow:visible!important;gap:12px 10px!important}',
+    'html.st-fy.st-g-kart #panelIn .yz-k,html.st-fy.st-g-kart #panelIn .im-k{min-height:104px!important;border-radius:16px!important}',
+    'html.st-fy.st-g-kart #panelIn .yz-on{font-size:27px!important}',
+    'html.st-fy.st-g-kart #panelIn .im-k img{max-height:62px!important}',
+    'html.st-fy.st-g-kart #panelIn .yz-k small,html.st-fy.st-g-kart #panelIn .im-k small{font-size:12.5px!important}',
+    'html.st-fy.st-g-kart #panelIn .presets .pz{font-size:12.5px}',
+    'html.st-fy.st-g-liste #panelIn .presets,html.st-fy.st-g-liste #panelIn .yz-sab,html.st-fy.st-g-liste #panelIn .imz-sab,html.st-fy.st-g-liste #panelIn .im-sab{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;overflow:visible!important;gap:8px!important}',
+    'html.st-fy.st-g-liste #panelIn .presets .pz{flex-direction:row!important;width:100%!important;gap:14px!important;align-items:center!important;justify-content:flex-start!important;text-align:left!important;font-size:14px!important;color:var(--text)!important;padding:2px!important}',
+    'html.st-fy.st-g-liste #panelIn .presets .pz canvas{width:64px!important;height:64px!important;flex:none}',
+    'html.st-fy.st-g-liste #panelIn .yz-k,html.st-fy.st-g-liste #panelIn .im-k{flex-direction:row!important;justify-content:space-between!important;min-height:58px!important;padding:8px 14px!important;width:100%}',
+    'html.st-fy.st-g-liste #panelIn .yz-on{font-size:24px!important;max-width:70%}',
+    'html.st-fy.st-g-liste #panelIn .im-k img{max-height:40px!important;max-width:62%!important}',
+    'html.st-fy.st-g-liste #panelIn .yz-k small,html.st-fy.st-g-liste #panelIn .im-k small{font-size:13px!important;text-align:right}',
+    'html.st-fy.st-g-serit #panelIn .presets,html.st-fy.st-g-serit #panelIn .yz-sab,html.st-fy.st-g-serit #panelIn .imz-sab,html.st-fy.st-g-serit #panelIn .im-sab{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:8px!important;grid-template-columns:none!important;scrollbar-width:none}',
+    'html.st-fy.st-g-serit #panelIn .yz-k,html.st-fy.st-g-serit #panelIn .im-k{flex:none!important;width:112px}',
+    'html.st-fy #panelIn .presets .pz canvas{width:100%!important;height:auto!important;aspect-ratio:1}',
+    'html.st-fy.st-g-serit #panelIn .presets .pz{width:76px!important;flex:none!important}',
+    'html.st-fy:not(.st-g-serit):not(.st-g-liste) #panelIn .presets .pz{width:auto!important;min-width:0}',
     'html.st-fy #panelIn .presets .pz{font-size:10.5px;line-height:1.2;text-align:center;word-break:break-word}',
+    'html.st-fy:not(.st-g-serit) #panelIn .yz-k,html.st-fy:not(.st-g-serit) #panelIn .im-k{width:100%!important;max-width:none!important;flex:1 1 auto!important;box-sizing:border-box}',
+    'html.st-fy #panelIn .yz-on{max-width:100%}',
+    'html.st-fy #panelIn .imz-sab .yz-on{font-size:24px;line-height:1.3;padding:2px 4px}',
     '#stIzgara{display:none}',
     /* dosya seçici kutusu hiç görünmez (düğmeler onu açar); bölüm sekmeleri inline display'i ezdiği için gerekli */
     'html.st-fy #panelIn input[type=file]{display:none!important}',
-    'html.st-fy.st-filtre #stIzgara{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);padding:0;flex:none}',
+    'html.st-fy.st-listeli #stIzgara{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);padding:0;flex:none}',
     '#stIzgara svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
     '.duzen-st{margin:10px 0 4px}.duzen-st b{display:block;font:700 13px var(--f-ui);margin-bottom:6px}.duzen-st small{display:block;opacity:.6;margin-top:6px}'
   ].join('\n');
@@ -136,21 +157,28 @@
      Kaydırıcılar (3+) InShot gibi ad sırası + tek kaydırıcı olarak kalır. */
   (function sayf(n){ var o = window.stSayfala; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ sayf(n + 1); }, 250); return; }
     window.stSayfala = function(a){ if (a) a.maxH = 1e6; return o.apply(this, arguments); }; })(0);
-  /* filtre görünümü: ızgara (varsayılan) / şerit — panel başlığında, yalnız Filtreler'de */
-  var izgara = true; try { izgara = localStorage.getItem('studyo.fIzgara') !== '0'; } catch(e){}
-  document.documentElement.classList.toggle('st-izgara', izgara);
-  var IZ = ic('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'),
-      SE = ic('<rect x="3" y="7" width="5" height="10" rx="1.5"/><rect x="9.5" y="7" width="5" height="10" rx="1.5"/><rect x="16" y="7" width="5" height="10" rx="1.5"/>');
+  /* liste görünümü: Izgara · Kart · Liste · Şerit — panel başlığında (Filtreler ve Yazı'da); tercih saklanır */
+  var GOR = ['izgara','kart','liste','serit'], GAD = {izgara:'Izgara', kart:'Kart', liste:'Liste', serit:'Şerit'}, gor = 'izgara';
+  try { gor = localStorage.getItem('studyo.fGorunum') || (localStorage.getItem('studyo.fIzgara') === '0' ? 'serit' : 'izgara'); } catch(e){}
+  if (GOR.indexOf(gor) < 0) gor = 'izgara';
+  function gorUygula(){ GOR.forEach(function(g){ document.documentElement.classList.toggle('st-g-' + g, g === gor); }); }
+  gorUygula();
+  var GIC = {
+    izgara: ic('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'),
+    kart: ic('<rect x="3.5" y="4" width="7.5" height="16" rx="2"/><rect x="13" y="4" width="7.5" height="16" rx="2"/>'),
+    liste: ic('<rect x="3.5" y="4.5" width="5" height="5" rx="1.2"/><rect x="3.5" y="14.5" width="5" height="5" rx="1.2"/><path d="M11.5 7h9M11.5 17h9"/>'),
+    serit: ic('<rect x="3" y="7" width="5" height="10" rx="1.5"/><rect x="9.5" y="7" width="5" height="10" rx="1.5"/><rect x="16" y="7" width="5" height="10" rx="1.5"/>')
+  };
   (function zbtn(n){ var h = document.querySelector('.st-pbas'); if (!h){ if (n < 80) setTimeout(function(){ zbtn(n + 1); }, 250); return; }
     if (document.getElementById('stIzgara')) return;
     var b = document.createElement('button'); b.type = 'button'; b.id = 'stIzgara';
-    var guncel = function(){ b.innerHTML = izgara ? SE : IZ; b.title = izgara ? 'Şerit görünümü' : 'Izgara görünümü'; b.setAttribute('aria-label', b.title); };
-    b.onclick = function(){ izgara = !izgara; document.documentElement.classList.toggle('st-izgara', izgara); try { localStorage.setItem('studyo.fIzgara', izgara ? '1' : '0'); } catch(e){} guncel(); };
+    var guncel = function(){ b.innerHTML = GIC[gor]; b.title = 'Görünüm: ' + GAD[gor] + ' (dokun: değiştir)'; b.setAttribute('aria-label', b.title); };
+    b.onclick = function(){ gor = GOR[(GOR.indexOf(gor) + 1) % GOR.length]; gorUygula(); try { localStorage.setItem('studyo.fGorunum', gor); } catch(e){} guncel(); try { toast('Görünüm: ' + GAD[gor]); } catch(e){} };
     guncel(); var ok = h.querySelector(':scope > button:last-child'); h.insertBefore(b, ok || null); })(0);
   /* seçim yapınca panel yeniden çizilir: kaydırma yerleri (panel aşağı-yukarı, şeritler sağa-sola) korunur, başa dönmez.
      Kök neden: renderPanel() paneli sıfırdan kurup en üste / şeritleri en sola alıyordu. */
   (function rp(n){ var o = window.renderPanel; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ rp(n + 1); }, 250); return; }
-    var SEC = 'presets,chips,st-satir,st-bsek,hsl-dots,swatches,yz-sab,im-sab'.split(',');
+    var SEC = 'presets,chips,st-satir,st-bsek,hsl-dots,swatches,yz-sab,im-sab,imz-sab'.split(',');
     window.renderPanel = function(){
       var pan = document.getElementById('panel'), pin = document.getElementById('panelIn'), tab = (typeof ED !== 'undefined') ? ED.tab : '', kayit = null;
       if (pan && pin && pin._stTab === tab){ kayit = {y: pan.scrollTop, x: {}};
@@ -197,7 +225,7 @@
   var hapK = kok.firstChild, bolK = kok.lastChild;
   function ciz(){
     var t = aktifT(), g = grupBul(t); if (g) secG = g.id;
-    document.documentElement.classList.toggle('st-filtre', t === 'filters');
+    document.documentElement.classList.toggle('st-listeli', t === 'filters' || t === 'text');
     var G0 = G.filter(function(x){ return x.id === secG; })[0] || G[0];
     hapK.innerHTML = '';
     G0.h.forEach(function(h, j){ if (!gorunur(h[0])) return;

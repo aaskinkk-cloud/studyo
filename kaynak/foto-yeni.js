@@ -1,4 +1,4 @@
-/* ===== 2.18 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
+/* ===== 2.18–2.19 · FOTOĞRAF EDİTÖRÜ YENİ DÜZEN (video editörünün 2.16 düzeni örnek alındı) — yalnız görünüm ve gezinme =====
    Alt çubuk 5 bölüm: Düzenle · Renk · Rötuş · Metin · Kaydet. Seçili bölümün araçları hemen üstte hap düğmeler (hep görünür, gizli menü yok).
    Haplar Karanlık Oda'nın kendi sekme düğmelerine basar (setTab); sekmeler gizli ama yerinde. Panelin içi: araç başlığı + bölüm sekmeleri (3. katman).
    Açık bölümün simgesine yine dokununca panel kapanır, fotoğraf tam boy görünür. Her bölüm son açılan aracı hatırlar.
@@ -54,6 +54,20 @@
     'html.st-fy .st-satir button.on{background:var(--st-or)!important;color:var(--st-or-ink)!important}',
     'html.st-fy #panelIn .btn.pri,html.st-fy #panelIn .btn.primary{background:var(--st-or)!important;border-color:var(--st-or)!important;color:var(--st-or-ink)!important}',
     'html.st-fy #panelIn .chip.on,html.st-fy #panelIn .chips button.on{box-shadow:0 0 0 1.5px var(--st-or) inset}',
+    /* 2.19 · açıklamalar tek satır, dokununca açılır/kapanır (ekranı kaplamaz) */
+    'html.st-fy #panelIn .note{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;cursor:pointer;position:relative;padding-right:22px!important;opacity:.8}',
+    'html.st-fy #panelIn .note::after{content:"⌄";position:absolute;right:4px;top:-2px;font-size:15px;opacity:.7}',
+    'html.st-fy #panelIn .note.ac{-webkit-line-clamp:unset;display:block}',
+    'html.st-fy #panelIn .note.ac::after{content:"⌃";top:auto;bottom:-4px}',
+    /* sıfırla / tümü düğmeleri ayrı satır kaplamaz: sağa yaslanır, sonraki öğe yanına sığar */
+    'html.st-fy #panelIn>.panel-title.st-pt-dug{float:right;width:auto!important;max-width:60%;margin:0 0 4px 8px!important;min-height:0;position:relative;z-index:2}',
+    'html.st-fy #panelIn>.panel-title.st-pt-dug .btn{padding:5px 10px!important;font-size:12.5px!important}',
+    'html.st-fy #panelIn>.panel-title.st-pt-dug~*{clear:none}',
+    /* HSL renk noktaları tek sıra, küçük: renk seçimi ve kaydırıcılar aynı sayfaya sığar */
+    'html.st-fy #panelIn .hsl-dots{flex-wrap:nowrap!important;overflow-x:auto;gap:9px!important;padding:4px 3px!important;scrollbar-width:none}',
+    'html.st-fy #panelIn .hsl-dots button{width:32px!important;height:32px!important;min-width:32px!important;flex:none!important}',
+    'html.st-fy #panelIn .yz-ara{margin:6px 2px 0}',
+    'html.st-fy #panelIn .hsl-dots+.yz-ara{display:none}',   /* seçili renk noktası zaten gösteriyor */
     '.duzen-st{margin:10px 0 4px}.duzen-st b{display:block;font:700 13px var(--f-ui);margin-bottom:6px}.duzen-st small{display:block;opacity:.6;margin-top:6px}'
   ].join('\n');
   (document.head || document.documentElement).appendChild(css);
@@ -70,6 +84,17 @@
   })(0);
   if (!YENI) return;
   document.documentElement.classList.add('st-fy');
+
+  /* açıklamaya dokun: aç / kapat */
+  document.addEventListener('click', function(e){ var n = e.target.closest && e.target.closest('#panelIn .note'); if (n && !e.target.closest('a,button,input,select,label')) n.classList.toggle('ac'); });
+  /* tek bölümlü panel (ör. HSL › Kırmızı): başlık akordeon olmaz, ayarları renk seçimiyle aynı sayfada kalır.
+     Kök neden: tek ara başlık bolumle()'de akordeona dönüşüyor, sayfalama başlığı bir sayfada, kaydırıcılarını öbüründe bırakıyordu. */
+  (function sar(n){ var o = window.bolumle; if (typeof o !== 'function'){ if (n < 60) setTimeout(function(){ sar(n + 1); }, 250); return; }
+    window.bolumle = function(P_){
+      try { var sh = [].filter.call(P_.children, function(c){ return c.classList && c.classList.contains('subhead'); });
+        if (sh.length === 1){ sh[0].className = 'yz-ara'; } } catch(e){}
+      return o.apply(this, arguments); };
+  })(0);
 
   function sekme(t){ return t.charAt(0) === '#' ? document.getElementById(t.slice(1)) : document.querySelector('#tabs .tab[data-t="' + t + '"]'); }
   function gorunur(t){ if (t === '@kaydet') return true; var e = sekme(t); return !!e && !e.hidden && e.style.display !== 'none'; }

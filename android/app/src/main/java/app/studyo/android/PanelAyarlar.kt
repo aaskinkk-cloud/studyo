@@ -112,6 +112,7 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Elektrik ışığı: eski bulanık ışıma (4K'da dışa aktarma yavaşlar)", Duzen.elektrikBulanik) { Duzen.elektrikBulanik = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("elektrikBulanik", it).apply() }   // 4.45
         AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis2", it).apply() }   // 4.30
         AnahtarSatiri("Yüz turu bekleme Ayarlar'da (önceki yerleşim)", Duzen.yuzBekleEski) { Duzen.yuzBekleEski = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yuzBekleEski", it).apply() }   // 4.50
+        AnahtarSatiri("Seçili nesne ekranın her yerinden sürüklensin (önceki; boş yer görüntüyü kaydırmaz)", Duzen.nesneHerYerden) { Duzen.nesneHerYerden = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("nesneHerYerden", it).apply() }   // 4.54
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)
     }
     // 4.39: yüz turunda durakta bekleme — 4.50: Nesne › Yüzler › Yüz turu'na taşındı; burada bağlantı (önceki yerleşim seçenek)

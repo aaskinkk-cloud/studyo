@@ -110,6 +110,7 @@ object Duzen {
         yuzBekleEski = sp.getBoolean("yuzBekleEski", false)   // 4.50
         menuSekme = sp.getBoolean("menuSekme", false)   // 4.52
         menuRay = sp.getBoolean("menuRay", false)   // 4.53
+        nesneHerYerden = sp.getBoolean("nesneHerYerden", false)   // 4.54
         isikTeshis = sp.getBoolean("isikTeshis2", false)   // 4.31: kök neden bulundu, ölçüm varsayılan kapalı
         menuOlcek = sp.getFloat("menuOlcek", 0.92f).coerceIn(0.7f, 1.2f)
         menuStil = sp.getString("menuStil", "ikisi") ?: "ikisi"
@@ -159,6 +160,8 @@ object Duzen {
     var menuSekme by mutableStateOf(false)
     /** 4.53: menü düzeni E — ana menü solda dikey ray, alt menü ve sayfa düğmeleri panelin üstünde. */
     var menuRay by mutableStateOf(false)
+    /** 4.54: açık = seçili kesilen nesne ekranın her yerinden sürüklenir (önceki); kapalı = boş yer görüntüyü kaydırır. */
+    @Volatile var nesneHerYerden = false
     /** 4.17: menü boyutu (ana menü, alt menü, sayfa düğmeleri): 0,85 küçük · 0,92 orta (varsayılan, bir tık küçük) · 1 büyük · 1,1 daha büyük. */
     var menuOlcek by mutableFloatStateOf(0.92f)
     /** 4.18: menü görünümü — "ikisi" (simge + yazı) · "simge" · "yazi"; bütün menülerde (ana, alt, sayfa düğmeleri). */

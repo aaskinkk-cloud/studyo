@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.54 (27.11.2026, deneme · `yerel-android` dalı): her ekranda görüntüyü sürükleyerek kaydırma
+- **KÖK NEDEN:** önizlemede görüntüyü kaydırma bazı ekranlarda kapalıydı: Nesne/Katman'da kesilen nesne seçiliyken (seçili nesne ekranın her yerinden sürükleniyordu, 4.08), logo panelinde (logo her yerden taşınıyordu), şablon giriş sayfasında (başlık her yerden taşınıyordu).
+- **Şimdi:** nesne, logo ve giriş başlığı yalnız kendi üstünden (çevresinde pay ile) sürüklenir; **boş yeri sürüklemek görüntüyü kaydırır** — bütün ekranlarda. Fotoğrafa yapışık nesneler sürüklerken görüntüyle birlikte kayar (önizlemede de anında).
+- Abone/Özet/Kapanış sayfalarında yazı yine her yerden taşınır.
+- Önceki davranış: Ayarlar › "Seçili nesne ekranın her yerinden sürüklensin".
+
 ## 4.53 (27.11.2026, deneme · `yerel-android` dalı): menü düzeni E — sol dikey ray
 - Ayarlar › **"Ana menü solda dikey ray (alt menüler panelin üstünde)"**: ana menü önizlemenin altında solda dikey, kayan ray (`AnaRay`; seçili bölüm vurgu renginde, solda çizgi, ✓); panelin üstünde alt menüler hap satırı, 3. seviye iki sütunlu renkli ızgara (`PanelRayUst`); altta menü yok. Tasarım tuvalindeki E.
 - Kapalıyken önceki düzen aynen; C seçeneğiyle birlikte açıksa E geçerli.

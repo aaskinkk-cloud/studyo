@@ -375,7 +375,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             fun bagAn(n: Nesne): Pair<Klip, Yuz.An>? {
                 if (!n.bagli) return null
                 val j = p.klipler.indexOfFirst { it.id == n.klipId }; if (j < 0) return null
-                val kk = p.klipler[j]
+                val kk = if (j == sira && kG != null) kG else p.klipler[j]   // 4.54: sürüklerken yapışık nesne de birlikte kayar
                 val a = if (j == sira && kbAn != null) kbAn else Yuz.an(kk, RW, RH, ((konum - vm.baslangic(j)).toFloat() / kk.sureMs.coerceAtLeast(1)).coerceIn(0f, 1f), j)
                 return kk to a
             }
@@ -634,6 +634,17 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                                 if (pxY > 0.5f) (o.y + d.y / pxY).coerceIn(-1f, 1f) else o.y)
                         }
                     }
+            // 4.54: aynı kaydırma, kendi dokunma işleyicisi olan ekranlar için (nesne, logo): boş yeri sürükle = görüntüyü kaydır
+            val kayVar = k != null && sira < p.klipler.size
+            fun kayBas() { val ks = kSonS ?: return; if (!kayVar) return; surKay = Offset(ks.kayX, ks.kayY); if (!ks.foto) videoDondur = true }
+            fun kay(d: Offset) {
+                val ks = kSonS ?: return; if (!kayVar) return
+                val a = Yuz.an(ks, RW, RH, kbF, sira); if (!Yuz.kayabilir(a)) return
+                val pxX = (a.s - a.vx) / a.vx * gwS / 2f; val pxY = (a.s - a.vy) / a.vy * ghS / 2f
+                val o = surKay ?: Offset(ks.kayX, ks.kayY)
+                surKay = Offset(if (pxX > 0.5f) (o.x + d.x / pxX).coerceIn(-1f, 1f) else o.x, if (pxY > 0.5f) (o.y + d.y / pxY).coerceIn(-1f, 1f) else o.y)
+            }
+            fun kayBit() { surKay?.let { o -> vm.klipGuncelle { it.copy(kayX = o.x, kayY = o.y) } }; surKay = null }
             if (takipSecim && k != null) {
                 Box(Modifier.fillMaxSize().background(Color(0x332EC5D3)).pointerInput(k.id) {
                     detectTapGestures { o -> Geometri.kaynaga(k, o.x / olcek, o.y / olcek, RW, RH, kbAn ?: Yuz.an(k, RW, RH, 0f))?.let { vm.takipNoktaSec(sira, it.first, it.second) } }
@@ -643,7 +654,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                 }
             } else if (nesnePaneli && katmanPaneli && seciliNesne != null) {
                 // 3.45: Katman bölümünde kesilen nesne seçiliyse sürükle = nesneyi taşı · 3.72: iki parmak = büyüt/küçült
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz, ::kayBas, ::kay, ::kayBit)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (katmanPaneli) {
                 val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
                 val payPx = with(yog) { 28.dp.toPx() } / olcek     // 3.45: dokunma alanı katmanın çevresinde genişletilir (küçük yazı kolay tutulur)
@@ -697,19 +708,23 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                     .then(klipSurukle))
             } else if (logoPaneli && logoY != null) {
                 val ly = logoY
+                var logoKay by remember { mutableStateOf(false) }   // 4.54: logodan başlamayan sürükleme = görüntüyü kaydır
                 Box(Modifier.fillMaxSize().pointerInput(ly, olcek) {
                     detectDragGestures(
-                        onDragStart = {
-                            val (x0, y0) = ly.solUst(RW, RH)
-                            logoSurukle = (x0 + ly.bmp.width / 2f) / RW to (y0 + ly.bmp.height / 2f) / RH
+                        onDragStart = { bas ->
+                            val (x0, y0) = ly.solUst(RW, RH); val pay = 24f * density
+                            val ust = bas.x >= x0 * olcek - pay && bas.x <= (x0 + ly.bmp.width) * olcek + pay && bas.y >= y0 * olcek - pay && bas.y <= (y0 + ly.bmp.height) * olcek + pay
+                            if (ust) logoSurukle = (x0 + ly.bmp.width / 2f) / RW to (y0 + ly.bmp.height / 2f) / RH else { logoKay = true; kayBas() }
                         },
                         onDragEnd = {
+                            if (logoKay) { logoKay = false; kayBit() }
                             logoSurukle?.let { (x, y) -> vm.logoDegis { it.copy(x = x, y = y) } }
                             logoSurukle = null
                         },
-                        onDragCancel = { logoSurukle = null },
+                        onDragCancel = { logoSurukle = null; if (logoKay) { logoKay = false; kayBit() } },
                     ) { ch, d ->
                         ch.consume()
+                        if (logoKay) { kay(d); return@detectDragGestures }
                         val (x, y) = logoSurukle ?: return@detectDragGestures
                         val yx = ly.bmp.width / 2f / RW; val yy = ly.bmp.height / 2f / RH
                         logoSurukle = (x + d.x / (olcek * RW)).coerceIn(yx, 1f - yx) to (y + d.y / (olcek * RH)).coerceIn(yy, 1f - yy)
@@ -718,7 +733,7 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
             } else if (nesnePaneli && (seciliNesne != null || p.nesneler.isNotEmpty())) {   // 4.08: nesne varken arka plan hiç kaymaz
                 // 3.72: Düzenle › Nesne: nesneye dokun = seç · sürükle = taşı · iki parmak = büyüt/küçült (Kareden Videoya'daki gibi);
                 // boş yere dokun = seçimi kaldır; arka plan sabit kalır
-                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
+                NesneDokunma(vm, p, konum, olcek, RW, RH, nesBoyut, { nesGecici }, { nesGecici = it }, Modifier, ekranN, geriYaz, ::kayBas, ::kay, ::kayBit)   // 3.72: klip kaydırma eklenmez (alttaki bulanık arka plan nesneyle birlikte kayıyordu)
             } else if (sablonSayfa != null && sablonGorunur(p, sablonSayfa, konum)) {
                 // 3.72: Görünüm › Şablon: ekrandaki giriş/abone/kapanış yazısına dokun = ekranda düzenle (önizlemenin altında);
                 // girişte iki parmak = yazı boyutu. Değişiklik anında önizlemeye yansır.
@@ -729,8 +744,24 @@ fun OnizlemeKatmanli(vm: EditorDurum, p: Proje, nesnePaneli: Boolean, modifier: 
                         // 4.40: tek parmak sürükle = başlığı taşı (bırakınca kaydedilir) · iki parmak = boyut
                         // 4.43: aynısı abone, özet ve kapanış yazılarında da (sablonKaydir / sablonBoyut)
                         awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
+                            val ilkS = awaitFirstDown(requireUnconsumed = false)
                             var top = Offset.Zero
+                            // 4.54: girişte başlığın dışından başlayan tek parmak = görüntüyü kaydır (diğer şablonlarda yazı her yerden taşınır)
+                            val pay = 20f * density
+                            val disarida = sablonSayfa == "giris" && girisKutular.isNotEmpty() && girisKutular.none { r -> ilkS.position.x >= r.left - pay && ilkS.position.x <= r.right + pay && ilkS.position.y >= r.top - pay && ilkS.position.y <= r.bottom + pay }
+                            if (disarida) {
+                                var basladi = false
+                                do {
+                                    val ev = awaitPointerEvent()
+                                    if (ev.changes.count { it.pressed } > 1) break
+                                    val pan = ev.calculatePan(); if (!pan.x.isFinite() || !pan.y.isFinite()) continue
+                                    top += pan
+                                    if (!basladi && top.getDistance() > viewConfiguration.touchSlop) { basladi = true; kayBas(); kay(top) }
+                                    else if (basladi) { kay(pan); ev.changes.forEach { if (it.positionChanged()) it.consume() } }
+                                } while (ev.changes.any { it.pressed })
+                                if (basladi) kayBit()
+                                return@awaitEachGesture
+                            }
                             do {
                                 val ev = awaitPointerEvent()
                                 val zoom = ev.calculateZoom(); val pan = ev.calculatePan()
@@ -949,7 +980,8 @@ internal data class NesneGecici(val id: String, val dx: Float, val dy: Float, va
 @Composable
 private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, RW: Int, RH: Int, boyut: Map<String, Pair<Int, Int>>,
                          gecici: () -> NesneGecici?, geciciYaz: (NesneGecici?) -> Unit, ek: Modifier,
-                         ekranN: (Nesne) -> Nesne = { it }, geriYaz: (Nesne, Float, Float, Float) -> Nesne = { n, x, y, o -> n.copy(x = x, y = y, olcek = o) }) {
+                         ekranN: (Nesne) -> Nesne = { it }, geriYaz: (Nesne, Float, Float, Float) -> Nesne = { n, x, y, o -> n.copy(x = x, y = y, olcek = o) },
+                         kayBas: () -> Unit = {}, kay: (Offset) -> Unit = {}, kayBit: () -> Unit = {}) {   // 4.54: boş yer = görüntüyü kaydır
     val pG by rememberUpdatedState(p); val konumG by rememberUpdatedState(konum)
     // 4.12: fotoğrafa yapışık nesnede ekrandaki yer o anki harekete göre hesaplanır; bırakınca fotoğrafın karesine geri yazılır
     val ekranG by rememberUpdatedState(ekranN); val geriG by rememberUpdatedState(geriYaz)
@@ -991,8 +1023,9 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                 return@awaitEachGesture
             }
             val vurulan = isabet(ilk.position)
-            val hedef = vurulan ?: vm.seciliNesne.value?.takeIf { id -> pG.nesneler.any { it.id == id } }
-            var tasindi = false; var topPan = Offset.Zero; var parmak2 = false
+            // 4.54: nesne yalnız kendi üstünden sürüklenir; boş yer = görüntüyü (ve ona yapışık nesneleri) kaydır. Önceki: seçili nesne her yerden (Ayarlar)
+            val hedef = vurulan ?: (if (Duzen.nesneHerYerden) vm.seciliNesne.value?.takeIf { id -> pG.nesneler.any { it.id == id } } else null)
+            var tasindi = false; var topPan = Offset.Zero; var parmak2 = false; var kaydir = false
             do {
                 val ev = awaitPointerEvent()
                 val zoom = ev.calculateZoom(); val pan = ev.calculatePan()
@@ -1001,7 +1034,8 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                     topPan += pan
                     // seçili nesne ekranın her yerinden sürüklenir (küçük nesne de rahat tutulur); iki parmak = büyüt/küçült
                     if (hedef != null && (parmak2 || topPan.getDistance() > viewConfiguration.touchSlop)) { tasindi = true; vm.seciliNesne.value = hedef }
-                }
+                    else if (hedef == null && !parmak2 && topPan.getDistance() > viewConfiguration.touchSlop) { tasindi = true; kaydir = true; kayBas(); kay(topPan) }
+                } else if (kaydir && pan.x.isFinite() && pan.y.isFinite()) { kay(pan); ev.changes.forEach { if (it.positionChanged()) it.consume() } }
                 if (tasindi && hedef != null && zoom.isFinite() && zoom > 0f && pan.x.isFinite() && pan.y.isFinite()) {
                     val g = gecici()?.takeIf { it.id == hedef } ?: NesneGecici(hedef, 0f, 0f, 1f)
                     geciciYaz(g.copy(dx = g.dx + pan.x / (olcek * RW), dy = g.dy + pan.y / (olcek * RH), carpan = (g.carpan * zoom).coerceIn(0.1f, 10f)))
@@ -1009,7 +1043,8 @@ private fun NesneDokunma(vm: EditorDurum, p: Proje, konum: Long, olcek: Float, R
                 }
             } while (ev.changes.any { it.pressed })
             // 4.11 KÖK NEDEN (bırakınca yukarı sıçrama): merkez kareye (0…1) kısıtlanıyordu; uzun nesne aşağı çekilince geri itiliyordu. Artık yarısı dışarı taşabilir.
-            if (tasindi && hedef != null) {
+            if (kaydir) kayBit()
+            else if (tasindi && hedef != null) {
                 gecici()?.takeIf { it.id == hedef }?.let { g ->
                     vm.nesneDegis(hedef) { n -> val e = ekranG(n); geriG(n, (e.x + g.dx).coerceIn(-0.5f, 1.5f), (e.y + g.dy).coerceIn(-0.5f, 1.5f), (e.olcek * g.carpan).coerceIn(0.02f, 3f)) }
                 }

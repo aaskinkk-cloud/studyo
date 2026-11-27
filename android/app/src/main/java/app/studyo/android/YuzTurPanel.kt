@@ -225,6 +225,7 @@ fun YuzTuruSayfasi(vm: EditorDurum, p: Proje, sec: Int, k: Klip) {
             "Bir numaraya dokunup adını yazarsan kameranın o kişiye vardığı anda isim kutusu çıkar; öne çıkarma çizgisi kişinin etrafında bir tur atıp kaybolur. " +
             "Yüzler: Geniş/Yüz/Yakın bütün yüz duraklarının yakınlığını birden ayarlar. Tur sığmazsa fotoğrafın süresi kendiliğinden uzar (Kırp sayfasından değişir). Hareket 'Sabit' yapılırsa tur durur, duraklar silinmez.")
     }
+    if (!Duzen.yuzBekleEski) YuzBekleKarti()   // 4.50: durakta bekleme (tüm projeler) — Yayın › Ayarlar'dan taşındı
 }
 
 @Composable

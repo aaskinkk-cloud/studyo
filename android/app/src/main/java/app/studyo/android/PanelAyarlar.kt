@@ -109,14 +109,16 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
         AnahtarSatiri("Paket, Hazır ve Giriş Görünüm menüsünde (önceki yerleşim)", Duzen.hazirEski) { Duzen.hazirEski = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("hazirEski", it).apply() }   // 4.46
         AnahtarSatiri("Elektrik ışığı: eski bulanık ışıma (4K'da dışa aktarma yavaşlar)", Duzen.elektrikBulanik) { Duzen.elektrikBulanik = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("elektrikBulanik", it).apply() }   // 4.45
         AnahtarSatiri("Geçiş ışık ölçümü (teşhis, Hata kaydına yazar)", Duzen.isikTeshis) { Duzen.isikTeshis = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("isikTeshis2", it).apply() }   // 4.30
+        AnahtarSatiri("Yüz turu bekleme Ayarlar'da (önceki yerleşim)", Duzen.yuzBekleEski) { Duzen.yuzBekleEski = it; ctx.getSharedPreferences("ayar", 0).edit().putBoolean("yuzBekleEski", it).apply() }   // 4.50
         AnahtarSatiri("Kesilenler: önceki liste görünümü", Duzen.kesilenEski) { Duzen.kesilenEskiSec(ctx, it) }   // 4.15   // 4.14 (kapalı = önceki düzen)
     }
-    // 4.39: yüz turunda durakta bekleme — kişi sayısına göre (gruplamada kullanılır)
-    Kart("Yüz turu · durakta bekleme") {
-        listOf("1 kişi", "2 kişi", "3 kişi", "4 kişi", "5+ kişi").forEachIndexed { i, ad ->
-            TonKaydirici(ad, Duzen.yuzBekle[i], 1f..8f, 0.5f, Renk.turuncu, { String.format(TR, "%.1f sn", it) }) { v -> Duzen.yuzBekle[i] = v; Duzen.yuzBekleKaydet(ctx) }
-        }
-        AcilirNot("Yüzler › Durakları grupla (Otomatik, 2'li… ve Tümüne) bu süreleri kullanır. Değişiklik sonraki gruplamada uygulanır.")
+    // 4.39: yüz turunda durakta bekleme — 4.50: Nesne › Yüzler › Yüz turu'na taşındı; burada bağlantı (önceki yerleşim seçenek)
+    if (Duzen.yuzBekleEski) YuzBekleKarti("Yüz turu · durakta bekleme")
+    else Row(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(RoundedCornerShape(14.dp)).background(Renk.kart)
+        .clickable { vm.gitIstek.value = Triple("nesne", "yuz", "yuzler") }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Simge("yuz", Renk.turuncu, 20.dp)
+        Text("  Yüz turu bekleme: Nesne › Yüzler", color = Renk.turuncu, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text("›", color = Renk.turuncu, fontSize = 16.sp)
     }
     Kart("Son ayarlarımı sakla", ton = Color(TON[1])) {
         AcilirNot("Bu projedeki giriş stili, abone kartı, kapanış, geçiş, logonun yeri, kapak stili, altyazı görünümü, seçili klibin renk/filtre/efekti ve hazır müzik türü saklanır. Yeni videolarda Varsayılan ayarlar bunlarla uygulanır.")
@@ -148,5 +150,18 @@ fun PanelAyarlar(vm: EditorDurum, p: Proje, sec: Int) {
             YuvarlakSecim("Yeni yere yedekle", "disa", Color(TON[3]), false) { yedekOlustur.launch("Stüdyo-yedek.zip") }
             YuvarlakSecim("Yedekten geri yükle", "yukle", Color(TON[0]), false) { yedekAc.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }
         }
+    }
+}
+
+
+/** 4.50: yüz turunda durakta bekleme — kişi sayısına göre, uygulamanın tamamında geçerli (gruplamada kullanılır). */
+@Composable
+internal fun YuzBekleKarti(baslik: String = "Durakta bekleme (tüm projeler)") {
+    val ctx = LocalContext.current
+    Kart(baslik, baslangicAcik = false) {
+        listOf("1 kişi", "2 kişi", "3 kişi", "4 kişi", "5+ kişi").forEachIndexed { i, ad ->
+            TonKaydirici(ad, Duzen.yuzBekle[i], 1f..8f, 0.5f, Renk.turuncu, { String.format(TR, "%.1f sn", it) }) { v -> Duzen.yuzBekle[i] = v; Duzen.yuzBekleKaydet(ctx) }
+        }
+        AcilirNot("Süreler bütün projelerde geçerli. Durakları grupla (Otomatik, 2'li… ve Tümüne) bu süreleri kullanır; değişiklik sonraki gruplamada uygulanır.")
     }
 }

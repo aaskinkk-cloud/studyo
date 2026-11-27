@@ -80,6 +80,17 @@ object Disa {
     fun gerekenBos(tahmin: Long) = tahmin * 2 + 300L * 1024 * 1024
 
     fun ciktiDizini(ctx: Context): File = ctx.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: ctx.filesDir
+    /** 4.43 KÖK NEDEN (4K'da "galeriye kaydediliyor" çok uzun sürüyordu): video önce uygulama klasörüne yazılıp bitince birkaç GB
+     *  baştan sona galeriye KOPYALANIYORDU (iki kat yer + uzun bekleme). Android 11+'da video doğrudan Movies/Stüdyo'ya, gizli
+     *  geçici adla (".studyo_yaziliyor_…", galeride görünmez) yazılır; bitince aynı klasörde yeniden adlandırılır (anında) ve
+     *  galeriye taratılır. Yazılamazsa eski yol (uygulama klasörü + kopya) aynen çalışır. */
+    fun galeriDizini(): File? = if (Build.VERSION.SDK_INT < 30) null else try {
+        @Suppress("DEPRECATION")
+        val d = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Stüdyo")
+        d.mkdirs()
+        val t = File(d, ".studyo_deneme"); t.writeBytes(ByteArray(1)); val ok = t.length() == 1L; t.delete()
+        if (ok) d else null
+    } catch (e: Exception) { null }
     fun bosAlan(ctx: Context): Long = try { StatFs(ciktiDizini(ctx).path).availableBytes } catch (e: Exception) { -1 }
 
     /** 3.48: müzik — kendi sesi olan kliplerde ve seslendirme (konuşma) sırasında otomatik kısılır (yumuşak geçişle).
@@ -731,12 +742,14 @@ class DisaServisi : Service() {
         if (p.klipler.isEmpty()) { hata("Projede klip yok.", ""); return }
         sonProje = pid; proje = p; beklenenMs = p.toplamMs
         val (W, H) = Disa.boyut(p.bicim, kisa)
-        val dizin = Disa.ciktiDizini(this)
+        val galeri = Disa.galeriDizini()   // 4.43: doğrudan galeri klasörüne (kopya yok)
+        val dizin = galeri ?: Disa.ciktiDizini(this)
         val tahmin = Disa.tahminiBayt(p, kisa, kalite)
         val bos = Disa.bosAlan(this)
-        if (bos in 0 until Disa.gerekenBos(tahmin)) {
-            hata("Telefonda yer yetersiz.", "Gereken yaklaşık ${Medya.mb(Disa.gerekenBos(tahmin))}, boş ${Medya.mb(bos)}. " +
-                "(Geçici dosya + galeriye kopya için video boyutunun iki katı yer gerekir.)"); return
+        val gereken = if (galeri != null) tahmin + 300L * 1024 * 1024 else Disa.gerekenBos(tahmin)
+        if (bos in 0 until gereken) {
+            hata("Telefonda yer yetersiz.", "Gereken yaklaşık ${Medya.mb(gereken)}, boş ${Medya.mb(bos)}." +
+                (if (galeri == null) " (Geçici dosya + galeriye kopya için video boyutunun iki katı yer gerekir.)" else "")); return
         }
         for (kl in p.klipler) if (!okunabilir(Uri.parse(kl.uri))) {
             hata("Bir dosyaya erişilemiyor: ${kl.ad}", "Dosya silinmiş, taşınmış ya da erişim izni kalkmış olabilir. Klibi silip yeniden ekle."); return
@@ -746,7 +759,7 @@ class DisaServisi : Service() {
         // Kaldığı yerden devam (Transformer.resume) yalnız tek diziyle çalışır: müzik, seslendirme, efekt sesi ve üst üste binen geçiş yoksa
         val tek = p.muzik == null && p.sesler.isEmpty() && Gecisler.pencereler(p).isEmpty() &&
             !(p.giris.acik && p.giris.reels && p.giris.efektSes) && KatmanCizim.sesAnlari(p).isEmpty()
-        val cikti = File(dizin, "studyo_${System.currentTimeMillis()}.mp4")
+        val cikti = File(dizin, (if (galeri != null) ".studyo_yaziliyor_" else "studyo_") + "${System.currentTimeMillis()}.mp4")
         yol = cikti; eskiYol = eski
         sp.edit().putString("proje", pid).putInt("kisa", kisa).putFloat("kalite", kalite).putString("yol", cikti.path)
             .putBoolean("tek", tek).putBoolean("calisiyor", true).putInt("hdrKip", hdrKip).apply()
@@ -754,7 +767,7 @@ class DisaServisi : Service() {
             setReferenceCounted(false); acquire(6 * 3600_000L)
         }
         Kayit.yaz("Dışa aktarma ${if (eski != null) "DEVAM" else "BAŞLA"}: ${p.klipler.size} klip, ${p.toplamMs / 1000} sn, ${W}x$H, " +
-            "${Disa.bitHizi(kisa, kalite) / 1000} kbps, müzik=${p.muzik != null}, seslendirme=${p.sesler.size}, boş=${Medya.mb(bos)}, tahmin=${Medya.mb(tahmin)}")
+            "${Disa.bitHizi(kisa, kalite) / 1000} kbps, yazım=${if (galeri != null) "doğrudan galeri" else "uygulama klasörü + kopya"}, müzik=${p.muzik != null}, seslendirme=${p.sesler.size}, boş=${Medya.mb(bos)}, tahmin=${Medya.mb(tahmin)}")
         p.klipler.forEach { Kayit.yaz("  ${it.tur} ${it.ad} ${Medya.mb(it.boyutBayt)} ${it.gen}x${it.yuk} ${it.kodek} hdr=${it.hdr} ${it.basMs}-${it.sonMs}") }
         Kayit.yaz("  HDR yöntemi: " + if (hdrKip == Disa.HDR_SDR_GIBI) "SDR gibi oku (yedek)" else "çözücüde SDR'ye çevir")
         // 3.32: geçişler ana videonun içinde tek tuvalde çizilir; önceden hazırlanan parça yok
@@ -845,6 +858,20 @@ class DisaServisi : Service() {
         else -> "Video oluşturulamadı."
     }
 
+    /** 4.43: Movies/Stüdyo'ya doğrudan yazılmış dosya — yeniden adlandır (aynı klasör, anında) + galeriye tarat. Olmazsa null (kopya yoluna düşer). */
+    private fun dogrudanKaydet(f: File, ad: String, r: ExportResult): DisaDurum.Tamam? {
+        val boyut = f.length()
+        val hedef = File(f.parentFile, ad)
+        if (!f.renameTo(hedef)) { Kayit.yaz("Doğrudan kayıt: yeniden adlandırılamadı, kopya yoluna geçiliyor"); return null }
+        val kilit = java.util.concurrent.CountDownLatch(1); var uri: Uri? = null
+        android.media.MediaScannerConnection.scanFile(this, arrayOf(hedef.path), arrayOf("video/mp4")) { _, u -> uri = u; kilit.countDown() }
+        kilit.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        val u = uri ?: Uri.fromFile(hedef)
+        Kayit.yaz("Doğrudan kayıt: ${hedef.path} ${Medya.mb(boyut)} (kopya yok)" + if (uri == null) " · tarama yanıt vermedi" else "")
+        return DisaDurum.Tamam(u.toString(), "Movies/Stüdyo/$ad", boyut, r.durationMs, 0,
+            if (hdrKip == Disa.HDR_SDR_GIBI) "HDR klipler yedek yöntemle işlendi (telefonun çözücüsü HDR→SDR çevirisini yapamadı); renkler biraz soluk görünebilir." else "")
+    }
+
     private fun kaydetVeDogrula(r: ExportResult) {
         val f = yol ?: return
         durum.value = DisaDurum.Dogrulaniyor("Dosya doğrulanıyor ve galeriye kaydediliyor…")
@@ -870,6 +897,7 @@ class DisaServisi : Service() {
         Dogrula.dosya(this, Uri.fromFile(f), beklenenMs, f.length())?.let { throw IllegalStateException(it) }
         val ad = (proje?.ad ?: "Stüdyo").replace(Regex("[\\\\/:*?\"<>|]"), "_").take(60) + "_" +
             SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".mp4"
+        if (f.name.startsWith(".studyo_yaziliyor_")) dogrudanKaydet(f, ad, r)?.let { return it }   // 4.43: kopyasız
         val cv = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, ad)
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")

@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.44 (27.11.2026, deneme · `yerel-android` dalı): dışa aktarmada galeriye kopya kaldırıldı
+- **KÖK NEDEN:** 4K/yüksek kalitede "Dosya doğrulanıyor ve galeriye kaydediliyor…" çok uzun sürüyordu: video önce uygulama klasörüne yazılıyor, bitince birkaç GB baştan sona galeriye kopyalanıyordu (iki kat yer + uzun bekleme).
+- **Çözüm:** Android 11+'da video doğrudan `Movies/Stüdyo`'ya gizli geçici adla (`.studyo_yaziliyor_…`, galeride görünmez) yazılır; bitince aynı klasörde yeniden adlandırılır (anında) ve galeriye taratılır. Gereken boş yer artık video boyutu + 300 MB (önce iki katı). Klasöre yazılamazsa eski yol (uygulama klasörü + kopya) aynen çalışır. Kayıtta `yazım=` satırı hangi yolun kullanıldığını gösterir.
+
 ## 4.43 (27.11.2026, deneme · `yerel-android` dalı): hareketli nesnede elektrik ışığı, şablon yazılarını parmakla taşıma
 - Videodan kesilen (hareketli) nesnede **Elektrik ışık** açılıyor (renk seçimi dahil).
 - Kontur her kare için ayrı çıkarılıyor (`n.id#kare`), ışık her karede çiziliyor; önizleme ve dışa aktarma aynı çizimi (`Elektrik.ciz/kare`) kullanıyor.

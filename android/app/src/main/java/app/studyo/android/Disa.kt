@@ -88,7 +88,8 @@ object Disa {
         @Suppress("DEPRECATION")
         val d = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Stüdyo")
         d.mkdirs()
-        val t = File(d, ".studyo_deneme.mp4"); t.writeBytes(ByteArray(1))   // 4.45: uzantısız dosyayı Android Movies'e yazdırmıyordu (4.44'te hep kopya yoluna düşüyordu); val ok = t.length() == 1L; t.delete()
+        // 4.45: uzantısız dosyayı Android Movies'e yazdırmıyordu (4.44'te hep kopya yoluna düşüyordu) → deneme dosyası .mp4
+        val t = File(d, ".studyo_deneme.mp4"); t.writeBytes(ByteArray(1)); val ok = t.length() == 1L; t.delete()
         if (ok) d else null
     } catch (e: Exception) { null }
     fun bosAlan(ctx: Context): Long = try { StatFs(ciktiDizini(ctx).path).availableBytes } catch (e: Exception) { -1 }

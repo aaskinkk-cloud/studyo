@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.33 · 28.11.2026 (Karanlık Oda 6.84, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
+**Güncel sürüm:** Web 2.34 · 28.11.2026 (Karanlık Oda 6.85, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.34 (28.11.2026): fotoğraf ekranı videonun rengini alır · üstte panelde fotoğraf boşluksuz ortalanır
+- **Renk:** fotoğraf ana ekranının vurgu rengi (seçili hap, Tamamını göster simgesi) = video ana ekranının rengi. Yerel 4.58 `&renk=RRGGBB` gönderir; saklanır (`localStorage['studyo.anaRenk']`), varsayılan mercan. Üstteki iki kart (sarı Yeni fotoğraf, Video) kendi renginde. `?git=foto` yönlendirmesi de rengi taşır.
+- **Üstte panel:** fotoğraf boyutu sabit; dikeyde panelin üstünde kalan alana ortalanır, panel fotoğrafı kapatacak kadar çekilince üst çubuğun hemen altından başlar (2.33'te hep en üstteydi → panel küçükken fotoğrafın altında koca boşluk kalıyordu). Sürüklerken yerleşim anında güncellenir. (`ustTop`, `layoutView`)
+- Test: renk parametresi (#3FC1B8) uygulandı ve saklandı; panel kapalı/600/350/120 px'te fotoğrafın üst-alt boşlukları eşit, kaplayınca üst boşluk 0; ana ekranda sürümlerin altında yalnız 40 px kenar boşluğu; önceki testler tekrar; hata yok. Telefonda denenmedi.
 
 ## 2.33 (28.11.2026): Videodan gelince eski fotoğraf ana ekranı artık hiç görünmez
 - **Kök neden:** `foto/index.html` 8,4 MB; yeni ana ekranın kodu dosyanın en sonundaydı ve ayrıca kitaplık veritabanını 300 ms aralıklarla bekliyordu. Telefon dosyayı sonuna kadar okuyana dek sayfanın kendi eski ana ekranı (Galeriden seç, Kamera, Haber…) görünüyor, sonra yenisi üstüne kuruluyordu.

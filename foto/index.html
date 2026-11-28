@@ -56,7 +56,7 @@
   if(/github\.io$/.test(location.hostname)&&localStorage.getItem("ko:tercih")==="cf"){ var CF="https://ahmet-uygulamalar.pages.dev/karanlik-oda/", bitti=0;
     var zt=setTimeout(function(){ if(!bitti){ bitti=1; try{localStorage.removeItem("ko:tercih")}catch(_){} } },3500);
     fetch(CF+"manifest.webmanifest",{mode:"no-cors",cache:"no-store"}).then(function(){ if(!bitti){ bitti=1; clearTimeout(zt); location.replace(CF+"?kaynak=gh"+location.hash); } }).catch(function(){ if(!bitti){ bitti=1; clearTimeout(zt); try{localStorage.removeItem("ko:tercih")}catch(_){} } }); }
-}catch(e){} })();</script><meta name="surum" content="6.84" data-ad="Karanlık Oda" data-tarih="28.11.2026">
+}catch(e){} })();</script><meta name="surum" content="6.85" data-ad="Karanlık Oda" data-tarih="28.11.2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -407,7 +407,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
   <div class="home-top">
    <div>
     <h1 class="wordmark"><span class="lamp"></span>Karanlık Oda</h1>
-    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.84 · 28.11.2026</span></p>
+    <p class="sub">Fotoğraf düzenleyici · tüm işlemler cihazında yapılır · <span title="Logolu imza, HEIC/HEIF, TIFF, RAW, büyük fotoğraf desteği">sürüm 6.85 · 28.11.2026</span></p>
    </div>
    <button class="icon-btn" id="themeBtn" aria-label="Tema değiştir"><svg class="icon"><use href="#i-moon"/></svg></button>
   </div>
@@ -482,7 +482,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
     '.fk-r>button{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--fk-soluk);font:700 18px/1 var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
     /* 2.31: liste altında simgeli Tamamını göster / Gizle */
     '.fk-gg{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:2px;border:1px solid var(--fk-cizgi);border-radius:14px;background:var(--fk-kart);color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
-    '.fk-gg svg{width:18px;height:18px;fill:none;stroke:var(--fk-sari);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.fk-gg.ac svg{transform:rotate(180deg)}' +
+    '.fk-gg svg{width:18px;height:18px;fill:none;stroke:var(--fk-vurgu,#FF7A59);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.fk-gg.ac svg{transform:rotate(180deg)}' +
     '.fk-gg small{font-size:12px;color:var(--fk-soluk);font-weight:500}.fk-gg:active{background:var(--fk-kart2)}' +
     '.fk-bos{font-size:13px;color:var(--fk-soluk);margin:10px 0 0}' +
     '.fk-diger{font-size:12px;letter-spacing:2px;color:var(--fk-soluk);margin:28px 0 0;font-weight:700}' +
@@ -490,7 +490,7 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
        bölüm başlıkları katlanır, Ayarlar ve sürümler en altta */
     '.fk-hap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}.fk-hap::-webkit-scrollbar{display:none}' +
     '.fk-sb .fk-hap button{flex:none;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--fk-cizgi);background:none;color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
-    '.fk-sb .fk-hap button.on{background:var(--fk-sari);border-color:var(--fk-sari);color:var(--fk-ink)}' +
+    '.fk-sb .fk-hap button.on{background:var(--fk-vurgu,#FF7A59);border-color:var(--fk-vurgu,#FF7A59);color:var(--fk-vurgu-m,#1B1204)}' +
     'body.fk-acik #libTabs button:not([data-t="presets"]){display:none}' +
     'body.fk-acik #home .actions>label.act.primary{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important;border:0!important}' +
     'body.fk-acik #home .grp-et{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 2px;margin:0;border-bottom:1px solid var(--fk-cizgi);-webkit-tap-highlight-color:transparent;user-select:none}' +
@@ -555,6 +555,13 @@ body.ed-tam.ed-tam-panel #editor .panel{display:block;position:fixed;right:10px;
      Yerel uygulama yoksa Chrome kendiliğinden web Kareden Videoya'yı açar (browser_fallback_url). Bilgisayarda web Kareden Videoya.
      (2.27'de web Stüdyo'dan açılınca eski web video açılıyordu — videoda geriye gidiş.) */
   var YEREL = new URLSearchParams(location.search).get('yerel') === '1';
+  /* 2.34: fotoğraf ana ekranının vurgu rengi = video ana ekranının rengi (yerel ⋯ › Ana sayfa rengi; yerel uygulama &renk=RRGGBB ile gönderir,
+     saklanır; varsayılan mercan). Üstteki iki kart (sarı Yeni fotoğraf, Video) kendi renginde kalır. */
+  (function(){ var r = (new URLSearchParams(location.search).get('renk') || '').replace(/[^0-9a-f]/ig, '');
+    try { if (r.length === 6) localStorage.setItem('studyo.anaRenk', r); else r = localStorage.getItem('studyo.anaRenk') || ''; } catch(e){}
+    if (!/^[0-9a-f]{6}$/i.test(r)) r = 'FF7A59';
+    var n = parseInt(r, 16), l = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+    var d = document.documentElement; d.style.setProperty('--fk-vurgu', '#' + r); d.style.setProperty('--fk-vurgu-m', l > 0.55 ? '#1B1204' : '#fff'); })();
   var ANDROID = /Android/i.test(navigator.userAgent);
   function videoya(){
     if (YEREL || ANDROID) {
@@ -3461,13 +3468,16 @@ function outDims(full){ // önizleme kaynağına göre çıktı en-boy
   if(full||cropMode()) return rs; return [rs[0]*g.crop.w, rs[1]*g.crop.h]; }
 function nativeOut(){ const g=ED.state.geo; const rs=(g.rot%2)?[ED.H,ED.W]:[ED.W,ED.H]; return [Math.max(1,Math.round(rs[0]*g.crop.w)),Math.max(1,Math.round(rs[1]*g.crop.h))]; }
 
+/* 2.34: üstte panelde fotoğraf boyutu sabit; dikeyde panelin üstünde kalan alana ortalanır, panel fotoğrafı kapatacak kadar büyükse en üstten başlar
+   (2.33'te hep en üstteydi → panel küçükken fotoğrafın altında koca boşluk kalıyordu). */
+function ustTop(sh,fh){ const p=$("#panel"); const kapla=p?Math.min(sh,p.offsetHeight):0; return Math.max(0,Math.round((sh-kapla-fh)/2)); }
 function layoutView(){
   const st=$("#stage"); const sw=st.clientWidth, sh=st.clientHeight; if(!sw||!sh) return null;
   /* 2.30: "panel fotoğrafın üstünde" açıkken fotoğraf en üstten başlar (üst çubuğun hemen altı, üstte boşluk yok); kırpmada eski ortalama */
   const ustte=document.documentElement.classList.contains("ko-ust")&&!cropMode()&&matchMedia("(max-width:899px)").matches;
   const [ow,oh]=outDims(); const pad=cropMode()?28:12; const s=ustte?Math.min((sw-pad*2)/ow,sh/oh):Math.min((sw-pad*2)/ow,(sh-pad*2)/oh);
   const fw=Math.max(1,ow*s), fh=Math.max(1,oh*s); const v=$("#view");
-  v.style.width=fw+"px"; v.style.height=fh+"px"; v.style.left=(sw-fw)/2+"px"; v.style.top=(ustte?0:(sh-fh)/2)+"px";
+  v.style.width=fw+"px"; v.style.height=fh+"px"; v.style.left=(sw-fw)/2+"px"; v.style.top=(ustte?ustTop(sh,fh):(sh-fh)/2)+"px";
   v.style.transform=`translate(${ED.view.tx}px,${ED.view.ty}px) scale(${ED.view.z})`;
   $("#zFit").textContent=ED.view.z<1.05?"1×":ED.view.z.toFixed(1)+"×";
   return {fw,fh,ow,oh};
@@ -10726,7 +10736,7 @@ try{const a=document.querySelector('#home .actions');if(a&&!document.getElementB
   let dr = null;
   tut.addEventListener('pointerdown', e => { if (!tel() || e.target.closest('.ed-ust')) return; dr = {y0:e.clientY, o0:kapali ? 0 : oran, H:innerHeight, oynadi:false}; tut.setPointerCapture(e.pointerId); e.preventDefault(); });
   tut.addEventListener('pointermove', e => { if (!dr) return; const dy = e.clientY - dr.y0; if (Math.abs(dy) > 6) dr.oynadi = true; if (!dr.oynadi) return;
-    ed.classList.add('ed-surukle'); const yeni = dr.o0 - dy/dr.H; if (yeni < .1){ kapali = true; } else { kapali = false; oran = Math.min(LIM(), Math.max(.18, yeni)); } uygula(); ipucu(); if (!UST()) yenile(); });
+    ed.classList.add('ed-surukle'); const yeni = dr.o0 - dy/dr.H; if (yeni < .1){ kapali = true; } else { kapali = false; oran = Math.min(LIM(), Math.max(.18, yeni)); } uygula(); ipucu(); if (!UST()) yenile(); else { try { layoutView(); } catch(_){} } });
   const bit = () => { if (!dr) return; const d = dr; dr = null; ed.classList.remove('ed-surukle');
     if (!d.oynadi){ kapali = !kapali; } else if (!kapali) LSs('ko.panOran', oran); uygula(); ipucu(); setTimeout(yenile, 200); };
   tut.addEventListener('pointerup', bit); tut.addEventListener('pointercancel', bit);

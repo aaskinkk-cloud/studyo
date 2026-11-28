@@ -48,7 +48,7 @@
     '.fk-r>button{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--fk-soluk);font:700 18px/1 var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
     /* 2.31: liste altında simgeli Tamamını göster / Gizle */
     '.fk-gg{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:2px;border:1px solid var(--fk-cizgi);border-radius:14px;background:var(--fk-kart);color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
-    '.fk-gg svg{width:18px;height:18px;fill:none;stroke:var(--fk-sari);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.fk-gg.ac svg{transform:rotate(180deg)}' +
+    '.fk-gg svg{width:18px;height:18px;fill:none;stroke:var(--fk-vurgu,#FF7A59);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.fk-gg.ac svg{transform:rotate(180deg)}' +
     '.fk-gg small{font-size:12px;color:var(--fk-soluk);font-weight:500}.fk-gg:active{background:var(--fk-kart2)}' +
     '.fk-bos{font-size:13px;color:var(--fk-soluk);margin:10px 0 0}' +
     '.fk-diger{font-size:12px;letter-spacing:2px;color:var(--fk-soluk);margin:28px 0 0;font-weight:700}' +
@@ -56,7 +56,7 @@
        bölüm başlıkları katlanır, Ayarlar ve sürümler en altta */
     '.fk-hap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}.fk-hap::-webkit-scrollbar{display:none}' +
     '.fk-sb .fk-hap button{flex:none;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--fk-cizgi);background:none;color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
-    '.fk-sb .fk-hap button.on{background:var(--fk-sari);border-color:var(--fk-sari);color:var(--fk-ink)}' +
+    '.fk-sb .fk-hap button.on{background:var(--fk-vurgu,#FF7A59);border-color:var(--fk-vurgu,#FF7A59);color:var(--fk-vurgu-m,#1B1204)}' +
     'body.fk-acik #libTabs button:not([data-t="presets"]){display:none}' +
     'body.fk-acik #home .actions>label.act.primary{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important;border:0!important}' +
     'body.fk-acik #home .grp-et{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 2px;margin:0;border-bottom:1px solid var(--fk-cizgi);-webkit-tap-highlight-color:transparent;user-select:none}' +
@@ -121,6 +121,13 @@
      Yerel uygulama yoksa Chrome kendiliğinden web Kareden Videoya'yı açar (browser_fallback_url). Bilgisayarda web Kareden Videoya.
      (2.27'de web Stüdyo'dan açılınca eski web video açılıyordu — videoda geriye gidiş.) */
   var YEREL = new URLSearchParams(location.search).get('yerel') === '1';
+  /* 2.34: fotoğraf ana ekranının vurgu rengi = video ana ekranının rengi (yerel ⋯ › Ana sayfa rengi; yerel uygulama &renk=RRGGBB ile gönderir,
+     saklanır; varsayılan mercan). Üstteki iki kart (sarı Yeni fotoğraf, Video) kendi renginde kalır. */
+  (function(){ var r = (new URLSearchParams(location.search).get('renk') || '').replace(/[^0-9a-f]/ig, '');
+    try { if (r.length === 6) localStorage.setItem('studyo.anaRenk', r); else r = localStorage.getItem('studyo.anaRenk') || ''; } catch(e){}
+    if (!/^[0-9a-f]{6}$/i.test(r)) r = 'FF7A59';
+    var n = parseInt(r, 16), l = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+    var d = document.documentElement; d.style.setProperty('--fk-vurgu', '#' + r); d.style.setProperty('--fk-vurgu-m', l > 0.55 ? '#1B1204' : '#fff'); })();
   var ANDROID = /Android/i.test(navigator.userAgent);
   function videoya(){
     if (YEREL || ANDROID) {

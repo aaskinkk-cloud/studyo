@@ -2,9 +2,15 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.32 · 28.11.2026 (Karanlık Oda 6.83, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
+**Güncel sürüm:** Web 2.33 · 28.11.2026 (Karanlık Oda 6.84, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.33 (28.11.2026): Videodan gelince eski fotoğraf ana ekranı artık hiç görünmez
+- **Kök neden:** `foto/index.html` 8,4 MB; yeni ana ekranın kodu dosyanın en sonundaydı ve ayrıca kitaplık veritabanını 300 ms aralıklarla bekliyordu. Telefon dosyayı sonuna kadar okuyana dek sayfanın kendi eski ana ekranı (Galeriden seç, Kamera, Haber…) görünüyor, sonra yenisi üstüne kuruluyordu.
+- **Çözüm:** (1) katman kopyası ana ekran bölümünün hemen arkasına taşındı (`</section>` sonrası; aslı yine `kaynak/foto-ana.js`) — ilk karede kurulur; (2) ekran veritabanını beklemeden kurulur, liste veritabanı hazır olunca dolar; `renderLibrary` sarması ve katlanır başlıklar sayfa ayrıştırılınca bağlanır; (3) `<head>`'de `ko-ana-bekle` sınıfı yeni ekran kurulana kadar eski ekranı gizler (3 sn güvenlik; "Önceki ana ekran" seçiliyse gizlemez).
+- **Not:** bu katmanın kopyası artık `foto/index.html` sonunda değil, ana ekran bölümünün arkasında.
+- Test (yavaş ağ 400 KB/s ve hızlı ağ, her karede ölçüm): eski ana ekranın göründüğü kare 0; ana ekran, göster/gizle, favoriler, katlanır başlıklar, hazır ayarlar, galeri, üstte panel, video geçişi tekrar denendi; hata yok. Telefonda denenmedi.
 
 ## 2.32 (28.11.2026): Videodan fotoğrafa doğrudan geçiş (arkada ikinci ekran yok)
 - **Kök neden (geç açılıyordu):** yerel uygulamanın Fotoğraf kartı `?git=foto` ile önce Stüdyo web ana sayfasını yüklüyor, fotoğraf ekranı onun içinde ikinci sayfa (çerçeve) olarak açılıyordu → iki sayfa yükleniyor, arada eski arayüz görünüyordu.
@@ -36,7 +42,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Video düğmeleri (kart, geniş kart, alt gezinme):** Android'de her zaman yerel Stüdyo'nun ana ekranına (taslaklar) döner — web Stüdyo'dan açılsa bile (2.27'de bu durumda eski web video açılıyordu). Yerel uygulama yoksa Chrome web Kareden Videoya'yı açar (`browser_fallback_url`); bilgisayarda web Kareden Videoya.
 - **Sürümler:** ana ekranın en altında Stüdyo (web), Karanlık Oda, Kareden Videoya (web) sürümleri sayfaların kendi meta'sından okunur; yerel uygulama sürümü yerel ana ekranda/⋯ menüsünde (bu sürüm için en az 4.56). Web Stüdyo ana sayfasındaki sürüm notu da artık elle değil meta'dan (orada "Karanlık Oda 6.67" diye eski kalmıştı).
 - **Önceki görünümler:** ⚙ Ayarlar › "Ana ekran görünümü": Video Stüdyo düzeni (yeni) · 2.26 kart düzeni · Önceki ana ekran (`localStorage['studyo.fAnaGor']`; eski `studyo.fAnaEski` okunur).
-- Kod: `kaynak/foto-ana.js` (+ `foto/index.html` sonundaki kopyası), `index.html` + `kaynak/kabuk.html` (sürüm notu), `sw.js`. Yerel uygulamaya dokunulmadı.
+- Kod: `kaynak/foto-ana.js` (+ `foto/index.html` içindeki kopyası; 2.33'ten beri ana ekran bölümünün arkasında), `index.html` + `kaynak/kabuk.html` (sürüm notu), `sw.js`. Yerel uygulamaya dokunulmadı.
 - Test (412×915, Android kimliği, gündüz/gece): blok tam boy, yatay taşma yok, Video → `intent://ana…`, Kitaplık/Ayarlar düğmeleri, üç görünüm arasında geçiş, son çalışmalar satırı; hata yok. Telefonda denenmedi.
 
 ## 2.27 (28.11.2026): Karanlık Oda ana ekranı düzeltmeleri

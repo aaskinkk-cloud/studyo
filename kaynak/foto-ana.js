@@ -153,7 +153,8 @@
     if (ayni(d, dun)) return 'Dün';
     return d.toLocaleDateString('tr-TR', {day: 'numeric', month: 'short'});
   }
-  async function kayitlar(){ var r = []; try { r = (await DB.all()) || []; } catch(e){} r.sort(function(a, b){ return (b.updated || 0) - (a.updated || 0); }); return r; }
+  function dbHazir(){ return new Promise(function(ok){ (function b(n){ if (typeof DB !== 'undefined' && DB.all) return ok(true); if (n > 600) return ok(false); setTimeout(function(){ b(n + 1); }, 50); })(0); }); }
+  async function kayitlar(){ var r = []; await dbHazir(); try { r = (await DB.all()) || []; } catch(e){} r.sort(function(a, b){ return (b.updated || 0) - (a.updated || 0); }); return r; }
   function kitaplik(ac, btn){
     var a = (ac === undefined) ? !document.body.classList.contains('fa-kit') : ac;
     document.body.classList.toggle('fa-kit', a);
@@ -380,10 +381,18 @@
     uc.onchange = function(){ if (window.koPanUst) window.koPanUst(uc.checked); };
     k.appendChild(u);
   }
-  function dene(){ if (typeof DB === 'undefined' || !document.querySelector('#home .home-wrap')) return setTimeout(dene, 300); kur(); ayar(); }
-  dene();
-  /* editörden ana ekrana dönünce liste yenilenir */
-  try { var oRL = window.renderLibrary; if (typeof oRL === 'function') window.renderLibrary = function(){ var r = oRL.apply(this, arguments); try { kur(); } catch(e){} return r; }; } catch(e){}
+  /* 2.33 KÖK NEDEN (videodan gelince önce eski ana ekran görünüyordu): yeni ekran, kitaplık veritabanı hazır olana kadar (300 ms aralıkla) bekleyip
+     sonra kuruluyordu; o arada sayfanın kendi eski ana ekranı çiziliyordu. Şimdi ekran hemen kurulur (liste veritabanı hazır olunca dolar),
+     <head>'deki ko-ana-bekle sınıfı da eski ekranın ilk karede görünmesini engeller; kurulunca kalkar. */
+  function hazir(){ document.documentElement.classList.remove('ko-ana-bekle'); }
+  function dene(n){ if (!document.querySelector('#home .home-wrap')) { if ((n || 0) < 200) return setTimeout(function(){ dene((n || 0) + 1); }, 25); hazir(); return; }
+    try { kur(); } catch(e){} hazir(); try { ayar(); } catch(e){} }
+  dene(0);
+  /* editörden ana ekrana dönünce liste yenilenir. 2.33: bu kod artık ana ekranın hemen arkasında (sayfanın başında) çalışır;
+     renderLibrary ve bölüm başlıkları sonra tanımlandığı için sarma ve yeniden kurma sayfa ayrıştırılınca yapılır. */
+  function sar(){ try { var oRL = window.renderLibrary; if (typeof oRL === 'function' && !oRL.__fAna) { window.renderLibrary = function(){ var r = oRL.apply(this, arguments); try { kur(); } catch(e){} return r; }; window.renderLibrary.__fAna = 1; } } catch(e){}
+    try { kur(); } catch(e){} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sar); else sar();
   var ev = document.querySelector('#home');
   if (ev && window.MutationObserver) new MutationObserver(function(){ if (!ev.hidden) kur(); }).observe(ev, {attributes: true, attributeFilter: ['hidden']});
 })();

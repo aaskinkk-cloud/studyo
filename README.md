@@ -6,6 +6,9 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## Yerel 4.58 (28.11.2026): fotoğraf ekranı videonun rengini alır
+- Fotoğraf kartı, ⋯ › Ana sayfa rengi'nde seçili rengi `&renk=RRGGBB` ile web fotoğraf ekranına gönderir (web 2.34 bu rengi haplarda ve Tamamını göster düğmesinde kullanır, saklar). Üstteki kartların renkleri iki tarafta farklı kalır.
+
 ## Yerel 4.57 (28.11.2026): video ana ekranı fotoğraf ana ekranı gibi · kendi rengi
 - **Düzen** (web fotoğraf ana ekranı 2.31 ile aynı): yapışkan başlıkta haplar **Son çalışmalarım · Arşiv · n** + **Seç**; uzun listede 3 proje, altında simgeli **⌄ Tamamını göster · n daha / ⌃ Gizle** (Arşiv'e geçince kapanır; seçim kipinde tüm liste). Fotoğraf kartında fotoğraf simgesi.
 - **Renk:** video ana sayfasının kendi rengi (`AnaRenk`, varsayılan **Mercan**; fotoğraf tarafı sarı kalır). ⋯ menüsünün en üstünde küçük renk alanı: Mercan · Turkuaz · Mor · Mavi · Yeşil · Kırmızı · Sarı (dokun = seç, hatırlanır). Yeni video kartı, haplar, Seç/Arşiv düğmeleri ve göster/gizle bu rengi kullanır. Video düzenleyicinin renkleri (tema, InShot rengi) değişmedi.

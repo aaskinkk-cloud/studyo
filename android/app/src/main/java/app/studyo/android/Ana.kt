@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
     fun webAc(paylasimla: Boolean) {
         val s = sonPaylasim
         val i = if (paylasimla && s != null) Intent(s).setClass(this, LauncherActivity::class.java).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        else Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(WEB_ADRES + "foto/?yerel=1&studyo=1"))   // 4.57: fotoğraf ekranı doğrudan (web ana sayfası hiç yüklenmez; önce ?git=foto ile ana sayfa + çerçeve)
+        else Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(WEB_ADRES + "foto/?yerel=1&studyo=1&renk=" + String.format("%06X", AnaRenk.SECENEK[AnaRenk.i].first and 0xFFFFFFL)))   // 4.57: fotoğraf ekranı doğrudan (web ana sayfası hiç yüklenmez; önce ?git=foto ile ana sayfa + çerçeve)
         try { startActivity(i) } catch (e: Exception) { Kayit.hata("web aç", e) }
     }
 

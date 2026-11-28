@@ -2,12 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.30 · 28.11.2026 (Karanlık Oda 6.82, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
+**Güncel sürüm:** Web 2.31 · 28.11.2026 (Karanlık Oda 6.83, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 2.31 (28.11.2026): Son çalışmalarım 3 satır + "Tamamını göster / Gizle"
+- Uzun listede 3 satır görünür; altında simgeli düğme **⌄ Tamamını göster · n daha** → tümü açılır, düğme **⌃ Gizle** olur (simge döner). Gizleyince liste başına kayar. Favoriler'de de aynı. Üstteki "Tümü · n" hapı kaldırıldı (tek düğme, liste altında).
+- Test (412×915): 9 kayıt → 3 satır, göster → 9, gizle → 3; Favoriler (3 kayıt) düğmesiz; hata yok. Telefonda denenmedi.
+
 ## 2.30 (28.11.2026): Karanlık Oda ana ekranında çeki düzen · üstte panelde fotoğraf en üstten başlar
-- **Tek taslak listesi:** "Son çalışmalarım" ekranda bir kez. Başlıkta haplar **Son çalışmalarım · ★ Favoriler**; 6 satır, fazlası **Tümü · n** ile aynı listede açılır (Daha az). Alttaki eski kitaplık listesi bu görünümde gösterilmez; yalnız **⋯ › Hazır ayarlarım** onu hazır ayarlar sekmesiyle açar (haplardan birine dokununca kapanır).
+- **Tek taslak listesi:** "Son çalışmalarım" ekranda bir kez. Başlıkta haplar **Son çalışmalarım · ★ Favoriler**; fazlası aynı listede açılır (2.31'de 3 satır + altta Tamamını göster / Gizle). Alttaki eski kitaplık listesi bu görünümde gösterilmez; yalnız **⋯ › Hazır ayarlarım** onu hazır ayarlar sekmesiyle açar (haplardan birine dokununca kapanır).
 - **Tekrarlar kaldırıldı:** "Galeriden seç" kartı gizli (aynı işi **＋ Yeni fotoğraf** yapıyor; dosya girişi yerinde, çoklu seçim → toplu düzenleme aynen). Kamera ve Toplu düzenle duruyor. "DİĞER" yazısı yok.
 - **Katlanır başlıklar:** Fotoğraf · Haber · Blog · Logo başlıklarına dokun → aç/kapat (durum saklanır; başlık menü açmaz). **⚙ Ayarlar** ve sürümler en altta.
 - **Panel fotoğrafın üstündeyken** fotoğraf üst çubuğun hemen altından başlar (üstte boşluk yok; boyutu aynı). Kırpma ekranında ve seçenek kapalıyken eski ortalama. (`layoutView`)

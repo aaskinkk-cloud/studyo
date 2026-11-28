@@ -1,5 +1,5 @@
 /* ===== 2.29–2.30 STÜDYO · Karanlık Oda ana ekranı = yerel video Stüdyo ana ekranının (Ana.kt) aynısı =====
-   2.30: tek taslak listesi (Son çalışmalarım | ★ Favoriler, 6 satır + Tümü), alttaki kitaplık yalnız ⋯ › Hazır ayarlarım için,
+   2.30: tek taslak listesi (Son çalışmalarım | ★ Favoriler; 2.31: 3 satır + altta simgeli Tamamını göster / Gizle), alttaki kitaplık yalnız ⋯ › Hazır ayarlarım için,
    "Galeriden seç" gizli (= Yeni fotoğraf), bölüm başlıkları katlanır, Ayarlar ve sürümler en altta.
    Başlık şeridi "Karanlık Oda / Fotoğraf düzenleyici · web" + ⋯ menü (kitaplık, ayarlar, tema, görünüm, sürümler) ·
    sarı "Yeni fotoğraf" + "Video" kartı (dokun = yerel Stüdyo'nun taslak ekranı) · yapışkan "Son çalışmalarım" + Tümü ·
@@ -46,6 +46,10 @@
     '.fk-r>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}' +
     '.fk-r b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fk-r span{font-size:12px;color:var(--fk-soluk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fk-r small{font-size:11.5px;color:var(--fk-soluk);opacity:.8}' +
     '.fk-r>button{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--fk-soluk);font:700 18px/1 var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
+    /* 2.31: liste altında simgeli Tamamını göster / Gizle */
+    '.fk-gg{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;margin-top:2px;border:1px solid var(--fk-cizgi);border-radius:14px;background:var(--fk-kart);color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
+    '.fk-gg svg{width:18px;height:18px;fill:none;stroke:var(--fk-sari);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.fk-gg.ac svg{transform:rotate(180deg)}' +
+    '.fk-gg small{font-size:12px;color:var(--fk-soluk);font-weight:500}.fk-gg:active{background:var(--fk-kart2)}' +
     '.fk-bos{font-size:13px;color:var(--fk-soluk);margin:10px 0 0}' +
     '.fk-diger{font-size:12px;letter-spacing:2px;color:var(--fk-soluk);margin:28px 0 0;font-weight:700}' +
     /* 2.30 çeki düzen: tek taslak listesi (alttaki kitaplık yalnız Hazır ayarlarım için açılır), "Galeriden seç" = Yeni fotoğraf (gizli),
@@ -182,9 +186,9 @@
   var FK = {fav: false, tum: false};
   async function satirlar(kutu){
     var tum = await kayitlar(), recs = FK.fav ? tum.filter(function(r){ return r.fav; }) : tum; kutu.innerHTML = '';
-    var tb = document.querySelector('.fk-tumu'); if (tb) { tb.hidden = recs.length <= 6; tb.textContent = FK.tum ? 'Daha az' : 'Tümü · ' + recs.length; }
     if (!recs.length){ kutu.innerHTML = '<p class="fk-bos">' + (FK.fav ? 'Favori yok. Bir fotoğrafın ⋮ menüsünden ya da düzenleyiciden yıldızla.' : 'Henüz fotoğraf yok. “Yeni fotoğraf” ile başla.') + '</p>'; return; }
-    (FK.tum ? recs : recs.slice(0, 6)).forEach(function(r){
+    var SINIR = 3;   // 2.31: uzun listede 3 satır + altta "Tamamını göster"
+    (FK.tum ? recs : recs.slice(0, SINIR)).forEach(function(r){
       var d = document.createElement('div'); d.className = 'fk-r'; d.setAttribute('role', 'button'); d.setAttribute('aria-label', (r.name || 'Fotoğraf') + ' aç');
       d.innerHTML = (r.thumb ? '<img alt="" src="' + kac(r.thumb) + '">' : '<div class="fk-bosr"></div>') +
         '<div><b>' + kac(r.name || 'Fotoğraf') + '</b><span>' + (r.w && r.h ? r.w + '×' + r.h : 'Fotoğraf') + (r.state ? ' · düzenlendi' : '') + (r.fav ? ' · ★' : '') + '</span><small>' + tarih(r.updated) + '</small></div>' +
@@ -193,6 +197,12 @@
       d.querySelector('button').onclick = function(){ try { recMenu(r); } catch(_){} };
       kutu.appendChild(d);
     });
+    if (recs.length > SINIR) {
+      var g = document.createElement('button'); g.type = 'button'; g.className = 'fk-gg' + (FK.tum ? ' ac' : ''); g.setAttribute('aria-expanded', FK.tum);
+      g.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' + (FK.tum ? 'Gizle' : 'Tamamını göster <small>' + (recs.length - SINIR) + ' daha</small>');
+      g.onclick = function(){ var ust = kutu.getBoundingClientRect().top; FK.tum = !FK.tum; satirlar(kutu).then(function(){ if (!FK.tum) { var ev = document.querySelector('#home'); if (ev && ust < 0) kutu.scrollIntoView({block: 'start', behavior: 'smooth'}); } }); };
+      kutu.appendChild(g);
+    }
   }
   function menuKapat(){ var m = document.querySelector('.fk-menu'); if (m) m.remove(); document.removeEventListener('pointerdown', disTik, true); }
   function disTik(e){ if (!e.target.closest('.fk-menu,.fk-uc')) menuKapat(); }
@@ -234,14 +244,13 @@
       '<div class="fk-ust"><div><h1>Karanlık Oda</h1><p>Fotoğraf düzenleyici · web uygulaması</p></div><button type="button" class="fk-uc" aria-label="Menü" aria-haspopup="menu">⋯</button></div>' +
       '<div class="fk-kartlar"><button type="button" class="fk-k fk-yeni"><em>＋</em><b>Yeni fotoğraf</b></button>' +
       '<button type="button" class="fk-k fk-vid">' + svg(Y.vid, 26) + '<div><b>Video</b><small>Stüdyo · taslaklarım</small></div></button></div>' +
-      '<div class="fk-sb"><div class="fk-hap" role="tablist"><button type="button" class="on" data-f="0">Son çalışmalarım</button><button type="button" data-f="1">★ Favoriler</button></div><button type="button" class="fk-tumu" hidden>Tümü</button></div>' +
+      '<div class="fk-sb"><div class="fk-hap" role="tablist"><button type="button" class="on" data-f="0">Son çalışmalarım</button><button type="button" data-f="1">★ Favoriler</button></div></div>' +
       '<div class="fk-liste"></div>';
     var ust = blok.querySelector('.fk-ust');
     ust.querySelector('.fk-uc').onclick = function(){ menuAc(ust); };
     blok.querySelector('.fk-yeni').onclick = function(){ var p = document.querySelector('#pickGallery'); if (p) p.click(); };
     blok.querySelector('.fk-vid').onclick = videoya;
     var liste_ = blok.querySelector('.fk-liste');
-    blok.querySelector('.fk-tumu').onclick = function(){ FK.tum = !FK.tum; satirlar(liste_); };
     blok.querySelectorAll('.fk-hap button').forEach(function(b){ b.onclick = function(){
       FK.fav = b.dataset.f === '1'; FK.tum = false; kitaplik(false);
       blok.querySelectorAll('.fk-hap button').forEach(function(x){ x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });

@@ -2,6 +2,13 @@
 <html lang="tr">
 <head>
 <script>
+/* 2.32: yerel uygulamanın Fotoğraf kartı (?git=foto) → web ana sayfası hiç çizilmeden doğrudan fotoğraf ekranı (tek sayfa yüklenir).
+   Kök neden (geç açılıyordu): önce Stüdyo ana sayfası yükleniyor, sonra fotoğraf ekranı onun içinde ikinci sayfa olarak açılıyordu. */
+(function(){ try { if (new URLSearchParams(location.search).get('git') !== 'foto') return;
+  var t = 'gece'; try { t = localStorage.getItem('studyo.tema') === 'gunduz' ? 'gunduz' : 'gece'; } catch(e){}
+  location.replace('foto/?yerel=1&studyo=1&tema=' + t); } catch(e){} })();
+</script>
+<script>
 /* SESSİZ EKRAN (22.10.2026) — tüm uygulamalarda aynı blok
    1) Tam ekran isteği yalnız tam ekran düğmesiyle gönderilir; kendiliğinden (dokununca/açılışta) gönderilmez → Chrome'un "Tam ekrandan çıkmak için yukarıdan sürükleyip…" uyarısı çıkmaz.
       (Chrome sekmesinde tam ekrana her girişte bu uyarıyı tarayıcının kendisi gösterir; sayfa kapatamaz.)
@@ -33,7 +40,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#121a21">
-<meta name="surum" content="2.31" data-ad="Stüdyo" data-tarih="28.11.2026">
+<meta name="surum" content="2.32" data-ad="Stüdyo" data-tarih="28.11.2026">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">

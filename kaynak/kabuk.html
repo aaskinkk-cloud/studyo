@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+<script>
+/* 2.32: yerel uygulamanın Fotoğraf kartı (?git=foto) → web ana sayfası hiç çizilmeden doğrudan fotoğraf ekranı (tek sayfa yüklenir).
+   Kök neden (geç açılıyordu): önce Stüdyo ana sayfası yükleniyor, sonra fotoğraf ekranı onun içinde ikinci sayfa olarak açılıyordu. */
+(function(){ try { if (new URLSearchParams(location.search).get('git') !== 'foto') return;
+  var t = 'gece'; try { t = localStorage.getItem('studyo.tema') === 'gunduz' ? 'gunduz' : 'gece'; } catch(e){}
+  location.replace('foto/?yerel=1&studyo=1&tema=' + t); } catch(e){} })();
+</script>
 %SESSIZ%
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">

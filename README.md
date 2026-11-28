@@ -2,9 +2,14 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.31 · 28.11.2026 (Karanlık Oda 6.83, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
+**Güncel sürüm:** Web 2.32 · 28.11.2026 (Karanlık Oda 6.83, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.32 (28.11.2026): Videodan fotoğrafa doğrudan geçiş (arkada ikinci ekran yok)
+- **Kök neden (geç açılıyordu):** yerel uygulamanın Fotoğraf kartı `?git=foto` ile önce Stüdyo web ana sayfasını yüklüyor, fotoğraf ekranı onun içinde ikinci sayfa (çerçeve) olarak açılıyordu → iki sayfa yükleniyor, arada eski arayüz görünüyordu.
+- Şimdi `index.html` (ve `kaynak/kabuk.html`) `<head>`'in ilk satırında `?git=foto` görülünce hiçbir şey çizilmeden `foto/?yerel=1` açılır (`location.replace`): tek sayfa, en son fotoğraf ana ekranı. Geri tuşu yerel video ana ekranına döner. Yerel uygulamaya dokunulmadı.
+- Test (412×915): `?git=foto` → doğrudan `foto/?yerel=1…`, tek çerçeve, fotoğraf ana ekranı 0,65 s'de; Video kartı → `intent://ana…`; hata yok. Telefonda denenmedi.
 
 ## 2.31 (28.11.2026): Son çalışmalarım 3 satır + "Tamamını göster / Gizle"
 - Uzun listede 3 satır görünür; altında simgeli düğme **⌄ Tamamını göster · n daha** → tümü açılır, düğme **⌃ Gizle** olur (simge döner). Gizleyince liste başına kayar. Favoriler'de de aynı. Üstteki "Tümü · n" hapı kaldırıldı (tek düğme, liste altında).

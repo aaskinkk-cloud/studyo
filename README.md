@@ -2,9 +2,18 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Android uygulaması 3.1 (yerel video editörü) · 13.11.2026. Web: 2.25 · 28.11.2026 (Karanlık Oda 6.79, Kareden Videoya 9.15).
+**Güncel sürüm:** Web 2.28 · 28.11.2026 (Karanlık Oda 6.80, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.28 (28.11.2026): Karanlık Oda ana ekranı yerel video Stüdyo düzeninde · video her zaman yerel · sürümler en altta
+- **Kök neden (yeni ana ekran telefonda görünmüyordu, yalnız bir çizgi kalıyordu):** `#home` bir flex sütunu; 2.27'de `.home-wrap`'e verilen `overflow-x:hidden` onun en küçük yüksekliğini 0 yaptı, sütun ekran boyuna sıkıştı, içindeki blok (`overflow:hidden`) ezildi. Şimdi `.home-wrap` ve blok `flex:none`; yatay taşma `#home` üzerinde kapalı.
+- **Yeni düzen (yerel `AnaStudyo.kt` ile aynı renk, ölçü, simge):** logo + KARANLIK ODA + tema düğmesi · "Fotoğrafını düzenle." · iki kart **Fotoğraf** (mavi, galeriden seç) · **Video** (turuncu, taslaklara dön) · geniş turuncu **Video taslaklarım ›** · **Son çalışmalar** yatay kartlar (150×190, Bugün/Dün/tarih), **Tümünü gör** kitaplığı açar · alt gezinme **Ana sayfa · Kitaplık · Video · Ayarlar**. Eski bölümler (Fotoğraf, Haber · Blog · Logo, Ayarlar, kitaplık) altta "DİĞER" başlığıyla aynen.
+- **Video düğmeleri (kart, geniş kart, alt gezinme):** Android'de her zaman yerel Stüdyo'nun ana ekranına (taslaklar) döner — web Stüdyo'dan açılsa bile (2.27'de bu durumda eski web video açılıyordu). Yerel uygulama yoksa Chrome web Kareden Videoya'yı açar (`browser_fallback_url`); bilgisayarda web Kareden Videoya.
+- **Sürümler:** ana ekranın en altında Stüdyo (web), Karanlık Oda, Kareden Videoya (web) sürümleri sayfaların kendi meta'sından okunur; yerel uygulama sürümü yerel ana ekranda/⋯ menüsünde (bu sürüm için en az 4.56). Web Stüdyo ana sayfasındaki sürüm notu da artık elle değil meta'dan (orada "Karanlık Oda 6.67" diye eski kalmıştı).
+- **Önceki görünümler:** ⚙ Ayarlar › "Ana ekran görünümü": Video Stüdyo düzeni (yeni) · 2.26 kart düzeni · Önceki ana ekran (`localStorage['studyo.fAnaGor']`; eski `studyo.fAnaEski` okunur).
+- Kod: `kaynak/foto-ana.js` (+ `foto/index.html` sonundaki kopyası), `index.html` + `kaynak/kabuk.html` (sürüm notu), `sw.js`. Yerel uygulamaya dokunulmadı.
+- Test (412×915, Android kimliği, gündüz/gece): blok tam boy, yatay taşma yok, Video → `intent://ana…`, Kitaplık/Ayarlar düğmeleri, üç görünüm arasında geçiş, son çalışmalar satırı; hata yok. Telefonda denenmedi.
 
 ## 2.27 (28.11.2026): Karanlık Oda ana ekranı düzeltmeleri
 - **Video düğmeleri (kök neden):** yerel uygulamaya dönüş Chrome'un eklediği BROWSABLE kategorisiyle eşleşmeyen bir niyetle deneniyordu → büyük kart boşa gidiyor, üstteki düğme başka sayfa açıyordu; ayrıca "yerelden açıldı" bilgisi kabuktan okunuyordu (önbellekteki eski kabukta yok). Şimdi bilgi Karanlık Oda'nın kendi adresinde (`foto/?yerel=1`), dönüş yerel uygulamanın kendi bağlantısıyla (`studyo://ana`, yerel 4.56). Web Stüdyo içinde Video, en yeni Kareden Videoya'yı (`video/`) açar.
@@ -16,7 +25,7 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 - **Yerelden doğrudan:** yerel Stüdyo'nun "Fotoğraf" kartı `?git=foto` ile açar → web ana sayfası görünmeden Karanlık Oda gelir; "Stüdyo · Video" düğmesi ve geri tuşu yerel ana ekrana döner.
 - Web Stüdyo içinde açıldığında Video düğmesi Kareden Videoya'yı açar, "‹ Stüdyo" eskisi gibi.
 - **Önceki görünüm:** ⚙ Ayarlar › "Önceki ana ekran" (`localStorage['studyo.fAnaEski']`).
-- Kod: `kaynak/foto-ana.js` (yeni; `foto/index.html` sonunda kopyası, `esitle.py` ekler), `index.html` + `kaynak/kabuk.html` (DOGRUDAN, `studyoVideoAc`, `yerele`). Telefonda denenmedi.
+- Kod: `kaynak/foto-ana.js` (yeni; `foto/index.html` sonunda kopyası, elle eşitlenir — `esitle.py` artık çalıştırılmaz), `index.html` + `kaynak/kabuk.html` (DOGRUDAN, `studyoVideoAc`, `yerele`). Telefonda denenmedi.
 
 ## 2.25 (28.11.2026): "Senin fotoğraflarından" filtreleri · kendi fontunu yükle
 - **Filtreler › 📷 Senin fotoğraflarından** (ilk sekme): Ahmet'in 7 referans fotoğrafından — Kitap & kahve · loş oda, Türk kahvesi · güz ışığı, Kahve · turkuaz fincan, Eski çarşı · mat yeşil, Sokak dükkânı · soğuk mat, Antika köşe · sıcak film, Elma · güz bahçesi. Her biri referansın 33 noktalı ışıklık dağılımını, 3 ton bölgesindeki renk ortalaması/yayılımını, mat siyahını ve grenini taşır (uygulamanın kendi `styleStats` ölçüsü); sabit ayar değil, her fotoğrafa uyarlanır (ışık %90, renk %95). Yoğunluk ve "Nerede uygulansın" diğer filtrelerdeki gibi.

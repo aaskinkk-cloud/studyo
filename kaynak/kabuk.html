@@ -325,7 +325,11 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-git]
 
 /* ---------- başlangıç ---------- */
 temaKur(tema());
-{ const m = document.querySelector('meta[name=surum]'); $('#surumNot').textContent = `Stüdyo ${m.content} · ${m.dataset.tarih} · içinde Karanlık Oda %KO% ve Kareden Videoya %KV%`; }
+{ const m = document.querySelector('meta[name=surum]'); $('#surumNot').textContent = `Stüdyo ${m.content} · ${m.dataset.tarih}`;
+  /* 2.28: iç sürümler elle yazılmaz (6.67 diye eski kalmıştı) — Karanlık Oda ve Kareden Videoya sayfalarının kendi meta'sından okunur */
+  const oku = h => { const r = /name="surum" content="([^"]+)"/.exec(h || ''); return r ? r[1] : '?'; };
+  Promise.all(['foto/index.html', 'video/index.html'].map(u => fetch(u).then(r => r.text()).then(oku).catch(() => '?')))
+    .then(([ko, kv]) => { $('#surumNot').textContent = `Stüdyo ${m.content} · ${m.dataset.tarih} · içinde Karanlık Oda ${ko} ve Kareden Videoya ${kv}`; }); }
 projeYukle();
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !ACIK) projeYukle(); });
 /* paylaş menüsü (Android: galeri › Paylaş › Stüdyo): fotoğraflar Karanlık Oda'da, video varsa video editöründe açılır */

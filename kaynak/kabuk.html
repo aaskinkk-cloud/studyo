@@ -281,7 +281,7 @@ window.studyoAl = () => { const b = BEKLEYEN; BEKLEYEN = null; return b; };
    "‹ Stüdyo" ve "Video" yerel uygulamanın ana ekranına döner (geri tuşu da web penceresini kapatıp oraya döner). */
 const DOGRUDAN = new URLSearchParams(location.search).get('git') === 'foto';
 window.STUDYO_DOGRUDAN = DOGRUDAN;
-function yerele(){ location.href = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=app.studyo.android;end'; }
+function yerele(){ location.href = 'intent://ana#Intent;scheme=studyo;package=app.studyo.android;end'; }   // 2.27: yerel uygulamanın kendi bağlantısı
 window.studyoVideoAc = () => { if (DOGRUDAN) yerele(); else modulAc('video/', null, 'Kareden Videoya açılıyor…', ACIK); };
 window.studyoEve = () => { if (DOGRUDAN) { yerele(); return; } if (ACIK) { if (history.state && history.state.studyoModul) history.back(); else modulKapat(); } };
 window.studyoHazir = () => { $('#yukleniyor').hidden = true; };
@@ -301,7 +301,7 @@ window.studyoVideoya = dosyalar => { if (!dosyalar || !dosyalar.length) return;
   const kendi = [...dosyalar].map(f => new File([f], f.name, {type: f.type, lastModified: f.lastModified}));
   const acik = ACIK; setTimeout(() => modulAc('video/', {dosyalar: kendi}, 'Video hazırlanıyor…', acik), 0); };
 function modulKapat(){ ACIK = false; const m = $('#modul'); m.hidden = true; if (cerceve){ try { cerceve.src = 'about:blank'; } catch(e){} cerceve.remove(); cerceve = null; } m.innerHTML = ''; $('#yukleniyor').hidden = true; projeYukle(); }
-if (DOGRUDAN) addEventListener('load', () => modulAc('foto/', null, 'Karanlık Oda açılıyor…', true));
+if (DOGRUDAN) addEventListener('load', () => modulAc('foto/?yerel=1', null, 'Karanlık Oda açılıyor…', true));
 addEventListener('popstate', () => {
   if (!ACIK) return;
   let isledi = false; try { const k = cerceve && cerceve.contentWindow && cerceve.contentWindow.studyoKopru; if (k) isledi = k.geri(); } catch(e){}

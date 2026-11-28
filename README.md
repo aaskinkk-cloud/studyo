@@ -6,6 +6,11 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 2.27 (28.11.2026): Karanlık Oda ana ekranı düzeltmeleri
+- **Video düğmeleri (kök neden):** yerel uygulamaya dönüş Chrome'un eklediği BROWSABLE kategorisiyle eşleşmeyen bir niyetle deneniyordu → büyük kart boşa gidiyor, üstteki düğme başka sayfa açıyordu; ayrıca "yerelden açıldı" bilgisi kabuktan okunuyordu (önbellekteki eski kabukta yok). Şimdi bilgi Karanlık Oda'nın kendi adresinde (`foto/?yerel=1`), dönüş yerel uygulamanın kendi bağlantısıyla (`studyo://ana`, yerel 4.56). Web Stüdyo içinde Video, en yeni Kareden Videoya'yı (`video/`) açar.
+- **Çift taslak:** alttaki kitaplık yeni ekranda gizli; **Tümü** açar/kapatır (favoriler, hazır ayarlar, liste görünümleri orada).
+- **Taşma (sağa sola kayma):** başlık küçüldü ve tek satırda kısalır, kart ızgarası `minmax(0,1fr)`, satır resimleri küçüldü, ana ekranda yatay taşma kapatıldı.
+
 ## 2.26 (28.11.2026): Karanlık Oda yeni ana ekranı · yerel Stüdyo'dan doğrudan açılış
 - **Yeni ana ekran** (yerel Stüdyo ana ekranına benzer): başlık "Karanlık Oda" + sağda sade **Video ›** düğmesi (tema düğmesi yanında); iki büyük kart **Yeni fotoğraf** (sarı, galeriden seç) · **Video** (Stüdyo · Kareden Videoya); **Son çalışmalarım**: kitaplıktaki son 6 fotoğraf, Kareden Videoya taslakları gibi küçük resimli satırlar (dokun = aç), **Tümü** kitaplığa iner. Önceki ana ekranın tamamı (Ayarlar, Fotoğraf kartları, Haber · Blog · Logo, kitaplık) altta "DİĞER" başlığıyla aynen.
 - **Yerelden doğrudan:** yerel Stüdyo'nun "Fotoğraf" kartı `?git=foto` ile açar → web ana sayfası görünmeden Karanlık Oda gelir; "Stüdyo · Video" düğmesi ve geri tuşu yerel ana ekrana döner.

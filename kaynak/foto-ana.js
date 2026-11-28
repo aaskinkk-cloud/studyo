@@ -8,31 +8,40 @@
   function eski(){ try { return localStorage.getItem(ESKI) === '1'; } catch(e){ return false; } }
   var css = document.createElement('style');
   css.textContent =
-    '.fa-ust{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:4px 0 18px}' +
-    '.fa-ust h1{margin:0;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.5px}' +
+    '.fa-blok{max-width:100%;min-width:0;overflow:hidden}' +
+    '.fa-ust{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:4px 0 18px}.fa-ust>div:first-child{min-width:0;flex:1}' +
+    '.fa-ust h1{margin:0;font-size:26px;line-height:1.1;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.fa-sag{flex:none}.fa-sag .icon-btn{flex:none}' +
     '.fa-ust p{margin:6px 0 0;font-size:13px;color:var(--muted)}' +
     '.fa-vid{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:20px;border:1px solid rgba(128,140,150,.35);background:rgba(128,140,150,.12);color:inherit;font:600 13px/1 inherit;cursor:pointer}' +
     '.fa-vid svg,.fa-kart svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}' +
-    '.fa-kartlar{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}' +
-    '.fa-kart{min-height:128px;border:0;border-radius:22px;padding:18px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;font:inherit}' +
+    '.fa-kartlar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:22px}' +
+    '.fa-kart{min-width:0;overflow:hidden;min-height:128px;border:0;border-radius:22px;padding:18px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;font:inherit}' +
     '.fa-yeni{background:#E8C860;color:#141414}.fa-yeni b{font-size:19px}' +
     '.fa-video{background:var(--surface-2,#26323f);color:inherit}.fa-video b{font-size:17px}.fa-video small{color:var(--muted);font-size:12px;margin-top:4px;display:block}' +
     '.fa-bas{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;padding-bottom:10px;border-bottom:1px solid rgba(128,140,150,.25)}' +
     '.fa-bas h2{margin:0;font-size:17px}.fa-bas button{height:34px;padding:0 14px;border-radius:17px;border:1px solid #c9a94a;background:none;color:#e0c25e;font:13px inherit;cursor:pointer}' +
     '.fa-liste{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}' +
     '.fa-satir{display:flex;gap:14px;align-items:center;padding:12px;border-radius:18px;background:var(--surface,#1b2833);border:0;color:inherit;text-align:left;cursor:pointer;font:inherit;width:100%}' +
-    '.fa-satir img,.fa-satir .fa-bos{width:120px;height:68px;border-radius:12px;object-fit:cover;flex:none;background:var(--stage,#000)}' +
+    '.fa-satir img,.fa-satir .fa-bos{width:104px;height:62px;border-radius:12px;object-fit:cover;flex:none;background:var(--stage,#000)}' +
     '.fa-satir b{display:block;font-size:15px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
     '.fa-satir span{display:block;font-size:12px;color:var(--muted)}' +
     '.fa-not{font-size:13px;color:var(--muted);margin:0 0 22px}' +
     '.fa-diger{font-size:12px;letter-spacing:2px;color:var(--muted);margin:6px 0 10px;font-weight:700}' +
-    'body.fa-acik #home .home-top{display:none}body.fa-dog #home .home-wrap>.studyo-ev{display:none}';
+    'body.fa-acik #home .home-top{display:none}body.fa-dog #home .home-wrap>.studyo-ev{display:none}' +
+    'body.fa-acik:not(.fa-kit) #libBody,body.fa-acik:not(.fa-kit) #home .sec-head:has(#libTabs){display:none}' +
+    'body.fa-acik #home .home-wrap{overflow-x:hidden}';
   document.head.appendChild(css);
 
   /* Video'ya geçiş: yerelden doğrudan açıldıysa yerel Stüdyo'ya döner; web Stüdyo içinde Kareden Videoya'yı açar */
+  /* 2.27 KÖK NEDEN: (1) yerel uygulamaya dönüş, Chrome'un eklediği BROWSABLE kategorisiyle eşleşmeyen MAIN/LAUNCHER niyetiyle deneniyordu
+     (eşleşmeyince boşa gidiyor ya da başka sayfa açılıyordu); (2) yerelden açılış bilgisi kabuktan okunuyordu, önbellekteki eski kabukta yoktu.
+     Şimdi: yerelden açılış bu sayfanın kendi adresinde (?yerel=1); dönüş yerel uygulamanın kendi bağlantısıyla (studyo://ana), dokunuşla, en üst pencereden. */
+  var YEREL = new URLSearchParams(location.search).get('yerel') === '1';
   function videoya(){
-    var P = null; try { if (window.parent !== window && window.parent.STUDYO_KABUK) P = window.parent; } catch(e){}
-    if (P && P.studyoVideoAc) { P.studyoVideoAc(); return; }
+    if (YEREL) { try { window.top.location.href = 'intent://ana#Intent;scheme=studyo;package=app.studyo.android;end'; } catch(e){ location.href = 'intent://ana#Intent;scheme=studyo;package=app.studyo.android;end'; } return; }
+    var P = null; try { if (window.parent !== window) P = window.parent; } catch(e){}
+    try { if (P && P.studyoVideoAc) { P.studyoVideoAc(); return; } if (P && typeof P.modulAc === 'function') { P.modulAc('video/', null, 'Kareden Videoya açılıyor…', true); return; } } catch(e){}
     location.href = '../video/';
   }
   var SV = function(d, s){ return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>'; };
@@ -72,9 +81,11 @@
     blok.querySelector('.fa-vid').onclick = videoya;
     blok.querySelector('.fa-video').onclick = videoya;
     blok.querySelector('.fa-yeni').onclick = function(){ var p = document.querySelector('#pickGallery'); if (p) p.click(); };
-    blok.querySelector('.fa-tumu').onclick = function(){ var l = document.querySelector('#libBody') || document.querySelector('#libTabs'); if (l) l.scrollIntoView({behavior: 'smooth', block: 'start'}); };
-    var dog = false; try { dog = !!(window.parent !== window && window.parent.STUDYO_DOGRUDAN); } catch(e){}
-    if (dog) { blok.querySelector('.fa-vid').innerHTML = SV('M15 18l-6-6 6-6', 18) + 'Stüdyo · Video'; document.body.classList.add('fa-dog'); }
+    /* 2.27: alttaki kitaplık (aynı fotoğraflar) yeni ekranda gizli; "Tümü" açar (favoriler, hazır ayarlar, liste görünümleri orada) */
+    var tumu = blok.querySelector('.fa-tumu');
+    tumu.onclick = function(){ var acik = document.body.classList.toggle('fa-kit'); tumu.textContent = acik ? 'Kapat' : 'Tümü';
+      if (acik) { var l = document.querySelector('#libTabs') || document.querySelector('#libBody'); if (l) setTimeout(function(){ l.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50); } };
+    if (YEREL) { blok.querySelector('.fa-vid').innerHTML = SV('M15 18l-6-6 6-6', 18) + 'Video'; document.body.classList.add('fa-dog'); }
     var top = wrap.querySelector('.studyo-ev');   // köprünün "‹ Stüdyo" düğmesi en üstte kalır
     if (top && top.parentNode === wrap) top.after(blok); else wrap.prepend(blok);
     if (tb) blok.querySelector('.fa-sag').appendChild(tb);   // tema düğmesi yeni başlığın sağında (boş satır kalmaz)

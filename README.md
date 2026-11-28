@@ -2,9 +2,16 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.29 · 28.11.2026 (Karanlık Oda 6.81, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
+**Güncel sürüm:** Web 2.30 · 28.11.2026 (Karanlık Oda 6.82, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.30 (28.11.2026): Karanlık Oda ana ekranında çeki düzen · üstte panelde fotoğraf en üstten başlar
+- **Tek taslak listesi:** "Son çalışmalarım" ekranda bir kez. Başlıkta haplar **Son çalışmalarım · ★ Favoriler**; 6 satır, fazlası **Tümü · n** ile aynı listede açılır (Daha az). Alttaki eski kitaplık listesi bu görünümde gösterilmez; yalnız **⋯ › Hazır ayarlarım** onu hazır ayarlar sekmesiyle açar (haplardan birine dokununca kapanır).
+- **Tekrarlar kaldırıldı:** "Galeriden seç" kartı gizli (aynı işi **＋ Yeni fotoğraf** yapıyor; dosya girişi yerinde, çoklu seçim → toplu düzenleme aynen). Kamera ve Toplu düzenle duruyor. "DİĞER" yazısı yok.
+- **Katlanır başlıklar:** Fotoğraf · Haber · Blog · Logo başlıklarına dokun → aç/kapat (durum saklanır; başlık menü açmaz). **⚙ Ayarlar** ve sürümler en altta.
+- **Panel fotoğrafın üstündeyken** fotoğraf üst çubuğun hemen altından başlar (üstte boşluk yok; boyutu aynı). Kırpma ekranında ve seçenek kapalıyken eski ortalama. (`layoutView`)
+- Test (412×915, Android kimliği): 9 kayıtla 6 satır → Tümü 9 → Favoriler 3; başlık katlama ve saklama; Hazır ayarlarım açılıp kapanıyor; Yeni fotoğraf galeriyi açıyor; üstte panelde fotoğraf üstü = üst çubuk altı (40 px), kapatınca ortalı (281 px); hata yok. Telefonda denenmedi.
 
 ## 2.29 (28.11.2026): Karanlık Oda ana ekranı = yerel video Stüdyo ana ekranı · panel fotoğrafın üstüne (seçenek)
 - **Ana ekran (varsayılan):** yerel uygulamanın video ana ekranının (`Ana.kt`) aynısı: üstte şerit "Karanlık Oda · Fotoğraf düzenleyici" + **⋯** menü · sarı **＋ Yeni fotoğraf** · yanında **Video** kartı ("Fotoğraf" kartının yerinde; dokun = yerel Stüdyo'nun taslak ekranı) · yapışkan **Son çalışmalarım** + **Tümü** · satır kartları (küçük resim, ad, boyut · düzenlendi · ★, tarih, **⋮** = kitaplığın kendi menüsü: Aç, Yeniden adlandır, Kopya, Kaldır). Renkler `Tema.kt` gece/gündüz.

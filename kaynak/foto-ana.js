@@ -1,4 +1,6 @@
-/* ===== 2.29 STÜDYO · Karanlık Oda ana ekranı = yerel video Stüdyo ana ekranının (Ana.kt) aynısı =====
+/* ===== 2.29–2.30 STÜDYO · Karanlık Oda ana ekranı = yerel video Stüdyo ana ekranının (Ana.kt) aynısı =====
+   2.30: tek taslak listesi (Son çalışmalarım | ★ Favoriler, 6 satır + Tümü), alttaki kitaplık yalnız ⋯ › Hazır ayarlarım için,
+   "Galeriden seç" gizli (= Yeni fotoğraf), bölüm başlıkları katlanır, Ayarlar ve sürümler en altta.
    Başlık şeridi "Karanlık Oda / Fotoğraf düzenleyici · web" + ⋯ menü (kitaplık, ayarlar, tema, görünüm, sürümler) ·
    sarı "Yeni fotoğraf" + "Video" kartı (dokun = yerel Stüdyo'nun taslak ekranı) · yapışkan "Son çalışmalarım" + Tümü ·
    satır kartları (küçük resim, ad, boyut, tarih, ⋮ = kitaplığın kendi menüsü). Varsayılan görünüm budur.
@@ -46,6 +48,17 @@
     '.fk-r>button{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--fk-soluk);font:700 18px/1 var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
     '.fk-bos{font-size:13px;color:var(--fk-soluk);margin:10px 0 0}' +
     '.fk-diger{font-size:12px;letter-spacing:2px;color:var(--fk-soluk);margin:28px 0 0;font-weight:700}' +
+    /* 2.30 çeki düzen: tek taslak listesi (alttaki kitaplık yalnız Hazır ayarlarım için açılır), "Galeriden seç" = Yeni fotoğraf (gizli),
+       bölüm başlıkları katlanır, Ayarlar ve sürümler en altta */
+    '.fk-hap{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}.fk-hap::-webkit-scrollbar{display:none}' +
+    '.fk-sb .fk-hap button{flex:none;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--fk-cizgi);background:none;color:var(--fk-yazi);font:600 14px var(--f-ui,system-ui,sans-serif);cursor:pointer}' +
+    '.fk-sb .fk-hap button.on{background:var(--fk-sari);border-color:var(--fk-sari);color:var(--fk-ink)}' +
+    'body.fk-acik #libTabs button:not([data-t="presets"]){display:none}' +
+    'body.fk-acik #home .actions>label.act.primary{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important;border:0!important}' +
+    'body.fk-acik #home .grp-et{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 2px;margin:0;border-bottom:1px solid var(--fk-cizgi);-webkit-tap-highlight-color:transparent;user-select:none}' +
+    'body.fk-acik #home .grp-et::after{content:"⌄";font-size:16px;line-height:1;transition:transform .15s}body.fk-acik #home .grp-et.fk-kapali::after{transform:rotate(-90deg)}' +
+    'body.fk-acik #home .grp-et.fk-kapali+.actions{display:none!important}' +
+    'body.fk-acik #ayarKutu{order:90}body.fk-acik #home .ko-surum{order:99}' +
     /* --- 2.28 video düzeni (renkler yerel Stüdyo AS ile aynı) --- */
     ':root{--fv-zemin:#F3F5F7;--fv-kart:#fff;--fv-kart2:#EEF1F4;--fv-cizgi:#DFE4E8;--fv-yazi:#141A1F;--fv-soluk:#5F6C75;--fv-vurgu:#E8681C;--fv-vurgu2:#F39A4C;--fv-alt:#fff;--fv-mavi:#5AA9FF}' +
     '[data-theme="dark"]{--fv-zemin:#121A21;--fv-kart:#1F2B35;--fv-kart2:#283844;--fv-cizgi:#2F3F4B;--fv-yazi:#EEF2F5;--fv-soluk:#93A3AE;--fv-vurgu:#FF8A3D;--fv-vurgu2:#FFB26B;--fv-alt:#0E151B}' +
@@ -140,7 +153,7 @@
   function kitaplik(ac, btn){
     var a = (ac === undefined) ? !document.body.classList.contains('fa-kit') : ac;
     document.body.classList.toggle('fa-kit', a);
-    document.querySelectorAll('.fa-tumu,.fv-tumu,.fk-tumu').forEach(function(b){ b.textContent = a ? 'Kapat' : (b.classList.contains('fv-tumu') ? 'Tümünü gör' : 'Tümü'); });
+    document.querySelectorAll('.fa-tumu,.fv-tumu').forEach(function(b){ b.textContent = a ? 'Kapat' : (b.classList.contains('fv-tumu') ? 'Tümünü gör' : 'Tümü'); });
     if (a) { var l = document.querySelector('#libTabs') || document.querySelector('#libBody'); if (l) setTimeout(function(){ l.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50); }
   }
 
@@ -166,10 +179,12 @@
   }
 
   /* ---------- 2.29 yerel Stüdyo ana ekranı (varsayılan) ---------- */
+  var FK = {fav: false, tum: false};
   async function satirlar(kutu){
-    var recs = await kayitlar(); kutu.innerHTML = '';
-    if (!recs.length){ kutu.innerHTML = '<p class="fk-bos">Henüz fotoğraf yok. “Yeni fotoğraf” ile başla.</p>'; return; }
-    recs.forEach(function(r){
+    var tum = await kayitlar(), recs = FK.fav ? tum.filter(function(r){ return r.fav; }) : tum; kutu.innerHTML = '';
+    var tb = document.querySelector('.fk-tumu'); if (tb) { tb.hidden = recs.length <= 6; tb.textContent = FK.tum ? 'Daha az' : 'Tümü · ' + recs.length; }
+    if (!recs.length){ kutu.innerHTML = '<p class="fk-bos">' + (FK.fav ? 'Favori yok. Bir fotoğrafın ⋮ menüsünden ya da düzenleyiciden yıldızla.' : 'Henüz fotoğraf yok. “Yeni fotoğraf” ile başla.') + '</p>'; return; }
+    (FK.tum ? recs : recs.slice(0, 6)).forEach(function(r){
       var d = document.createElement('div'); d.className = 'fk-r'; d.setAttribute('role', 'button'); d.setAttribute('aria-label', (r.name || 'Fotoğraf') + ' aç');
       d.innerHTML = (r.thumb ? '<img alt="" src="' + kac(r.thumb) + '">' : '<div class="fk-bosr"></div>') +
         '<div><b>' + kac(r.name || 'Fotoğraf') + '</b><span>' + (r.w && r.h ? r.w + '×' + r.h : 'Fotoğraf') + (r.state ? ' · düzenlendi' : '') + (r.fav ? ' · ★' : '') + '</span><small>' + tarih(r.updated) + '</small></div>' +
@@ -185,7 +200,7 @@
     if (ust.querySelector('.fk-menu')) { menuKapat(); return; }
     var m = document.createElement('div'); m.className = 'fk-menu'; m.setAttribute('role', 'menu');
     var koyu = document.documentElement.getAttribute('data-theme') === 'dark';
-    [['Kitaplık · tüm fotoğraflar', function(){ kitaplik(true); }],
+    [['Hazır ayarlarım', hazirAyarlar],
      ['Video taslaklarım (Stüdyo)', videoya],
      ['⚙ Ayarlar', function(){ var k = document.querySelector('#ayarKutu'); if (k) { k.open = true; setTimeout(function(){ k.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50); } }],
      [koyu ? 'Gündüz teması' : 'Gece teması', function(){ var t = document.querySelector('#themeBtn'); if (t) t.click(); }],
@@ -195,6 +210,22 @@
     ust.appendChild(m);
     setTimeout(function(){ document.addEventListener('pointerdown', disTik, true); }, 0);
   }
+  function hazirAyarlar(){
+    var p = document.querySelector('#libTabs [data-t="presets"]'); if (p) p.click();
+    kitaplik(true);
+  }
+  /* bölüm başlıkları (Fotoğraf, Haber · Blog · Logo) katlanır; durum saklanır. Başlığa dokunmak yalnız açar/kapatır. */
+  var GK = 'studyo.fGrpKapali';
+  function grpKur(){
+    var kap = []; try { kap = JSON.parse(localStorage.getItem(GK) || '[]'); } catch(e){}
+    document.querySelectorAll('#home .grp-et').forEach(function(h){
+      var ad = h.textContent.trim(); h.classList.toggle('fk-kapali', kap.indexOf(ad) >= 0);
+      if (h.__fk) return; h.__fk = 1; h.setAttribute('role', 'button'); h.tabIndex = 0;
+      h.addEventListener('click', function(e){ if (!document.body.classList.contains('fk-acik')) return; e.preventDefault(); e.stopPropagation();
+        var k = h.classList.toggle('fk-kapali'), l = []; try { l = JSON.parse(localStorage.getItem(GK) || '[]'); } catch(_){}
+        l = l.filter(function(x){ return x !== ad; }); if (k) l.push(ad); try { localStorage.setItem(GK, JSON.stringify(l)); } catch(_){} });
+    });
+  }
   function yerelKur(wrap){
     var var_ = wrap.querySelector('.fk-blok');
     if (var_) { satirlar(var_.querySelector('.fk-liste')); return; }
@@ -203,16 +234,21 @@
       '<div class="fk-ust"><div><h1>Karanlık Oda</h1><p>Fotoğraf düzenleyici · web uygulaması</p></div><button type="button" class="fk-uc" aria-label="Menü" aria-haspopup="menu">⋯</button></div>' +
       '<div class="fk-kartlar"><button type="button" class="fk-k fk-yeni"><em>＋</em><b>Yeni fotoğraf</b></button>' +
       '<button type="button" class="fk-k fk-vid">' + svg(Y.vid, 26) + '<div><b>Video</b><small>Stüdyo · taslaklarım</small></div></button></div>' +
-      '<div class="fk-sb"><h2>Son çalışmalarım</h2><button type="button" class="fk-tumu">Tümü</button></div>' +
-      '<div class="fk-liste"></div><div class="fk-diger">DİĞER</div>';
+      '<div class="fk-sb"><div class="fk-hap" role="tablist"><button type="button" class="on" data-f="0">Son çalışmalarım</button><button type="button" data-f="1">★ Favoriler</button></div><button type="button" class="fk-tumu" hidden>Tümü</button></div>' +
+      '<div class="fk-liste"></div>';
     var ust = blok.querySelector('.fk-ust');
     ust.querySelector('.fk-uc').onclick = function(){ menuAc(ust); };
     blok.querySelector('.fk-yeni').onclick = function(){ var p = document.querySelector('#pickGallery'); if (p) p.click(); };
     blok.querySelector('.fk-vid').onclick = videoya;
-    blok.querySelector('.fk-tumu').onclick = function(){ kitaplik(); };
+    var liste_ = blok.querySelector('.fk-liste');
+    blok.querySelector('.fk-tumu').onclick = function(){ FK.tum = !FK.tum; satirlar(liste_); };
+    blok.querySelectorAll('.fk-hap button').forEach(function(b){ b.onclick = function(){
+      FK.fav = b.dataset.f === '1'; FK.tum = false; kitaplik(false);
+      blok.querySelectorAll('.fk-hap button').forEach(function(x){ x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+      satirlar(liste_); }; });
     var top = wrap.querySelector('.studyo-ev');
     if (top && top.parentNode === wrap) top.after(blok); else wrap.prepend(blok);
-    satirlar(blok.querySelector('.fk-liste'));
+    satirlar(liste_);
   }
 
   /* ---------- 2.28 video düzeni (pasif seçenek) ---------- */
@@ -313,7 +349,7 @@
     document.body.classList.toggle('fa-dog', YEREL && g !== 'eski');
     if (g === 'eski' || g === 'yerel') { if (g === 'eski') document.body.classList.remove('fa-kit'); if (tb && ht && tb.parentNode !== ht) ht.appendChild(tb); }
     if (g === 'eski') {}
-    else if (g === 'yerel') yerelKur(wrap);
+    else if (g === 'yerel') { yerelKur(wrap); grpKur(); }
     else if (g === 'video') videoKur(wrap);
     else kartKur(wrap);
     navKur(ev);

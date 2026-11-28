@@ -6,6 +6,13 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 2.26 (28.11.2026): Karanlık Oda yeni ana ekranı · yerel Stüdyo'dan doğrudan açılış
+- **Yeni ana ekran** (yerel Stüdyo ana ekranına benzer): başlık "Karanlık Oda" + sağda sade **Video ›** düğmesi (tema düğmesi yanında); iki büyük kart **Yeni fotoğraf** (sarı, galeriden seç) · **Video** (Stüdyo · Kareden Videoya); **Son çalışmalarım**: kitaplıktaki son 6 fotoğraf, Kareden Videoya taslakları gibi küçük resimli satırlar (dokun = aç), **Tümü** kitaplığa iner. Önceki ana ekranın tamamı (Ayarlar, Fotoğraf kartları, Haber · Blog · Logo, kitaplık) altta "DİĞER" başlığıyla aynen.
+- **Yerelden doğrudan:** yerel Stüdyo'nun "Fotoğraf" kartı `?git=foto` ile açar → web ana sayfası görünmeden Karanlık Oda gelir; "Stüdyo · Video" düğmesi ve geri tuşu yerel ana ekrana döner.
+- Web Stüdyo içinde açıldığında Video düğmesi Kareden Videoya'yı açar, "‹ Stüdyo" eskisi gibi.
+- **Önceki görünüm:** ⚙ Ayarlar › "Önceki ana ekran" (`localStorage['studyo.fAnaEski']`).
+- Kod: `kaynak/foto-ana.js` (yeni; `foto/index.html` sonunda kopyası, `esitle.py` ekler), `index.html` + `kaynak/kabuk.html` (DOGRUDAN, `studyoVideoAc`, `yerele`). Telefonda denenmedi.
+
 ## 2.25 (28.11.2026): "Senin fotoğraflarından" filtreleri · kendi fontunu yükle
 - **Filtreler › 📷 Senin fotoğraflarından** (ilk sekme): Ahmet'in 7 referans fotoğrafından — Kitap & kahve · loş oda, Türk kahvesi · güz ışığı, Kahve · turkuaz fincan, Eski çarşı · mat yeşil, Sokak dükkânı · soğuk mat, Antika köşe · sıcak film, Elma · güz bahçesi. Her biri referansın 33 noktalı ışıklık dağılımını, 3 ton bölgesindeki renk ortalaması/yayılımını, mat siyahını ve grenini taşır (uygulamanın kendi `styleStats` ölçüsü); sabit ayar değil, her fotoğrafa uyarlanır (ışık %90, renk %95). Yoğunluk ve "Nerede uygulansın" diğer filtrelerdeki gibi.
 - Tek bir fotoğrafa birebir uyum için: Stil kopyala › "Ayarları birebir çıkar" (2.23).

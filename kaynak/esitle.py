@@ -36,6 +36,8 @@ def govdeye(s, app):
     if os.path.exists(lt): ek += '<script>\n' + oku(lt) + '\n</script>\n'
     ara = os.path.join(BURA, app + '-arayuz.js')   # uygulamaya özel görünüm katmanı (varsa)
     if os.path.exists(ara): ek += '<script>\n' + oku(ara) + '\n</script>\n'
+    an = os.path.join(BURA, app + '-ana.js')       # 2.26: yeni ana ekran (Karanlık Oda)
+    if os.path.exists(an): ek += '<script>\n' + oku(an) + '\n</script>\n'
     yn = os.path.join(BURA, app + '-yeni.js')      # 2.16: yeni düzen (tasarım paketi; ⋯ menüsünden önceki düzene dönülebilir)
     if os.path.exists(yn): ek += '<script>\n' + oku(yn) + '\n</script>\n'
     return s[:i] + ek + s[i:]

@@ -6,6 +6,12 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## Yerel 4.57 (28.11.2026): video ana ekranı fotoğraf ana ekranı gibi · kendi rengi
+- **Düzen** (web fotoğraf ana ekranı 2.31 ile aynı): yapışkan başlıkta haplar **Son çalışmalarım · Arşiv · n** + **Seç**; uzun listede 3 proje, altında simgeli **⌄ Tamamını göster · n daha / ⌃ Gizle** (Arşiv'e geçince kapanır; seçim kipinde tüm liste). Fotoğraf kartında fotoğraf simgesi.
+- **Renk:** video ana sayfasının kendi rengi (`AnaRenk`, varsayılan **Mercan**; fotoğraf tarafı sarı kalır). ⋯ menüsünün en üstünde küçük renk alanı: Mercan · Turkuaz · Mor · Mavi · Yeşil · Kırmızı · Sarı (dokun = seç, hatırlanır). Yeni video kartı, haplar, Seç/Arşiv düğmeleri ve göster/gizle bu rengi kullanır. Video düzenleyicinin renkleri (tema, InShot rengi) değişmedi.
+- **Fotoğraf kartı** doğrudan `foto/?yerel=1&studyo=1` açar (web ana sayfası ve çerçeve hiç yüklenmez → arada eski ekran yok, daha hızlı). Eski `?git=foto` bağlantısı da web 2.32–2.33'te doğrudan yönlenir.
+- Kod: `Ana.kt` (AnaSayfa, `webAc`, `AnaHap`, `GosterGizle`, `AnaRenkAlani`, `AnaRenk`). Derleme GitHub'da; telefonda denenmedi.
+
 ## 4.56 (28.11.2026, deneme · `yerel-android` dalı): web Karanlık Oda'dan yerel ana ekrana dönüş
 - `studyo://ana` bağlantısı (VIEW + BROWSABLE) ana ekranı açar. Karanlık Oda'daki Video düğmeleri ve "‹ Stüdyo" bununla döner (web 2.27). Önceki deneme Chrome'un eklediği BROWSABLE kategorisi yüzünden eşleşmiyordu.
 

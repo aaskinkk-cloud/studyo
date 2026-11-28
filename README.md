@@ -6,6 +6,9 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.56 (28.11.2026, deneme · `yerel-android` dalı): web Karanlık Oda'dan yerel ana ekrana dönüş
+- `studyo://ana` bağlantısı (VIEW + BROWSABLE) ana ekranı açar. Karanlık Oda'daki Video düğmeleri ve "‹ Stüdyo" bununla döner (web 2.27). Önceki deneme Chrome'un eklediği BROWSABLE kategorisi yüzünden eşleşmiyordu.
+
 ## 4.55 (28.11.2026, deneme · `yerel-android` dalı): Fotoğraf kartı doğrudan Karanlık Oda
 - Ana ekrandaki **Fotoğraf** kartı web Stüdyo'yu `?git=foto` ile açar: ana sayfa görünmeden Karanlık Oda'nın yeni ana ekranı gelir (web 2.26). Oradaki "Stüdyo · Video" düğmesi ve geri tuşu bu ekrana döner.
 - **Uzun bas:** önceki web Stüdyo ana sayfası (eski video projeleri).

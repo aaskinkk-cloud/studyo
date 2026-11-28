@@ -49,6 +49,13 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
+            <!-- 4.56: web Karanlık Oda'dan yerel ana ekrana dönüş (studyo://ana; Chrome BROWSABLE ister) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="studyo" android:host="ana" />
+            </intent-filter>
             <!-- 3.81: Google Fotoğraflar albüm bağlantısı (Paylaş › Stüdyo) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

@@ -27,6 +27,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -99,7 +101,7 @@ class MainActivity : ComponentActivity() {
     fun webAc(paylasimla: Boolean) {
         val s = sonPaylasim
         val i = if (paylasimla && s != null) Intent(s).setClass(this, LauncherActivity::class.java).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        else Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(WEB_ADRES))
+        else Intent(this, LauncherActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(WEB_ADRES + "?git=foto"))   // 4.55: Fotoğraf kartı doğrudan Karanlık Oda
         try { startActivity(i) } catch (e: Exception) { Kayit.hata("web aç", e) }
     }
 
@@ -238,13 +240,14 @@ fun AnaSayfa(ac: (String) -> Unit, yeni: () -> Unit, webAc: () -> Unit, webUrl: 
                         Text("Yeni video", color = Renk.turuncuM, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(
-                        Modifier.weight(1f).height(108.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart2).clickable(onClick = webAc).padding(14.dp),
+                        Modifier.weight(1f).height(108.dp).clip(RoundedCornerShape(16.dp)).background(Renk.kart2)
+                            .pointerInput(Unit) { detectTapGestures(onTap = { webAc() }, onLongPress = { webUrl(WEB_ADRES) }) }.padding(14.dp),   // 4.55: uzun bas = önceki web Stüdyo
                         verticalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text("◑", color = Renk.turkuaz, fontSize = 26.sp)
                         Column {
                             Text("Fotoğraf", color = Renk.yazi, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                            Text("+ önceki Stüdyo (web)", color = Renk.soluk, fontSize = 12.sp)
+                            Text("Karanlık Oda · uzun bas: önceki Stüdyo", color = Renk.soluk, fontSize = 12.sp, maxLines = 2)
                         }
                     }
                 }

@@ -6,6 +6,10 @@ Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı t
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
 
+## 4.55 (28.11.2026, deneme · `yerel-android` dalı): Fotoğraf kartı doğrudan Karanlık Oda
+- Ana ekrandaki **Fotoğraf** kartı web Stüdyo'yu `?git=foto` ile açar: ana sayfa görünmeden Karanlık Oda'nın yeni ana ekranı gelir (web 2.26). Oradaki "Stüdyo · Video" düğmesi ve geri tuşu bu ekrana döner.
+- **Uzun bas:** önceki web Stüdyo ana sayfası (eski video projeleri).
+
 ## 4.54 (27.11.2026, deneme · `yerel-android` dalı): her ekranda görüntüyü sürükleyerek kaydırma
 - **KÖK NEDEN:** önizlemede görüntüyü kaydırma bazı ekranlarda kapalıydı: Nesne/Katman'da kesilen nesne seçiliyken (seçili nesne ekranın her yerinden sürükleniyordu, 4.08), logo panelinde (logo her yerden taşınıyordu), şablon giriş sayfasında (başlık her yerden taşınıyordu).
 - **Şimdi:** nesne, logo ve giriş başlığı yalnız kendi üstünden (çevresinde pay ile) sürüklenir; **boş yeri sürüklemek görüntüyü kaydırır** — bütün ekranlarda. Fotoğrafa yapışık nesneler sürüklerken görüntüyle birlikte kayar (önizlemede de anında).

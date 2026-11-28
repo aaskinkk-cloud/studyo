@@ -2,9 +2,17 @@
 
 Fotoğraf ve video düzenleyici. **Karanlık Oda** ile **Kareden Videoya**'yı tek uygulamada birleştirir. Tasarımda InShot'un sade düzeni örnek alındı. Tarayıcıda çalışır (PWA). Dosyalar telefondan dışarı gönderilmez.
 
-**Güncel sürüm:** Web 2.28 · 28.11.2026 (Karanlık Oda 6.80, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının en altında yazar.
+**Güncel sürüm:** Web 2.29 · 28.11.2026 (Karanlık Oda 6.81, Kareden Videoya 9.15) · yerel Android uygulaması 4.56 (`yerel-android` dalı). Sürümler Karanlık Oda ana ekranının ⋯ menüsünde ve en altında yazar.
 
 **Android APK:** https://github.com/aaskinkk-cloud/studyo/releases/download/android/studyo.apk
+
+## 2.29 (28.11.2026): Karanlık Oda ana ekranı = yerel video Stüdyo ana ekranı · panel fotoğrafın üstüne (seçenek)
+- **Ana ekran (varsayılan):** yerel uygulamanın video ana ekranının (`Ana.kt`) aynısı: üstte şerit "Karanlık Oda · Fotoğraf düzenleyici" + **⋯** menü · sarı **＋ Yeni fotoğraf** · yanında **Video** kartı ("Fotoğraf" kartının yerinde; dokun = yerel Stüdyo'nun taslak ekranı) · yapışkan **Son çalışmalarım** + **Tümü** · satır kartları (küçük resim, ad, boyut · düzenlendi · ★, tarih, **⋮** = kitaplığın kendi menüsü: Aç, Yeniden adlandır, Kopya, Kaldır). Renkler `Tema.kt` gece/gündüz.
+- **⋯ menü:** Kitaplık · Video taslaklarım · Ayarlar · Gece/Gündüz teması · Ana ekran görünümü · **Sürümler** (Stüdyo web, Karanlık Oda, Kareden Videoya, yerel için gereken en düşük sürüm). Sürümler ayrıca ekranın en altında.
+- 2.28'deki mavi-turuncu düzen (büyük başlık, alt gezinme) pasif: ⚙ Ayarlar › "Ana ekran görünümü" › Mavi-turuncu (2.28). 2.26 kartları ve önceki ana ekran da orada.
+- **Alt panel fotoğrafın üstüne (seçenek):** panel tutamağının solundaki düğme (ya da ⚙ Ayarlar › "Alt panel fotoğrafın üstüne açılsın"). Açıkken panel önizleme alanının üstüne biner, fotoğraf küçülmez; tutamakla ekranın tamamına kadar (%95) çekilir. Kapalıyken eski davranış (panel fotoğrafı yukarı iter, en çok %72). `localStorage['ko.panUst']`.
+- Düzeltme: yeni ekranlardaki `font: … inherit` kısaltmaları geçersizdi (yazı boyutları uygulanmıyordu, ör. küçük "＋"); `var(--f-ui)` ile düzeltildi.
+- Test (412×915, Android kimliği, gece): ana ekran, ⋯ menü ve sürümler, Video → `intent://ana…`, yatay taşma yok; düzenleyicide üstte panel: önizleme 766 px kalırken panel 641 px'e çekildi, kapatınca eski davranış, ayar yenilemeden sonra korunuyor; hata yok. Telefonda denenmedi.
 
 ## 2.28 (28.11.2026): Karanlık Oda ana ekranı yerel video Stüdyo düzeninde · video her zaman yerel · sürümler en altta
 - **Kök neden (yeni ana ekran telefonda görünmüyordu, yalnız bir çizgi kalıyordu):** `#home` bir flex sütunu; 2.27'de `.home-wrap`'e verilen `overflow-x:hidden` onun en küçük yüksekliğini 0 yaptı, sütun ekran boyuna sıkıştı, içindeki blok (`overflow:hidden`) ezildi. Şimdi `.home-wrap` ve blok `flex:none`; yatay taşma `#home` üzerinde kapalı.
